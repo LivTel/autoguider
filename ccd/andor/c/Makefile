@@ -1,4 +1,4 @@
-# $Header: /home/cjm/cvs/autoguider/ccd/andor/c/Makefile,v 1.1 2006-03-27 14:03:07 cjm Exp $
+# $Header: /home/cjm/cvs/autoguider/ccd/andor/c/Makefile,v 1.2 2006-03-28 15:13:31 cjm Exp $
 
 include ../../../../Makefile.common
 include ../../../Makefile.common
@@ -22,14 +22,10 @@ CCD_LDFLAGS 		= -lautoguider_ccd_general
 ANDOR_CFLAGS 		= -I$(AUTOGUIDER_SRC_HOME)/andor/andor/examples/common/
 ANDOR_LDFLAGS 		= -L$(AUTOGUIDER_SRC_HOME)/andor/andor/examples/common/ -landor-gcc3 -lstdc++ -lpthread -ldl
 
-# CFITSIO library
-CFITSIO_CFLAGS		= -I$(CFITSIOINCDIR) 
-CFITSIO_LDFLAGS		= -L$(LT_LIB_HOME) -lcfitsio
-
-CFLAGS 			= -g -I$(INCDIR) $(DEBUG_CFLAGS) $(ANDOR_CFLAGS) $(CCD_CFLAGS) $(CFITSIO_CFLAGS)
+CFLAGS 			= -g -I$(INCDIR) $(DEBUG_CFLAGS) $(ANDOR_CFLAGS) $(CCD_CFLAGS)
 DOCFLAGS 		= -static
 
-LIB_SRCS		= andor_general.c andor_setup.c andor_exposure.c andor_temperature.c
+LIB_SRCS		= andor_general.c andor_setup.c andor_exposure.c andor_temperature.c andor_driver.c
 SRCS			= $(LIB_SRCS)
 LIB_HEADERS		= $(LIB_SRCS:%.c=$(INCDIR)/%.h)
 HEADERS			= $(LIB_HEADERS)
@@ -42,7 +38,7 @@ top: $(LT_LIB_HOME)/$(ANDOR_LIBRARYNAME).so docs
 static: $(LT_LIB_HOME)/$(ANDOR_LIBRARYNAME).so
 
 $(LT_LIB_HOME)/$(ANDOR_LIBRARYNAME).so : $(LIB_OBJS)
-	$(CC) $(CCSHAREDFLAG) $(CFLAGS) $(LIB_OBJS) -o $@ $(ANDOR_LDFLAGS) $(CFITSIO_LDFLAGS)
+	$(CC) $(CCSHAREDFLAG) $(CFLAGS) $(LIB_OBJS) -o $@ $(ANDOR_LDFLAGS)
 
 $(LT_LIB_HOME)/$(CCD_LIBRARYNAME).a : $(LIB_OBJS)
 	ar rcv $@ $?
