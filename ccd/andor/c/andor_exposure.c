@@ -1,11 +1,11 @@
 /* andor_exposure.c
 ** Autoguider Andor CCD Library exposure routines
-** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_exposure.c,v 1.1 2006-03-27 14:02:36 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_exposure.c,v 1.2 2006-03-28 15:12:55 cjm Exp $
 */
 /**
  * Exposure routines for the Andor autoguider CCD library.
  * @author Chris Mottram
- * @version $Revision: 1.1 $
+ * @version $Revision: 1.2 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -23,8 +23,6 @@
 #include <unistd.h>
 /* andor CCD library */
 #include "atmcdLXd.h"
-
-#include "fitsio.h"
 
 #include "ccd_exposure.h"
 #include "ccd_general.h"
@@ -54,7 +52,7 @@ struct Exposure_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: andor_exposure.c,v 1.1 2006-03-27 14:02:36 cjm Exp $";
+static char rcsid[] = "$Id: andor_exposure.c,v 1.2 2006-03-28 15:12:55 cjm Exp $";
 /**
  * Data holding the current status of ccd_exposure.
  * @see #Exposure_Struct
@@ -338,125 +336,13 @@ int Andor_Exposure_Abort(void)
 	return TRUE;
 }
 
-/**
- * Save the exposure to disk.
- * @param filename The name of the file to save the image into. If it does not exist, it is created.
- * @param buffer Pointer to a previously allocated array of unsigned shorts containing the image pixel values.
- * @param buffer_length The length of the buffer in bytes.
- * @param ncols The number of binned image columns (the X size/width of the image).
- * @param nrows The number of binned image rows (the Y size/height of the image).
- * @return Returns TRUE on success, and FALSE if an error occurs.
- * @see andor_general.html#ANDOR_GENERAL_LOG_BIT_EXPOSURE
- * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
- * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
- * @see ../../cdocs/ccd_general.html#CCD_General_Log
- * @see #fexist
- */
-int Andor_Exposure_Save(char *filename,void *buffer,size_t buffer_length,int ncols,int nrows)
-{
-	static fitsfile *fits_fp = NULL;
-	char buff[32]; /* fits_get_errstatus returns 30 chars max */
-	long axes[2];
-	int status = 0,retval,ivalue;
-	double dvalue;
-
-#ifdef ANDOR_DEBUG
-	CCD_General_Log(ANDOR_GENERAL_LOG_BIT_EXPOSURE,"Andor_Exposure_Save started.");
-#endif
-	/* check existence of FITS image and create or append as appropriate? */
-	if(fexist(filename))
-	{
-		retval = fits_open_file(&fits_fp,filename,READWRITE,&status);
-		if(retval)
-		{
-			fits_get_errstatus(status,buff);
-			fits_report_error(stderr,status);
-			CCD_General_Error_Number = 1110;
-			sprintf(CCD_General_Error_String,"Andor_Exposure_Save: File open failed(%s,%d,%s).",
-				filename,status,buff);
-			return FALSE;
-		}
-	}
-	else
-	{
-		/* open file */
-		if(fits_create_file(&fits_fp,filename,&status))
-		{
-			fits_get_errstatus(status,buff);
-			fits_report_error(stderr,status);
-			CCD_General_Error_Number = 1111;
-			sprintf(CCD_General_Error_String,"Andor_Exposure_Save: File create failed(%s,%d,%s).",
-				filename,status,buff);
-			return FALSE;
-		}
-		/* create image block */
-		axes[0] = nrows;
-		axes[1] = ncols;
-		retval = fits_create_img(fits_fp,USHORT_IMG,2,axes,&status);
-		if(retval)
-		{
-			fits_get_errstatus(status,buff);
-			fits_report_error(stderr,status);
-			fits_close_file(fits_fp,&status);
-			CCD_General_Error_Number = 1112;
-			sprintf(CCD_General_Error_String,"Andor_Exposure_Save: Create image failed(%s,%d,%s).",
-				filename,status,buff);
-			return FALSE;
-		}
-	}
-	/* write the data */
-	retval = fits_write_img(fits_fp,TUSHORT,1,ncols*nrows,buffer,&status);
-	if(retval)
-	{
-		fits_get_errstatus(status,buff);
-		fits_report_error(stderr,status);
-		fits_close_file(fits_fp,&status);
-		CCD_General_Error_Number = 1113;
-		sprintf(CCD_General_Error_String,"Andor_Exposure_Save: File write image failed(%s,%d,%s).",
-			filename,status,buff);
-		return FALSE;
-	}
-	/*diddly time stamp etc*/
-	/* ensure data we have written is in the actual data buffer, not CFITSIO's internal buffers */
-	/* closing the file ensures this. */ 
-	retval = fits_close_file(fits_fp,&status);
-	if(retval)
-	{
-		fits_get_errstatus(status,buff);
-		fits_report_error(stderr,status);
-		fits_close_file(fits_fp,&status);
-		CCD_General_Error_Number = 1114;
-		sprintf(CCD_General_Error_String,"Andor_Exposure_Save: File close file failed(%s,%d,%s).",
-			filename,status,buff);
-		return FALSE;
-	}
-#ifdef ANDOR_DEBUG
-	CCD_General_Log(ANDOR_GENERAL_LOG_BIT_EXPOSURE,"Andor_Exposure_Save finished.");
-#endif
-	return TRUE;
-}
-
 /* ----------------------------------------------------------------------------
 ** 		internal functions 
 ** ---------------------------------------------------------------------------- */
 
-/**
- * Return whether the specified filename exists or not.
- * @param filename A string representing the filename to test.
- * @return The routine returns TRUE if the filename exists, and FALSE if it does not exist. 
- */
-static int fexist(char *filename)
-{
-	FILE *fptr = NULL;
-
-	fptr = fopen(filename,"r");
-	if(fptr == NULL )
-		return FALSE;
-	fclose(fptr);
-	return TRUE;
-}
-
-
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2006/03/27 14:02:36  cjm
+** Initial revision
+**
 */
