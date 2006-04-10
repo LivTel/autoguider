@@ -1,11 +1,11 @@
 /* andor_setup.c
 ** Autoguider Andor CCD Library setup routines
-** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_setup.c,v 1.1 2006-03-27 14:02:36 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_setup.c,v 1.2 2006-04-10 15:51:23 cjm Exp $
 */
 /**
  * Setup routines for the Andor autoguider CCD library.
  * @author Chris Mottram
- * @version $Revision: 1.1 $
+ * @version $Revision: 1.2 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -60,7 +60,7 @@ struct Setup_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: andor_setup.c,v 1.1 2006-03-27 14:02:36 cjm Exp $";
+static char rcsid[] = "$Id: andor_setup.c,v 1.2 2006-04-10 15:51:23 cjm Exp $";
 
 /**
  * Instance of the setup data.
@@ -94,11 +94,11 @@ void Andor_Setup_Initialise(void)
  * <li>Uses <b>CCD_Config_Get_String</b> to get the Andor library configuration directory 
  *          (containing detector.ini and the .cof files) config keyword "ccd.andor.config_directory".
  * <li>Call <b>Initialize</b> to initialise the andor library using the selected config directory.
- * <li>Calls <b>SetReadMode<b> to set the Andor library read mode to image.
- * <li>Calls <b>SetAcquisitionMode<b> to set the Andor library to acquire a single image at a time.
- * <li>Calls <b>GetDetector<b> to get the detector dimensions and save then to <b>Setup_Data</b>.
- * <li>Calls <b>SetShutter<b> to set the Andor library shutter settings to auto with no shutter delay.
- * <li>diddly TODO Calls <b>SetFrameTransferMode<b>
+ * <li>Calls <b>SetReadMode</b> to set the Andor library read mode to image.
+ * <li>Calls <b>SetAcquisitionMode</b> to set the Andor library to acquire a single image at a time.
+ * <li>Calls <b>GetDetector</b> to get the detector dimensions and save then to <b>Setup_Data</b>.
+ * <li>Calls <b>SetShutter</b> to set the Andor library shutter settings to auto with no shutter delay.
+ * <li>diddly TODO Calls <b>SetFrameTransferMode</b>
  * </ul>
  * @return The routine returns TRUE on success, and FALSE if an error occurs.
  * @see #ANDOR_SETUP_KEYWORD_ROOT
@@ -471,4 +471,7 @@ int Andor_Setup_Allocate_Image_Buffer(void **buffer,size_t *buffer_length)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2006/03/27 14:02:36  cjm
+** Initial revision
+**
 */

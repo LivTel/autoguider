@@ -1,11 +1,11 @@
 /* andor_exposure.c
 ** Autoguider Andor CCD Library exposure routines
-** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_exposure.c,v 1.2 2006-03-28 15:12:55 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_exposure.c,v 1.3 2006-04-10 15:53:19 cjm Exp $
 */
 /**
  * Exposure routines for the Andor autoguider CCD library.
  * @author Chris Mottram
- * @version $Revision: 1.2 $
+ * @version $Revision: 1.3 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -52,7 +52,7 @@ struct Exposure_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: andor_exposure.c,v 1.2 2006-03-28 15:12:55 cjm Exp $";
+static char rcsid[] = "$Id: andor_exposure.c,v 1.3 2006-04-10 15:53:19 cjm Exp $";
 /**
  * Data holding the current status of ccd_exposure.
  * @see #Exposure_Struct
@@ -88,7 +88,7 @@ void Andor_Exposure_Initialise(void)
  * @param exposure_length The length of time to open the shutter for in milliseconds. This must be greater than zero.
  * @param buffer A pointer to a previously allocated area of memory, of length buffer_length. This should have the
  *        correct size to save the read out image into.
- * @param buffer_length The length of the buffer in bytes.
+ * @param buffer_length The length of the buffer in <b>pixels</b>.
  * @return Returns TRUE if the exposure succeeds and the data read out into the buffer, returns FALSE if an error
  *	occurs or the exposure is aborted.
  * @see andor_general.html#Andor_General_ErrorCode_To_String
@@ -342,6 +342,9 @@ int Andor_Exposure_Abort(void)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.2  2006/03/28 15:12:55  cjm
+** Moved Andor_Exposure_Save to ccd_general library, CCD_Exposure_Save.
+**
 ** Revision 1.1  2006/03/27 14:02:36  cjm
 ** Initial revision
 **

@@ -1,11 +1,11 @@
 /* ccd_exposure.c
 ** Autoguider CCD Library exposure routines
-** $Header: /home/cjm/cvs/autoguider/ccd/c/ccd_exposure.c,v 1.1 2006-04-10 15:52:49 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/c/ccd_exposure.c,v 1.2 2006-04-10 15:53:25 cjm Exp $
 */
 /**
  * Exposure routines for the autoguider CCD library.
  * @author Chris Mottram
- * @version $Revision: 1.1 $
+ * @version $Revision: 1.2 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -31,7 +31,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: ccd_exposure.c,v 1.1 2006-04-10 15:52:49 cjm Exp $";
+static char rcsid[] = "$Id: ccd_exposure.c,v 1.2 2006-04-10 15:53:25 cjm Exp $";
 
 /* internal function declarations */
 static int fexist(char *filename);
@@ -60,7 +60,7 @@ void CCD_Exposure_Initialise(void)
  * @param exposure_length The length of time to open the shutter for in milliseconds. This must be greater than zero.
  * @param buffer A pointer to a previously allocated area of memory, of length buffer_length. This should have the
  *        correct size to save the read out image into.
- * @param buffer_length The length of the buffer in bytes.
+ * @param buffer_length The length of the buffer in <b>pixels</b>.
  * @return Returns TRUE if the exposure succeeds and the data read out into the buffer, returns FALSE if an error
  *	occurs or the exposure is aborted.
  * @see ccd_driver.html#CCD_Driver_Get_Functions
@@ -305,4 +305,7 @@ static int fexist(char *filename)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2006/04/10 15:52:49  cjm
+** Initial revision
+**
 */
