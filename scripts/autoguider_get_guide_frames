@@ -1,0 +1,15 @@
+#!/bin/csh
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_get_guide_frames,v 1.1 2006-04-13 15:25:07 cjm Exp $
+alias getfits_command "/icc/bin/autoguider/commandserver/test/i386-linux/test_getfits_command"
+set hostname = "autoguider1"
+set port = "1234"
+set file_number = 0
+set done = 0
+while ( "${done}" == 0 )
+	set date_string = `/bin/date +"%Y-%m-%dT%H:%M:%S"`
+	getfits_command -h ${hostname} -p ${port} -c "getfits guide" -f guide_${date_string}_${file_number}.fits
+	@ file_number ++
+end
+#
+# $Log: not supported by cvs2svn $
+#
