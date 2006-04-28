@@ -1,11 +1,11 @@
 /* andor_exposure.c
 ** Autoguider Andor CCD Library exposure routines
-** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_exposure.c,v 1.3 2006-04-10 15:53:19 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_exposure.c,v 1.4 2006-04-28 14:11:49 cjm Exp $
 */
 /**
  * Exposure routines for the Andor autoguider CCD library.
  * @author Chris Mottram
- * @version $Revision: 1.3 $
+ * @version $Revision: 1.4 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -52,7 +52,7 @@ struct Exposure_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: andor_exposure.c,v 1.3 2006-04-10 15:53:19 cjm Exp $";
+static char rcsid[] = "$Id: andor_exposure.c,v 1.4 2006-04-28 14:11:49 cjm Exp $";
 /**
  * Data holding the current status of ccd_exposure.
  * @see #Exposure_Struct
@@ -210,6 +210,13 @@ int Andor_Exposure_Expose(int open_shutter,struct timespec start_time,int exposu
 		}/* end while */
 	}/* end if wait for start_time */
 	/* start the exposure */
+#ifdef _POSIX_TIMERS
+	clock_gettime(CLOCK_REALTIME,&(Exposure_Data.Exposure_Start_Time));
+#else
+	gettimeofday(&gtod_current_time,NULL);
+	Exposure_Data.Exposure_Start_Time.tv_sec = gtod_current_time.tv_sec;
+	Exposure_Data.Exposure_Start_Time.tv_nsec = gtod_current_time.tv_usec*CCD_GLOBAL_ONE_MICROSECOND_NS;
+#endif
 	Exposure_Data.Exposure_Status = CCD_EXPOSURE_STATUS_EXPOSE;
 	andor_retval = StartAcquisition();
 	if(andor_retval != DRV_SUCCESS)
@@ -336,12 +343,25 @@ int Andor_Exposure_Abort(void)
 	return TRUE;
 }
 
+/**
+ * This routine gets the time stamp for the start of the exposure.
+ * @return The time stamp for the start of the exposure.
+ * @see #Exposure_Data
+ */
+struct timespec Andor_Exposure_Get_Exposure_Start_Time(void)
+{
+	return Exposure_Data.Exposure_Start_Time;
+}
+
 /* ----------------------------------------------------------------------------
 ** 		internal functions 
 ** ---------------------------------------------------------------------------- */
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.3  2006/04/10 15:53:19  cjm
+** Comment fix.
+**
 ** Revision 1.2  2006/03/28 15:12:55  cjm
 ** Moved Andor_Exposure_Save to ccd_general library, CCD_Exposure_Save.
 **
