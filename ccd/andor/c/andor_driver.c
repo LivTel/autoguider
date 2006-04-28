@@ -1,11 +1,11 @@
 /* andor_driver.c
 ** Autoguder Andor CCD Library driver interface routines
-** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_driver.c,v 1.1 2006-04-28 14:27:30 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_driver.c,v 1.2 2006-04-28 14:28:02 cjm Exp $
 */
 /**
  * Driver interface routines for the Andor autoguider CCD library.
  * @author Chris Mottram
- * @version $Revision: 1.1 $
+ * @version $Revision: 1.2 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -30,7 +30,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: andor_driver.c,v 1.1 2006-04-28 14:27:30 cjm Exp $";
+static char rcsid[] = "$Id: andor_driver.c,v 1.2 2006-04-28 14:28:02 cjm Exp $";
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -86,3 +86,6 @@ int Andor_Driver_Register(struct CCD_Driver_Function_Struct *functions)
 #endif
 	return TRUE;
 }
+/*
+** $Log: not supported by cvs2svn $
+*/
