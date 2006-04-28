@@ -1,11 +1,11 @@
 /* ccd_exposure.c
 ** Autoguider CCD Library exposure routines
-** $Header: /home/cjm/cvs/autoguider/ccd/c/ccd_exposure.c,v 1.2 2006-04-10 15:53:25 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/c/ccd_exposure.c,v 1.3 2006-04-28 14:26:40 cjm Exp $
 */
 /**
  * Exposure routines for the autoguider CCD library.
  * @author Chris Mottram
- * @version $Revision: 1.2 $
+ * @version $Revision: 1.3 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -31,7 +31,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: ccd_exposure.c,v 1.2 2006-04-10 15:53:25 cjm Exp $";
+static char rcsid[] = "$Id: ccd_exposure.c,v 1.3 2006-04-28 14:26:40 cjm Exp $";
 
 /* internal function declarations */
 static int fexist(char *filename);
@@ -186,6 +186,52 @@ int CCD_Exposure_Abort(void)
 }
 
 /**
+ * This routine gets the time stamp for the start of the exposure.
+ * @return The time stamp for the start of the exposure.
+ * @see ccd_driver.html#CCD_Driver_Get_Functions
+ * @see ccd_driver.html#CCD_Driver_Function_Struct
+ * @see ccd_general.html#CCD_General_Log_Format
+ * @see ccd_general.html#CCD_General_Log
+ * @see ccd_general.html#CCD_GENERAL_LOG_BIT_EXPOSURE
+ * @see ccd_general.html#CCD_CCD_General_Error_Number
+ * @see ccd_general.html#CCD_CCD_General_Error_String
+ */
+int CCD_Exposure_Get_Exposure_Start_Time(struct timespec *timespec)
+{
+	struct CCD_Driver_Function_Struct functions;
+	int retval;
+
+#ifdef CCD_DEBUG
+	CCD_General_Log(CCD_GENERAL_LOG_BIT_EXPOSURE,"CCD_Exposure_Get_Exposure_Start_Time() started.");
+#endif
+	/* check parameters */
+	if(timespec == NULL)
+	{
+		CCD_General_Error_Number = 408;
+		sprintf(CCD_General_Error_String,"CCD_Exposure_Get_Exposure_Start_Time:timespec was NULL.");
+		return FALSE;
+	}
+	/* get driver functions */
+	retval = CCD_Driver_Get_Functions(&functions);
+	if(retval == FALSE)
+		return FALSE;
+	/* is there a function implementing this operation? */
+	if(functions.Exposure_Get_Exposure_Start_Time == NULL)
+	{
+		CCD_General_Error_Number = 409;
+		sprintf(CCD_General_Error_String,"CCD_Exposure_Get_Exposure_Start_Time:"
+			"Exposure_Get_Exposure_Start_Time function was NULL.");
+		return FALSE;
+	}
+	/* call driver function */
+	(*timespec) = (*(functions.Exposure_Get_Exposure_Start_Time))();
+#ifdef CCD_DEBUG
+	CCD_General_Log(CCD_GENERAL_LOG_BIT_EXPOSURE,"CCD_Exposure_Get_Exposure_Start_Time() finished.");
+#endif
+	return TRUE;
+}
+
+/**
  * Save the exposure to disk.
  * @param filename The name of the file to save the image into. If it does not exist, it is created.
  * @param buffer Pointer to a previously allocated array of unsigned shorts containing the image pixel values.
@@ -305,6 +351,9 @@ static int fexist(char *filename)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.2  2006/04/10 15:53:25  cjm
+** Comment fix.
+**
 ** Revision 1.1  2006/04/10 15:52:49  cjm
 ** Initial revision
 **
