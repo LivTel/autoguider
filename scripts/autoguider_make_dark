@@ -1,5 +1,5 @@
 #!/bin/csh
-# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_make_dark,v 1.1 2006-05-05 17:23:17 cjm Exp $
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_make_dark,v 1.2 2006-05-08 19:47:31 cjm Exp $
 set gaiadisp = 0
 set exposure_length = "1000"
 set exposure_count = "3"
@@ -65,7 +65,7 @@ else
     exit 2
 endif
 set hostname = "autoguider1"
-set port = "1234"
+set port = "6571"
 set file_number = 0
 set done = 0
 set median_command_arguments = "-o ${output_filename}"
@@ -93,4 +93,7 @@ if( "${gaiadisp}" == "1" ) then
 endif
 #
 # $Log: not supported by cvs2svn $
+# Revision 1.1  2006/05/05 17:23:17  cjm
+# Initial revision
+#
 #
