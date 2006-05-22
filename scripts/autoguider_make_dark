@@ -1,5 +1,5 @@
 #!/bin/csh
-# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_make_dark,v 1.2 2006-05-08 19:47:31 cjm Exp $
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_make_dark,v 1.3 2006-05-22 17:20:07 cjm Exp $
 set gaiadisp = 0
 set exposure_length = "1000"
 set exposure_count = "3"
@@ -66,6 +66,39 @@ else
 endif
 set hostname = "autoguider1"
 set port = "6571"
+#
+# Turn off field reductions
+#
+echo "Turning off dark subtraction."
+echo "Use: send_command -h ${hostname} -p ${port} -c 'field dark on' to restore."
+set command_output = `send_command -h ${hostname} -p ${port} -c "field dark off"`
+echo "field dark off returned : ${command_output}"
+set retval = `echo "${command_output}" | /usr/bin/awk ' { print $1}'`
+if( "${retval}" != "0" ) then
+    echo "field dark off failed (${retval})."
+    exit 1
+endif
+echo "Turning off flat fielding."
+echo "Use: send_command -h ${hostname} -p ${port} -c 'field flat on' to restore."
+set command_output = `send_command -h ${hostname} -p ${port} -c "field flat off"`
+echo "field flat off returned : ${command_output}"
+set retval = `echo "${command_output}" | /usr/bin/awk ' { print $1}'`
+if( "${retval}" != "0" ) then
+    echo "field flat off failed (${retval})."
+    exit 1
+endif
+echo "Turning off object detection."
+echo "Use: send_command -h ${hostname} -p ${port} -c 'field object on' to restore."
+set command_output = `send_command -h ${hostname} -p ${port} -c "field object off"`
+echo "field object off returned : ${command_output}"
+set retval = `echo "${command_output}" | /usr/bin/awk ' { print $1}'`
+if( "${retval}" != "0" ) then
+    echo "field object off failed (${retval})."
+    exit 1
+endif
+#
+# Get dark frames
+#
 set file_number = 0
 set done = 0
 set median_command_arguments = "-o ${output_filename}"
@@ -74,7 +107,17 @@ while ( "${done}" == 0 )
 	set filename = "${output_leaf}_${file_number}.fits"
 	set expose_output = `send_command -h ${hostname} -p ${port} -c "expose ${exposure_length}"`
 	echo "expose ${exposure_length} returned : ${expose_output}"
+	set retval = `echo "${expose_output}" | /usr/bin/awk ' { print $1}'`
+	if( "${retval}" != "0" ) then
+		echo "expose ${exposure_length} failed (${retval})."
+		exit 1
+	endif
 	getfits_command -h ${hostname} -p ${port} -c "getfits field raw" -f ${filename}
+	set retval = $status
+	if( "${retval}" != "0" ) then
+		echo "getfits_command getfits field raw (${retval})."
+		exit 1
+	endif
 	@ file_number ++
 	if( "${gaiadisp}" == "1" ) then
 		gaiadisp ${filename}
@@ -93,6 +136,9 @@ if( "${gaiadisp}" == "1" ) then
 endif
 #
 # $Log: not supported by cvs2svn $
+# Revision 1.2  2006/05/08 19:47:31  cjm
+# Changed port number.
+#
 # Revision 1.1  2006/05/05 17:23:17  cjm
 # Initial revision
 #
