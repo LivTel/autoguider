@@ -1,5 +1,5 @@
 #!/bin/csh
-# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_make_flat,v 1.1 2006-05-22 17:24:16 cjm Exp $
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_make_flat,v 1.2 2006-05-22 18:46:34 cjm Exp $
 set gaiadisp = 0
 set exposure_length = "1000"
 set exposure_count = "3"
@@ -65,9 +65,9 @@ else
     exit 2
 endif
 if ( -r /home/dev/bin/ccd/misc/i386-linux/fits_normalise ) then
-    alias fits_median "/home/dev/bin/ccd/misc/i386-linux/fits_normalise"
+    alias fits_normalise "/home/dev/bin/ccd/misc/i386-linux/fits_normalise"
 else if ( -r /icc/bin/ccd/misc/i386-linux/fits_normalise ) then
-    alias fits_median "/icc/bin/ccd/misc/i386-linux/fits_normalise"
+    alias fits_normalise "/icc/bin/ccd/misc/i386-linux/fits_normalise"
 else
     echo "Could not find fits_normalise."
     exit 2
@@ -106,6 +106,8 @@ if( "${retval}" != "0" ) then
 endif
 set file_number = 0
 set done = 0
+set median_filename = "${output_leaf}_median.fits"
+set median_command_arguments = "-o ${median_filename}"
 while ( "${done}" == 0 )
 	set date_string = `/bin/date +"%Y-%m-%dT%H:%M:%S"`
 	set filename = "${output_leaf}_${file_number}.fits"
@@ -146,8 +148,6 @@ end
 #
 # median reduced dark subtracted filenames
 #
-set median_filename = "${output_leaf}_median.fits"
-set median_command_arguments = "-o ${median_filename}"
 echo "About to create median."
 echo "fits_median ${median_command_arguments}"
 fits_median ${median_command_arguments}
@@ -168,4 +168,7 @@ echo "Note, field flat-fielding is now turned off, use:send_command -h ${hostnam
 echo "Note, field object detection is now turned off, use:send_command -h ${hostname} -p ${port} -c'field object on' to restore."
 #
 # $Log: not supported by cvs2svn $
+# Revision 1.1  2006/05/22 17:24:16  cjm
+# Initial revision
+#
 #
