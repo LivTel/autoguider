@@ -1,0 +1,171 @@
+#!/bin/csh
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_make_flat,v 1.1 2006-05-22 17:24:16 cjm Exp $
+set gaiadisp = 0
+set exposure_length = "1000"
+set exposure_count = "3"
+set output_filename = ""
+if ( $#argv > 0 ) then
+    set next_arg = ""
+    foreach arg ( $argv )
+	if( "$arg" == "-gaiadisp" ) then
+		set gaiadisp = 1
+	else if( "$arg" == "-exposure_length" ) then
+		set next_arg = "exposure_length"
+	else if( "$arg" == "-exposure_count" ) then
+		set next_arg = "exposure_count"
+	else if( "$arg" == "-help" ) then
+		echo "autoguider_make_flat [-exposure_length <ms>][-exposure_count <n>] -output <FITS filename>"
+		exit 1
+	else if( "$arg" == "-output" ) then
+		set next_arg = "output_filename"
+	else
+		if( "${next_arg}" == "exposure_length" ) then
+		    set exposure_length = "${arg}"
+		    set next_arg = ""
+		else if( "${next_arg}" == "exposure_count" ) then
+		    set exposure_count = "${arg}"
+		    set next_arg = ""
+		else if( "${next_arg}" == "output_filename" ) then
+		    set output_filename = "${arg}"
+		    set next_arg = ""
+		else
+		    echo "Unknown argument: $arg"
+		    exit 1
+		endif
+        endif
+    end
+endif
+if( "${output_filename}" == "" ) then
+    echo "No output filename specified."
+    exit 1
+endif
+set output_leaf = `echo "${output_filename}" | sed "s/\(.*\).fits/\1/"`
+if ( -r /home/dev/bin/autoguider/commandserver/test/i386-linux/send_command ) then
+    alias send_command "/home/dev/bin/autoguider/commandserver/test/i386-linux/send_command"
+else if ( -r /icc/bin/autoguider/commandserver/test/i386-linux/send_command ) then
+    alias send_command "/icc/bin/autoguider/commandserver/test/i386-linux/send_command"
+else
+    echo "Could not find send_command."
+    exit 2
+endif
+if ( -r /home/dev/bin/autoguider/commandserver/test/i386-linux/test_getfits_command ) then
+    alias getfits_command "/home/dev/bin/autoguider/commandserver/test/i386-linux/test_getfits_command"
+else if ( -r /icc/bin/autoguider/commandserver/test/i386-linux/test_getfits_command ) then
+    alias getfits_command "/icc/bin/autoguider/commandserver/test/i386-linux/test_getfits_command"
+else
+    echo "Could not find test_getfits_command."
+    exit 2
+endif
+if ( -r /home/dev/bin/ccd/misc/i386-linux/fits_median ) then
+    alias fits_median "/home/dev/bin/ccd/misc/i386-linux/fits_median"
+else if ( -r /icc/bin/ccd/misc/i386-linux/fits_median ) then
+    alias fits_median "/icc/bin/ccd/misc/i386-linux/fits_median"
+else
+    echo "Could not find fits_median."
+    exit 2
+endif
+if ( -r /home/dev/bin/ccd/misc/i386-linux/fits_normalise ) then
+    alias fits_median "/home/dev/bin/ccd/misc/i386-linux/fits_normalise"
+else if ( -r /icc/bin/ccd/misc/i386-linux/fits_normalise ) then
+    alias fits_median "/icc/bin/ccd/misc/i386-linux/fits_normalise"
+else
+    echo "Could not find fits_normalise."
+    exit 2
+endif
+set hostname = "autoguider1"
+set port = "6571"
+
+#
+# get exposure frames that are dark subtracted but _not_ flat fielded
+#
+echo "Turning ON dark subtraction."
+set field_dark_on_output = `send_command -h ${hostname} -p ${port} -c "field dark on"`
+echo "field_dark_on_output : ${field_dark_on_output}"
+set retval = `echo "${field_dark_on_output}" | /usr/bin/awk ' { print $1}'`
+if( "${retval}" != 0 ) then
+	echo "field dark on failed (${retval})."
+	exit 1
+endif
+echo "Turning OFF flat fielding."
+echo "Use: send_command -h ${hostname} -p ${port} -c 'field flat on' to restore."
+set field_flat_off_output = `send_command -h ${hostname} -p ${port} -c "field flat off"`
+echo "field_flat_off_output : ${field_flat_off_output}"
+set retval = `echo "${field_flat_off_output}" | /usr/bin/awk ' { print $1}'`
+if( "${retval}" != 0 ) then
+	echo "field flat off failed (${retval})."
+	exit 1
+endif
+echo "Turning OFF object detection."
+echo "Use: send_command -h ${hostname} -p ${port} -c 'field object on' to restore."
+set command_output = `send_command -h ${hostname} -p ${port} -c "field object off"`
+echo "field object off returned : ${command_output}"
+set retval = `echo "${command_output}" | /usr/bin/awk ' { print $1}'`
+if( "${retval}" != "0" ) then
+    echo "field object off failed (${retval})."
+    exit 1
+endif
+set file_number = 0
+set done = 0
+while ( "${done}" == 0 )
+	set date_string = `/bin/date +"%Y-%m-%dT%H:%M:%S"`
+	set filename = "${output_leaf}_${file_number}.fits"
+	#
+	# do exposure of length
+	#
+	set expose_output = `send_command -h ${hostname} -p ${port} -c "expose ${exposure_length}"`
+	echo "expose ${exposure_length} returned : ${expose_output}"
+	set retval = `echo "${expose_output}" | /usr/bin/awk ' { print $1}'`
+	if( "${retval}" != "0" ) then
+		echo "expose failed : (${expose_output})."
+		exit 1
+	endif
+	#	
+	# Check dark subtraction still on after expose
+	# expose can switch off dark subtraction without error if no suitable dark exists for the exposure length
+	#
+	#set status_field_dark_output = `send_command -h ${hostname} -p ${port} -c "status field dark"`
+	#echo "status field dark output : ${status_field_dark_output}"
+	#set retval = `echo "${status_field_dark_output}" | /usr/bin/awk ' { print $2}'`
+	#if( "${retval}" != "true" ) then
+	#	echo "status field dark failed : (${retval}) : There is probably no dark for this exposure length."
+	#	exit 1
+	#endif
+	#
+	# get reduced exposure - should be dark subtracted but _not_ flat fielded
+	#
+	getfits_command -h ${hostname} -p ${port} -c "getfits field reduced" -f ${filename}
+	@ file_number ++
+	if( "${gaiadisp}" == "1" ) then
+		gaiadisp ${filename}
+	endif
+	set median_command_arguments = " ${median_command_arguments} -i ${filename}"
+	if( "${file_number}" == "${exposure_count}" ) then
+	    set done = 1
+	endif
+end
+#
+# median reduced dark subtracted filenames
+#
+set median_filename = "${output_leaf}_median.fits"
+set median_command_arguments = "-o ${median_filename}"
+echo "About to create median."
+echo "fits_median ${median_command_arguments}"
+fits_median ${median_command_arguments}
+echo "Flat median ${median_filename} created."
+if( "${gaiadisp}" == "1" ) then
+    gaiadisp ${median_filename}
+endif
+#
+# Normalise medianed file to create output
+#
+echo "fits_normalise -i ${median_filename} -o ${output_filename}"
+fits_normalise -i ${median_filename} -o ${output_filename}
+echo "Flat normalised median ${output_filename} created."
+if( "${gaiadisp}" == "1" ) then
+    gaiadisp ${output_filename}
+endif
+echo "Note, field flat-fielding is now turned off, use:send_command -h ${hostname} -p ${port} -c'field flat on' to restore."
+echo "Note, field object detection is now turned off, use:send_command -h ${hostname} -p ${port} -c'field object on' to restore."
+#
+# $Log: not supported by cvs2svn $
+#
