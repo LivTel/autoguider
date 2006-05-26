@@ -1,4 +1,4 @@
-# $Header: /home/cjm/cvs/autoguider/ccd/andor/test/Makefile,v 1.1 2006-03-27 14:03:11 cjm Exp $
+# $Header: /home/cjm/cvs/autoguider/ccd/andor/test/Makefile,v 1.2 2006-05-26 10:25:02 cjm Exp $
 
 include ../../../../Makefile.common
 include ../../../Makefile.common
@@ -61,7 +61,7 @@ $(DOCS): $(SRCS)
 $(DOCS) : $(SRCS)
 
 depend:
-	makedepend -- $(CFLAGS) -- $(SRCS)
+	makedepend -p$(BINDIR)/ -- $(CFLAGS) -- $(SRCS)
 
 clean:
 	$(RM) $(RM_OPTIONS) $(EXES) $(OBJS) $(TIDY_OPTIONS)
@@ -82,3 +82,61 @@ checkout:
 
 # DO NOT DELETE
 
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_exposure.o: /usr/include/stdio.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_exposure.o: /usr/include/features.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_exposure.o: /usr/include/sys/cdefs.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_exposure.o: /usr/include/gnu/stubs.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_exposure.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stddef.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_exposure.o: /usr/include/bits/types.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_exposure.o: /usr/include/bits/wordsize.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_exposure.o: /usr/include/bits/typesizes.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_exposure.o: /usr/include/libio.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_exposure.o: /usr/include/_G_config.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_exposure.o: /usr/include/wchar.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_exposure.o: /usr/include/bits/wchar.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_exposure.o: /usr/include/gconv.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_exposure.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stdarg.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_exposure.o: /usr/include/bits/stdio_lim.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_exposure.o: /usr/include/bits/sys_errlist.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_exposure.o: /usr/include/string.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_exposure.o: /usr/include/time.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_exposure.o: /usr/include/bits/time.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_exposure.o: /home/dev/src/autoguider/ccd/include/ccd_exposure.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_exposure.o: /home/dev/src/autoguider/ccd/include/ccd_general.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_exposure.o: /home/dev/src/autoguider/ccd/include/ccd_setup.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_exposure.o: /home/dev/src/autoguider/ccd/andor/include/andor_exposure.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_exposure.o: /home/dev/src/autoguider/ccd/andor/include/andor_general.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_exposure.o: /home/dev/src/autoguider/ccd/include/ccd_config.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_exposure.o: /home/dev/src/autoguider/ccd/andor/include/andor_setup.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_exposure.o: /home/dev/src/cfitsio3.006/include/fitsio.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_exposure.o: /usr/include/stdlib.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_exposure.o: /usr/include/limits.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_exposure.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/limits.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_exposure.o: /home/dev/src/cfitsio3.006/include/longnam.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_temperature.o: /usr/include/stdio.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_temperature.o: /usr/include/features.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_temperature.o: /usr/include/sys/cdefs.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_temperature.o: /usr/include/gnu/stubs.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_temperature.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stddef.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_temperature.o: /usr/include/bits/types.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_temperature.o: /usr/include/bits/wordsize.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_temperature.o: /usr/include/bits/typesizes.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_temperature.o: /usr/include/libio.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_temperature.o: /usr/include/_G_config.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_temperature.o: /usr/include/wchar.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_temperature.o: /usr/include/bits/wchar.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_temperature.o: /usr/include/gconv.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_temperature.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stdarg.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_temperature.o: /usr/include/bits/stdio_lim.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_temperature.o: /usr/include/bits/sys_errlist.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_temperature.o: /usr/include/string.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_temperature.o: /usr/include/time.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_temperature.o: /usr/include/bits/time.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_temperature.o: /home/dev/src/autoguider/ccd/include/ccd_exposure.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_temperature.o: /home/dev/src/autoguider/ccd/include/ccd_general.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_temperature.o: /home/dev/src/autoguider/ccd/include/ccd_temperature.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_temperature.o: /home/dev/src/autoguider/ccd/andor/include/andor_general.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_temperature.o: /home/dev/src/autoguider/ccd/include/ccd_config.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_temperature.o: /home/dev/src/autoguider/ccd/andor/include/andor_setup.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_temperature.o: /home/dev/src/autoguider/ccd/include/ccd_setup.h
+/home/dev/bin/autoguider/ccd/andor/test/i386-linux/test_temperature.o: /home/dev/src/autoguider/ccd/andor/include/andor_temperature.h
