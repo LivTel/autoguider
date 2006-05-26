@@ -1,0 +1,11 @@
+# $Header: /home/cjm/cvs/autoguider/ngatcil/Makefile.common,v 1.1 2006-05-26 15:03:41 cjm Exp $
+
+SHELL					=	/bin/sh
+NGATCIL_HOME				= 	ngatcil
+LIBRARYNAME				= 	lib$(AUTOGUIDER_HOME)_$(NGATCIL_HOME)
+AUTOGUIDER_NGATCIL_SRC_HOME		= 	$(LT_SRC_HOME)/$(AUTOGUIDER_HOME)/$(NGATCIL_HOME)
+AUTOGUIDER_NGATCIL_BIN_HOME		= 	$(LT_BIN_HOME)/$(AUTOGUIDER_HOME)/$(NGATCIL_HOME)
+AUTOGUIDER_NGATCIL_DOC_HOME		= 	$(LT_DOC_HOME)/$(AUTOGUIDER_HOME)/$(NGATCIL_HOME)
+#
+# $Log: not supported by cvs2svn $
+#
