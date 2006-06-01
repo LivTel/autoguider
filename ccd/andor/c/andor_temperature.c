@@ -1,11 +1,11 @@
 /* andor_temperature.c
 ** Autoguder Andor CCD Library temperature routines
-** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_temperature.c,v 1.1 2006-03-27 14:02:36 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_temperature.c,v 1.2 2006-06-01 15:20:20 cjm Exp $
 */
 /**
  * Temperature routines for the Andor autoguider CCD library.
  * @author Chris Mottram
- * @version $Revision: 1.1 $
+ * @version $Revision: 1.2 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -23,6 +23,7 @@
 #include "atmcdLXd.h"
 
 #include "ccd_general.h"
+#include "ccd_temperature.h"
 #include "andor_general.h"
 #include "andor_temperature.h"
 
@@ -30,7 +31,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: andor_temperature.c,v 1.1 2006-03-27 14:02:36 cjm Exp $";
+static char rcsid[] = "$Id: andor_temperature.c,v 1.2 2006-06-01 15:20:20 cjm Exp $";
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -41,9 +42,9 @@ static char rcsid[] = "$Id: andor_temperature.c,v 1.1 2006-03-27 14:02:36 cjm Ex
  * @param temperature The address of a double to return ther temperature in, in degrees centigrade.
  * @param temperature_status The address of a enum to store the temperature status.
  * @return Returns TRUE on success, and FALSE if an error occurs.
- * @see #ANDOR_TEMPERATURE_STATUS
+ * @see ../cdocs/ccd_temperature.html#CCD_TEMPERATURE_STATUS
  */
-int Andor_Temperature_Get(double *temperature,enum ANDOR_TEMPERATURE_STATUS *temperature_status)
+int Andor_Temperature_Get(double *temperature,enum CCD_TEMPERATURE_STATUS *temperature_status)
 {
 	unsigned int andor_retval;
 	float temperature_f;
@@ -68,10 +69,10 @@ int Andor_Temperature_Get(double *temperature,enum ANDOR_TEMPERATURE_STATUS *tem
 	switch(andor_retval)
 	{
 		case DRV_NOT_INITIALIZED:
-			(*temperature_status) = ANDOR_TEMPERATURE_STATUS_UNKNOWN;
+			(*temperature_status) = CCD_TEMPERATURE_STATUS_UNKNOWN;
 			break;
 		case DRV_ACQUIRING:
-			(*temperature_status) = ANDOR_TEMPERATURE_STATUS_UNKNOWN;
+			(*temperature_status) = CCD_TEMPERATURE_STATUS_UNKNOWN;
 			break;
 		case DRV_ERROR_ACK:
 			CCD_General_Error_Number = 1202;
@@ -79,13 +80,13 @@ int Andor_Temperature_Get(double *temperature,enum ANDOR_TEMPERATURE_STATUS *tem
 				Andor_General_ErrorCode_To_String(andor_retval),andor_retval);
 			return FALSE;
 		case DRV_TEMP_OFF:
-			(*temperature_status) = ANDOR_TEMPERATURE_STATUS_OFF;
+			(*temperature_status) = CCD_TEMPERATURE_STATUS_OFF;
 			break;
 		case DRV_TEMP_STABILIZED:
-			(*temperature_status) = ANDOR_TEMPERATURE_STATUS_OK;
+			(*temperature_status) = CCD_TEMPERATURE_STATUS_OK;
 			break;
 		case DRV_TEMP_NOT_REACHED:
-			(*temperature_status) = ANDOR_TEMPERATURE_STATUS_RAMPING;
+			(*temperature_status) = CCD_TEMPERATURE_STATUS_RAMPING;
 			break;
 		default:
 			CCD_General_Error_Number = 1203;
@@ -179,33 +180,9 @@ int Andor_Temperature_Cooler_Off(void)
 	return TRUE;
 }
 
-/**
- * Routine to translate the specified temperature status to a suitable string.
- * @param temperature_status The status to translate.
- * @return A string describing the specified state, or "UNKNOWN".
- * @see #ANDOR_TEMPERATURE_STATUS
- * @see #Andor_Temperature_Get
- */
-extern char *Andor_Temperature_Status_To_String(enum ANDOR_TEMPERATURE_STATUS temperature_status)
-{
-	switch(temperature_status)
-	{
-		case ANDOR_TEMPERATURE_STATUS_OFF:
-			return "OFF";
-		case ANDOR_TEMPERATURE_STATUS_AMBIENT:
-			return "AMBIENT";
-		case ANDOR_TEMPERATURE_STATUS_OK:
-			return "OK";
-		case ANDOR_TEMPERATURE_STATUS_RAMPING:
-			return "RAMPING";
-		case ANDOR_TEMPERATURE_STATUS_UNKNOWN:
-			return "UNKNOWN";
-		default:
-			return "UNKNOWN";
-	}
-	return "UNKNOWN";
-}
-
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2006/03/27 14:02:36  cjm
+** Initial revision
+**
 */
