@@ -1,5 +1,5 @@
 /* test_exposure.c
- * $Header: /home/cjm/cvs/autoguider/ccd/andor/test/test_exposure.c,v 1.1 2006-03-27 14:03:08 cjm Exp $
+ * $Header: /home/cjm/cvs/autoguider/ccd/andor/test/test_exposure.c,v 1.2 2006-06-01 15:26:32 cjm Exp $
  * Test exposure code.
  */
 /**
@@ -7,7 +7,7 @@
  * <pre>
  * </pre>
  * @author $Author: cjm $
- * @version $Revision: 1.1 $
+ * @version $Revision: 1.2 $
  */
 
 #include <stdio.h>
@@ -55,7 +55,7 @@ enum COMMAND_ID
 /**
  * Revision control system identifier.
  */
-static char rcsid[] = "$Id: test_exposure.c,v 1.1 2006-03-27 14:03:08 cjm Exp $";
+static char rcsid[] = "$Id: test_exposure.c,v 1.2 2006-06-01 15:26:32 cjm Exp $";
 /**
  * Temperature to set the CCD to.
  * @see #DEFAULT_TEMPERATURE
@@ -205,7 +205,7 @@ int main(int argc, char *argv[])
 		fprintf(stdout,"Saving FITS headers failed.\n");
 		return 4;
 	}
-	retval = Andor_Exposure_Save(Fits_Filename,image_buffer,image_buffer_length,
+	retval = CCD_Exposure_Save(Fits_Filename,image_buffer,image_buffer_length,
 				     Andor_Setup_Get_NCols(),Andor_Setup_Get_NRows());
 	if(retval == FALSE)
 	{
@@ -649,4 +649,7 @@ static void Test_Fits_Header_Error(int status)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2006/03/27 14:03:08  cjm
+** Initial revision
+**
 */
