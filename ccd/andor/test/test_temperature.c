@@ -1,11 +1,11 @@
 /* test_temperature.c
-** $Header: /home/cjm/cvs/autoguider/ccd/andor/test/test_temperature.c,v 1.2 2006-03-28 15:21:03 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/andor/test/test_temperature.c,v 1.3 2006-06-01 15:26:32 cjm Exp $
 ** Test temperature.
 */
 /**
  * This program tests the temperature code.
  * @author $Author: cjm $
- * @version $Revision: 1.2 $
+ * @version $Revision: 1.3 $
  */
 #include <stdio.h>
 #include <string.h>
@@ -43,7 +43,7 @@ enum COMMAND_ID
 /**
  * Revision control system identifier.
  */
-static char rcsid[] = "$Id: test_temperature.c,v 1.2 2006-03-28 15:21:03 cjm Exp $";
+static char rcsid[] = "$Id: test_temperature.c,v 1.3 2006-06-01 15:26:32 cjm Exp $";
 /**
  * Temperature to set the CCD to.
  * @see #DEFAULT_TEMPERATURE
@@ -142,7 +142,7 @@ int main(int argc, char *argv[])
 			{
 				fprintf(stdout,"Temperature:%lf.\n",temperature);
 				fprintf(stdout,"Temperature Status:%s (%d).\n",
-					Andor_Temperature_Status_To_String(temperature_status),temperature_status);
+					CCD_Temperature_Status_To_String(temperature_status),temperature_status);
 				
 			}
 			break;
@@ -314,6 +314,9 @@ static int Parse_Arguments(int argc, char *argv[])
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.2  2006/03/28 15:21:03  cjm
+** Fixed temperature_status enum.
+**
 ** Revision 1.1  2006/03/27 14:02:31  cjm
 ** Initial revision
 **
