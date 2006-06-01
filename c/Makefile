@@ -1,4 +1,4 @@
-# $Header: /home/cjm/cvs/autoguider/c/Makefile,v 1.1 2006-05-26 13:35:44 cjm Exp $
+# $Header: /home/cjm/cvs/autoguider/c/Makefile,v 1.2 2006-06-01 15:30:46 cjm Exp $
 
 include ../../Makefile.common
 include ../commandserver/Makefile.common
@@ -33,11 +33,11 @@ CFLAGS 			= -g -I$(INCDIR) $(DEBUG_CFLAGS) $(CCD_CFLAGS) $(COMMAND_SERVER_CFLAGS
 DOCFLAGS 		= -static
 
 EXE_SRCS		= autoguider.c
-SRCS			= $(EXE_SRCS) autoguider_buffer.c autoguider_command.c autoguider_dark.c autoguider_field.c \
+OBJ_SRCS		= autoguider_buffer.c autoguider_command.c autoguider_dark.c autoguider_field.c \
 			autoguider_flat.c autoguider_general.c autoguider_get_fits.c autoguider_guide.c \
 			autoguider_object.c autoguider_server.c
-EXE_HEADERS		= $(EXE_SRCS:%.c=$(INCDIR)/%.h)
-HEADERS			= $(EXE_HEADERS)
+SRCS			= $(EXE_SRCS) $(OBJ_SRCS)
+HEADERS			= $(OBJ_SRCS:%.c=$(INCDIR)/%.h)
 EXE_OBJS		= $(EXE_SRCS:%.c=$(BINDIR)/%.o)
 OBJS			= $(SRCS:%.c=$(BINDIR)/%.o)
 EXES			= $(EXE_SRCS:%.c=$(BINDIR)/%)
