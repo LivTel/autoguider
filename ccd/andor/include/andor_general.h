@@ -1,5 +1,5 @@
 /* andor_general.h
-** $Header: /home/cjm/cvs/autoguider/ccd/andor/include/andor_general.h,v 1.1 2006-03-27 14:03:01 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/andor/include/andor_general.h,v 1.2 2006-06-01 15:25:36 cjm Exp $
 */
 #ifndef ANDOR_GENERAL_H
 #define ANDOR_GENERAL_H
@@ -33,9 +33,18 @@
  * @see ../../cdocs/ccd_general.html#CCD_GENERAL_LOG_BLOCK_ANDOR
  */
 #define ANDOR_GENERAL_LOG_BIT_TEMPERATURE	(1<<(2+CCD_GENERAL_LOG_BLOCK_ANDOR))
+/**
+ * Value to pass into logging calls, used for driver code logging.
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log
+ * @see ../../cdocs/ccd_general.html#CCD_GENERAL_LOG_BLOCK_ANDOR
+ */
+#define ANDOR_GENERAL_LOG_BIT_DRIVER	        (1<<(3+CCD_GENERAL_LOG_BLOCK_ANDOR))
 
 extern char* Andor_General_ErrorCode_To_String(unsigned int error_code);
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2006/03/27 14:03:01  cjm
+** Initial revision
+**
 */
 #endif
