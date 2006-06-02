@@ -1,11 +1,11 @@
 /* autoguider_command.c
 ** Autoguider command routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_command.c,v 1.1 2006-06-01 15:18:38 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_command.c,v 1.2 2006-06-02 13:44:59 cjm Exp $
 */
 /**
  * Command routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.1 $
+ * @version $Revision: 1.2 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -39,7 +39,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_command.c,v 1.1 2006-06-01 15:18:38 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_command.c,v 1.2 2006-06-02 13:44:59 cjm Exp $";
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -200,8 +200,8 @@ int Autoguider_Command_Status(char *command_string,char **reply_string)
 {
 	double current_temperature;
 	enum CCD_TEMPERATURE_STATUS temperature_status;
-	char type_string[64];
-	char element_string[64];
+	char type_string[65];
+	char element_string[65];
 	char buff[256];
 	char *object_list_string = NULL;
 	int retval,ivalue;
@@ -213,6 +213,12 @@ int Autoguider_Command_Status(char *command_string,char **reply_string)
 	{
 		Autoguider_General_Error_Number = 300;
 		sprintf(Autoguider_General_Error_String,"Autoguider_Command_Status:command_string was NULL.");
+		return FALSE;
+	}
+	if(reply_string == NULL)
+	{
+		Autoguider_General_Error_Number = 319;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Command_Status:reply_string was NULL.");
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 5
@@ -1195,4 +1201,7 @@ int Autoguider_Command_Get_Fits(char *command_string,void **buffer_ptr,size_t *b
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2006/06/01 15:18:38  cjm
+** Initial revision
+**
 */
