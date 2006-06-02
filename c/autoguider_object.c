@@ -1,13 +1,13 @@
 /* autoguider_object.c
 ** Autoguider object detection routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_object.c,v 1.1 2006-06-01 15:18:38 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_object.c,v 1.2 2006-06-02 13:46:56 cjm Exp $
 */
 /**
  * Object detection routines for the autoguider program.
  * Uses libdprt_object.
  * Has it's own buffer, as Object_List_Get destroys the data within it's buffer argument.
  * @author Chris Mottram
- * @version $Revision: 1.1 $
+ * @version $Revision: 1.2 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -84,7 +84,7 @@ struct Object_Internal_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_object.c,v 1.1 2006-06-01 15:18:38 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_object.c,v 1.2 2006-06-02 13:46:56 cjm Exp $";
 /**
  * Instance of object data.
  * @see #Object_Internal_Struct
@@ -300,6 +300,7 @@ int Autoguider_Object_List_Get_Object(int index,struct Autoguider_Object_Struct 
 int Autoguider_Object_List_Get_Object_List_String(char **object_list_string)
 {
 	char buff[256];
+	char is_stellar_string[32];
 	int i,retval;
 
 	if(object_list_string == NULL)
@@ -307,6 +308,13 @@ int Autoguider_Object_List_Get_Object_List_String(char **object_list_string)
 		Autoguider_General_Error_Number = 1009;
 		sprintf(Autoguider_General_Error_String,"Autoguider_Object_List_Get_Object_List_String:"
 			"object_list_string was NULL.");
+		return FALSE;
+	}
+	if((*object_list_string) != NULL)
+	{
+		Autoguider_General_Error_Number = 1011;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Object_List_Get_Object_List_String:"
+			"object_list_string was not initialised to NULL.");
 		return FALSE;
 	}
 	/* lock mutex */
@@ -326,14 +334,22 @@ int Autoguider_Object_List_Get_Object_List_String(char **object_list_string)
 	}
 	for(i=0;i<Object_Data.Object_Count;i++)
 	{
-		sprintf(buff,"%6d %6d %6d %6.2f %6.2f %6.2f %6.2f %6.2f %6d %6.2f %s %6.2f %6.2f ",
+		if(Object_Data.Object_List[i].Is_Stellar)
+			strcpy(is_stellar_string,"TRUE");
+		else
+			strcpy(is_stellar_string,"FALSE");
+		retval = sprintf(buff,"%6d %6d %6d %6.2f %6.2f %6.2f %6.2f %6.2f %6d %6.2f %s %6.2f %6.2f",
 			Object_Data.Id,Object_Data.Frame_Number,Object_Data.Object_List[i].Index,
 			Object_Data.Object_List[i].CCD_X_Position,Object_Data.Object_List[i].CCD_Y_Position,
 			Object_Data.Object_List[i].Buffer_X_Position,Object_Data.Object_List[i].Buffer_Y_Position,
 			Object_Data.Object_List[i].Total_Counts,Object_Data.Object_List[i].Pixel_Count,
-			Object_Data.Object_List[i].Peak_Counts,
-			Object_Data.Object_List[i].Is_Stellar ? "TRUE" : "FALSE",
+			Object_Data.Object_List[i].Peak_Counts,is_stellar_string,
 			Object_Data.Object_List[i].FWHM_X,Object_Data.Object_List[i].FWHM_Y);
+#if AUTOGUIDER_DEBUG > 1
+		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,
+					      "Autoguider_Object_List_Get_Object_List_String:"
+					      "index %d : '%s' (%d bytes).",i,buff,retval);
+#endif
 		if(!Autoguider_General_Add_String(object_list_string,buff))
 		{
 			Autoguider_General_Mutex_Unlock(&(Object_Data.Object_List_Mutex));
@@ -387,10 +403,20 @@ static int Object_Buffer_Set(float *buffer,int naxis1,int naxis2)
 		/* we need to allocate more space for image data */
 		if(Object_Data.Image_Data == NULL)
 		{
+#if AUTOGUIDER_DEBUG > 9
+			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,
+						      "Object_Buffer_Set:Allocating Image_Data (%d,%d).",
+						      naxis1,naxis2);
+#endif
 			Object_Data.Image_Data = (float *)malloc((naxis1*naxis2)*sizeof(float));
 		}
 		else
 		{
+#if AUTOGUIDER_DEBUG > 9
+			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,
+						      "Object_Buffer_Set:Reallocating Image_Data (%d,%d).",
+						      naxis1,naxis2);
+#endif
 			Object_Data.Image_Data = (float *)realloc(Object_Data.Image_Data,
 								  (naxis1*naxis2)*sizeof(float));
 		}
@@ -575,18 +601,23 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
 	/* reallocate if there is not enough space */
 	if(Object_Data.Object_Count > Object_Data.Allocated_Object_Count)
 	{
-#if AUTOGUIDER_DEBUG > 5
-		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Create_Object_List:"
-			       "(Re)allocating Object_List from %d to %d.",Object_Data.Allocated_Object_Count,
-					      Object_Data.Object_Count);
-#endif
 		if(Object_Data.Object_List == NULL)
 		{
+#if AUTOGUIDER_DEBUG > 5
+			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Create_Object_List:"
+			       "Allocating Object_List from %d to %d.",Object_Data.Allocated_Object_Count,
+					      Object_Data.Object_Count);
+#endif
 			Object_Data.Object_List = (struct Autoguider_Object_Struct*)malloc(Object_Data.Object_Count*
 								    sizeof(struct Autoguider_Object_Struct));
 		}
 		else
 		{
+#if AUTOGUIDER_DEBUG > 5
+			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Create_Object_List:"
+			       "Reallocating Object_List from %d to %d.",Object_Data.Allocated_Object_Count,
+					      Object_Data.Object_Count);
+#endif
 			Object_Data.Object_List = (struct Autoguider_Object_Struct*)realloc(Object_Data.Object_List,
 					  Object_Data.Object_Count*sizeof(struct Autoguider_Object_Struct));
 		}
@@ -620,8 +651,17 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
 		Object_Data.Object_List[index].Pixel_Count = current_object_ptr->numpix;
 		Object_Data.Object_List[index].Peak_Counts = current_object_ptr->peak;
 		Object_Data.Object_List[index].Is_Stellar = current_object_ptr->is_stellar;
-		Object_Data.Object_List[index].FWHM_X = current_object_ptr->fwhmx;
-		Object_Data.Object_List[index].FWHM_Y = current_object_ptr->fwhmy;
+		/* libdprt_object only sets fwhm if object is stellar atm */
+		if(current_object_ptr->is_stellar == TRUE)
+		{
+			Object_Data.Object_List[index].FWHM_X = current_object_ptr->fwhmx;
+			Object_Data.Object_List[index].FWHM_Y = current_object_ptr->fwhmy;
+		}
+		else
+		{
+			Object_Data.Object_List[index].FWHM_X = 0.0f;
+			Object_Data.Object_List[index].FWHM_Y = 0.0f;
+		}
 #if AUTOGUIDER_DEBUG > 5
 		if(index < 1000) /* try to speed up situations where too many objects are being detected */
 		{
@@ -754,4 +794,7 @@ static int Object_Sort_Float_List(const void *p1, const void *p2)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2006/06/01 15:18:38  cjm
+** Initial revision
+**
 */
