@@ -1,11 +1,11 @@
 /* autoguider_server.c
 ** Autoguider server routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_server.c,v 1.1 2006-06-01 15:18:38 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_server.c,v 1.2 2006-06-02 13:43:36 cjm Exp $
 */
 /**
  * Server routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.1 $
+ * @version $Revision: 1.2 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -31,7 +31,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_server.c,v 1.1 2006-06-01 15:18:38 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_server.c,v 1.2 2006-06-02 13:43:36 cjm Exp $";
 /**
  * The server context to use for this server.
  * @see ../command_server/cdocs/command_server.html#Command_Server_Server_Context_T
@@ -448,7 +448,7 @@ static int Send_Reply(Command_Server_Handle_T connection_handle,char *reply_mess
 
 	/* send something back to the client */
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_SERVER,"Send_Reply: about to send '%s'",
+	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_SERVER,"Send_Reply: about to send '%.80s'...",
 				      reply_message);
 #endif
 	retval = Command_Server_Write_Message(connection_handle, reply_message);
@@ -460,7 +460,7 @@ static int Send_Reply(Command_Server_Handle_T connection_handle,char *reply_mess
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_SERVER,"Send_Reply: sent '%s'",reply_message);
+	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_SERVER,"Send_Reply: sent '%.80s'...",reply_message);
 #endif
 	return TRUE;
 }
@@ -541,4 +541,7 @@ static int Send_Binary_Reply_Error(Command_Server_Handle_T connection_handle)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2006/06/01 15:18:38  cjm
+** Initial revision
+**
 */
