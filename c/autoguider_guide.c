@@ -1,11 +1,11 @@
 /* autoguider_guide.c
 ** Autoguider guide routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.1 2006-06-01 15:18:30 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.2 2006-06-02 17:23:50 cjm Exp $
 */
 /**
  * Guide routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.1 $
+ * @version $Revision: 1.2 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -90,7 +90,7 @@ struct Guide_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_guide.c,v 1.1 2006-06-01 15:18:30 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_guide.c,v 1.2 2006-06-02 17:23:50 cjm Exp $";
 /**
  * Instance of guide data.
  * @see #Guide_Struct
@@ -331,7 +331,7 @@ int Autoguider_Guide_On(void)
 	/* initialise Guide ID */
 	time_secs = time(NULL);
 	time_tm = gmtime(&time_secs);
-	Guide_Data.Guide_Id = (time_tm->tm_year*1000000000)+(time_tm->tm_yday*1000000)+
+	Guide_Data.Guide_Id = /*diddly (time_tm->tm_year*1000000000)+*/(time_tm->tm_yday*1000000)+
 		(time_tm->tm_hour*10000)+(time_tm->tm_min*100)+time_tm->tm_sec;
 	/* spawn guide thread */
 	pthread_attr_init(&attr);
@@ -982,7 +982,7 @@ static int Guide_Reduce(void)
 		guide_width = (Guide_Data.Window.X_End - Guide_Data.Window.X_Start)+1;
 		guide_height = (Guide_Data.Window.Y_End - Guide_Data.Window.Y_Start)+1;
 		retval = Autoguider_Object_Detect(reduced_buffer_ptr,guide_width,guide_height,
-						  Guide_Data.Window.X_Start,Guide_Data.Window.Y_Start,FALSE,
+						  Guide_Data.Window.X_Start,Guide_Data.Window.Y_Start,TRUE,
 						  Guide_Data.Guide_Id,Guide_Data.Frame_Number);
 		if(retval == FALSE)
 		{
@@ -1015,4 +1015,7 @@ static int Guide_Reduce(void)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2006/06/01 15:18:30  cjm
+** Initial revision
+**
 */
