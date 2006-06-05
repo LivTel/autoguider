@@ -1,11 +1,11 @@
 /* ngatcil_tcs_guide_packet.c
 ** NGATCil TCS guide packet tranmitting/receiving routines.
-** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_tcs_guide_packet.c,v 1.1 2006-06-01 15:28:06 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_tcs_guide_packet.c,v 1.2 2006-06-05 18:55:08 cjm Exp $
 */
 /**
  * NGAT Cil library transmission/receiving of TCS guide packets over UDP.
  * @author Chris Mottram
- * @version $Revision: 1.1 $
+ * @version $Revision: 1.2 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -31,7 +31,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: ngatcil_tcs_guide_packet.c,v 1.1 2006-06-01 15:28:06 cjm Exp $";
+static char rcsid[] = "$Id: ngatcil_tcs_guide_packet.c,v 1.2 2006-06-05 18:55:08 cjm Exp $";
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -89,6 +89,7 @@ int NGATCil_TCS_Guide_Packet_Open_Default(int *socket_id)
  *      NGATCil_General_Error_Number and NGATCil_General_Error_String should be set.
  * @see #NGATCIL_TCS_GUIDE_PACKET_STATUS_FAILED
  * @see #NGATCIL_TCS_GUIDE_PACKET_STATUS_WINDOW
+ * @see #NGATCil_TCS_Guide_Packet_To_String
  * @see ngatcil_udp_raw.html#NGATCil_UDP_Raw_Send
  * @see ngatcil_general.html#NGATCil_General_Error_Number
  * @see ngatcil_general.html#NGATCil_General_Error_String
@@ -203,11 +204,11 @@ int NGATCil_TCS_Guide_Packet_Send(int socket_id,float x_pos,float y_pos,
 	}
 #if NGATCIL_DEBUG > 5
 	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_TCS_GUIDE_PACKET,"NGATCil_TCS_Guide_Packet_Send:"
-				   "packet_buff (without checksum) = %s.",packet_buff);
+				   "packet_buff (without checksum) = '%s'.",packet_buff);
 #endif
 	/* compute checksum */
 	checksum = 0;
-	for(i=0;i<30;i++) /* 29 bytes up to checksum (8+1+8+1+8+1+1+1) */
+	for(i=0;i<29;i++) /* 29 (0..28) bytes up to checksum (8+1+8+1+8+1+1+1) */
 	{
 		checksum += (int)(packet_buff[i]);
 	}
@@ -218,13 +219,15 @@ int NGATCil_TCS_Guide_Packet_Send(int socket_id,float x_pos,float y_pos,
 	sprintf(checksum_buff,"%04d",checksum);
 #if NGATCIL_DEBUG > 9
 	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_TCS_GUIDE_PACKET,"NGATCil_TCS_Guide_Packet_Send:"
-				   "checksum_buff = %s.",checksum_buff);
+				   "checksum_buff = '%s'.",checksum_buff);
 #endif
 	strcat(packet_buff,checksum_buff);
 	strcat(packet_buff,"\r");
 #if NGATCIL_DEBUG > 5
 	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_TCS_GUIDE_PACKET,"NGATCil_TCS_Guide_Packet_Send:"
-				   "packet_buff (with checksum) = %s (length %d).",packet_buff,strlen(packet_buff));
+				   "packet_buff (with checksum) = '%s' (length %d).",
+				   NGATCil_TCS_Guide_Packet_To_String(packet_buff,strlen(packet_buff)),
+				   strlen(packet_buff));
 #endif
 	/* send packet  -  this is 29 bytes, plus 4 (+1 (cr)) bytes checksum (no \0) = 34 bytes. */
 	retval = NGATCil_UDP_Raw_Send(socket_id,packet_buff,34);
@@ -258,6 +261,7 @@ int NGATCil_TCS_Guide_Packet_Send(int socket_id,float x_pos,float y_pos,
  * @see #NGATCIL_TCS_GUIDE_PACKET_STATUS_FAILED
  * @see #NGATCIL_TCS_GUIDE_PACKET_STATUS_WINDOW
  * @see #NGATCil_TCS_Guide_Packet_Parse
+ * @see #NGATCil_TCS_Guide_Packet_To_String
  * @see ngatcil_udp_raw.html#NGATCil_UDP_Raw_Recv
  * @see ngatcil_general.html#NGATCil_General_Error_Number
  * @see ngatcil_general.html#NGATCil_General_Error_String
@@ -319,7 +323,8 @@ int NGATCil_TCS_Guide_Packet_Recv(int socket_id,float *x_pos,float *y_pos,
 	packet_buff[34] = '\0';
 #if NGATCIL_DEBUG > 5
 	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_TCS_GUIDE_PACKET,
-				   "NGATCil_TCS_Guide_Packet_Recv:received %s.",packet_buff);
+				   "NGATCil_TCS_Guide_Packet_Recv:received '%s'.",
+				   NGATCil_TCS_Guide_Packet_To_String(packet_buff,strlen(packet_buff)));
 #endif
 	/* parse packet */
 	retval = NGATCil_TCS_Guide_Packet_Parse(packet_buff,35,x_pos,y_pos,timecode_terminating,
@@ -357,6 +362,7 @@ int NGATCil_TCS_Guide_Packet_Recv(int socket_id,float *x_pos,float *y_pos,
  *      NGATCil_General_Error_Number and NGATCil_General_Error_String should be set.
  * @see #NGATCIL_TCS_GUIDE_PACKET_STATUS_FAILED
  * @see #NGATCIL_TCS_GUIDE_PACKET_STATUS_WINDOW
+ * @see #NGATCil_TCS_Guide_Packet_To_String
  * @see ngatcil_udp_raw.html#NGATCil_UDP_Raw_Recv
  * @see ngatcil_general.html#NGATCil_General_Error_Number
  * @see ngatcil_general.html#NGATCil_General_Error_String
@@ -428,14 +434,16 @@ int NGATCil_TCS_Guide_Packet_Parse(void *packet_buff,int packet_buff_length,floa
 	packet_buff_string[34] = '\0';
 #if NGATCIL_DEBUG > 5
 	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_TCS_GUIDE_PACKET,
-				   "NGATCil_TCS_Guide_Packet_Parse:received %s.",packet_buff_string);
+				   "NGATCil_TCS_Guide_Packet_Parse:received '%s'.",
+				   NGATCil_TCS_Guide_Packet_To_String(packet_buff_string,strlen(packet_buff_string)));
 #endif
 	retval = sscanf(packet_buff_string,"%f %f %f %c %d\r",x_pos,y_pos,timecode_secs,status_char,&checksum);
 	if(retval != 5)
 	{
 		NGATCil_General_Error_Number = 213;
 		sprintf(NGATCil_General_Error_String,"NGATCil_TCS_Guide_Packet_Parse:"
-			"Failed to parse packet_buff_string '%s'(%d).",packet_buff_string,retval);
+			"Failed to parse packet_buff_string '%s'(%d).",
+			NGATCil_TCS_Guide_Packet_To_String(packet_buff_string,strlen(packet_buff_string)),retval);
 		return FALSE;
 	}
 	/* sort out timecode flags */
@@ -457,7 +465,7 @@ int NGATCil_TCS_Guide_Packet_Parse(void *packet_buff,int packet_buff_length,floa
 	}
 	/* check the checksum */
 	computed_checksum = 0;
-	for(i=0;i<30;i++) /* 29 bytes up to checksum (8+1+8+1+8+1+1+1) */
+	for(i=0;i<29;i++) /* 29 (0..28) bytes up to checksum (8+1+8+1+8+1+1+1) */
 	{
 		computed_checksum += (int)(packet_buff_string[i]);
 	}
@@ -465,7 +473,8 @@ int NGATCil_TCS_Guide_Packet_Parse(void *packet_buff,int packet_buff_length,floa
 	{
 		NGATCil_General_Error_Number = 214;
 		sprintf(NGATCil_General_Error_String,"NGATCil_TCS_Guide_Packet_Parse:"
-			"Checksum mismatch (%d vs %d) on packet '%s'.",computed_checksum,checksum,packet_buff_string);
+			"Checksum mismatch (%d vs %d) on packet '%s'.",computed_checksum,checksum,
+			NGATCil_TCS_Guide_Packet_To_String(packet_buff_string,strlen(packet_buff_string)));
 		return FALSE;
 	}
 #if NGATCIL_DEBUG > 1
@@ -474,9 +483,39 @@ int NGATCil_TCS_Guide_Packet_Parse(void *packet_buff,int packet_buff_length,floa
 	return TRUE;
 }
 
+/**
+ * Strip out <CR> from guide packets to make them print better. Expects the guide packet to have previously been
+ * NULL terminated.
+ */
+char *NGATCil_TCS_Guide_Packet_To_String(void *packet_buff,int packet_buff_length)
+{
+	char *packet_buff_string = NULL;
+	static char print_packet_buff[40];
+	int i;
+
+	packet_buff_string = (char *)packet_buff;
+	if(strlen(packet_buff_string) > 35)
+	{
+		sprintf(print_packet_buff,"Buffer wrong length:%d,%d.",strlen(packet_buff_string),packet_buff_length);
+		return print_packet_buff;
+	}
+	strcpy(print_packet_buff,packet_buff_string);
+	for(i=0;i<packet_buff_length;i++)
+	{
+		if(print_packet_buff[i] == '\r')
+		{
+			print_packet_buff[i] = ' ';
+		}
+	}
+	/*strcat(print_packet_buff,"<cr>");*/
+	return print_packet_buff;
+}
 /* ----------------------------------------------------------------------------
 ** 		internal functions 
 ** ---------------------------------------------------------------------------- */
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2006/06/01 15:28:06  cjm
+** Initial revision
+**
 */
