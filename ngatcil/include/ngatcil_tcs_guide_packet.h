@@ -1,5 +1,5 @@
 /* ngatcil_tcs_guide_packet.h
-** $Header: /home/cjm/cvs/autoguider/ngatcil/include/ngatcil_tcs_guide_packet.h,v 1.1 2006-06-01 15:28:10 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ngatcil/include/ngatcil_tcs_guide_packet.h,v 1.2 2006-06-05 18:56:41 cjm Exp $
 */
 #ifndef NGATCIL_TCS_GUIDE_PACKET_H
 #define NGATCIL_TCS_GUIDE_PACKET_H
@@ -37,8 +37,11 @@ extern int NGATCil_TCS_Guide_Packet_Recv(int socket_id,float *x_pos,float *y_pos
 extern int NGATCil_TCS_Guide_Packet_Parse(void *packet_buff,int packet_buff_length,float *x_pos,float *y_pos,
 					  int *timecode_terminating,int *timecode_unreliable,
 					  float *timecode_secs,char *status_char);
-
+extern char *NGATCil_TCS_Guide_Packet_To_String(void *packet_buff,int packet_buff_length);
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2006/06/01 15:28:10  cjm
+** Initial revision
+**
 */
 #endif
