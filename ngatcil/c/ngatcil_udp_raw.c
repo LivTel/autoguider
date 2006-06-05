@@ -1,11 +1,11 @@
 /* ngatcil_udp_raw.c
 ** NGATCil UDP raw transmission routines
-** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_udp_raw.c,v 1.1 2006-06-01 15:28:06 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_udp_raw.c,v 1.2 2006-06-05 18:56:29 cjm Exp $
 */
 /**
  * NGAT Cil library raw UDP packet transmission.
  * @author Chris Mottram
- * @version $Revision: 1.1 $
+ * @version $Revision: 1.2 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -53,7 +53,7 @@ struct UDP_Raw_Server_Context_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: ngatcil_udp_raw.c,v 1.1 2006-06-01 15:28:06 cjm Exp $";
+static char rcsid[] = "$Id: ngatcil_udp_raw.c,v 1.2 2006-06-05 18:56:29 cjm Exp $";
 
 /* internal function declaration */
 static void *UDP_Raw_Server_Thread(void *);
@@ -107,6 +107,10 @@ int NGATCil_UDP_Open(char *hostname,int port_number,int *socket_id)
 	saddr = inet_addr(hostname);
 	if(saddr == INADDR_NONE)
 	{
+#if NGATCIL_DEBUG > 5
+		NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,
+				    "NGATCil_UDP_Open:inet_addr didn't work:trying gethostbyname.");
+#endif
 		/* try getting by hostname instead */
 		host_entry = gethostbyname(hostname);
 		if(host_entry == NULL)
@@ -118,7 +122,14 @@ int NGATCil_UDP_Open(char *hostname,int port_number,int *socket_id)
 				hostname);
 			return FALSE;
 		}
-		saddr = *(host_entry->h_addr_list[0]);
+		memcpy(&saddr,host_entry->h_addr_list[0],host_entry->h_length);
+#if NGATCIL_DEBUG > 5
+		NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,
+					   "NGATCil_UDP_Open:gethostbyname returned %d (%d,%#x) (%c.%c.%c.%c).",
+					   saddr,ntohl(saddr),ntohl(saddr),
+					   (ntohl(saddr)>>24)&255,(ntohl(saddr)>>16)&255,
+					   (ntohl(saddr)>>8)&255,ntohl(saddr)&255);
+#endif
 	}
 	/* set up server socket */
 	memset((char *) &server,0,sizeof(server));
@@ -409,6 +420,9 @@ static void *UDP_Raw_Server_Thread(void *arg)
 	done = FALSE;
 	while(done == FALSE)
 	{
+#if NGATCIL_DEBUG > 3
+		NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,"UDP_Raw_Server_Thread:Waiting for UDP packet.");
+#endif
 		current_client_length = sizeof(client);
 		retval = recvfrom(server_context->Socket_Id,message_buff,server_context->Message_Length,0, 
 				  (struct sockaddr *)&client,&current_client_length);
@@ -432,6 +446,16 @@ static void *UDP_Raw_Server_Thread(void *arg)
 							   "Detected short packet (%d vs %d).",retval,
 							   server_context->Message_Length);
 #endif
+				/* we seem to get 0 length packets when the server socket is closed */
+				if(retval == 0)
+				{
+					done = TRUE;
+#if NGATCIL_DEBUG > 3
+					NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,
+							       "UDP_Raw_Server_Thread:Zero length packet:"
+								   "socket closed?:quiting server thread.");
+#endif
+				}
 			}
 			if(server_context->Connection_Handler != NULL)
 			{
@@ -457,4 +481,7 @@ static void *UDP_Raw_Server_Thread(void *arg)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2006/06/01 15:28:06  cjm
+** Initial revision
+**
 */
