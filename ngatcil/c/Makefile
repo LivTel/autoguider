@@ -1,4 +1,4 @@
-# $Header: /home/cjm/cvs/autoguider/ngatcil/c/Makefile,v 1.1 2006-06-01 15:28:13 cjm Exp $
+# $Header: /home/cjm/cvs/autoguider/ngatcil/c/Makefile,v 1.2 2006-06-06 10:34:01 cjm Exp $
 
 include ../../../Makefile.common
 include ../../Makefile.common
@@ -14,7 +14,7 @@ DEBUG_CFLAGS	= -DNGATCIL_DEBUG=10
 CFLAGS 		= -g -I$(INCDIR) $(DEBUG_CFLAGS)
 DOCFLAGS 	= -static
 
-LIB_SRCS	=ngatcil_general.c ngatcil_udp_raw.c ngatcil_tcs_guide_packet.c
+LIB_SRCS	=ngatcil_general.c ngatcil_udp_raw.c ngatcil_tcs_guide_packet.c ngatcil_cil.c
 SRCS		= $(LIB_SRCS)
 LIB_HEADERS	= $(LIB_SRCS:%.c=$(INCDIR)/%.h)
 HEADERS		= $(LIB_HEADERS)
@@ -62,6 +62,9 @@ checkout:
 
 #
 # $Log: not supported by cvs2svn $
+# Revision 1.1  2006/06/01 15:28:13  cjm
+# Initial revision
+#
 #
 
 # DO NOT DELETE
