@@ -1,11 +1,11 @@
 /* ngatcil_cil.c
 ** NGATCil General CIL packet tranmitting/receiving routines.
-** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_cil.c,v 1.1 2006-06-06 15:58:00 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_cil.c,v 1.2 2006-06-07 11:11:24 cjm Exp $
 */
 /**
  * NGAT Cil library transmission/receiving of CIL packets over UDP.
  * @author Chris Mottram
- * @version $Revision: 1.1 $
+ * @version $Revision: 1.2 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -23,67 +23,6 @@
 #include "ngatcil_udp_raw.h"
 #include "ngatcil_cil.h"
 /* hash defines */
-/* based 
-/**
- * Used in CIL packets, Class field, for an invalid class of packet.
- * Derived from "Generic 2.0m Telescope, Autoguider to TCS Interface Control Document,
- * Version 0.01, 6th October 2005".
- */
-#define E_CIL_INV_CLASS           (0)
-/**
- * Used in CIL packets, Class field, for command class packets.
- * Derived from "Generic 2.0m Telescope, Autoguider to TCS Interface Control Document,
- * Version 0.01, 6th October 2005".
- */
-#define E_CIL_CMD_CLASS           (1)
-/**
- * Used in CIL packets, Class field, for response (reply) class packets.
- * Derived from "Generic 2.0m Telescope, Autoguider to TCS Interface Control Document,
- * Version 0.01, 6th October 2005".
- */
-#define E_CIL_RSP_CLASS           (2)
-/**
- * Used in CIL packets, Service field, to denote the AutoGuider Service.
- * Derived from "Generic 2.0m Telescope, Autoguider to TCS Interface Control Document,
- * Version 0.01, 6th October 2005".
- */
-#define E_AGS_CMD                 (0x4f0000)
-/**
- * Used in CIL packets, Command field, to tell the AGS to Guide on the brightest object.
- * Derived from "Generic 2.0m Telescope, Autoguider to TCS Interface Control Document,
- * Version 0.01, 6th October 2005".
- */
-#define E_AGS_GUIDE_ON_BRIGHTEST  (1)
-/**
- * Used in CIL packets, Command field, to tell the AGS to Guide on the specified ranked object.
- * Derived from "Generic 2.0m Telescope, Autoguider to TCS Interface Control Document,
- * Version 0.01, 6th October 2005".
- */
-#define E_AGS_GUIDE_ON_RANK       (2)
-/**
- * Used in CIL packets, Command field, to tell the AGS to Guide an object in the specified magnitude range.
- * Derived from "Generic 2.0m Telescope, Autoguider to TCS Interface Control Document,
- * Version 0.01, 6th October 2005".
- */
-#define E_AGS_GUIDE_ON_RANGE      (3)
-/**
- * Used in CIL packets, Command field, to tell the AGS to Guide on the object nearest the specified pixel.
- * Derived from "Generic 2.0m Telescope, Autoguider to TCS Interface Control Document,
- * Version 0.01, 6th October 2005".
- */
-#define E_AGS_GUIDE_ON_PIXEL      (4)
-/**
- * Used in CIL packets, Command field, to tell the AGS to stop guiding.
- * Derived from "Generic 2.0m Telescope, Autoguider to TCS Interface Control Document,
- * Version 0.01, 6th October 2005".
- */
-#define E_AGS_GUIDE_OFF           (5)
-/**
- * Used in CIL packets, Status field, to indicate all is well.
- * Derived from "Generic 2.0m Telescope, Autoguider to TCS Interface Control Document,
- * Version 0.01, 6th October 2005".
- */
-#define SYS_NOMINAL               (0x10000)
 
 /* enums */
 /**
@@ -250,7 +189,7 @@ enum eCilNames
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: ngatcil_cil.c,v 1.1 2006-06-06 15:58:00 cjm Exp $";
+static char rcsid[] = "$Id: ngatcil_cil.c,v 1.2 2006-06-07 11:11:24 cjm Exp $";
 /**
  * CIL packet sequence number.
  */
@@ -385,7 +324,8 @@ int NGATCil_Cil_Autoguide_On_Pixel_Send(int socket_id,float pixel_x,float pixel_
 	int pixel_x_i,pixel_y_i,retval;
 
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Autoguide_On_Pixel_Send:started.");
+	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_CIL,
+				   "NGATCil_Cil_Autoguide_On_Pixel_Send(%.2f,%.2f):started.",pixel_x,pixel_y);
 #endif
 	if(sequence_number == NULL)
 	{
@@ -433,7 +373,8 @@ int NGATCil_Cil_Autoguide_On_Pixel_Send(int socket_id,float pixel_x,float pixel_
 	if(retval == FALSE)
 		return FALSE;
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Autoguide_On_Pixel_Send:finished.");
+	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_CIL,
+				   "NGATCil_Cil_Autoguide_On_Pixel_Send:sequence ID %d:finished.",(*sequence_number));
 #endif
 	return TRUE;
 }
@@ -505,7 +446,9 @@ int NGATCil_Cil_Autoguide_On_Pixel_Parse(struct NGATCil_Cil_Packet_Struct packet
 	(*pixel_y) = ((float)(packet.Param2))/1000.0f;
 	(*sequence_number) = packet.Seq_Num;
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Autoguide_On_Pixel_Parse:finished.");
+	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_CIL,
+				   "NGATCil_Cil_Autoguide_On_Pixel_Parse:(%.2f,%.2f,%d):finished.",
+				   (*pixel_x),(*pixel_y),(*sequence_number));
 #endif
 	return TRUE;
 }
@@ -540,7 +483,9 @@ int NGATCil_Cil_Autoguide_On_Pixel_Reply_Send(int socket_id,float pixel_x,float 
 	int pixel_x_i,pixel_y_i,retval;
 
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Autoguide_On_Pixel_Reply_Send:started.");
+	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_CIL,
+				   "NGATCil_Cil_Autoguide_On_Pixel_Reply_Send(%.2f,%.2f,%#x,%d):started.",
+				   pixel_x,pixel_y,status,sequence_number);
 #endif
 	if((pixel_x < 0.0f) || (pixel_x > 1023.0f))
 	{
@@ -659,7 +604,9 @@ int NGATCil_Cil_Autoguide_On_Pixel_Reply_Parse(struct NGATCil_Cil_Packet_Struct 
 	(*pixel_y) = ((float)(packet.Param2))/1000.0f;
 	(*sequence_number) = packet.Seq_Num;
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Autoguide_On_Pixel_Reply_Parse:finished.");
+	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_CIL,
+				   "NGATCil_Cil_Autoguide_On_Pixel_Reply_Parse:(%#x,%.2f,%.2f,%d):finished.",
+				   (*status),(*pixel_x),(*pixel_y),(*sequence_number));
 #endif
 	return TRUE;
 }
@@ -719,7 +666,8 @@ int NGATCil_Cil_Autoguide_Off_Send(int socket_id,int *sequence_number)
 	if(retval == FALSE)
 		return FALSE;
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Autoguide_Off_Send:finished.");
+	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Autoguide_Off_Send:(%d):finished.",
+				   (*sequence_number));
 #endif
 	return TRUE;
 }
@@ -782,7 +730,8 @@ int NGATCil_Cil_Autoguide_Off_Parse(struct NGATCil_Cil_Packet_Struct packet,int 
 	(*status) = packet.Status;
 	(*sequence_number) = packet.Seq_Num;
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Autoguide_Off_Parse:finished.");
+	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Autoguide_Off_Parse:(%#x,%d):finished.",
+				   (*status),(*sequence_number));
 #endif
 	return TRUE;
 }
@@ -814,7 +763,8 @@ int NGATCil_Cil_Autoguide_Off_Reply_Send(int socket_id,int status,int sequence_n
 	int retval;
 
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Autoguide_Off_Reply_Send:started.");
+	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_CIL,
+				   "NGATCil_Cil_Autoguide_Off_Reply_Send(%#x,%d):started.",status,sequence_number);
 #endif
 	packet.Source_Id = E_CIL_AGS;
 	packet.Dest_Id = E_CIL_TCS;
@@ -898,7 +848,9 @@ int NGATCil_Cil_Autoguide_Off_Reply_Parse(struct NGATCil_Cil_Packet_Struct packe
 	(*status) = packet.Status;
 	(*sequence_number) = packet.Seq_Num;
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Autoguide_Off_Reply_Parse:finished.");
+	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_CIL,
+				   "NGATCil_Cil_Autoguide_Off_Reply_Parse:(%#x,%d):finished.",
+				   (*status),(*sequence_number));
 #endif
 	return TRUE;
 }
@@ -908,4 +860,7 @@ int NGATCil_Cil_Autoguide_Off_Reply_Parse(struct NGATCil_Cil_Packet_Struct packe
 ** ---------------------------------------------------------------------------- */
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2006/06/06 15:58:00  cjm
+** Initial revision
+**
 */
