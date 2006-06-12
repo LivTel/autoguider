@@ -1,11 +1,11 @@
 /* autoguider_field.c
 ** Autoguider field routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_field.c,v 1.1 2006-06-01 15:18:38 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_field.c,v 1.2 2006-06-12 19:22:13 cjm Exp $
 */
 /**
  * Field routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.1 $
+ * @version $Revision: 1.2 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -81,7 +81,7 @@ struct Field_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_field.c,v 1.1 2006-06-01 15:18:38 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_field.c,v 1.2 2006-06-12 19:22:13 cjm Exp $";
 /**
  * Instance of field data.
  * @see #Field_Struct
@@ -286,7 +286,7 @@ int Autoguider_Field(void)
 	/* initialise Field ID/Frame Number */
 	time_secs = time(NULL);
 	time_tm = gmtime(&time_secs);
-	Field_Data.Field_Id = (time_tm->tm_year*1000000000)+(time_tm->tm_yday*1000000)+
+	Field_Data.Field_Id = /*diddly (time_tm->tm_year*1000000000)+*/(time_tm->tm_yday*1000000)+
 		(time_tm->tm_hour*10000)+(time_tm->tm_min*100)+time_tm->tm_sec;
 	Field_Data.Frame_Number = 0;
 	/* lock out a readout buffer */
@@ -503,7 +503,7 @@ int Autoguider_Field_Expose(void)
 	/* initialise Field ID/Frame Number */
 	time_secs = time(NULL);
 	time_tm = gmtime(&time_secs);
-	Field_Data.Field_Id = (time_tm->tm_year*1000000000)+(time_tm->tm_yday*1000000)+
+	Field_Data.Field_Id = /*diddly (time_tm->tm_year*1000000000)+*/(time_tm->tm_yday*1000000)+
 		(time_tm->tm_hour*10000)+(time_tm->tm_min*100)+time_tm->tm_sec;
 	Field_Data.Frame_Number = 0;
 	/* lock out a readout buffer */
@@ -914,4 +914,7 @@ static int Field_Reduce(int buffer_index)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2006/06/01 15:18:38  cjm
+** Initial revision
+**
 */
