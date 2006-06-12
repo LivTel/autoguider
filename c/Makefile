@@ -1,7 +1,8 @@
-# $Header: /home/cjm/cvs/autoguider/c/Makefile,v 1.2 2006-06-01 15:30:46 cjm Exp $
+# $Header: /home/cjm/cvs/autoguider/c/Makefile,v 1.3 2006-06-12 19:27:16 cjm Exp $
 
 include ../../Makefile.common
 include ../commandserver/Makefile.common
+include ../ngatcil/Makefile.common
 include ../ccd/Makefile.common
 include ../Makefile.common
 
@@ -20,6 +21,10 @@ CCD_LDFLAGS 		= -lautoguider_ccd_general
 COMMAND_SERVER_CFLAGS 	= -I$(AUTOGUIDER_COMMANDSERVER_SRC_HOME)/include
 COMMAND_SERVER_LDFLAGS 	= -lautoguider_commandserver
 
+# ngatcil library
+NGATCIL_CFLAGS 		= -I$(AUTOGUIDER_NGATCIL_SRC_HOME)/include
+NGATCIL_LDFLAGS 	= -lautoguider_ngatcil
+
 # CFITSIO
 CFITSIO_CFLAGS		= -I$(CFITSIOINCDIR) 
 CFITSIO_LDFLAGS		= -lcfitsio
@@ -28,14 +33,14 @@ CFITSIO_LDFLAGS		= -lcfitsio
 OBJECT_CFLAGS		= -I/home/dev/src/libdprt/object/include
 OBJECT_LDFLAGS		= -ldprt_object
 
-CFLAGS 			= -g -I$(INCDIR) $(DEBUG_CFLAGS) $(CCD_CFLAGS) $(COMMAND_SERVER_CFLAGS) \
+CFLAGS 			= -g -I$(INCDIR) $(DEBUG_CFLAGS) $(CCD_CFLAGS) $(COMMAND_SERVER_CFLAGS) $(NGATCIL_CFLAGS) \
 				$(CFITSIO_CFLAGS) $(OBJECT_CFLAGS)
 DOCFLAGS 		= -static
 
 EXE_SRCS		= autoguider.c
-OBJ_SRCS		= autoguider_buffer.c autoguider_command.c autoguider_dark.c autoguider_field.c \
-			autoguider_flat.c autoguider_general.c autoguider_get_fits.c autoguider_guide.c \
-			autoguider_object.c autoguider_server.c
+OBJ_SRCS		= autoguider_buffer.c autoguider_cil.c autoguider_command.c autoguider_dark.c \
+			autoguider_field.c autoguider_flat.c autoguider_general.c autoguider_get_fits.c \
+			autoguider_guide.c autoguider_object.c autoguider_server.c
 SRCS			= $(EXE_SRCS) $(OBJ_SRCS)
 HEADERS			= $(OBJ_SRCS:%.c=$(INCDIR)/%.h)
 EXE_OBJS		= $(EXE_SRCS:%.c=$(BINDIR)/%.o)
@@ -48,8 +53,8 @@ CONFIG_BINS		= $(CONFIG_SRCS:%.properties=$(BINDIR)/%.properties)
 top: $(EXES) $(CONFIG_BINS) docs
 
 $(BINDIR)/autoguider: $(OBJS)
-	$(CC) $^ -o $@  -L$(LT_LIB_HOME) $(COMMAND_SERVER_LDFLAGS) $(CCD_LDFLAGS) $(CFITSIO_LDFLAGS) \
-		$(OBJECT_LDFLAGS) $(TIMELIB) $(SOCKETLIB) -lm -lc
+	$(CC) $^ -o $@  -L$(LT_LIB_HOME) $(COMMAND_SERVER_LDFLAGS) $(NGATCIL_LDFLAGS) $(CCD_LDFLAGS) \
+		$(CFITSIO_LDFLAGS) $(OBJECT_LDFLAGS) $(TIMELIB) $(SOCKETLIB) -lm -lc
 
 #$(BINDIR)/%: %.o
 #	$(CC) $< -o $@  -L$(LT_LIB_HOME) $(COMMAND_SERVER_LDFLAGS) $(CCD_LDFLAGS) $(TIMELIB) $(SOCKETLIB) -lm -lc
