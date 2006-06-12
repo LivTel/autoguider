@@ -1,11 +1,11 @@
 /* autoguider_guide.c
 ** Autoguider guide routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.2 2006-06-02 17:23:50 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.3 2006-06-12 19:22:08 cjm Exp $
 */
 /**
  * Guide routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.2 $
+ * @version $Revision: 1.3 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -29,6 +29,9 @@
 #include "ccd_setup.h"
 #include "ccd_temperature.h"
 
+#include "ngatcil_tcs_guide_packet.h"
+
+#include "autoguider_cil.h"
 #include "autoguider_dark.h"
 #include "autoguider_field.h"
 #include "autoguider_flat.h"
@@ -90,7 +93,7 @@ struct Guide_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_guide.c,v 1.2 2006-06-02 17:23:50 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_guide.c,v 1.3 2006-06-12 19:22:08 cjm Exp $";
 /**
  * Instance of guide data.
  * @see #Guide_Struct
@@ -108,6 +111,7 @@ static struct Guide_Struct Guide_Data =
 /* internal routines */
 static void *Guide_Thread(void *user_arg);
 static int Guide_Reduce(void);
+static int Guide_Packet_Send(int terminating,float timecode_secs);
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -673,6 +677,7 @@ int Autoguider_Guide_Set_Guide_Object(int index)
  * <li>Set Guide_Data.Is_Guiding TRUE.
  * <li>Call CCD_Setup_Dimensions.
  * <li>Call Autoguider_Buffer_Set_Guide_Dimension to set the guide buffer to the window size.
+ * <li>Call Autoguider_CIL_Guide_Packet_Open to setup the TCS Guide Packet UDP socket.
  * <li>Whilst Guide_Data.Quit_Guiding is FALSE:
  *     <ul>
  *     <li>Set Guide_Data.In_Use_Buffer_Index to _not_ the last buffer index.
@@ -683,17 +688,24 @@ int Autoguider_Guide_Set_Guide_Object(int index)
  *         into the equivalent reduced guide buffer. This (internally) (re)locks/unclocks the Raw guide mutex and
  *         the reduced guide mutex.
  *     <li>Call Guide_Reduce to dark subtract and flat-field the reduced data, if required.
+ *     <li>Call Guide_Packet_Send to send a guide packet back to the TCS, if required.
  *     <li>Set Guide_Data.Last_Buffer_Index to the in use buffer index.
  *     <li>Set the in use buffer index to -1.
  *     </ul>
  * <li>Set Guide_Data.Is_Guiding FALSE.
+ * <li>Call Guide_Packet_Send to send a <b>terminating</b> guide packet back to the TCS.
+ * <li>Call Autoguider_CIL_Guide_Packet_Close to close the TCS Guide Packet UDP socket.
  * </ul>
  * @see #Guide_Data
  * @see #Guide_Reduce
+ * @see #Guide_Packet_Send
  * @see autoguider_buffer.html#Autoguider_Buffer_Get_Guide_Pixel_Count
  * @see autoguider_buffer.html#Autoguider_Buffer_Set_Guide_Dimension
  * @see autoguider_buffer.html#Autoguider_Buffer_Raw_Guide_Lock
  * @see autoguider_buffer.html#Autoguider_Buffer_Raw_Guide_Unlock
+ * @see autoguider_cil.html#Autoguider_CIL_Guide_Packet_Open
+ * @see autoguider_cil.html#Autoguider_CIL_Guide_Packet_Close
+ * @see autoguider_general.html#fdifftime
  * @see autoguider_general.html#Autoguider_General_Log
  * @see autoguider_general.html#Autoguider_General_Log_Format
  * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_GUIDE
@@ -702,8 +714,9 @@ int Autoguider_Guide_Set_Guide_Object(int index)
  */
 static void *Guide_Thread(void *user_arg)
 {
-	struct timespec start_time;
+	struct timespec start_time,loop_start_time,current_time;
 	unsigned short *buffer_ptr = NULL;
+	double guide_loop_cadence;
 	int retval;
 
 #if AUTOGUIDER_DEBUG > 1
@@ -713,6 +726,8 @@ static void *Guide_Thread(void *user_arg)
 	Guide_Data.Is_Guiding = TRUE;
 	/* reset frame number */
 	Guide_Data.Frame_Number = 0;
+	/* get loop start time for stats/guide packet */
+	clock_gettime(CLOCK_REALTIME,&loop_start_time);
 	/* setup dimensions once at start of loop */
 #if AUTOGUIDER_DEBUG > 5
 	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:"
@@ -761,7 +776,19 @@ static void *Guide_Thread(void *user_arg)
 		Autoguider_General_Error();
 		return NULL;
 	}
-
+	/* open guide packet socket */
+	retval = Autoguider_CIL_Guide_Packet_Open();
+	if(retval == FALSE)
+	{
+#if AUTOGUIDER_DEBUG > 1
+		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:"
+				       "Failed on Autoguider_CIL_Guide_Packet_Open.");
+#endif
+		/* reset guiding flag */
+		Guide_Data.Is_Guiding = FALSE;
+		Autoguider_General_Error();
+		return NULL;
+	}
 #if AUTOGUIDER_DEBUG > 5
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:starting guide loop.");
 #endif
@@ -791,6 +818,9 @@ static void *Guide_Thread(void *user_arg)
 			sprintf(Autoguider_General_Error_String,"Guide_Thread:"
 				"Autoguider_Buffer_Raw_Guide_Lock failed.");
 			Autoguider_General_Error();
+			/* diddly send tcs guide packet termination packet. */
+			/* close tcs guide packet socket */
+			Autoguider_CIL_Guide_Packet_Close();
 			return NULL;
 		}
 #if AUTOGUIDER_DEBUG > 9
@@ -821,6 +851,9 @@ static void *Guide_Thread(void *user_arg)
 			Autoguider_General_Error_Number = 713;
 			sprintf(Autoguider_General_Error_String,"Guide_Thread:CCD_Exposure_Expose failed.");
 			Autoguider_General_Error();
+			/* diddly send tcs guide packet termination packet. */
+			/* close tcs guide packet socket */
+			Autoguider_CIL_Guide_Packet_Close();
 			return NULL;
 		}
 #if AUTOGUIDER_DEBUG > 9
@@ -847,6 +880,9 @@ static void *Guide_Thread(void *user_arg)
 			/* reset in use buffer index */
 			Guide_Data.In_Use_Buffer_Index = -1;
 			Autoguider_General_Error();
+			/* diddly send tcs guide packet termination packet. */
+			/* close tcs guide packet socket */
+			Autoguider_CIL_Guide_Packet_Close();
 			return NULL;
 		}
 		/* reduce data */
@@ -866,9 +902,37 @@ static void *Guide_Thread(void *user_arg)
 			/* reset in use buffer index */
 			Guide_Data.In_Use_Buffer_Index = -1;
 			Autoguider_General_Error();
+			/* diddly send tcs guide packet termination packet. */
+			/* close tcs guide packet socket */
+			Autoguider_CIL_Guide_Packet_Close();
 			return NULL;
 		}
+		/* get loop time for stats/guide packet */
+		clock_gettime(CLOCK_REALTIME,&current_time);
+		guide_loop_cadence = fdifftime(loop_start_time,current_time);
+#if AUTOGUIDER_DEBUG > 5
+		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
+					      "Guide_Thread:Last loop took %.2f seconds.",guide_loop_cadence);
+#endif
+		clock_gettime(CLOCK_REALTIME,&loop_start_time);
 		/* send position update to TCS */
+		retval = Guide_Packet_Send(FALSE,guide_loop_cadence*2.0f);
+		if(retval == FALSE)
+		{
+#if AUTOGUIDER_DEBUG > 1
+			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:"
+					       "Failed on Guide_Packet_Send.");
+#endif
+			/* reset guiding flag */
+			Guide_Data.Is_Guiding = FALSE;
+			/* reset in use buffer index */
+			Guide_Data.In_Use_Buffer_Index = -1;
+			Autoguider_General_Error();
+			/* diddly send tcs guide packet termination packet. */
+			/* close tcs guide packet socket */
+			Autoguider_CIL_Guide_Packet_Close();
+			return NULL;
+		}
 		/* reset buffer indexs */
 		Guide_Data.Last_Buffer_Index = Guide_Data.In_Use_Buffer_Index;
 		Guide_Data.In_Use_Buffer_Index = -1;
@@ -880,6 +944,30 @@ static void *Guide_Thread(void *user_arg)
 #endif
 	}/* end while guiding */
 	Guide_Data.Is_Guiding = FALSE;
+	/* send termination packet to TCS */
+	retval = Guide_Packet_Send(TRUE,guide_loop_cadence*2.0f);
+	if(retval == FALSE)
+	{
+#if AUTOGUIDER_DEBUG > 1
+		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:"
+				       "Failed on Guide_Packet_Send.");
+#endif
+		Autoguider_General_Error();
+		/* close tcs guide packet socket */
+		Autoguider_CIL_Guide_Packet_Close();
+		return NULL;
+	}
+	/* close guide packet socket */
+	retval = Autoguider_CIL_Guide_Packet_Close();
+	if(retval == FALSE)
+	{
+#if AUTOGUIDER_DEBUG > 1
+		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:"
+				       "Failed on Autoguider_CIL_Guide_Packet_Close.");
+#endif
+		Autoguider_General_Error();
+		return NULL;
+	}
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:finished.");
 #endif
@@ -1013,8 +1101,168 @@ static int Guide_Reduce(void)
 	return TRUE;
 }
 
+/**
+ * Routine to send a guide packet to the TCS. Autoguider_CIL_Guide_Packet_Send is called to send the guide packet
+ * (assumes Autoguider_CIL_Guide_Packet_Open has been called). The data in autoguider_object is used to get
+ * the centroid.
+ * <ul>
+ * <li>If object detection is switched off, no guide packet is sent.
+ * <li>The number of detected objects is retrieved using Autoguider_Object_List_Get_Count.
+ * <li>If no objects were detected, a NGATCIL_TCS_GUIDE_PACKET_STATUS_FAILED status guide packet is returned.
+ * <li>The first object is retrieved.
+ * <li>If more than one object was detected, a NGATCIL_TCS_GUIDE_PACKET_STATUS_FAILED status guide packet is returned.
+ * <li>A set of reliability tests are performed to get an integer between 0 and 7.
+ * <li>The reliability number is transformed into a status char.
+ * <li>We check whether the centroid is within 1 FWHM of the edge of the window, and if so set the status char to
+ *     NGATCIL_TCS_GUIDE_PACKET_STATUS_WINDOW.
+ * <li>We send the guide packet to the TCS.
+ * </ul>
+ * If an error occurs during processing, a guide packet with status NGATCIL_TCS_GUIDE_PACKET_STATUS_FAILED
+ * and "unreliable packet" timecode is sent, with as much information (centroid etc) filled in as possible.
+ * @param terminating Boolean. If TRUE the autoguider is stopping guiding.
+ * @param timecode_secs The number of seconds the TCS should wait for until the next guide packet will be sent. 
+ *        This is a float in the range 0..9999 seconds.
+ * @see #Guide_Data
+ * @see autoguider_cil.html#Autoguider_CIL_Guide_Packet_Send
+ * @see autoguider_general.html#Autoguider_General_Error
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#Autoguider_General_Log_Format
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_GUIDE
+ * @see autoguider_object.html#Autoguider_Object_List_Get_Count
+ * @see ../ngatcil/cdocs/ngatcil_cil.html#NGATCIL_TCS_GUIDE_PACKET_STATUS_WINDOW
+ * @see ../ngatcil/cdocs/ngatcil_cil.html#NGATCIL_TCS_GUIDE_PACKET_STATUS_FAILED
+ */
+static int Guide_Packet_Send(int terminating,float timecode_secs)
+{
+	int object_count,reliability;
+	struct Autoguider_Object_Struct object;
+	char status_char;
+	float fwhm;
+
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Packet_Send:started.");
+#endif
+	if(Guide_Data.Do_Object_Detect)
+	{
+		/* how many objects found in guide frame */
+		if(!Autoguider_Object_List_Get_Count(&object_count))
+		{
+			Autoguider_General_Error();
+			/* if count get failed send unreliable and return */
+			if(!Autoguider_CIL_Guide_Packet_Send(0.0f,0.0f,terminating,TRUE,timecode_secs,
+							     NGATCIL_TCS_GUIDE_PACKET_STATUS_FAILED))
+				Autoguider_General_Error();
+			return TRUE;
+		}
+#if AUTOGUIDER_DEBUG > 5
+		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
+					      "Guide_Packet_Send:There are %d objects.",object_count);
+#endif
+		/* if none send unreliable and return */
+		if(object_count < 1)
+		{
+			if(!Autoguider_CIL_Guide_Packet_Send(0.0f,0.0f,terminating,TRUE,timecode_secs,
+							     NGATCIL_TCS_GUIDE_PACKET_STATUS_FAILED))
+				Autoguider_General_Error();
+			return TRUE;
+		}
+		/* get first object */
+		if(!Autoguider_Object_List_Get_Object(0,&object))
+		{
+			Autoguider_General_Error();
+			/* if object get failed send unreliable and return */
+			if(!Autoguider_CIL_Guide_Packet_Send(0.0f,0.0f,terminating,TRUE,timecode_secs,
+							     NGATCIL_TCS_GUIDE_PACKET_STATUS_FAILED))
+				Autoguider_General_Error();
+			return TRUE;
+		}
+		/* if object count > 1 return first object but send unreliable and return */
+		if(object_count > 1)
+		{
+			if(!Autoguider_CIL_Guide_Packet_Send(object.CCD_X_Position,object.CCD_X_Position,
+							     terminating,TRUE,timecode_secs,
+							     NGATCIL_TCS_GUIDE_PACKET_STATUS_FAILED))
+				Autoguider_General_Error();
+			return TRUE;
+
+		}
+		/* we have one object on the guide frame */
+		/* reliability tests */
+		reliability = 0;
+		if(object.Total_Counts > 5000.0)
+			reliability++;
+		if(object.Pixel_Count > 8)
+			reliability++;
+		if(object.Peak_Counts > 1000)
+		{
+			reliability++;
+			if(object.Peak_Counts < 40000)
+			{
+				reliability++;
+				if(object.Peak_Counts > 10000)
+					reliability++;
+			}
+		}
+		if(object.Is_Stellar)
+		{
+			reliability++;
+			/*
+			if(fabs((object.FWHM_X/object.FWHM_Y)-1.0f) < 0.2f)
+			reliability++;
+			*/
+			if(fabs((object.FWHM_X/object.FWHM_Y)-1.0f) < 0.1f)
+				reliability++;
+		}
+#if AUTOGUIDER_DEBUG > 5
+		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
+					      "Guide_Packet_Send:Object has %d/8 reliability.",reliability);
+#endif
+		status_char = '7'-reliability;
+#if AUTOGUIDER_DEBUG > 5
+		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
+					      "Guide_Packet_Send:Object has status char %c.",status_char);
+#endif
+
+		/* check nearness to window edge */
+		fwhm = ((object.FWHM_X + object.FWHM_Y)/2.0f);/* in pixels */
+		if(((object.CCD_X_Position-Guide_Data.Window.X_Start) < fwhm)||
+		   ((Guide_Data.Window.X_End-object.CCD_X_Position) < fwhm)||
+		   ((object.CCD_Y_Position-Guide_Data.Window.Y_Start) < fwhm)||
+		   ((Guide_Data.Window.Y_End-object.CCD_Y_Position) < fwhm))
+		{
+			status_char = NGATCIL_TCS_GUIDE_PACKET_STATUS_WINDOW;
+#if AUTOGUIDER_DEBUG > 5
+			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
+					      "Guide_Packet_Send:Object (%.2f,%.2f) too near edge of window "
+						      "((%.2f,%.2f),(%.2f,%.2f)): status char now %c.",
+						      object.CCD_X_Position,object.CCD_Y_Position,
+						      Guide_Data.Window.X_Start,Guide_Data.Window.Y_Start,
+						      Guide_Data.Window.X_End,Guide_Data.Window.Y_End,status_char);
+#endif
+		}
+		/* send reliable guide packet */
+		if(!Autoguider_CIL_Guide_Packet_Send(object.CCD_X_Position,object.CCD_X_Position,
+						     terminating,FALSE,timecode_secs,status_char))
+			Autoguider_General_Error();
+	}/* end if object detection enabled */
+	else
+	{
+#if AUTOGUIDER_DEBUG > 1
+		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
+				       "Guide_Packet_Send:Object Detection Off:Not sending packet.");
+#endif
+	}
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Packet_Send:finished.");
+#endif
+	return TRUE;
+}
+
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.2  2006/06/02 17:23:50  cjm
+** Changed guide id calculation.
+**
 ** Revision 1.1  2006/06/01 15:18:30  cjm
 ** Initial revision
 **
