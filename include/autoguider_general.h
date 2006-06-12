@@ -1,5 +1,5 @@
 /* autoguider_general.h
-** $Header: /home/cjm/cvs/autoguider/include/autoguider_general.h,v 1.1 2006-06-01 15:19:05 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/include/autoguider_general.h,v 1.2 2006-06-12 19:24:55 cjm Exp $
 */
 #ifndef AUTOGUIDER_GENERAL_H
 #define AUTOGUIDER_GENERAL_H
@@ -37,7 +37,6 @@
  */
 #define MIN(A,B) ((A)<(B)?(A):(B))
 #endif
-
 
 /**
  * This is the length of error string of modules in the library.
@@ -94,6 +93,11 @@
  * @see #Autoguider_General_Log
  */
 #define AUTOGUIDER_GENERAL_LOG_BIT_OBJECT	(1<<9)
+/**
+ * Value to pass into logging calls, used for CIL code logging.
+ * @see #Autoguider_General_Log
+ */
+#define AUTOGUIDER_GENERAL_LOG_BIT_CIL	        (1<<10)
 
 /**
  * The number of nanoseconds in one second. A struct timespec has fields in nanoseconds.
@@ -111,6 +115,17 @@
  * The number of nanoseconds in one microsecond.
  */
 #define AUTOGUIDER_GENERAL_ONE_MICROSECOND_NS	(1000)
+
+#ifndef fdifftime
+/**
+ * Return double difference (in seconds) between two struct timespec's.
+ * @param t0 A struct timespec.
+ * @param t1 A struct timespec.
+ * @return A double, in seconds, representing the time elapsed from t0 to t1.
+ * @see #AUTOGUIDER_GENERAL_ONE_SECOND_NS
+ */
+#define fdifftime(t1, t0) (((double)(((t1).tv_sec)-((t0).tv_sec))+(double)(((t1).tv_nsec)-((t0).tv_nsec))/AUTOGUIDER_GENERAL_ONE_SECOND_NS))
+#endif
 
 /* external variabless */
 extern int Autoguider_General_Error_Number;
@@ -148,5 +163,8 @@ extern char *Autoguider_General_Get_Config_Filename(void);
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2006/06/01 15:19:05  cjm
+** Initial revision
+**
 */
 #endif
