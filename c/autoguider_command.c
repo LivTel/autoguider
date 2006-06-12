@@ -1,11 +1,11 @@
 /* autoguider_command.c
 ** Autoguider command routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_command.c,v 1.2 2006-06-02 13:44:59 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_command.c,v 1.3 2006-06-12 19:22:13 cjm Exp $
 */
 /**
  * Command routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.2 $
+ * @version $Revision: 1.3 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -28,6 +28,10 @@
 #include "ccd_setup.h"
 #include "ccd_temperature.h"
 
+#include "command_server.h"
+
+#include "ngatcil_general.h"
+
 #include "autoguider_general.h"
 #include "autoguider_server.h"
 #include "autoguider_field.h"
@@ -39,7 +43,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_command.c,v 1.2 2006-06-02 13:44:59 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_command.c,v 1.3 2006-06-12 19:22:13 cjm Exp $";
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -1199,8 +1203,93 @@ int Autoguider_Command_Get_Fits(char *command_string,void **buffer_ptr,size_t *b
 	return TRUE;
 }
 
+/**
+ * Handle a command of the form: "log_level <autoguider|ccd|command_server|object|ngatcil> <n>".
+ * @param command_string The command. This is not changed during this routine.
+ * @param reply_string The address of a pointer to allocate and set the reply string.
+ * @return The routine returns TRUE on success and FALSE on failure.
+ * @see autoguider_general.html#Autoguider_General_Add_String
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_COMMAND
+ * @see autoguider_general.html#Autoguider_General_Error_Number
+ * @see autoguider_general.html#Autoguider_General_Error_String
+ * @see ../ccd/cdocs/ccd_general.html#CCD_General_Set_Log_Filter_Level
+ * @see ../commandserver/cdocs/command_server.html#Command_Server_Set_Log_Filter_Level
+ * @see ../ngatcil/cdocs/ngatcil_general.html#NGATCil_General_Set_Log_Filter_Level
+ * @see ../../libdprt/object/cdocs/object.html#Object_Set_Log_Filter_Level
+ */
+int Autoguider_Command_Log_Level(char *command_string,char **reply_string)
+{
+	char parameter_buff[32];
+	int retval,log_level;
+
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Log_Level:started.");
+#endif
+	/* parse command */
+	retval = sscanf(command_string,"log_level %32s %d",parameter_buff,&log_level);
+	if(retval != 2)
+	{
+		Autoguider_General_Error_Number = 320;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Command_Log_Level:"
+			"Failed to parse command '%s' (%d).",command_string,retval);
+#if AUTOGUIDER_DEBUG > 1
+		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,
+				       "Autoguider_Command_Log_Level:finished (command parse failed).");
+#endif
+		return FALSE;
+	}
+	if(strcmp(parameter_buff,"autoguider") == 0)
+	{
+		Autoguider_General_Set_Log_Filter_Level(log_level);
+		if(!Autoguider_General_Add_String(reply_string,"0 Setting autoguider log level suceeded."))
+			return FALSE;
+	}
+	else if(strcmp(parameter_buff,"ccd") == 0)
+	{
+		CCD_General_Set_Log_Filter_Function(CCD_General_Log_Filter_Level_Bitwise);
+		CCD_General_Set_Log_Filter_Level(log_level);
+		if(!Autoguider_General_Add_String(reply_string,"0 Setting ccd log level suceeded."))
+			return FALSE;
+	}
+	else if(strcmp(parameter_buff,"command_server") == 0)
+	{
+		Command_Server_Set_Log_Filter_Level(log_level);
+		if(!Autoguider_General_Add_String(reply_string,"0 Setting command_server log level suceeded."))
+			return FALSE;
+	}
+	else if(strcmp(parameter_buff,"object") == 0)
+	{
+		Object_Set_Log_Filter_Level(log_level);
+		if(!Autoguider_General_Add_String(reply_string,"0 Setting object log level suceeded."))
+			return FALSE;
+	}
+	else if(strcmp(parameter_buff,"ngatcil") == 0)
+	{
+		NGATCil_General_Set_Log_Filter_Level(log_level);
+		if(!Autoguider_General_Add_String(reply_string,"0 Setting ngatcil log level suceeded."))
+			return FALSE;
+	}
+	else
+	{
+		if(!Autoguider_General_Add_String(reply_string,"1 Setting log level failed:Illegal parameter:"))
+			return FALSE;
+		if(!Autoguider_General_Add_String(reply_string,parameter_buff))
+			return FALSE;
+		if(!Autoguider_General_Add_String(reply_string,"."))
+			return FALSE;
+	}
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Log_Level:finished.");
+#endif
+	return TRUE;
+}
+
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.2  2006/06/02 13:44:59  cjm
+** Added extra tests and allow for \0 in some command argument strings.
+**
 ** Revision 1.1  2006/06/01 15:18:38  cjm
 ** Initial revision
 **
