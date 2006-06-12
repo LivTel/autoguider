@@ -1,11 +1,11 @@
 /* ngatcil_tcs_guide_packet.c
 ** NGATCil TCS guide packet tranmitting/receiving routines.
-** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_tcs_guide_packet.c,v 1.2 2006-06-05 18:55:08 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_tcs_guide_packet.c,v 1.3 2006-06-12 19:25:53 cjm Exp $
 */
 /**
  * NGAT Cil library transmission/receiving of TCS guide packets over UDP.
  * @author Chris Mottram
- * @version $Revision: 1.2 $
+ * @version $Revision: 1.3 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -31,7 +31,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: ngatcil_tcs_guide_packet.c,v 1.2 2006-06-05 18:55:08 cjm Exp $";
+static char rcsid[] = "$Id: ngatcil_tcs_guide_packet.c,v 1.3 2006-06-12 19:25:53 cjm Exp $";
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -83,7 +83,7 @@ int NGATCil_TCS_Guide_Packet_Open_Default(int *socket_id)
  *        (the TCS actually waits for twice this time). This is a float in the range 0..9999 seconds.
  *        If timecode_unreliable is TRUE this value will be sent negative.
  *        If timecode_terminating is TRUE the value 0.0 will be sent instead.
- * @param status_char The status byte, should be a character in the range '0'..'7' or 
+ * @param status_char The status byte, should be a character in the range '0'..'7' ('0' == most confident) or 
  *       NGATCIL_TCS_GUIDE_PACKET_STATUS_FAILED or NGATCIL_TCS_GUIDE_PACKET_STATUS_WINDOW.
  * @return The routine returns TRUE on success and FALSE on failure. If the routine failed,
  *      NGATCil_General_Error_Number and NGATCil_General_Error_String should be set.
@@ -515,6 +515,10 @@ char *NGATCil_TCS_Guide_Packet_To_String(void *packet_buff,int packet_buff_lengt
 ** ---------------------------------------------------------------------------- */
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.2  2006/06/05 18:55:08  cjm
+** Fixed checksum.
+** Added NGATCil_TCS_Guide_Packet_To_String.
+**
 ** Revision 1.1  2006/06/01 15:28:06  cjm
 ** Initial revision
 **
