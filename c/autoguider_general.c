@@ -1,11 +1,11 @@
 /* autoguider_general.c
 ** Autoguider general routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_general.c,v 1.1 2006-06-01 15:18:38 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_general.c,v 1.2 2006-06-12 19:22:13 cjm Exp $
 */
 /**
  * General routines (logging, errror etc) for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.1 $
+ * @version $Revision: 1.2 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -28,6 +28,8 @@
 #include <unistd.h>
 
 #include "command_server.h"
+
+#include "ngatcil_general.h"
 
 #include "ccd_general.h"
 
@@ -93,7 +95,7 @@ struct General_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_general.c,v 1.1 2006-06-01 15:18:38 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_general.c,v 1.2 2006-06-12 19:22:13 cjm Exp $";
 /**
  * The instance of General_Struct that contains local data for this module.
  * This is statically initialised to the following:
@@ -136,6 +138,8 @@ static void General_Log_Handler_Filename_To_Fp(char *log_filename,FILE **log_fp)
  * @see ../../libdprt/object/cdocs/object.html#Object_Error_To_String
  * @see ../commandserver/cdocs/command_server.html#Command_Server_Is_Error
  * @see ../commandserver/cdocs/command_server.html#Command_Server_Error_To_String
+ * @see ../ngatcil/cdocs/ngatcil_general.html#NGATCil_General_Is_Error
+ * @see ../ngatcil/cdocs/ngatcil_general.html#NGATCil_General_Error_To_String
  * @see ../ccd/cdocs/ccd_general.html#CCD_General_Is_Error
  * @see ../ccd/cdocs/ccd_general.html#CCD_General_Error_To_String
  */
@@ -167,6 +171,14 @@ void Autoguider_General_Error(void)
 	{
 		found = TRUE;
 		Command_Server_Error_To_String(buff);
+		fprintf(General_Data.Error_Fp,"\t%s\n",buff);
+		fflush(General_Data.Error_Fp);
+	}
+	strcpy(buff,"");
+	if(NGATCil_General_Is_Error())
+	{
+		found = TRUE;
+		NGATCil_General_Error_To_String(buff);
 		fprintf(General_Data.Error_Fp,"\t%s\n",buff);
 		fflush(General_Data.Error_Fp);
 	}
@@ -696,4 +708,7 @@ static void General_Log_Handler_Filename_To_Fp(char *log_filename,FILE **log_fp)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2006/06/01 15:18:38  cjm
+** Initial revision
+**
 */
