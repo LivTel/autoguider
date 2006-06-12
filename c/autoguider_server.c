@@ -1,11 +1,11 @@
 /* autoguider_server.c
 ** Autoguider server routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_server.c,v 1.2 2006-06-02 13:43:36 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_server.c,v 1.3 2006-06-12 19:22:13 cjm Exp $
 */
 /**
- * Server routines for the autoguider program.
+ * Command Server routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.2 $
+ * @version $Revision: 1.3 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -31,16 +31,16 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_server.c,v 1.2 2006-06-02 13:43:36 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_server.c,v 1.3 2006-06-12 19:22:13 cjm Exp $";
 /**
  * The server context to use for this server.
  * @see ../command_server/cdocs/command_server.html#Command_Server_Server_Context_T
  */
-static Command_Server_Server_Context_T Server_Context = NULL;
+static Command_Server_Server_Context_T Command_Server_Context = NULL;
 /**
  * Command server port number.
  */
-static unsigned short Port_Number = 1234;
+static unsigned short Command_Server_Port_Number = 1234;
 
 /* internal functions */
 static void Autoguider_Server_Connection_Callback(Command_Server_Handle_T connection_handle);
@@ -54,11 +54,11 @@ static int Send_Binary_Reply_Error(Command_Server_Handle_T connection_handle);
 /**
  * Autoguider server initialisation routine. Assumes CCD_Config_Load has previously been called
  * to load the configuration file.
- * It loads the unsigned short with key ""command.server.port_number" into the Port_Number variable
+ * It loads the unsigned short with key ""command.server.port_number" into the Command_Server_Port_Number variable
  * for use in Autoguider_Server_Start.
  * @return The routine returns TRUE if successfull, and FALSE if an error occurs.
  * @see #Autoguider_Server_Start
- * @see #Port_Number
+ * @see #Command_Server_Port_Number
  * @see autoguider_general.html#Autoguider_General_Log
  * @see autoguider_general.html#Autoguider_General_Log_Format
  * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_SERVER
@@ -72,7 +72,7 @@ int Autoguider_Server_Initialise(void)
 	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_SERVER,"Autoguider_Server_Initialise:started.");
 #endif
 	/* get port number from config */
-	retval = CCD_Config_Get_Unsigned_Short("command.server.port_number",&Port_Number);
+	retval = CCD_Config_Get_Unsigned_Short("command.server.port_number",&Command_Server_Port_Number);
 	if(retval == FALSE)
 	{
 		Autoguider_General_Error_Number = 200;
@@ -89,9 +89,9 @@ int Autoguider_Server_Initialise(void)
  * Autoguider server start routine.
  * This routine starts the server. It does not return until the server is stopped using Autoguider_Server_Stop.
  * @return The routine returns TRUE if successfull, and FALSE if an error occurs.
- * @see #Port_Number
+ * @see #Command_Server_Port_Number
  * @see #Autoguider_Server_Connection_Callback
- * @see #Server_Context
+ * @see #Command_Server_Context
  * @see autoguider_general.html#Autoguider_General_Log
  * @see autoguider_general.html#Autoguider_General_Log_Format
  * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_SERVER
@@ -106,9 +106,10 @@ int Autoguider_Server_Start(void)
 #endif
 #if AUTOGUIDER_DEBUG > 2
 	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_SERVER,
-				      "Starting multi-threaded server on port %hu.",Port_Number);
+				      "Starting multi-threaded server on port %hu.",Command_Server_Port_Number);
 #endif
-	retval = Command_Server_Start_Server(&Port_Number,Autoguider_Server_Connection_Callback,&Server_Context);
+	retval = Command_Server_Start_Server(&Command_Server_Port_Number,Autoguider_Server_Connection_Callback,
+					     &Command_Server_Context);
 	if(retval == FALSE)
 	{
 		Autoguider_General_Error_Number = 201;
@@ -125,7 +126,7 @@ int Autoguider_Server_Start(void)
 /**
  * Autoguider server stop routine.
  * @return The routine returns TRUE if successfull, and FALSE if an error occurs.
- * @see #Server_Context
+ * @see #Command_Server_Context
  * @see autoguider_general.html#Autoguider_General_Log
  * @see autoguider_general.html#Autoguider_General_Log_Format
  * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_SERVER
@@ -137,7 +138,7 @@ int Autoguider_Server_Stop(void)
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_SERVER,"Autoguider_Server_Stop:started.");
 #endif
-	retval = Command_Server_Close_Server(&Server_Context);
+	retval = Command_Server_Close_Server(&Command_Server_Context);
 	if(retval == FALSE)
 	{
 		Autoguider_General_Error_Number = 202;
@@ -330,6 +331,29 @@ static void Autoguider_Server_Connection_Callback(Command_Server_Handle_T connec
 				Autoguider_General_Error();
 		}
 	}
+	else if(strncmp(client_message,"log_level",9) == 0)
+	{
+#if AUTOGUIDER_DEBUG > 1
+		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_SERVER,"Autoguider_Server_Connection_Callback:"
+				       "log_level detected.");
+#endif
+		retval = Autoguider_Command_Log_Level(client_message,&reply_string);
+		if(retval == TRUE)
+		{
+			retval = Send_Reply(connection_handle,reply_string);
+			if(reply_string != NULL)
+				free(reply_string);
+			if(retval == FALSE)
+				Autoguider_General_Error();
+		}
+		else
+		{
+			Autoguider_General_Error();
+			retval = Send_Reply(connection_handle, "1 Autoguider_Command_Log_Level failed.");
+			if(retval == FALSE)
+				Autoguider_General_Error();
+		}
+	}
 	else if(strcmp(client_message, "help") == 0)
 	{
 #if AUTOGUIDER_DEBUG > 1
@@ -349,6 +373,7 @@ static void Autoguider_Server_Connection_Callback(Command_Server_Handle_T connec
 			   "\tguide <dark|flat|object> <on|off>\n"
 			   "\tguide <object> <index>\n"
 			   "\thelp\n"
+			   "\tlog_level <autoguider|ccd|command_server|object|ngatcil> <n>\n"
 			   "\tobject get <list|count|index>\n"
 			   /*"\tmultrun <length> <count> <object>\n"*/
 			   "\tstatus temperature <get|status>\n"
@@ -541,6 +566,10 @@ static int Send_Binary_Reply_Error(Command_Server_Handle_T connection_handle)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.2  2006/06/02 13:43:36  cjm
+** Fixed logging to stop logging retply messages which may be longer than
+** the internal loggers buffers - only log first 80 chars of message.
+**
 ** Revision 1.1  2006/06/01 15:18:38  cjm
 ** Initial revision
 **
