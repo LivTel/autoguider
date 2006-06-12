@@ -1,10 +1,10 @@
 /* autoguider.c
-** $Header: /home/cjm/cvs/autoguider/c/autoguider.c,v 1.1 2006-06-01 15:18:38 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider.c,v 1.2 2006-06-12 19:22:13 cjm Exp $
 */
 /**
  * Autoguider main program.
  * @author $Author: cjm $
- * @version $Revision: 1.1 $
+ * @version $Revision: 1.2 $
  */
 #include <signal.h> /* signal handling */
 #include <stdio.h>
@@ -12,6 +12,8 @@
 #include <time.h>
 
 #include "command_server.h"
+
+#include "ngatcil_general.h"
 
 #include "object.h"
 
@@ -22,6 +24,7 @@
 #include "ccd_temperature.h"
 
 #include "autoguider_buffer.h"
+#include "autoguider_cil.h"
 #include "autoguider_command.h"
 #include "autoguider_dark.h"
 #include "autoguider_field.h"
@@ -43,7 +46,7 @@
 /**
  * Revision control system identifier.
  */
-static char rcsid[] = "$Id: autoguider.c,v 1.1 2006-06-01 15:18:38 cjm Exp $";
+static char rcsid[] = "$Id: autoguider.c,v 1.2 2006-06-12 19:22:13 cjm Exp $";
 
 /* internal routines */
 static int Autoguider_Initialise_Signal(void);
@@ -64,6 +67,9 @@ static void Help(void);
  * @see #Autoguider_Shutdown_CCD
  * @see autoguider_buffer.html#Autoguider_Buffer_Initialise
  * @see autoguider_buffer.html#Autoguider_Buffer_Shutdown
+ * @see autoguider_cil.html#Autoguider_CIL_Server_Initialise
+ * @see autoguider_cil.html#Autoguider_CIL_Server_Start
+ * @see autoguider_cil.html#Autoguider_CIL_Server_Stop
  * @see autoguider_dark.html#Autoguider_Dark_Initialise
  * @see autoguider_dark.html#Autoguider_Dark_Shutdown
  * @see autoguider_field.html#Autoguider_Field_Initialise
@@ -144,6 +150,8 @@ int main(int argc, char *argv[])
 	if(retval == FALSE)
 	{
 		Autoguider_General_Error();
+		/* ensure CCD is warmed up */
+		Autoguider_Shutdown_CCD();
 		return 5;
 	}
 	/* initialise dark handling */
@@ -154,6 +162,8 @@ int main(int argc, char *argv[])
 	if(retval == FALSE)
 	{
 		Autoguider_General_Error();
+		/* ensure CCD is warmed up */
+		Autoguider_Shutdown_CCD();
 		return 5;
 	}
 	/* initialise flat handling */
@@ -164,6 +174,8 @@ int main(int argc, char *argv[])
 	if(retval == FALSE)
 	{
 		Autoguider_General_Error();
+		/* ensure CCD is warmed up */
+		Autoguider_Shutdown_CCD();
 		return 5;
 	}
 	/* initialise field variables - note no equivalent shutdown routine */
@@ -174,6 +186,8 @@ int main(int argc, char *argv[])
 	if(retval == FALSE)
 	{
 		Autoguider_General_Error();
+		/* ensure CCD is warmed up */
+		Autoguider_Shutdown_CCD();
 		return 5;
 	}
 	/* initialise guide variables - note no equivalent shutdown routine */
@@ -184,7 +198,32 @@ int main(int argc, char *argv[])
 	if(retval == FALSE)
 	{
 		Autoguider_General_Error();
+		/* ensure CCD is warmed up */
+		Autoguider_Shutdown_CCD();
 		return 5;
+	}
+	/* initialise and start CIL command server */
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"main:Autoguider_CIL_Server_Initialise.");
+#endif
+	retval = Autoguider_CIL_Server_Initialise();
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error();
+		/* ensure CCD is warmed up */
+		Autoguider_Shutdown_CCD();
+		return 4;
+	}
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"main:Autoguider_CIL_Server_Start.");
+#endif
+	retval = Autoguider_CIL_Server_Start();
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error();
+		/* ensure CCD is warmed up */
+		Autoguider_Shutdown_CCD();
+		return 4;
 	}
 	/* initialise command server */
 #if AUTOGUIDER_DEBUG > 1
@@ -194,6 +233,8 @@ int main(int argc, char *argv[])
 	if(retval == FALSE)
 	{
 		Autoguider_General_Error();
+		/* ensure CCD is warmed up */
+		Autoguider_Shutdown_CCD();
 		return 4;
 	}
 	/* start server */
@@ -204,6 +245,20 @@ int main(int argc, char *argv[])
 	if(retval == FALSE)
 	{
 		Autoguider_General_Error();
+		/* ensure CCD is warmed up */
+		Autoguider_Shutdown_CCD();
+		return 4;
+	}
+	/* shutdown cil server */
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"main:Autoguider_CIL_Server_Stop.");
+#endif
+	retval = Autoguider_CIL_Server_Stop();
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error();
+		/* ensure CCD is warmed up */
+		Autoguider_Shutdown_CCD();
 		return 4;
 	}
 	/* shutdown */
@@ -307,6 +362,9 @@ static int Autoguider_Initialise_Signal(void)
  * @see ../commandserver/cdocs/command_server.html#Command_Server_Set_Log_Handler_Function
  * @see ../commandserver/cdocs/command_server.html#Command_Server_Set_Log_Filter_Function
  * @see ../commandserver/cdocs/command_server.html#Command_Server_Log_Filter_Level_Bitwise
+ * @see ../ngatcil/cdocs/ngatcil_general.html#NGATCil_General_Set_Log_Handler_Function
+ * @see ../ngatcil/cdocs/ngatcil_general.html#NGATCil_General_Set_Log_Filter_Function
+ * @see ../ngatcil/cdocs/ngatcil_general.html#NGATCil_General_Log_Filter_Level_Bitwise
  * @see ../../libdprt/object/cdocs/object.html#Object_Set_Log_Handler_Function
  * @see ../../libdprt/object/cdocs/object.html#Object_Set_Log_Filter_Function
  * @see ../../libdprt/object/cdocs/object.html#Object_Log_Filter_Level_Bitwise
@@ -335,6 +393,9 @@ static int Autoguider_Initialise_Logging(void)
 	/* setup command server logging */
 	Command_Server_Set_Log_Handler_Function(Autoguider_General_Log_Handler_Log_Hourly_File);
 	Command_Server_Set_Log_Filter_Function(Command_Server_Log_Filter_Level_Bitwise);
+	/* setup NGATCil logging */
+	NGATCil_General_Set_Log_Handler_Function(Autoguider_General_Log_Handler_Log_Hourly_File);
+	NGATCil_General_Set_Log_Filter_Function(NGATCil_General_Log_Filter_Level_Bitwise);
 	/* libdprt_object logging */
 	Object_Set_Log_Handler_Function(Autoguider_General_Log_Handler_Log_Hourly_File);
 	Object_Set_Log_Filter_Function(Object_Log_Filter_Level_Bitwise);
@@ -607,6 +668,7 @@ static void Help(void)
 	fprintf(stdout,"\t[-[al|autoguider_log_level] <bit field>]\n");
 	fprintf(stdout,"\t[-[ccdl|ccd_log_level] <bit field>]\n");
 	fprintf(stdout,"\t[-[csl|command_server_log_level] <bit field>]\n");
+	fprintf(stdout,"\t[-[ncl|ngatcil_log_level] <bit field>]\n");
 	fprintf(stdout,"\t[-ol|-object_log_level] <bit field>]\n");
 	fprintf(stdout,"\t[-h[elp]]\n");
 	fprintf(stdout,"\n");
@@ -617,6 +679,7 @@ static void Help(void)
 	fprintf(stdout,"\tCCD log levels defined in /home/dev/src/autoguider/ccd/include/ccd_general.h.\n");
 	fprintf(stdout,"\tAndor CCD log levels defined in /home/dev/src/autoguider/ccd/andor/include/andor_general.h.\n");
 	fprintf(stdout,"\tCommand Server log levels defined in /home/dev/src/autoguider/commmand_server/include/command_server.h.\n");
+	fprintf(stdout,"\tNGATCil log levels defined in /home/dev/src/autoguider/ngatcil/include/ngatcil_general.h.\n");
 }
 
 /**
@@ -629,6 +692,7 @@ static void Help(void)
  * @see ../ccd/cdocs/ccd_general.html#CCD_General_Set_Log_Filter_Function
  * @see ../ccd/cdocs/ccd_general.html#CCD_General_Set_Log_Filter_Level
  * @see ../commandserver/cdocs/command_server.html#Command_Server_Set_Log_Filter_Level
+ * @see ../ngatcil/cdocs/ngatcil_general.html#NGATCil_General_Set_Log_Filter_Level
  * @see ../../libdprt/object/cdocs/object.html#Object_Set_Log_Filter_Level
  */
 static int Parse_Arguments(int argc, char *argv[])
@@ -718,6 +782,25 @@ static int Parse_Arguments(int argc, char *argv[])
 			Help();
 			exit(0);
 		}
+		else if((strcmp(argv[i],"-ngatcil_log_level")==0)||(strcmp(argv[i],"-ncl")==0))
+		{
+			if((i+1)<argc)
+			{
+				retval = sscanf(argv[i+1],"%d",&log_level);
+				if(retval != 1)
+				{
+					fprintf(stderr,"Parse_Arguments:Parsing log level %s failed.\n",argv[i+1]);
+					return FALSE;
+				}
+				NGATCil_General_Set_Log_Filter_Level(log_level);
+				i++;
+			}
+			else
+			{
+				fprintf(stderr,"Parse_Arguments:Log Level requires a level.\n");
+				return FALSE;
+			}
+		}
 		else if((strcmp(argv[i],"-object_log_level")==0)||(strcmp(argv[i],"-ol")==0))
 		{
 			if((i+1)<argc)
@@ -748,4 +831,7 @@ static int Parse_Arguments(int argc, char *argv[])
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2006/06/01 15:18:38  cjm
+** Initial revision
+**
 */
