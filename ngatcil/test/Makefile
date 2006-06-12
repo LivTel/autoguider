@@ -1,4 +1,4 @@
-# $Header: /home/cjm/cvs/autoguider/ngatcil/test/Makefile,v 1.1 2006-06-01 15:28:15 cjm Exp $
+# $Header: /home/cjm/cvs/autoguider/ngatcil/test/Makefile,v 1.2 2006-06-12 19:26:56 cjm Exp $
 
 include ../../../Makefile.common
 include ../../Makefile.common
@@ -23,7 +23,7 @@ COMMAND_SERVER_LDFLAGS 	= -lautoguider_commandserver
 CFLAGS 		= -g -I$(INCDIR) $(DEBUG_CFLAGS) $(COMMAND_SERVER_CFLAGS)
 DOCFLAGS 	= -static
 
-EXE_SRCS	= test_tcs.c
+EXE_SRCS	= test_tcs.c test_autoguider.c
 SRCS		= $(EXE_SRCS)
 EXE_OBJS	= $(EXE_SRCS:%.c=$(BINDIR)/%.o)
 OBJS		= $(SRCS:%.c=$(BINDIR)/%.o)
