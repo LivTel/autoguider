@@ -1,0 +1,164 @@
+Basic User Instructions
+-----------------------
+$Header: /home/cjm/cvs/autoguider/txt/autoguider_basic_user_instructions.txt,v 1.1 2006-06-14 18:16:36 cjm Exp $
+$Revision: 1.1 $
+
+Autoguider control system startup:
+----------------------------------
+cd /icc/bin/autoguider/c/i386-linux
+./autoguider -co autoguider.properties -autoguider_log_level 2047 -ccd_log_level 3871 -command_server_log_level 3 -object_log_level 196608 -ngatcil_log_level 15
+
+Commands:
+---------
+
+cd /home/dev/bin/autoguider/commandserver/test/i386-linux/
+./send_command -h autoguider1 -p 6571 -c "help"
+
+Use 'send_command' to send all commands to the autoguider _except_ ones that return binary data, for
+those use 'test_getfits_command'. The commands that return binary data are: 'getfits [field|guide] [raw|reduced]'.
+
+Log files
+---------
+
+Logs appear in the '/icc/log' directory. Ensure you are tailing the latest one
+(which changes every hour), otherwise you won't know what is going on.
+
+Keep an eye out for error files appearing in the directory, this will
+tell you when a command has failed.
+
+
+Autoguider control system shutdown:
+-----------------------------------
+
+cd /home/dev/bin/autoguider/commandserver/test/i386-linux/
+./send_command -h autoguider1 -p 6571 -c "shutdown"
+
+Make sure you do this before turning the camera electronics off, so the 
+head is warmed to a sensible value.
+
+Simple exposures
+----------------
+
+cd /icc/bin/autoguider/commandserver/test/i386-linux/
+Expose:
+./send_command -h autoguider1 -p 6571 -c "expose 1000"
+(1000 is the exposure length in milliseconds)
+Get raw output:
+./test_getfits_command -h autoguider1 -p 6571 -c "getfits field raw" -f test.fits
+Display:
+gaia test.fits
+Also, if you have suitable darks/flats, get reduced output:
+./test_getfits_command -h autoguider1 -p 6571 -c "getfits field reduced" -f test_reduced.fits
+
+How do I create a dark library:
+-------------------------------
+
+cd /icc/bin/autoguider/scripts
+./autoguider_make_dark_list
+
+This in turn calls autoguider_make_dark for a list of exposure lengths.
+
+Basically, this (internally) does:
+"field dark off" to turn off dark subtraction.
+"field flat off" to turn off flat fielding.
+"field object off" to turn off object detection.
+"expose ${exposure_length}" x N to get N frames.
+fits_median to median the raw files.
+
+Follow the instructions to turn back on dark subtraction/flat fielding/object detection as needed afterwards.
+
+Note, you have to restart the software after building a new dark library for them to be read (not strictly true,
+so long as your next exposure is a different length to the one currently in the dark buffer).
+
+See '/icc/bin/autoguider/c/i386-linux/autoguider.properties', keywords:
+'dark.filename.1.1.<exposure_length>' for location of dark library (usually /icc/dprt/dark/).
+
+How do I create a flat field:
+-----------------------------
+
+Create a dark library first (and restart the software)!
+
+Determine a suitable exposure length to get suitable counts (10-30k), using the single exposure
+command above.
+
+cd /icc/bin/autoguider/scripts
+./autoguider_make_flat -exposure_length <ms> -exposure_count <n> -output /icc/dprt/flat/flat_1_1.fits
+
+Follow the instructions to turn back on dark subtraction/flat fielding/object detection as needed afterwards.
+
+Note, you have to restart the software after building a new flat library for it to be read.
+
+This internally does the following:
+"field dark on"  - make sure dark subtraction is on.
+"field flat off" - make sure flat fielding is off.
+"field object off" - turn off object detection.
+for N frame:
+  expose ${exposure_length}
+  "getfits field reduced"
+fits_median frames
+fits_normalise frames
+
+See '/icc/bin/autoguider/c/i386-linux/autoguider.properties', keywords:
+'flat.filename.1.1' for location of flat library (usually /icc/dprt/flat/).
+
+I want to make a move:
+---------------------
+
+Start by taking a full frame:
+cd /icc/bin/autoguider/commandserver/test/i386-linux/
+./send_command -h autoguider1 -p 6571 -c "expose 1000"
+./test_getfits_command -h autoguider1 -p 6571 -c "getfits field raw" -f test.fits
+gaiadisp test.fits
+
+Choose your fave bit:
+
+./send_command -h autoguider1 -p 6571 -c "guide window <sx> <sy> <ex> <ey>"
+./send_command -h autoguider1 -p 6571 -c "guide exposure_length 1000"
+
+Start the guide loop:
+./send_command -h autoguider1 -p 6571 -c "guide on"
+
+Lots of stuff should now be appearing in the log file....
+
+Stop the guide loop:
+./send_command -h autoguider1 -p 6571 -c "guide off"
+
+See an image:
+./test_getfits_command -h autoguider1 -p 6571 -c "getfits guide raw" -f test.fits
+or
+./test_getfits_command -h autoguider1 -p 6571 -c "getfits guide reduced" -f test.fits
+
+gaiadisp test.fits
+
+See a movie:
+
+cd /icc/bin/autoguider/scripts
+./autoguider_get_guide_frames [-gaiadisp][-ds9disp [-ds9objects]][-raw|-reduced][-delete]
+
+If '-delete' is specified each frame is deleted after viewing, otherwise a series of
+timestamped FITS images will be left after this is run.
+
+Temperature control
+-------------------
+
+Note the AG is currenly set to run at 0 deg C, see 
+'ccd.temperature.target' in 'autoguider.properties'.
+You should warm the CCD to at least 0C before turning it off (which is why 
+it runs at 0C atm). The 'shutdown' command warms up the CCD automatically 
+so long as the 'ccd.temperature.ramp_to_ambient' configuration is true.
+
+Also controlable by sending:
+./send_command -h autoguider1 -p 6571 -c "temperature set <C>"
+./send_command -h autoguider1 -p 6571 -c "temperature cooler on"
+and monitoring using:
+./send_command -h autoguider1 -p 6571 -c "status temperature get"
+which returns '0 0.0' (first 0 means 'success', second is temperature).
+also:
+./send_command -h autoguider1 -p 6571 -c "status temperature status"
+
+Don't change the temperature unless you have to.
+
+Change Log
+----------
+
+$Log: not supported by cvs2svn $
