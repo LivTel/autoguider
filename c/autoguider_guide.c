@@ -1,11 +1,11 @@
 /* autoguider_guide.c
 ** Autoguider guide routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.3 2006-06-12 19:22:08 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.4 2006-06-20 13:05:21 cjm Exp $
 */
 /**
  * Guide routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.3 $
+ * @version $Revision: 1.4 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -93,7 +93,7 @@ struct Guide_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_guide.c,v 1.3 2006-06-12 19:22:08 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_guide.c,v 1.4 2006-06-20 13:05:21 cjm Exp $";
 /**
  * Instance of guide data.
  * @see #Guide_Struct
@@ -189,6 +189,8 @@ int Autoguider_Guide_Window_Set(int sx,int sy,int ex,int ey)
 /**
  * Setup the guide exposure length, and whether it is dynamically changable during a guide session.
  * @param exposure_length The exposure length in milliseconds.
+ * @param lock A boolean, if TRUE the exposure length is fixed, otherwise the exposure length can change
+ *        during guiding.
  * @return The routine returns TRUE on success and FALSE on failure.
  * @see #Guide_Data
  */
@@ -485,7 +487,26 @@ int Autoguider_Guide_Get_Do_Object_Detect(void)
 
 /**
  * Routine to set which field object to guide on.
- * @param The index in the list of objects of the one we want to guide upon.
+ * <ul>
+ * <li>If we are already fielding or guiding, returns error.
+ * <li>Uses Autoguider_Object_List_Get_Object to get the specified object index.
+ * <li>Gets "guide.ncols.default" and "guide.nrows.default" config.
+ * <li>Computes start and end coordinates of guide window from config and selected object.
+ * <li>Calls Autoguider_Guide_Window_Set to set the computed window.
+ * <li>If the exposure length is NOT locked:
+ *     <ul>
+ *     <li>Use Autoguider_Field_Get_Exposure_Length to get the last field exposure length.
+ *     <li>Get "guide.counts.scale_type" config.
+ *     <li>Get "guide.counts.target.%s" for the specified scale type, 
+ *         and "ccd.exposure.minimum" and "ccd.exposure.maximum" config.
+ *     <li>The guide exposure length is generated from the field exposure length, object counts scaled appropriately
+ *         and bounded by the min/max.
+ *     <li>We round the guide exposure length to a suitable dark value using 
+ *         Autoguider_Dark_Get_Exposure_Length_Nearest.
+ *     <li>We use Autoguider_Guide_Exposure_Length_Set to set the guide exposure length.
+ *     </ul>
+ * </ul>
+ * @param index The index in the list of objects of the one we want to guide upon.
  * @return The routine returns TRUE on success, and FALSE if a failure occurs.
  * @see #Guide_Data
  * @see #Autoguider_Guide_Is_Guiding
@@ -1260,6 +1281,9 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.3  2006/06/12 19:22:08  cjm
+** Added sending of TCS guide packets.
+**
 ** Revision 1.2  2006/06/02 17:23:50  cjm
 ** Changed guide id calculation.
 **
