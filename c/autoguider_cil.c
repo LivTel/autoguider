@@ -1,11 +1,11 @@
 /* autoguider_cil.c
 ** Autoguider CIL server routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_cil.c,v 1.1 2006-06-12 19:21:07 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_cil.c,v 1.2 2006-06-20 13:05:21 cjm Exp $
 */
 /**
  * Autoguider CIL Server routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.1 $
+ * @version $Revision: 1.2 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -35,7 +35,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_cil.c,v 1.1 2006-06-12 19:21:07 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_cil.c,v 1.2 2006-06-20 13:05:21 cjm Exp $";
 /**
  * UDP CIL port to wait for TCS commands on.
  * @see ../cdocs/ngatcil_cil.html#NGATCIL_CIL_AGS_PORT_DEFAULT
@@ -65,6 +65,10 @@ static int CIL_TCS_UDP_Guide_Port = NGATCIL_TCS_GUIDE_PACKET_PORT_DEFAULT;
  * UDP Socket file descriptor of the opened guide packet socket.
  */
 static int CIL_TCS_Guide_Packet_Socket_Fd = -1;
+/**
+ * Boolean used to determine whether to send TCS guide packets.
+ */
+static int CIL_TCS_UDP_Guide_Packet_Send = TRUE;
 
 /* internal functions */
 static int Autoguider_CIL_Server_Connection_Callback(int socket_id,void* message_buff,int message_length);
@@ -84,6 +88,7 @@ static int CIL_UDP_Autoguider_Off_Reply_Send(int status,int sequence_number);
  * @see #TCC_Hostname
  * @see #CIL_TCS_UDP_Port
  * @see #CIL_TCS_UDP_Guide_Port
+ * @see #CIL_TCS_UDP_Guide_Packet_Send
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  * @see autoguider_general.html#Autoguider_General_Log
@@ -143,6 +148,15 @@ int Autoguider_CIL_Server_Initialise(void)
 		Autoguider_General_Error_Number = 1120;
 		sprintf(Autoguider_General_Error_String,"Autoguider_CIL_Server_Initialise:"
 		      "Failed to find CIL TCS guide port number (cil.tcs.guide_packet.port_number) in config file.");
+		return FALSE;
+	}
+	/* get whether to send cil TCS guide packets from config */
+	retval = CCD_Config_Get_Boolean("cil.tcs.guide_packet.send",&CIL_TCS_UDP_Guide_Packet_Send);
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 1124;
+		sprintf(Autoguider_General_Error_String,"Autoguider_CIL_Server_Initialise:"
+		      "Failed to find CIL TCS guide packet send (cil.tcs.guide_packet.send) in config file.");
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 1
@@ -281,6 +295,7 @@ int Autoguider_CIL_Guide_Packet_Open(void)
  * @return The routine returns TRUE if successfull, and FALSE if an error occurs. If an error occurs,
  *        Autoguider_General_Error_Number and Autoguider_General_Error_String are set.
  * @see #CIL_TCS_Guide_Packet_Socket_Fd
+ * @see #CIL_TCS_UDP_Guide_Packet_Send
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  * @see autoguider_general.html#Autoguider_General_Log
@@ -298,16 +313,28 @@ int Autoguider_CIL_Guide_Packet_Send(float x_pos,float y_pos,int terminating,int
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"Autoguider_CIL_Guide_Packet_Send:started.");
 #endif
-	/* send the guide packet
-	** we are relying on this routine to check the arguments - it does. */
-	retval = NGATCil_TCS_Guide_Packet_Send(CIL_TCS_Guide_Packet_Socket_Fd,x_pos,y_pos,terminating,unreliable,
-					       timecode_secs,status_char);
-	if(retval == FALSE)
+	if(CIL_TCS_UDP_Guide_Packet_Send)
 	{
-		Autoguider_General_Error_Number = 1122;
-		sprintf(Autoguider_General_Error_String,
+		/* send the guide packet
+		** we are relying on this routine to check the arguments - it does. */
+		retval = NGATCil_TCS_Guide_Packet_Send(CIL_TCS_Guide_Packet_Socket_Fd,x_pos,y_pos,terminating,
+						       unreliable,timecode_secs,status_char);
+		if(retval == FALSE)
+		{
+			Autoguider_General_Error_Number = 1122;
+			sprintf(Autoguider_General_Error_String,
 			"Autoguider_CIL_Guide_Packet_Send:NGATCil_TCS_Guide_Packet_Send failed.");
-		return FALSE;
+			return FALSE;
+		}
+	}
+	else
+	{
+#if AUTOGUIDER_DEBUG > 1
+		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"Autoguider_CIL_Guide_Packet_Send:"
+				      "Send is FALSE:Did not send packet:"
+				    "x_pos=%f,y_pos=%f,terminating=%d,unreliable=%d,timecode_secs=%f,status_char=%c.",
+				      x_pos,y_pos,terminating,unreliable,timecode_secs,status_char);
+#endif
 	}
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"Autoguider_CIL_Guide_Packet_Send:finished.");
@@ -346,6 +373,38 @@ int Autoguider_CIL_Guide_Packet_Close(void)
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"Autoguider_CIL_Guide_Packet_Close:finished.");
 #endif
 	return TRUE;
+}
+
+/**
+ * Set whether the autoguider is configured to send TCS guide packets to the TCS.
+ * @param on The value to use, either TRUE or FALSE.
+ * @return The routine returns TRUE if successfull, and FALSE if an error occurs. If an error occurs,
+ *        Autoguider_General_Error_Number and Autoguider_General_Error_String are set.
+ * @see #CIL_TCS_UDP_Guide_Packet_Send
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_IS_BOOLEAN
+ * @see autoguider_general.html#Autoguider_General_Error_Number
+ * @see autoguider_general.html#Autoguider_General_Error_String
+ */
+int Autoguider_CIL_Guide_Packet_Send_Set(int on)
+{
+	if(!AUTOGUIDER_GENERAL_IS_BOOLEAN(on))
+	{
+		Autoguider_General_Error_Number = 1125;
+		sprintf(Autoguider_General_Error_String,"Autoguider_CIL_Guide_Packet_Send_Set:Illegal argument %d.",
+			on);
+		return FALSE;
+	}
+	CIL_TCS_UDP_Guide_Packet_Send = on;
+	return TRUE;
+}
+
+/**
+ * Get whether the autoguider is configured to send TCS guide packets to the TCS.
+ * @see #CIL_TCS_UDP_Guide_Packet_Send
+ */
+int Autoguider_CIL_Guide_Packet_Send_Get(void)
+{
+	return CIL_TCS_UDP_Guide_Packet_Send;
 }
 
 /* ----------------------------------------------------------------------------
@@ -618,4 +677,7 @@ static int CIL_UDP_Autoguider_Off_Reply_Send(int status,int sequence_number)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2006/06/12 19:21:07  cjm
+** Initial revision
+**
 */
