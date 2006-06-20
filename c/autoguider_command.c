@@ -1,11 +1,11 @@
 /* autoguider_command.c
 ** Autoguider command routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_command.c,v 1.3 2006-06-12 19:22:13 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_command.c,v 1.4 2006-06-20 13:05:21 cjm Exp $
 */
 /**
  * Command routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.3 $
+ * @version $Revision: 1.4 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -32,6 +32,7 @@
 
 #include "ngatcil_general.h"
 
+#include "autoguider_cil.h"
 #include "autoguider_general.h"
 #include "autoguider_server.h"
 #include "autoguider_field.h"
@@ -39,11 +40,28 @@
 #include "autoguider_guide.h"
 #include "autoguider_object.h"
 
+/* enum */
+/**
+ * Enum describing type of "autoguider on" command.:
+ * <ul>
+ * <li>COMMAND_AG_ON_TYPE_BRIGHTEST
+ * <li>COMMAND_AG_ON_TYPE_PIXEL
+ * <li>COMMAND_AG_ON_TYPE_RANK
+ * </ul>
+ */
+enum COMMAND_AG_ON_TYPE
+{
+	COMMAND_AG_ON_TYPE_BRIGHTEST,
+	COMMAND_AG_ON_TYPE_PIXEL,
+	COMMAND_AG_ON_TYPE_RANK
+};
+
+
 /* internal data */
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_command.c,v 1.3 2006-06-12 19:22:13 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_command.c,v 1.4 2006-06-20 13:05:21 cjm Exp $";
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -90,6 +108,187 @@ int Autoguider_Command_Abort(char *command_string,char **reply_string)
 		return FALSE;
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Abort:finished.");
+#endif
+	return TRUE;
+}
+
+/**
+ * Handle a command of the form: "autoguide <on [<pixel <x> <y>>|brightest|<rank <n>>]|off>".
+ * @param command_string The command. This is not changed during this routine.
+ * @param reply_string The address of a pointer to allocate and set the reply string.
+ * @return The routine returns TRUE on success and FALSE on failure.
+ * @see autoguider_general.html#Autoguider_General_Add_String
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_COMMAND
+ * @see autoguider_general.html#Autoguider_General_Error_Number
+ * @see autoguider_general.html#Autoguider_General_Error_String
+ * @see autoguider_general.html#Autoguider_General_Get_Config_Filename
+ */
+int Autoguider_Command_Autoguide(char *command_string,char **reply_string)
+{
+	char onoff_string[64];
+	char parameter1_string[64];
+	char parameter2_string[64];
+	char parameter3_string[64];
+	int retval,parameter_count,rank,on_type,selected_object_index;
+	float pixel_x,pixel_y;
+
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Autoguide:started.");
+#endif
+	/* are we fielding/guiding etc? */
+	if((Autoguider_Field_Is_Fielding() == TRUE)||(Autoguider_Guide_Is_Guiding() == TRUE))
+	{
+		if(!Autoguider_General_Add_String(reply_string,"1 Failed:Already Fielding / Guiding."))
+			return FALSE;
+		return TRUE;
+	}
+	/* parse the command */
+	parameter_count = sscanf(command_string,"autoguide %63s %63s %63s %63s",onoff_string,parameter1_string,
+			parameter2_string,parameter3_string);
+	if(parameter_count < 1)
+	{
+		Autoguider_General_Error_Number = 321;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Command_Autoguide:"
+			"Failed to parse autoguide command %s (%d).",command_string,parameter_count);
+		return FALSE;
+	}
+	if(strcmp(onoff_string,"on") == 0)
+	{
+		/* parameter stuff */
+		if(parameter_count < 2)
+		{
+			Autoguider_General_Error_Number = 322;
+			sprintf(Autoguider_General_Error_String,"Autoguider_Command_Autoguide:"
+				"Failed to parse autoguide command %s (%d).",command_string,parameter_count);
+			return FALSE;
+		}
+		if(strcmp(parameter1_string,"brightest") == 0)
+		{
+			on_type = COMMAND_AG_ON_TYPE_BRIGHTEST;
+		}
+		else if(strcmp(parameter1_string,"pixel") == 0)
+		{
+			on_type = COMMAND_AG_ON_TYPE_PIXEL;
+			if(parameter_count < 4)
+			{
+				Autoguider_General_Error_Number = 324;
+				sprintf(Autoguider_General_Error_String,"Autoguider_Command_Autoguide:"
+					"Failed to parse autoguide command %s (%d).",command_string,parameter_count);
+				return FALSE;
+			}
+			retval = sscanf(parameter2_string,"%f",&pixel_x);
+			if(retval != 1)
+			{
+				Autoguider_General_Error_Number = 325;
+				sprintf(Autoguider_General_Error_String,"Autoguider_Command_Autoguide:"
+					"Failed to parse autoguide pixel x %s (%d).",parameter2_string,retval);
+				return FALSE;
+			}
+			retval = sscanf(parameter3_string,"%f",&pixel_y);
+			if(retval != 1)
+			{
+				Autoguider_General_Error_Number = 326;
+				sprintf(Autoguider_General_Error_String,"Autoguider_Command_Autoguide:"
+					"Failed to parse autoguide pixel y %s (%d).",parameter3_string,retval);
+				return FALSE;
+			}
+		}
+		else if(strcmp(parameter1_string,"rank") == 0)
+		{
+			on_type = COMMAND_AG_ON_TYPE_RANK;
+			if(parameter_count < 2)
+			{
+				Autoguider_General_Error_Number = 327;
+				sprintf(Autoguider_General_Error_String,"Autoguider_Command_Autoguide:"
+					"Failed to parse autoguide command %s (%d).",command_string,parameter_count);
+				return FALSE;
+			}
+			retval = sscanf(parameter2_string,"%d",&rank);
+			if(retval != 1)
+			{
+				Autoguider_General_Error_Number = 328;
+				sprintf(Autoguider_General_Error_String,"Autoguider_Command_Autoguide:"
+					"Failed to parse autoguide rank %s (%d).",parameter2_string,retval);
+				return FALSE;
+			}
+		}
+		else
+		{
+			Autoguider_General_Error_Number = 323;
+			sprintf(Autoguider_General_Error_String,"Autoguider_Command_Autoguide:"
+				"Failed to parse autoguide on command (%s) parameter %s.",
+				command_string,parameter1_string);
+			return FALSE;
+		}
+		/* do fielding */
+		retval = Autoguider_Field();
+		if(retval == FALSE)
+		{
+			Autoguider_General_Error();
+			if(!Autoguider_General_Add_String(reply_string,"1 autoguide on:Field failed."))
+				return FALSE;
+			return TRUE;
+		}
+		/* check we have an object to guide on */
+		/* diddly
+		retval = Autoguider_Object_Guide_Object_Get(on_type,pixel_x,pixel_y,rank,&selected_object_index);
+		if(retval == FALSE)
+		{
+			Autoguider_General_Error();
+			if(!Autoguider_General_Add_String(reply_string,"1 autoguide on:"
+							  "Failed to find suitable guide object."))
+				return FALSE;
+			return TRUE;
+		}
+		*/
+		/* do object selection/ guide setup */
+		retval = Autoguider_Guide_Set_Guide_Object(selected_object_index);
+		if(retval == FALSE)
+		{
+			Autoguider_General_Error();
+			if(!Autoguider_General_Add_String(reply_string,"1 autoguide on:Guide set object failed."))
+				return FALSE;
+			return TRUE;
+		}
+		/* turn guide loop on */
+		retval = Autoguider_Guide_On();
+		if(retval == FALSE)
+		{
+			Autoguider_General_Error();
+			if(!Autoguider_General_Add_String(reply_string,"1 autoguide on:Guide on failed."))
+				return FALSE;
+			return TRUE;
+		}
+		return TRUE;
+	}
+	else if(strcmp(onoff_string,"off") == 0)
+	{
+		/* turn guide loop off */
+		retval = Autoguider_Guide_Off();
+		if(retval == FALSE)
+		{
+			Autoguider_General_Error();
+			if(!Autoguider_General_Add_String(reply_string,"1 autoguide off:Guide off failed."))
+				return FALSE;
+			return TRUE;
+		}
+		return TRUE;
+	}
+	else 
+	{
+		if(!Autoguider_General_Add_String(reply_string,"1 Autoguide failed:Illegal onoff parameter:"))
+			return FALSE;
+		if(!Autoguider_General_Add_String(reply_string,onoff_string))
+			return FALSE;
+		if(!Autoguider_General_Add_String(reply_string,"."))
+			return FALSE;
+		return TRUE;
+	}
+	if(!Autoguider_General_Add_String(reply_string,"0 Autoguide suceeded."))
+		return FALSE;
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Autoguide:finished.");
 #endif
 	return TRUE;
 }
@@ -176,12 +375,13 @@ int Autoguider_Command_Config_Load(char *command_string,char **reply_string)
  * <li>status temperature get
  * <li>status temperature status
  * <li>status field &lt;active|dark|flat|object&gt;
- * <li>status guide &lt;active|dark|flat|object&gt;
+ * <li>status guide &lt;active|dark|flat|object|packet&gt;
  * <li>status object &lt;list|count&gt;
  * </ul>
  * @param command_string The status command. This is not changed during this routine.
  * @param reply_string The address of a pointer to allocate and set the reply string.
  * @return The routine returns TRUE on success and FALSE on failure.
+ * @see autoguider_cil.html#Autoguider_CIL_Guide_Packet_Send_Get
  * @see autoguider_field.html#Autoguider_Field_Is_Fielding
  * @see autoguider_field.html#Autoguider_Field_Get_Do_Dark_Subtract
  * @see autoguider_field.html#Autoguider_Field_Get_Do_Flat_Field
@@ -406,6 +606,20 @@ int Autoguider_Command_Status(char *command_string,char **reply_string)
 		else if(strcmp(element_string,"object") == 0)
 		{
 			if(Autoguider_Guide_Get_Do_Object_Detect())
+			{
+				if(!Autoguider_General_Add_String(reply_string,"0 true"))
+					return FALSE;
+			}
+			else
+			{
+				if(!Autoguider_General_Add_String(reply_string,"0 false"))
+					return FALSE;
+			}
+			return TRUE;
+		}
+		else if(strcmp(element_string,"packet") == 0)
+		{
+			if(Autoguider_CIL_Guide_Packet_Send_Get())
 			{
 				if(!Autoguider_General_Add_String(reply_string,"0 true"))
 					return FALSE;
@@ -673,7 +887,11 @@ int Autoguider_Command_Temperature(char *command_string,char **reply_string)
 }
 
 /**
- * Handle a command of the form: "field".
+ * Handle commands of the form: 
+ * <ul>
+ * <li>"field [ms [lock]]"
+ * <li>"field <dark|flat|object> <on|off>"
+ * </ul>
  * @param command_string The command. This is not changed during this routine.
  * @param reply_string The address of a pointer to allocate and set the reply string.
  * @return The routine returns TRUE on success and FALSE on failure.
@@ -688,15 +906,26 @@ int Autoguider_Command_Field(char *command_string,char **reply_string)
 {
 	char parameter_string1[64];
 	char parameter_string2[64];
-	int parameter_count,retval,exposure_length,doit;
+	int parameter_count,retval,exposure_length,doit,lockit;
 
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Field:started.");
 #endif
 	/* parse command */
 	parameter_count = sscanf(command_string,"field %64s %64s",parameter_string1,parameter_string2);
-	if(parameter_count == 2)
+	if((strcmp(parameter_string1,"dark") == 0)||(strcmp(parameter_string1,"flat") == 0)||
+	   (strcmp(parameter_string1,"object") == 0))
 	{
+		if(parameter_count != 2)
+		{
+			if(!Autoguider_General_Add_String(reply_string,"1 Field parameter 2 not on or off:"))
+				return FALSE;
+			if(!Autoguider_General_Add_String(reply_string,parameter_string2))
+				return FALSE;
+			if(!Autoguider_General_Add_String(reply_string,"."))
+				return FALSE;
+			return TRUE;
+		}
 		/* check parameter 2 is on or off and set as appropriate */
 		if(strcmp(parameter_string2,"on") == 0)
 		{
@@ -759,43 +988,54 @@ int Autoguider_Command_Field(char *command_string,char **reply_string)
 			if(!Autoguider_General_Add_String(reply_string,"0 Field Do Object Detect set."))
 				return FALSE;
 		}
-		else
-		{
-			if(!Autoguider_General_Add_String(reply_string,"1 Unknown field parameter 1:"))
-				return FALSE;
-			if(!Autoguider_General_Add_String(reply_string,parameter_string1))
-				return FALSE;
-			if(!Autoguider_General_Add_String(reply_string,"."))
-				return FALSE;
-			return TRUE;
-		}
 	}
-	else if(parameter_count == 1)
+	else
 	{
-		retval = sscanf(command_string,"field %d",&exposure_length);
-		if(retval != 1)
+		lockit = FALSE;
+		/* if at least one parameter, first parameter is exposure length */
+		if(parameter_count > 0)
 		{
-			Autoguider_General_Error_Number = 313;
-			sprintf(Autoguider_General_Error_String,"Autoguider_Command_Field:"
-				"Failed to parse command %s (%d).",command_string,retval);
+			retval = sscanf(parameter_string1,"%d",&exposure_length);
+			if(retval != 1)
+			{
+				Autoguider_General_Error_Number = 313;
+				sprintf(Autoguider_General_Error_String,"Autoguider_Command_Field:"
+					"Failed to parse command %s (%d).",command_string,retval);
 #if AUTOGUIDER_DEBUG > 1
-			Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,
-					       "Autoguider_Command_Field:finished (command parse failed).");
+				Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,
+						       "Autoguider_Command_Field:finished (command parse failed).");
 #endif
-			return FALSE;
-		}
-		retval = Autoguider_Field_Exposure_Length_Set(exposure_length);
-		if(retval == FALSE)
-		{
-			Autoguider_General_Error();
-			if(!Autoguider_General_Add_String(reply_string,"1 Setting field exposure length failed."))
 				return FALSE;
-			return TRUE;
-		}
-	}
-	/* do actual field operation if "field" or "field <n>" */
-	if((parameter_count == 0) || (parameter_count == 1))
-	{
+			}
+			if(parameter_count > 1)
+			{
+				if(strcmp(parameter_string2,"lock") == 0)
+				{
+					lockit = TRUE;
+				}
+				else
+				{
+					if(!Autoguider_General_Add_String(reply_string,
+									  "1 Field parameter 2 not lock:"))
+						return FALSE;
+					if(!Autoguider_General_Add_String(reply_string,parameter_string2))
+						return FALSE;
+					if(!Autoguider_General_Add_String(reply_string,"."))
+						return FALSE;
+					return TRUE;
+				}
+			}/* end if 2 parameters */
+			retval = Autoguider_Field_Exposure_Length_Set(exposure_length,lockit);
+			if(retval == FALSE)
+			{
+				Autoguider_General_Error();
+				if(!Autoguider_General_Add_String(reply_string,
+								  "1 Setting field exposure length failed."))
+					return FALSE;
+				return TRUE;
+			}
+		}/* end if parameter_count > 0 */
+		/* do actual field operation if "field" or "field <n> or "field <n> lock" */
 		retval = Autoguider_Field();
 		if(retval == FALSE)
 		{
@@ -806,7 +1046,7 @@ int Autoguider_Command_Field(char *command_string,char **reply_string)
 		}
 		if(!Autoguider_General_Add_String(reply_string,"0 Field suceeded."))
 			return FALSE;
-	}
+	}/* end else */
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Field:finished.");
 #endif
@@ -846,7 +1086,7 @@ int Autoguider_Command_Expose(char *command_string,char **reply_string)
 #endif
 		return FALSE;
 	}
-	retval = Autoguider_Field_Exposure_Length_Set(exposure_length);
+	retval = Autoguider_Field_Exposure_Length_Set(exposure_length,FALSE);
 	if(retval == FALSE)
 	{
 		Autoguider_General_Error();
@@ -876,12 +1116,13 @@ int Autoguider_Command_Expose(char *command_string,char **reply_string)
  * <li>guide [on|off]
  * <li>guide window <sx> <sy> <ex> <ey>
  * <li>guide exposure_length <ms>
- * <li>guide <dark|flat|object> <on|off>
+ * <li>guide <dark|flat|object|packet> <on|off>
  * <li>guide <object> <index>
  * </ul>
  * @param command_string The command. This is not changed during this routine.
  * @param reply_string The address of a pointer to allocate and set the reply string.
  * @return The routine returns TRUE on success and FALSE on failure.
+ * @see autoguider_cil.html#Autoguider_CIL_Guide_Packet_Send_Set
  * @see autoguider_general.html#Autoguider_General_Add_String
  * @see autoguider_general.html#Autoguider_General_Log
  * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_COMMAND
@@ -998,7 +1239,8 @@ int Autoguider_Command_Guide(char *command_string,char **reply_string)
 		if(!Autoguider_General_Add_String(reply_string,"0 Setting guide exposure length suceeded."))
 			return FALSE;
 	}
-	else if((strncmp(parameter_string1,"dark",4) == 0)||(strncmp(parameter_string1,"flat",4) == 0))
+	else if((strncmp(parameter_string1,"dark",4) == 0)||(strncmp(parameter_string1,"flat",4) == 0)||
+		(strncmp(parameter_string1,"packet",6) == 0))
 	{
 		if(parameter_count != 2)
 		{
@@ -1052,6 +1294,20 @@ int Autoguider_Command_Guide(char *command_string,char **reply_string)
 				return TRUE;
 			}
 			if(!Autoguider_General_Add_String(reply_string,"0 Guide Do Flat Fielding set."))
+				return FALSE;
+		}
+		else if(strcmp(parameter_string1,"packet") == 0)
+		{
+			retval = Autoguider_CIL_Guide_Packet_Send_Set(doit);
+			if(retval == FALSE)
+			{
+				Autoguider_General_Error();
+				if(!Autoguider_General_Add_String(reply_string,
+								  "1 Setting guide packet send failed."))
+					return FALSE;
+				return TRUE;
+			}
+			if(!Autoguider_General_Add_String(reply_string,"0 Guide Packet Send set."))
 				return FALSE;
 		}
 	}
@@ -1287,6 +1543,9 @@ int Autoguider_Command_Log_Level(char *command_string,char **reply_string)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.3  2006/06/12 19:22:13  cjm
+** Added log_level command handling.
+**
 ** Revision 1.2  2006/06/02 13:44:59  cjm
 ** Added extra tests and allow for \0 in some command argument strings.
 **
