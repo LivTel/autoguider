@@ -1,11 +1,11 @@
 /* autoguider_field.c
 ** Autoguider field routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_field.c,v 1.2 2006-06-12 19:22:13 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_field.c,v 1.3 2006-06-20 13:05:21 cjm Exp $
 */
 /**
  * Field routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.2 $
+ * @version $Revision: 1.3 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -46,6 +46,8 @@
  * <dt>Binned_NCols</dt> <dd>Number of binned columns in field images.</dd>
  * <dt>Binned_NRows</dt> <dd>Number of binned rows in field images.</dd>
  * <dt>Exposure_Length</dt> <dd>The exposure length in milliseconds.</dd>
+ * <dt>Exposure_Length_Lock</dt> <dd>Boolean determining whether the exposure length can be dynamically changed
+ *                                or is 'locked' to a specified length.</dd>
  * <dt>In_Use_Buffer_Index</dt> <dd>The buffer index currently being read out to by an ongoing field operation, or -1.</dd>
  * <dt>Last_Buffer_Index</dt> <dd>The buffer index of the last completed field readout.</dd>
  * <dt>Is_Fielding</dt> <dd>Boolean determining whether Autoguider_Field is running.</dd>
@@ -67,6 +69,7 @@ struct Field_Struct
 	int Binned_NCols;
 	int Binned_NRows;
 	int Exposure_Length;
+	int Exposure_Length_Lock;
 	int In_Use_Buffer_Index;
 	int Last_Buffer_Index;
 	int Is_Fielding;
@@ -81,7 +84,7 @@ struct Field_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_field.c,v 1.2 2006-06-12 19:22:13 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_field.c,v 1.3 2006-06-20 13:05:21 cjm Exp $";
 /**
  * Instance of field data.
  * @see #Field_Struct
@@ -89,7 +92,7 @@ static char rcsid[] = "$Id: autoguider_field.c,v 1.2 2006-06-12 19:22:13 cjm Exp
 static struct Field_Struct Field_Data = 
 {
 	0,0,1,1,0,0,
-	-1,
+	-1,FALSE,
 	-1,1,FALSE,
 	TRUE,TRUE,TRUE,
 	0,0
@@ -98,12 +101,13 @@ static struct Field_Struct Field_Data =
 /* internal functions */
 static int Field_Set_Dimensions(void);
 static int Field_Reduce(int buffer_index);
+static int Field_Check_Done(int *done,int *dark_exposure_length_index);
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
 ** ---------------------------------------------------------------------------- */
 /**
- * FIeld initialisation routine. Loads default values from properties file.
+ * Field initialisation routine. Loads default values from properties file.
  * @return The routine returns TRUE on success and FALSE on failure.
  * @see #Field_Data
  */
@@ -148,10 +152,12 @@ int Autoguider_Field_Initialise(void)
 /**
  * Setup the field exposure length.
  * @param exposure_length The exposure length in milliseconds.
+ * @param lock A boolean, if TRUE the exposure length is fixed, otherwise the exposure length can change
+ *        during guiding.
  * @return The routine returns TRUE on success and FALSE on failure.
  * @see #Field_Data
  */
-int Autoguider_Field_Exposure_Length_Set(int exposure_length)
+int Autoguider_Field_Exposure_Length_Set(int exposure_length,int lock)
 {
 	if(exposure_length < 0)
 	{
@@ -160,21 +166,54 @@ int Autoguider_Field_Exposure_Length_Set(int exposure_length)
 			"Exposure length out of range(%d).",exposure_length);
 		return FALSE;
 	}
+	if(!AUTOGUIDER_GENERAL_IS_BOOLEAN(lock))
+	{
+		Autoguider_General_Error_Number = 529;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Field_Exposure_Length_Set:"
+			"Exposure lock is not a boolean(%d).",lock);
+		return FALSE;
+	}
 	Field_Data.Exposure_Length = exposure_length;
+	Field_Data.Exposure_Length_Lock = lock;
 	return TRUE;
 }
 
 /**
  * Perform a field operation.
+ * <ul>
+ * <li>If the autoguider is already fielding, or already guiding fail.
+ * <li>Call Field_Set_Dimensions to load from config the chip dimensions to use.
+ * <li>Call CCD_Setup_Dimensions to set the dimensions on the CCD.
+ * <li>Setup the initial field exposure length, either from the config item 'ccd.exposure.field.default'
+ *     if none has been specified, or use Autoguider_Dark_Get_Exposure_Length_Nearest to get the nearest
+ *     suitable exposure length to the set one.
+ * <li>Call Autoguider_Flat_Set to setup the correct flat field.
+ * <li>Setup the Field_Id and reset the frame number.
+ * <li>Loop until fielding is complete:
+ *     <ul>
+ *     <li>Call Autoguider_Dark_Set to setup the correct dark filename for current exposure length.
+ *     <li>Set the In_Use_Buffer_Index to be <b>not</b> the Last_Buffer_Index.
+ *     <li>Lock the raw field buffer using Autoguider_Buffer_Raw_Field_Lock.
+ *     <li>Call CCD_Exposure_Expose to do the exposure.
+ *     <li>Unlock the raw field buffer using Autoguider_Buffer_Raw_Field_Unlock.
+ *     <li>Call Field_Reduce on the In_Use_Buffer_Index to reduce the raw data.
+ *     <li>Set Last_Buffer_Index to be In_Use_Buffer_Index and switch off In_Use_Buffer_Index.
+ *     <li>Call Field_Check_Done to see if we have objects to guide on, this mofies the exposure length and will
+ *         quit the field loop if appropriate.
+ *     </ul>
+ * <li>Switch off the Is_Fielding flag.
+ * </ul>
  * @return The routine returns TRUE on success, and FALSE on failure.
  * @see #Field_Data
  * @see #Field_Reduce
  * @see #Field_Set_Dimensions
+ * @see #Field_Check_Done
  * @see autoguider_buffer.html#Autoguider_Buffer_Raw_Field_Lock
  * @see autoguider_buffer.html#Autoguider_Buffer_Raw_Field_Unlock
  * @see autoguider_buffer.html#Autoguider_Buffer_Get_Field_Pixel_Count
  * @see autoguider_buffer.html#Autoguider_Buffer_Raw_To_Reduced_Field
  * @see autoguider_dark.html#Autoguider_Dark_Set
+ * @see autoguider_dark.html#Autoguider_Dark_Get_Exposure_Length_Nearest
  * @see autoguider_flat.html#Autoguider_Flat_Set
  * @see autoguider_general.html#Autoguider_General_Log
  * @see autoguider_general.html#Autoguider_General_Log_Format
@@ -192,7 +231,7 @@ int Autoguider_Field(void)
 	time_t time_secs;
 	struct tm *time_tm = NULL;
 	unsigned short *buffer_ptr = NULL;
-	int retval;
+	int retval,dark_exposure_length_index,done;
 
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field:started.");
@@ -268,14 +307,20 @@ int Autoguider_Field(void)
 					      Field_Data.Exposure_Length);
 #endif
 	}
-	/* ensure the correct dark and flat is loaded */
-	retval = Autoguider_Dark_Set(Field_Data.Bin_X,Field_Data.Bin_Y,Field_Data.Exposure_Length);
-	if(retval == FALSE)
+	/* now ensure suitable dark is available for exposure time, and find exposure length index */
+	/* round field exposure length to nearest available dark */
+	if(!Autoguider_Dark_Get_Exposure_Length_Nearest(&Field_Data.Exposure_Length,&dark_exposure_length_index))
 	{
 		/* reset fielding flag */
 		Field_Data.Is_Fielding = FALSE;
 		return FALSE;
 	}
+#if AUTOGUIDER_DEBUG > 5
+	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
+				      "Autoguider_Field:nearest guide exposure length = %d ms (index %d).",
+				      Field_Data.Exposure_Length,dark_exposure_length_index);
+#endif
+	/* ensure the correct flat is loaded */
 	retval = Autoguider_Flat_Set(Field_Data.Bin_X,Field_Data.Bin_Y);
 	if(retval == FALSE)
 	{
@@ -289,92 +334,111 @@ int Autoguider_Field(void)
 	Field_Data.Field_Id = /*diddly (time_tm->tm_year*1000000000)+*/(time_tm->tm_yday*1000000)+
 		(time_tm->tm_hour*10000)+(time_tm->tm_min*100)+time_tm->tm_sec;
 	Field_Data.Frame_Number = 0;
-	/* lock out a readout buffer */
-	/* Use the buffer index _not_ used by the last completed field readout */
-	Field_Data.In_Use_Buffer_Index = (!Field_Data.Last_Buffer_Index);
-#if AUTOGUIDER_DEBUG > 9
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field:Locking raw field buffer %d.",
-				      Field_Data.In_Use_Buffer_Index);
-#endif
-	retval = Autoguider_Buffer_Raw_Field_Lock(Field_Data.In_Use_Buffer_Index,&buffer_ptr);
-	if(retval == FALSE)
+	/* start field loop */
+	done = FALSE;
+	while(done == FALSE)
 	{
-		/* reset fielding flag */
-		Field_Data.Is_Fielding = FALSE;
-		/* reset in use buffer index */
-		Field_Data.In_Use_Buffer_Index = -1;
-		Autoguider_General_Error_Number = 506;
-		sprintf(Autoguider_General_Error_String,"Autoguider_Field:Autoguider_Buffer_Raw_Field_Lock failed.");
-		return FALSE;
-	}
+		/* ensure the correct dark is loaded */
+		retval = Autoguider_Dark_Set(Field_Data.Bin_X,Field_Data.Bin_Y,Field_Data.Exposure_Length);
+		if(retval == FALSE)
+		{
+			/* reset fielding flag */
+			Field_Data.Is_Fielding = FALSE;
+			return FALSE;
+		}
+		/* lock out a readout buffer */
+		/* Use the buffer index _not_ used by the last completed field readout */
+		Field_Data.In_Use_Buffer_Index = (!Field_Data.Last_Buffer_Index);
 #if AUTOGUIDER_DEBUG > 9
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field:field buffer locked.");
+		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
+					      "Autoguider_Field:Locking raw field buffer %d.",
+					      Field_Data.In_Use_Buffer_Index);
 #endif
-	/* do a field */
-	start_time.tv_sec = 0;
-	start_time.tv_nsec = 0;
+		retval = Autoguider_Buffer_Raw_Field_Lock(Field_Data.In_Use_Buffer_Index,&buffer_ptr);
+		if(retval == FALSE)
+		{
+			/* reset fielding flag */
+			Field_Data.Is_Fielding = FALSE;
+			/* reset in use buffer index */
+			Field_Data.In_Use_Buffer_Index = -1;
+			Autoguider_General_Error_Number = 506;
+			sprintf(Autoguider_General_Error_String,"Autoguider_Field:Autoguider_Buffer_Raw_Field_Lock failed.");
+			return FALSE;
+		}
+#if AUTOGUIDER_DEBUG > 9
+		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field:field buffer locked.");
+#endif
+		/* do a field */
+		start_time.tv_sec = 0;
+		start_time.tv_nsec = 0;
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field:"
-				      "Calling CCD_Exposure_Expose with exposure length %d ms.",
-				      Field_Data.Exposure_Length);
+		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field:"
+					      "Calling CCD_Exposure_Expose with exposure length %d ms.",
+					      Field_Data.Exposure_Length);
 #endif
-	retval = CCD_Exposure_Expose(TRUE,start_time,Field_Data.Exposure_Length,buffer_ptr,
-				     Autoguider_Buffer_Get_Field_Pixel_Count());
-	if(retval == FALSE)
-	{
-		/* reset fielding flag */
-		Field_Data.Is_Fielding = FALSE;
-		/* attempt buffer unlock, and reset in use index */
-		Autoguider_Buffer_Raw_Field_Unlock(Field_Data.In_Use_Buffer_Index);
-		/* reset in use buffer index */
-		Field_Data.In_Use_Buffer_Index = -1;
-		Autoguider_General_Error_Number = 507;
-		sprintf(Autoguider_General_Error_String,"Autoguider_Field:CCD_Exposure_Expose failed.");
-		return FALSE;
-	}
+		retval = CCD_Exposure_Expose(TRUE,start_time,Field_Data.Exposure_Length,buffer_ptr,
+					     Autoguider_Buffer_Get_Field_Pixel_Count());
+		if(retval == FALSE)
+		{
+			/* reset fielding flag */
+			Field_Data.Is_Fielding = FALSE;
+			/* attempt buffer unlock, and reset in use index */
+			Autoguider_Buffer_Raw_Field_Unlock(Field_Data.In_Use_Buffer_Index);
+			/* reset in use buffer index */
+			Field_Data.In_Use_Buffer_Index = -1;
+			Autoguider_General_Error_Number = 507;
+			sprintf(Autoguider_General_Error_String,"Autoguider_Field:CCD_Exposure_Expose failed.");
+			return FALSE;
+		}
 #if AUTOGUIDER_DEBUG > 7
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field:exposure completed.");
+		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field:exposure completed.");
 #endif
-	/* unlock readout buffer */
+		/* unlock readout buffer */
 #if AUTOGUIDER_DEBUG > 9
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field:"
-				      "Unlocking raw field buffer %d.",
-				      Field_Data.In_Use_Buffer_Index);
+		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field:"
+					      "Unlocking raw field buffer %d.",
+					      Field_Data.In_Use_Buffer_Index);
 #endif
-	retval = Autoguider_Buffer_Raw_Field_Unlock(Field_Data.In_Use_Buffer_Index);
-	if(retval == FALSE)
-	{
-		/* reset fielding flag */
-		Field_Data.Is_Fielding = FALSE;
-		Autoguider_General_Error_Number = 508;
-		sprintf(Autoguider_General_Error_String,"Autoguider_Field:Autoguider_Buffer_Raw_Field_Unlock failed.");
-		/* reset in use buffer index */
+		retval = Autoguider_Buffer_Raw_Field_Unlock(Field_Data.In_Use_Buffer_Index);
+		if(retval == FALSE)
+		{
+			/* reset fielding flag */
+			Field_Data.Is_Fielding = FALSE;
+			Autoguider_General_Error_Number = 508;
+			sprintf(Autoguider_General_Error_String,"Autoguider_Field:Autoguider_Buffer_Raw_Field_Unlock failed.");
+			/* reset in use buffer index */
+			Field_Data.In_Use_Buffer_Index = -1;
+			return FALSE;
+		}
+		/* reduce data */
+		/* Field_Reduce calls
+		** Autoguider_Buffer_Raw_To_Reduced_Field which re-locks the raw field mutex, so has to be called
+		** after Autoguider_Buffer_Raw_Field_Unlock (as we are using fast mutexs that fails on multiple locks
+		** by the same thread) */
+		retval = Field_Reduce(Field_Data.In_Use_Buffer_Index);
+		if(retval == FALSE)
+		{
+			/* reset fielding flag */
+			Field_Data.Is_Fielding = FALSE;
+			/* reset in use buffer index */
+			Field_Data.In_Use_Buffer_Index = -1;
+			return FALSE;
+		}
+		/* reset buffer indexs */
+		Field_Data.Last_Buffer_Index = Field_Data.In_Use_Buffer_Index;
 		Field_Data.In_Use_Buffer_Index = -1;
-		return FALSE;
-	}
-	/* reduce data */
-	/* Field_Reduce calls
-	** Autoguider_Buffer_Raw_To_Reduced_Field which re-locks the raw field mutex, so has to be called
-	** after Autoguider_Buffer_Raw_Field_Unlock (as we are using fast mutexs that fails on multiple locks
-	** by the same thread) */
-	retval = Field_Reduce(Field_Data.In_Use_Buffer_Index);
-	if(retval == FALSE)
-	{
-		/* reset fielding flag */
-		Field_Data.Is_Fielding = FALSE;
-		/* reset in use buffer index */
-		Field_Data.In_Use_Buffer_Index = -1;
-		return FALSE;
-	}
-	/* do object detection here */
-
-	/* reset buffer indexs */
-	Field_Data.Last_Buffer_Index = Field_Data.In_Use_Buffer_Index;
-	Field_Data.In_Use_Buffer_Index = -1;
 #if AUTOGUIDER_DEBUG > 9
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field:"
-				      "Field buffer unlocked, last buffer now %d.",Field_Data.Last_Buffer_Index);
+		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field:"
+					      "Field buffer unlocked, last buffer now %d.",Field_Data.Last_Buffer_Index);
 #endif
+		/* Check whether we have found suitable objects to guide on */
+		if(!Field_Check_Done(&done,&dark_exposure_length_index))
+		{
+			/* reset fielding flag */
+			Field_Data.Is_Fielding = FALSE;
+			return FALSE;
+		}
+	}/* end while */
 	/* reset fielding flag */
 	Field_Data.Is_Fielding = FALSE;
 #if AUTOGUIDER_DEBUG > 1
@@ -896,8 +960,7 @@ static int Field_Reduce(int buffer_index)
 	else
 	{
 #if AUTOGUIDER_DEBUG > 5
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Field_Reduce:"
-				       "Did NOT object detect.");
+		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Field_Reduce:Did NOT object detect.");
 #endif
 	}
 	/* unlock reduction buffer */
@@ -912,8 +975,344 @@ static int Field_Reduce(int buffer_index)
 	return TRUE;
 }
 
+/**
+ * Routine to check whether to stop field looping, and if not to adjust the Field_Data.Exposure_Length accordingly.
+ * <ul>
+ * <li>If Field_Data.Do_Object_Detect was FALSE we stop fielding (done = TRUE), no objects can be detected.
+ * <li>If Field_Data.Exposure_Length_Lock is TRUE we stop fielding (done = TRUE), we can't change the exposure length
+ *     to improve things.
+ * <li>We use Autoguider_Object_List_Get_Count to get the number of detected objects.
+ * <li>If the object_count is zero, 
+ *     <ul>
+ *     <li>We double the exposure length.
+ *     <li>We use Autoguider_Dark_Get_Exposure_Length_Nearest to get the nearest index to that exposure length.
+ *     <li>If the exposure list index hasn't changed neither has the exposure length, we stop fielding (done = TRUE)
+ *         assuming we've reached the end of the list. (We should check that really!).
+ *     <li>We set (done = FALSE) to retry fielding with a longer exposure length.
+ *     </ul>
+ * <li>We go through the list of objects:
+ *     <ul>
+ *     <li>We use Autoguider_Object_List_Get_Object to get the data for this object.
+ *     <li>If the object is stellar:
+ *         <ul>
+ *         <li>If the object has peak counts greater than 100:
+ *             <ul>
+ *             <li>If the object has peak counts less than 40000:
+ *                 <ul>
+ *                 <li>If the object is more than 1 FWHM inside the CCD (it is not near the edge): 
+ *                     This is a good object to use.
+ *                 </ul>
+ *             <li>else the object is too bright. If it is the only detected object:
+ *                 <ul>
+ *                 <li>We half the exposure length.
+ *                 <li>We use Autoguider_Dark_Get_Exposure_Length_Nearest to get the nearest index 
+ *                     to that exposure length.
+ *                 <li>If the exposure list index hasn't changed neither has the exposure length, 
+ *                     we stop fielding (done = TRUE) assuming we've reached the end of the list. 
+ *                     (We should check that really!).
+ *                 <li>We set (done = FALSE) to retry fielding with a shorter exposure length.
+ *                 </ul>
+ *             </ul>
+ *         <li>else the object is too faint.
+ *         </ul>
+ *     <li>else the object is not stellar.
+ *     <li>
+ *     </ul>
+ * <li>If the number of good objects are grerater than 1, we return (done is TRUE) as we have at 
+ *     least one good guide star.
+ * <li>Otherwise we double the exposure length.
+ * <li>We use Autoguider_Dark_Get_Exposure_Length_Nearest to get the nearest index to that exposure length.
+ * <li>If the exposure list index hasn't changed neither has the exposure length, we stop fielding (done = TRUE)
+ *     assuming we've reached the end of the list. (We should check that really!).
+ * <li>We set (done = FALSE) to retry fielding with a longer exposure length.
+ * </ul>
+ * @param done Address of an integer. On exit from this routine, should be set to a boolean value, TRUE meaning
+ *        stop the field loop.
+ * @param dark_exposure_length_index Address of an integer. On entry contains the index in the dark exposure list
+ *       of the last exposure we did. On exit this should be set to the index in the dark exposure list of the 
+ *       next field operation to do.
+ * @return The routine returns TRUE on success and FALSE on failure.
+ * @see #Field_Data
+ * @see autoguider_dark.html#Autoguider_Dark_Get_Exposure_Length_Nearest
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#Autoguider_General_Log_Format
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_FIELD
+ * @see autoguider_object.html#Autoguider_Object_List_Get_Count
+ * @see autoguider_object.html#Autoguider_Object_List_Get_Object
+ */
+static int Field_Check_Done(int *done,int *dark_exposure_length_index)
+{
+	struct Autoguider_Object_Struct object;
+	int retval,object_count,new_dark_exposure_length_index,i,good_object_count;
+	float fwhm;
+
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Field_Check_Done:started.");
+#endif
+	if(done == FALSE)
+	{
+		Autoguider_General_Error_Number = 530;
+		sprintf(Autoguider_General_Error_String,"Field_Check_Done:Done was NULL.");
+		return FALSE;
+	}
+	if(dark_exposure_length_index == FALSE)
+	{
+		Autoguider_General_Error_Number = 531;
+		sprintf(Autoguider_General_Error_String,"Field_Check_Done:dark_exposure_length_index was NULL.");
+		return FALSE;
+	}
+#if AUTOGUIDER_DEBUG > 5
+	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
+				      "Field_Check_Done:Current exposure length %d ms (index %d).",
+				      Field_Data.Exposure_Length,(*dark_exposure_length_index));
+#endif
+	(*done) = FALSE;
+	/* if we are not object detecting - nothing to determine how good fielding was - stop fielding. */
+	if(Field_Data.Do_Object_Detect == FALSE)
+	{
+#if AUTOGUIDER_DEBUG > 1
+		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
+				       "Field_Check_Done:Object detection off:Nothing to check:finish field.");
+#endif
+		(*done) = TRUE;
+		return TRUE;
+	}
+	/* if exp length is locked - nothing we can do to improve fielding - stop fielding. */
+	if(Field_Data.Exposure_Length_Lock == TRUE)
+	{
+#if AUTOGUIDER_DEBUG > 1
+		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
+		      	       "Field_Check_Done:Exposure Length locked:Cannot improve results:finish field.");
+#endif
+		(*done) = TRUE;
+		return TRUE;		
+	}
+	/* how many objects did we detect? */
+	if(!Autoguider_Object_List_Get_Count(&object_count))
+	{
+#if AUTOGUIDER_DEBUG > 1
+		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
+				       "Field_Check_Done:Failed to get object list count:finish field.");
+#endif
+		(*done) = TRUE;
+		return FALSE;
+	}
+	/* no objects found - we need to increase exposure length */
+	if(object_count < 1)
+	{
+		Field_Data.Exposure_Length = Field_Data.Exposure_Length*2.0f;
+		/* round field exposure length to nearest available dark */
+		/* diddly currently assumes this will change the exposure length - 
+		** this is only true if list is spaced correctly - need to do something more complicated here */
+		if(!Autoguider_Dark_Get_Exposure_Length_Nearest(&Field_Data.Exposure_Length,
+								&new_dark_exposure_length_index))
+		{
+#if AUTOGUIDER_DEBUG > 1
+			Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
+			      	       "Field_Check_Done:Failed to get nearest dark exposure length:finish field.");
+#endif
+			(*done) = TRUE;
+			return FALSE;
+		}
+		/* if we've tried to increase the exposure length but failed, return done. */
+		if(new_dark_exposure_length_index == (*dark_exposure_length_index))
+		{
+#if AUTOGUIDER_DEBUG > 1
+			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
+			      	  "Field_Check_Done:Failed to get new nearest dark exposure length (%d):finish field.",
+						      new_dark_exposure_length_index);
+#endif
+			(*done) = TRUE;
+			return TRUE;
+		}
+		/* otherwise we've successfully increased the exposure length - return not done */
+		(*dark_exposure_length_index) = new_dark_exposure_length_index;
+#if AUTOGUIDER_DEBUG > 1
+		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
+		      "Field_Check_Done:No objects found:Increased exposure length to %d ms (index %d):retry field.",
+					      Field_Data.Exposure_Length,(*dark_exposure_length_index));
+#endif
+		(*done) = FALSE;
+		return TRUE;
+	} /* end if no objects found */
+	/* have we got a suitable object? */
+	/* Is it stellar? Is it near the edge of the CCD? Does it have sufficient counts? */
+	good_object_count = 0;
+	for(i=0;i<object_count;i++)
+	{
+		/* get object */
+		if(!Autoguider_Object_List_Get_Object(i,&object))
+		{
+#if AUTOGUIDER_DEBUG > 1
+			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
+			      	       "Field_Check_Done:Failed to get object %d of %d from list:finish field.",
+						      i,object_count);
+#endif
+			(*done) = TRUE;
+			return FALSE;
+		}
+		if(object.Is_Stellar)
+		{
+			if(object.Peak_Counts > 100)
+			{
+				if(object.Peak_Counts < 40000)
+				{
+					fwhm = (object.FWHM_X+object.FWHM_Y)/2.0f;
+					if((object.CCD_X_Position > fwhm)&&
+					   (object.CCD_X_Position < (Field_Data.Binned_NCols-fwhm))&&
+					   (object.CCD_Y_Position > fwhm)&&
+					   (object.CCD_Y_Position < (Field_Data.Binned_NRows-fwhm)))
+					{
+						good_object_count++;
+#if AUTOGUIDER_DEBUG > 5
+						Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
+						    "Field_Check_Done:Object %d of %d:peak counts seem good %.2f.",
+									      i,object_count,object.Peak_Counts);
+#endif
+					}
+					else
+					{
+#if AUTOGUIDER_DEBUG > 5
+						Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
+						  "Field_Check_Done:Object %d of %d:Object too near edge (%.2f,%.2f).",
+							i,object_count,object.CCD_X_Position,object.CCD_Y_Position);
+#endif
+					}
+				}
+				else
+				{
+#if AUTOGUIDER_DEBUG > 5
+					Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
+						      "Field_Check_Done:Object %d of %d:peak counts too large %.2f.",
+							      i,object_count,object.Peak_Counts);
+#endif
+					if(object_count == 1)/* this is the only object in the list - reduce exp len */
+					{
+#if AUTOGUIDER_DEBUG > 1
+						Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
+			      	       "Field_Check_Done:Only object has too many counts:reduce exp len:retry field.");
+#endif
+						Field_Data.Exposure_Length = Field_Data.Exposure_Length/2.0f;
+						/* round field exposure length to nearest available dark */
+						/* diddly currently assumes this will change the exposure length - 
+						** this is only true if list is spaced correctly - 
+						** need to do something more complicated here */
+						if(!Autoguider_Dark_Get_Exposure_Length_Nearest(
+										&Field_Data.Exposure_Length,
+										&new_dark_exposure_length_index))
+						{
+#if AUTOGUIDER_DEBUG > 1
+							Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
+				          "Field_Check_Done:Failed to get nearest dark exposure length:finish field.");
+#endif
+							(*done) = TRUE;
+							return FALSE;
+						}
+						/* if we've tried to increase the exposure length but failed, 
+						** return done. */
+						if(new_dark_exposure_length_index == (*dark_exposure_length_index))
+						{
+#if AUTOGUIDER_DEBUG > 1
+							Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
+							   "Field_Check_Done:"
+							   "Failed to get new nearest dark exposure length (%d):"
+							   "finish field.",new_dark_exposure_length_index);
+#endif
+							(*done) = TRUE;
+							return TRUE;
+						}
+						/* otherwise we've successfully increased the exposure length - 
+						** return not done */
+						(*dark_exposure_length_index) = new_dark_exposure_length_index;
+#if AUTOGUIDER_DEBUG > 1
+						Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
+							   "Field_Check_Done:Object too bright:"
+							   "Decreased exposure length to %d ms (index %d):"
+							   "retry field.",
+							   Field_Data.Exposure_Length,(*dark_exposure_length_index));
+#endif
+		
+						(*done) = FALSE;
+						return TRUE;
+					}/* end if object_count == 1*/
+				}/* end else (object peak counts over 40k */
+			}/* end if object peak counts > 100 */
+			else
+			{
+#if AUTOGUIDER_DEBUG > 5
+				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
+						      "Field_Check_Done:Object %d of %d:peak counts too small %.2f.",
+							      i,object_count,object.Peak_Counts);
+#endif
+			}
+		}
+		else
+		{
+#if AUTOGUIDER_DEBUG > 5
+			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
+		      			      "Field_Check_Done:Object %d of %d is not stellar.",i,object_count);
+#endif
+		}
+	}/* end for */
+	/* object is good - return field done */
+	if(good_object_count > 0 )
+	{
+		(*done) = TRUE;
+#if AUTOGUIDER_DEBUG > 1
+		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
+					      "Field_Check_Done: %d good objects (of %d) found:finish field.",
+					      good_object_count,object_count);
+#endif
+	}
+	else
+	{
+		Field_Data.Exposure_Length = Field_Data.Exposure_Length*2.0f;
+		/* round field exposure length to nearest available dark */
+		/* diddly currently assumes this will change the exposure length - 
+		** this is only true if list is spaced correctly - need to do something more complicated here */
+		if(!Autoguider_Dark_Get_Exposure_Length_Nearest(&Field_Data.Exposure_Length,
+								&new_dark_exposure_length_index))
+		{
+#if AUTOGUIDER_DEBUG > 1
+			Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
+			      	       "Field_Check_Done:Failed to get nearest dark exposure length:finish field.");
+#endif
+			(*done) = TRUE;
+			return FALSE;
+		}
+		/* if we've tried to increase the exposure length but failed, return done. */
+		if(new_dark_exposure_length_index == (*dark_exposure_length_index))
+		{
+#if AUTOGUIDER_DEBUG > 1
+			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
+			      	  "Field_Check_Done:Failed to get new nearest dark exposure length (%d):finish field.",
+						      new_dark_exposure_length_index);
+#endif
+			(*done) = TRUE;
+			return TRUE;
+		}
+		/* otherwise we've successfully increased the exposure length - return not done */
+		(*dark_exposure_length_index) = new_dark_exposure_length_index;
+#if AUTOGUIDER_DEBUG > 1
+		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
+		      "Field_Check_Done:No good objects found:"
+					      "Increased exposure length to %d ms (index %d):retry field.",
+					      Field_Data.Exposure_Length,(*dark_exposure_length_index));
+#endif
+		(*done) = FALSE;
+		return TRUE;
+	}
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Field_Check_Done:finished.");
+#endif
+	return TRUE;
+}
+
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.2  2006/06/12 19:22:13  cjm
+** Fixed Field_ID oddities.
+**
 ** Revision 1.1  2006/06/01 15:18:38  cjm
 ** Initial revision
 **
