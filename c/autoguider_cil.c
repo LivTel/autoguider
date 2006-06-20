@@ -1,11 +1,11 @@
 /* autoguider_cil.c
 ** Autoguider CIL server routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_cil.c,v 1.2 2006-06-20 13:05:21 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_cil.c,v 1.3 2006-06-20 18:42:38 cjm Exp $
 */
 /**
  * Autoguider CIL Server routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.2 $
+ * @version $Revision: 1.3 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -35,7 +35,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_cil.c,v 1.2 2006-06-20 13:05:21 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_cil.c,v 1.3 2006-06-20 18:42:38 cjm Exp $";
 /**
  * UDP CIL port to wait for TCS commands on.
  * @see ../cdocs/ngatcil_cil.html#NGATCIL_CIL_AGS_PORT_DEFAULT
@@ -46,6 +46,10 @@ static int CIL_UDP_Port = NGATCIL_CIL_AGS_PORT_DEFAULT;
  * @see #CIL_UDP_Port
  */
 static int CIL_UDP_Socket_Fd = -1;
+/**
+ * Boolean, TRUE if we want to start the CIL UDP Server Port.
+ */
+static int CIL_UDP_Server_Start = TRUE;
 /**
  * TCC hostname, the TCC should be running the TCS.
  * @see ../cdocs/ngatcil_tcs_guide_packet.html#NGATCIL_TCS_GUIDE_PACKET_TCC_DEFAULT
@@ -85,6 +89,7 @@ static int CIL_UDP_Autoguider_Off_Reply_Send(int status,int sequence_number);
  *        Autoguider_General_Error_Number and Autoguider_General_Error_String are set.
  * @see #Autoguider_CIL_Server_Start
  * @see #CIL_UDP_Port
+ * @see #CIL_UDP_Server_Start
  * @see #TCC_Hostname
  * @see #CIL_TCS_UDP_Port
  * @see #CIL_TCS_UDP_Guide_Port
@@ -112,6 +117,15 @@ int Autoguider_CIL_Server_Initialise(void)
 		Autoguider_General_Error_Number = 1100;
 		sprintf(Autoguider_General_Error_String,"Autoguider_CIL_Server_Initialise:"
 			"Failed to find CIL server port number (cil.server.port_number) in config file.");
+		return FALSE;
+	}
+	/* get whether to start the CIL UDP server */
+	retval = CCD_Config_Get_Boolean("cil.server.start",&CIL_UDP_Server_Start);
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 1100;
+		sprintf(Autoguider_General_Error_String,"Autoguider_CIL_Server_Initialise:"
+			"Failed to find CIL server start (cil.server.start) in config file.");
 		return FALSE;
 	}
  	/* get cil TCS server hostname from config */
@@ -169,9 +183,11 @@ int Autoguider_CIL_Server_Initialise(void)
  * Autoguider CIL server start routine.
  * This routine starts the server. It returns immediately (the listening is done on a new thread).
  * Use Autoguider_Server_Stop to stop the started server.
+ * The server is only started if CIL_UDP_Server_Start is TRUE.
  * @return The routine returns TRUE if successfull, and FALSE if an error occurs. If an error occurs,
  *        Autoguider_General_Error_Number and Autoguider_General_Error_String are set.
  * @see #CIL_UDP_Port
+ * @see #CIL_UDP_Server_Start
  * @see #CIL_UDP_Socket_Fd
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
@@ -188,17 +204,29 @@ int Autoguider_CIL_Server_Start(void)
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"Autoguider_CIL_Server_Start:started.");
 #endif
-#if AUTOGUIDER_DEBUG > 2
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"Starting server on port %d.",CIL_UDP_Port);
-#endif
-	retval = NGATCil_UDP_Server_Start(CIL_UDP_Port,NGATCIL_CIL_PACKET_LENGTH,&CIL_UDP_Socket_Fd,
-					  Autoguider_CIL_Server_Connection_Callback);
-	if(retval == FALSE)
+	if(CIL_UDP_Server_Start)
 	{
-		Autoguider_General_Error_Number = 1101;
-		sprintf(Autoguider_General_Error_String,"Autoguider_CIL_Server_Start:"
-			"GATCil_UDP_Server_Start returned FALSE.");
-		return FALSE;
+#if AUTOGUIDER_DEBUG > 2
+		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,
+					      "Autoguider_CIL_Server_Start:Starting server on port %d.",
+					      CIL_UDP_Port);
+#endif
+		retval = NGATCil_UDP_Server_Start(CIL_UDP_Port,NGATCIL_CIL_PACKET_LENGTH,&CIL_UDP_Socket_Fd,
+						  Autoguider_CIL_Server_Connection_Callback);
+		if(retval == FALSE)
+		{
+			Autoguider_General_Error_Number = 1101;
+			sprintf(Autoguider_General_Error_String,"Autoguider_CIL_Server_Start:"
+				"GATCil_UDP_Server_Start returned FALSE.");
+			return FALSE;
+		}
+	}
+	else
+	{
+#if AUTOGUIDER_DEBUG > 2
+		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_CIL,
+				       "Autoguider_CIL_Server_Start:NOT starting CIL server.");
+#endif
 	}
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"Autoguider_CIL_Server_Start:finished.");
@@ -207,10 +235,11 @@ int Autoguider_CIL_Server_Start(void)
 }
 
 /**
- * Autoguider server stop routine.
+ * Autoguider server stop routine. The server is NOT stopped if it was not started, see CIL_UDP_Server_Start.
  * @return The routine returns TRUE if successfull, and FALSE if an error occurs. If an error occurs,
  *        Autoguider_General_Error_Number and Autoguider_General_Error_String are set.
  * @see #CIL_UDP_Socket_Fd
+ * @see #CIL_UDP_Server_Start
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  * @see autoguider_general.html#Autoguider_General_Log
@@ -224,13 +253,23 @@ int Autoguider_CIL_Server_Stop(void)
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"Autoguider_CIL_Server_Stop:started.");
 #endif
-	retval = NGATCil_UDP_Close(CIL_UDP_Socket_Fd);
-	if(retval == FALSE)
+	if(CIL_UDP_Server_Start)
 	{
-		Autoguider_General_Error_Number = 1102;
-		sprintf(Autoguider_General_Error_String,"Autoguider_CIL_Server_Stop:"
-			"NGATCil_UDP_Close returned FALSE.");
-		return FALSE;
+		retval = NGATCil_UDP_Close(CIL_UDP_Socket_Fd);
+		if(retval == FALSE)
+		{
+			Autoguider_General_Error_Number = 1102;
+			sprintf(Autoguider_General_Error_String,"Autoguider_CIL_Server_Stop:"
+				"NGATCil_UDP_Close returned FALSE.");
+			return FALSE;
+		}
+	}
+	else
+	{
+#if AUTOGUIDER_DEBUG > 2
+		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_CIL,
+				       "Autoguider_CIL_Server_Stop:NOT started so not stopping CIL server.");
+#endif
 	}
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"Autoguider_CIL_Server_Stop:finished.");
@@ -435,6 +474,7 @@ static int Autoguider_CIL_Server_Connection_Callback(int socket_id,void* message
 	struct NGATCil_Cil_Packet_Struct cil_packet;
 	float pixel_x = 0.0f,pixel_y = 0.0f;
 	int sequence_number = 0,status = 0,retval;
+	int *debug_message_buff_ptr = NULL;
 
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,
@@ -442,11 +482,19 @@ static int Autoguider_CIL_Server_Connection_Callback(int socket_id,void* message
 #endif
 	if(message_length != NGATCIL_CIL_PACKET_LENGTH)
 	{
+#if AUTOGUIDER_DEBUG > 1
+		debug_message_buff_ptr = (int*)message_buff;
+		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,
+				      "Autoguider_CIL_Server_Connection_Callback:Unexpected packet of length %d:"
+					      "Source = %#x,Dest = %#x,Class = %#x,Service = %#x,SeqNUm = %#x.",
+					      message_length,debug_message_buff_ptr[0],debug_message_buff_ptr[1],
+					      debug_message_buff_ptr[2],debug_message_buff_ptr[3],
+					      debug_message_buff_ptr[4]);
+#endif
 		Autoguider_General_Error_Number = 1103;
 		sprintf(Autoguider_General_Error_String,"Autoguider_CIL_Server_Connection_Callback:"
 			"received CIL packet of wrong length %d vs %d.",message_length,NGATCIL_CIL_PACKET_LENGTH);
 		Autoguider_General_Error();
-		CIL_UDP_Autoguider_On_Reply_Send(pixel_x,pixel_y,E_AGS_BAD_CMD,sequence_number);
 		return FALSE;
 	}
 	/* diddly won't work if NGATCIL_CIL_PACKET_LENGTH != sizeof(struct NGATCil_Cil_Packet_Struct) */
@@ -677,6 +725,9 @@ static int CIL_UDP_Autoguider_Off_Reply_Send(int status,int sequence_number)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.2  2006/06/20 13:05:21  cjm
+** Added CIL_TCS_UDP_Guide_Packet_Send/Autoguider_CIL_Guide_Packet_Send_Set / Autoguider_CIL_Guide_Packet_Send_Get to allow configuration of whether to send TCS guide packets.
+**
 ** Revision 1.1  2006/06/12 19:21:07  cjm
 ** Initial revision
 **
