@@ -1,11 +1,11 @@
 /* autoguider_guide.c
 ** Autoguider guide routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.4 2006-06-20 13:05:21 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.5 2006-06-20 18:42:38 cjm Exp $
 */
 /**
  * Guide routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.4 $
+ * @version $Revision: 1.5 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -93,7 +93,7 @@ struct Guide_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_guide.c,v 1.4 2006-06-20 13:05:21 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_guide.c,v 1.5 2006-06-20 18:42:38 cjm Exp $";
 /**
  * Instance of guide data.
  * @see #Guide_Struct
@@ -930,7 +930,7 @@ static void *Guide_Thread(void *user_arg)
 		}
 		/* get loop time for stats/guide packet */
 		clock_gettime(CLOCK_REALTIME,&current_time);
-		guide_loop_cadence = fdifftime(loop_start_time,current_time);
+		guide_loop_cadence = fdifftime(current_time,loop_start_time);
 #if AUTOGUIDER_DEBUG > 5
 		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
 					      "Guide_Thread:Last loop took %.2f seconds.",guide_loop_cadence);
@@ -1281,6 +1281,9 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.4  2006/06/20 13:05:21  cjm
+** More documentation.
+**
 ** Revision 1.3  2006/06/12 19:22:08  cjm
 ** Added sending of TCS guide packets.
 **
