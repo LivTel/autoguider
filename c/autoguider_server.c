@@ -1,11 +1,11 @@
 /* autoguider_server.c
 ** Autoguider server routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_server.c,v 1.4 2006-06-20 13:05:21 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_server.c,v 1.5 2006-06-20 18:42:38 cjm Exp $
 */
 /**
  * Command Server routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.4 $
+ * @version $Revision: 1.5 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -31,7 +31,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_server.c,v 1.4 2006-06-20 13:05:21 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_server.c,v 1.5 2006-06-20 18:42:38 cjm Exp $";
 /**
  * The server context to use for this server.
  * @see ../command_server/cdocs/command_server.html#Command_Server_Server_Context_T
@@ -385,11 +385,9 @@ static void Autoguider_Server_Connection_Callback(Command_Server_Handle_T connec
 #endif
 		Send_Reply(connection_handle, "help:\n"
 			   "\tabort\n"
-			   /*"\tbias\n"*/
-			   /*"\tdark <ms>\n"*/
 			   "\tconfigload\n"
 			   "\texpose <ms>\n"
-			   "\tfield [ms]\n"
+			   "\tfield [<ms> [lock]]\n"
 			   "\tfield <dark|flat|object> <on|off>\n"
 			   "\tgetfits [field|guide] [raw|reduced]\n"
 			   "\tguide [on|off|window <sx> <sy> <ex> <ey>|exposure_length <ms>]\n"
@@ -397,7 +395,6 @@ static void Autoguider_Server_Connection_Callback(Command_Server_Handle_T connec
 			   "\tguide <object> <index>\n"
 			   "\thelp\n"
 			   "\tlog_level <autoguider|ccd|command_server|object|ngatcil> <n>\n"
-			   "\tobject get <list|count|index>\n"
 			   /*"\tmultrun <length> <count> <object>\n"*/
 			   "\tstatus temperature <get|status>\n"
 			   "\tstatus field <active|dark|flat|object>\n"
@@ -590,6 +587,9 @@ static int Send_Binary_Reply_Error(Command_Server_Handle_T connection_handle)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.4  2006/06/20 13:05:21  cjm
+** Added autoguide command.
+**
 ** Revision 1.3  2006/06/12 19:22:13  cjm
 ** Added log_level handling.
 ** Some variables names changes.
