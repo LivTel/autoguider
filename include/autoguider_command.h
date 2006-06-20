@@ -1,10 +1,11 @@
 /* autoguider_command.h
-** $Header: /home/cjm/cvs/autoguider/include/autoguider_command.h,v 1.2 2006-06-12 19:24:55 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/include/autoguider_command.h,v 1.3 2006-06-20 13:10:38 cjm Exp $
 */
 #ifndef AUTOGUIDER_COMMAND_H
 #define AUTOGUIDER_COMMAND_H
 
 extern int Autoguider_Command_Abort(char *command_string,char **reply_string);
+extern int Autoguider_Command_Autoguide(char *command_string,char **reply_string);
 extern int Autoguider_Command_Config_Load(char *command_string,char **reply_string);
 extern int Autoguider_Command_Status(char *command_string,char **reply_string);
 extern int Autoguider_Command_Temperature(char *command_string,char **reply_string);
@@ -16,6 +17,9 @@ extern int Autoguider_Command_Log_Level(char *command_string,char **reply_string
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.2  2006/06/12 19:24:55  cjm
+** Added Autoguider_Command_Log_Level.
+**
 ** Revision 1.1  2006/06/01 15:19:05  cjm
 ** Initial revision
 **
