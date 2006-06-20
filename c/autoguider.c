@@ -1,10 +1,10 @@
 /* autoguider.c
-** $Header: /home/cjm/cvs/autoguider/c/autoguider.c,v 1.2 2006-06-12 19:22:13 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider.c,v 1.3 2006-06-20 18:42:38 cjm Exp $
 */
 /**
  * Autoguider main program.
  * @author $Author: cjm $
- * @version $Revision: 1.2 $
+ * @version $Revision: 1.3 $
  */
 #include <signal.h> /* signal handling */
 #include <stdio.h>
@@ -46,7 +46,7 @@
 /**
  * Revision control system identifier.
  */
-static char rcsid[] = "$Id: autoguider.c,v 1.2 2006-06-12 19:22:13 cjm Exp $";
+static char rcsid[] = "$Id: autoguider.c,v 1.3 2006-06-20 18:42:38 cjm Exp $";
 
 /* internal routines */
 static int Autoguider_Initialise_Signal(void);
@@ -357,6 +357,8 @@ static int Autoguider_Initialise_Signal(void)
  * @see autoguider_general.html#Autoguider_General_Log_Set_Directory
  * @see autoguider_general.html#Autoguider_General_Set_Log_Handler_Function
  * @see autoguider_general.html#Autoguider_General_Log_Handler_Log_Hourly_File
+ * @see autoguider_general.html#Autoguider_General_Set_Log_Filter_Function
+ * @see autoguider_general.html#Autoguider_General_Log_Filter_Level_Bitwise
  * @see ../ccd/cdocs/ccd_general.html#CCD_General_Set_Log_Handler_Function
  * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_String
  * @see ../commandserver/cdocs/command_server.html#Command_Server_Set_Log_Handler_Function
@@ -388,6 +390,7 @@ static int Autoguider_Initialise_Logging(void)
 		return FALSE;
 	/* Autoguider */
 	Autoguider_General_Set_Log_Handler_Function(Autoguider_General_Log_Handler_Log_Hourly_File);
+	Autoguider_General_Set_Log_Filter_Function(Autoguider_General_Log_Filter_Level_Bitwise);
 	/* CCD */
 	CCD_General_Set_Log_Handler_Function(Autoguider_General_Log_Handler_Log_Hourly_File);
 	/* setup command server logging */
@@ -831,6 +834,11 @@ static int Parse_Arguments(int argc, char *argv[])
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.2  2006/06/12 19:22:13  cjm
+** Added -ngatcil_log_level.
+** Added NGATCil logging setup.
+** Added starting/stopping of CIL server.
+**
 ** Revision 1.1  2006/06/01 15:18:38  cjm
 ** Initial revision
 **
