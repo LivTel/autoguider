@@ -1,11 +1,11 @@
 /* autoguider_guide.c
 ** Autoguider guide routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.5 2006-06-20 18:42:38 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.6 2006-06-21 10:28:46 cjm Exp $
 */
 /**
  * Guide routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.5 $
+ * @version $Revision: 1.6 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -93,7 +93,7 @@ struct Guide_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_guide.c,v 1.5 2006-06-20 18:42:38 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_guide.c,v 1.6 2006-06-21 10:28:46 cjm Exp $";
 /**
  * Instance of guide data.
  * @see #Guide_Struct
@@ -1200,7 +1200,7 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 		/* if object count > 1 return first object but send unreliable and return */
 		if(object_count > 1)
 		{
-			if(!Autoguider_CIL_Guide_Packet_Send(object.CCD_X_Position,object.CCD_X_Position,
+			if(!Autoguider_CIL_Guide_Packet_Send(object.CCD_X_Position,object.CCD_Y_Position,
 							     terminating,TRUE,timecode_secs,
 							     NGATCIL_TCS_GUIDE_PACKET_STATUS_FAILED))
 				Autoguider_General_Error();
@@ -1262,7 +1262,7 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 #endif
 		}
 		/* send reliable guide packet */
-		if(!Autoguider_CIL_Guide_Packet_Send(object.CCD_X_Position,object.CCD_X_Position,
+		if(!Autoguider_CIL_Guide_Packet_Send(object.CCD_X_Position,object.CCD_Y_Position,
 						     terminating,FALSE,timecode_secs,status_char))
 			Autoguider_General_Error();
 	}/* end if object detection enabled */
@@ -1281,6 +1281,9 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.5  2006/06/20 18:42:38  cjm
+** Changed calculation of guide loop cadence so it is positive.
+**
 ** Revision 1.4  2006/06/20 13:05:21  cjm
 ** More documentation.
 **
