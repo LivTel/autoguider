@@ -1,11 +1,11 @@
 /* autoguider_guide.c
 ** Autoguider guide routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.6 2006-06-21 10:28:46 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.7 2006-06-21 14:07:40 cjm Exp $
 */
 /**
  * Guide routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.6 $
+ * @version $Revision: 1.7 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -93,7 +93,7 @@ struct Guide_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_guide.c,v 1.6 2006-06-21 10:28:46 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_guide.c,v 1.7 2006-06-21 14:07:40 cjm Exp $";
 /**
  * Instance of guide data.
  * @see #Guide_Struct
@@ -1209,36 +1209,30 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 		}
 		/* we have one object on the guide frame */
 		/* reliability tests */
+		/*
+		** 0 means confident
+		** Bit 0 set means FWHM approaching limit
+		** Bit 1 set means brightness approaching limit
+		** Bit 2 set means critical error
+		*/
 		reliability = 0;
-		if(object.Total_Counts > 5000.0)
-			reliability++;
-		if(object.Pixel_Count > 8)
-			reliability++;
-		if(object.Peak_Counts > 1000)
+		if(object.Is_Stellar == FALSE)
 		{
-			reliability++;
-			if(object.Peak_Counts < 40000)
-			{
-				reliability++;
-				if(object.Peak_Counts > 10000)
-					reliability++;
-			}
-		}
-		if(object.Is_Stellar)
-		{
-			reliability++;
+			reliability += (1<<0);
 			/*
-			if(fabs((object.FWHM_X/object.FWHM_Y)-1.0f) < 0.2f)
-			reliability++;
+			** if(fabs((object.FWHM_X/object.FWHM_Y)-1.0f) < 0.1f)
+			** reliability++;
 			*/
-			if(fabs((object.FWHM_X/object.FWHM_Y)-1.0f) < 0.1f)
-				reliability++;
+		}
+		if((object.Peak_Counts < 100)||(object.Peak_Counts > 40000))
+		{
+			reliability += (1<<1);
 		}
 #if AUTOGUIDER_DEBUG > 5
 		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-					      "Guide_Packet_Send:Object has %d/8 reliability.",reliability);
+					      "Guide_Packet_Send:Object has %#x reliability.",reliability);
 #endif
-		status_char = '7'-reliability;
+		status_char = '0'+reliability;
 #if AUTOGUIDER_DEBUG > 5
 		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
 					      "Guide_Packet_Send:Object has status char %c.",status_char);
@@ -1281,6 +1275,9 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.6  2006/06/21 10:28:46  cjm
+** Guide packets now send X and Y positions.
+**
 ** Revision 1.5  2006/06/20 18:42:38  cjm
 ** Changed calculation of guide loop cadence so it is positive.
 **
