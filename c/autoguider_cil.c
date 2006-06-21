@@ -1,11 +1,11 @@
 /* autoguider_cil.c
 ** Autoguider CIL server routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_cil.c,v 1.3 2006-06-20 18:42:38 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_cil.c,v 1.4 2006-06-21 14:07:01 cjm Exp $
 */
 /**
  * Autoguider CIL Server routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.3 $
+ * @version $Revision: 1.4 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -35,7 +35,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_cil.c,v 1.3 2006-06-20 18:42:38 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_cil.c,v 1.4 2006-06-21 14:07:01 cjm Exp $";
 /**
  * UDP CIL port to wait for TCS commands on.
  * @see ../cdocs/ngatcil_cil.html#NGATCIL_CIL_AGS_PORT_DEFAULT
@@ -331,6 +331,13 @@ int Autoguider_CIL_Guide_Packet_Open(void)
  *        If terminating is TRUE the value 0.0 will be sent instead.
  * @param status_char The status byte, should be a character in the range '0'..'7' ('0' == most confident) or 
  *       NGATCIL_TCS_GUIDE_PACKET_STATUS_FAILED or NGATCIL_TCS_GUIDE_PACKET_STATUS_WINDOW.
+ *       More info from Steve Foale at TTL:
+ *       <ul>
+ *       <li>0 means confident
+ *       <li>Bit 0 set means FWHM approaching limit
+ *       <li>Bit 1 set means brightness approaching limit
+ *       <li>Bit 2 set means critical error
+ *       </ul>
  * @return The routine returns TRUE if successfull, and FALSE if an error occurs. If an error occurs,
  *        Autoguider_General_Error_Number and Autoguider_General_Error_String are set.
  * @see #CIL_TCS_Guide_Packet_Socket_Fd
@@ -725,6 +732,9 @@ static int CIL_UDP_Autoguider_Off_Reply_Send(int status,int sequence_number)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.3  2006/06/20 18:42:38  cjm
+** Added capability to turn CIL UDP server on or off.
+**
 ** Revision 1.2  2006/06/20 13:05:21  cjm
 ** Added CIL_TCS_UDP_Guide_Packet_Send/Autoguider_CIL_Guide_Packet_Send_Set / Autoguider_CIL_Guide_Packet_Send_Get to allow configuration of whether to send TCS guide packets.
 **
