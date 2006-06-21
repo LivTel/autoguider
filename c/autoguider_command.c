@@ -1,11 +1,11 @@
 /* autoguider_command.c
 ** Autoguider command routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_command.c,v 1.4 2006-06-20 13:05:21 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_command.c,v 1.5 2006-06-21 14:09:01 cjm Exp $
 */
 /**
  * Command routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.4 $
+ * @version $Revision: 1.5 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -61,7 +61,7 @@ enum COMMAND_AG_ON_TYPE
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_command.c,v 1.4 2006-06-20 13:05:21 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_command.c,v 1.5 2006-06-21 14:09:01 cjm Exp $";
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -1115,7 +1115,7 @@ int Autoguider_Command_Expose(char *command_string,char **reply_string)
  * <ul>
  * <li>guide [on|off]
  * <li>guide window <sx> <sy> <ex> <ey>
- * <li>guide exposure_length <ms>
+ * <li>guide exposure_length <ms> [lock]
  * <li>guide <dark|flat|object|packet> <on|off>
  * <li>guide <object> <index>
  * </ul>
@@ -1216,8 +1216,9 @@ int Autoguider_Command_Guide(char *command_string,char **reply_string)
 	}
 	else if(strncmp(parameter_string1,"exposure_length",15) == 0)
 	{
-		retval = sscanf(command_string,"guide exposure_length %d",&exposure_length);
-		if(retval != 1)
+		doit = FALSE;/* lock exp length */
+		retval = sscanf(command_string,"guide exposure_length %d %s",&exposure_length,parameter_string2);
+		if(retval < 1)
 		{
 			Autoguider_General_Error_Number = 312;
 			sprintf(Autoguider_General_Error_String,"Autoguider_Command_Guide:"
@@ -1228,7 +1229,25 @@ int Autoguider_Command_Guide(char *command_string,char **reply_string)
 #endif
 			return FALSE;
 		}
-		retval = Autoguider_Guide_Exposure_Length_Set(exposure_length,FALSE);
+		if(retval == 2)
+		{
+			if(strcmp(parameter_string2,"lock") == 0)
+			{
+				doit = TRUE;
+			}
+			else
+			{
+				if(!Autoguider_General_Add_String(reply_string,"1 Setting guide exposure length:"
+								  "Illegal parameter 2:."))
+					return FALSE;
+				if(!Autoguider_General_Add_String(reply_string,parameter_string2))
+					return FALSE;
+				if(!Autoguider_General_Add_String(reply_string,"."))
+					return FALSE;
+				return TRUE;
+			}
+		}
+		retval = Autoguider_Guide_Exposure_Length_Set(exposure_length,doit);
 		if(retval == FALSE)
 		{
 			Autoguider_General_Error();
@@ -1543,6 +1562,10 @@ int Autoguider_Command_Log_Level(char *command_string,char **reply_string)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.4  2006/06/20 13:05:21  cjm
+** Added TCS guide packet sending control/status.
+** Start of Autoguide on/off implmentation - THIS IS NOT YET FINISHED.
+**
 ** Revision 1.3  2006/06/12 19:22:13  cjm
 ** Added log_level command handling.
 **
