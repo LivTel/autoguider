@@ -1,11 +1,11 @@
 /* autoguider_command.c
 ** Autoguider command routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_command.c,v 1.5 2006-06-21 14:09:01 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_command.c,v 1.6 2006-06-22 15:52:42 cjm Exp $
 */
 /**
  * Command routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.5 $
+ * @version $Revision: 1.6 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -61,7 +61,7 @@ enum COMMAND_AG_ON_TYPE
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_command.c,v 1.5 2006-06-21 14:09:01 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_command.c,v 1.6 2006-06-22 15:52:42 cjm Exp $";
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -395,6 +395,8 @@ int Autoguider_Command_Config_Load(char *command_string,char **reply_string)
  * @see autoguider_guide.html#Autoguider_Guide_Get_Do_Dark_Subtract
  * @see autoguider_guide.html#Autoguider_Guide_Get_Do_Flat_Field
  * @see autoguider_guide.html#Autoguider_Guide_Get_Do_Object_Detect
+ * @see autoguider_guide.html#Autoguider_Guide_Loop_Cadence_Get
+ * @see autoguider_guide.html#Autoguider_Guide_Exposure_Length_Get
  * @see autoguider_object.html#Autoguider_Object_List_Get_Count
  * @see autoguider_object.html#Autoguider_Object_List_Get_Object_List_String
  * @see ../ccd/cdocs/ccd_general.html#CCD_General_Error
@@ -408,6 +410,7 @@ int Autoguider_Command_Status(char *command_string,char **reply_string)
 	char element_string[65];
 	char buff[256];
 	char *object_list_string = NULL;
+	double dvalue;
 	int retval,ivalue;
 
 #if AUTOGUIDER_DEBUG > 1
@@ -629,6 +632,22 @@ int Autoguider_Command_Status(char *command_string,char **reply_string)
 				if(!Autoguider_General_Add_String(reply_string,"0 false"))
 					return FALSE;
 			}
+			return TRUE;
+		}
+		else if(strcmp(element_string,"cadence") == 0)
+		{
+			dvalue = Autoguider_Guide_Loop_Cadence_Get();
+			sprintf(buff,"0 %.2f",dvalue);
+			if(!Autoguider_General_Add_String(reply_string,buff))
+				return FALSE;
+			return TRUE;
+		}
+		else if(strcmp(element_string,"exposure_length") == 0)
+		{
+			ivalue = Autoguider_Guide_Exposure_Length_Get();
+			sprintf(buff,"0 %d",ivalue);
+			if(!Autoguider_General_Add_String(reply_string,buff))
+				return FALSE;
 			return TRUE;
 		}
 		else
@@ -1562,6 +1581,10 @@ int Autoguider_Command_Log_Level(char *command_string,char **reply_string)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.5  2006/06/21 14:09:01  cjm
+** Added guide exposure length locking.
+** "autoguide on/off" still not finished yet.
+**
 ** Revision 1.4  2006/06/20 13:05:21  cjm
 ** Added TCS guide packet sending control/status.
 ** Start of Autoguide on/off implmentation - THIS IS NOT YET FINISHED.
