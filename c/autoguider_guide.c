@@ -1,11 +1,11 @@
 /* autoguider_guide.c
 ** Autoguider guide routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.7 2006-06-21 14:07:40 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.8 2006-06-22 15:51:56 cjm Exp $
 */
 /**
  * Guide routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.7 $
+ * @version $Revision: 1.8 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -64,6 +64,8 @@
  *       Changed at the start of each guide on.</dd>
  * <dt>Frame_Number</dt> <dd>The number of each frame took within a guide session. 
  *       Reset at the start of each guide on.</dd>
+ * <dt>Loop_Cadence</dt> <dd>The time taken to complete one whole guide loop (the last one!), 
+ *                        in decimal seconds.</dd>
  * </dl>
  * @see ../ccd/cdocs/ccd_setup.html#CCD_Setup_Window_Struct 
  */
@@ -87,13 +89,14 @@ struct Guide_Struct
 	int Do_Object_Detect;
 	int Guide_Id;
 	int Frame_Number;
+	double Loop_Cadence;
 };
 
 /* internal data */
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_guide.c,v 1.7 2006-06-21 14:07:40 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_guide.c,v 1.8 2006-06-22 15:51:56 cjm Exp $";
 /**
  * Instance of guide data.
  * @see #Guide_Struct
@@ -105,7 +108,8 @@ static struct Guide_Struct Guide_Data =
 	-1,FALSE,
 	-1,1,FALSE,FALSE,
 	TRUE,TRUE,TRUE,
-	0,0
+	0,0,
+	0.0
 };
 
 /* internal routines */
@@ -689,6 +693,27 @@ int Autoguider_Guide_Set_Guide_Object(int index)
 	return TRUE;
 }
 
+/**
+ * Routine to get the loop cadence. This is the time taken to complete the 
+ * whole guide loop, in seconds.
+ * @return The time taken to complete a guide loop, in seconds.
+ * @see #Guide_Data
+ */
+double Autoguider_Guide_Loop_Cadence_Get(void)
+{
+	return Guide_Data.Loop_Cadence;
+}
+
+/**
+ * Routine to set whether we are object detecting when guiding.
+ * @return The routine returns TRUE if we are object detecting when guiding, and FALSE if we are not.
+ * @see #Guide_Data
+ */
+int Autoguider_Guide_Exposure_Length_Get(void)
+{
+	return Guide_Data.Exposure_Length;
+}
+
 /* ----------------------------------------------------------------------------
 ** 		internal functions 
 ** ---------------------------------------------------------------------------- */
@@ -737,7 +762,6 @@ static void *Guide_Thread(void *user_arg)
 {
 	struct timespec start_time,loop_start_time,current_time;
 	unsigned short *buffer_ptr = NULL;
-	double guide_loop_cadence;
 	int retval;
 
 #if AUTOGUIDER_DEBUG > 1
@@ -930,14 +954,14 @@ static void *Guide_Thread(void *user_arg)
 		}
 		/* get loop time for stats/guide packet */
 		clock_gettime(CLOCK_REALTIME,&current_time);
-		guide_loop_cadence = fdifftime(current_time,loop_start_time);
+		Guide_Data.Loop_Cadence = fdifftime(current_time,loop_start_time);
 #if AUTOGUIDER_DEBUG > 5
 		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-					      "Guide_Thread:Last loop took %.2f seconds.",guide_loop_cadence);
+					      "Guide_Thread:Last loop took %.2f seconds.",Guide_Data.Loop_Cadence);
 #endif
 		clock_gettime(CLOCK_REALTIME,&loop_start_time);
 		/* send position update to TCS */
-		retval = Guide_Packet_Send(FALSE,guide_loop_cadence*2.0f);
+		retval = Guide_Packet_Send(FALSE,Guide_Data.Loop_Cadence*2.0f);
 		if(retval == FALSE)
 		{
 #if AUTOGUIDER_DEBUG > 1
@@ -966,7 +990,7 @@ static void *Guide_Thread(void *user_arg)
 	}/* end while guiding */
 	Guide_Data.Is_Guiding = FALSE;
 	/* send termination packet to TCS */
-	retval = Guide_Packet_Send(TRUE,guide_loop_cadence*2.0f);
+	retval = Guide_Packet_Send(TRUE,Guide_Data.Loop_Cadence*2.0f);
 	if(retval == FALSE)
 	{
 #if AUTOGUIDER_DEBUG > 1
@@ -1275,6 +1299,9 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.7  2006/06/21 14:07:40  cjm
+** Rewritten status char calculation following more info from TTL.
+**
 ** Revision 1.6  2006/06/21 10:28:46  cjm
 ** Guide packets now send X and Y positions.
 **
