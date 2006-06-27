@@ -1,11 +1,11 @@
 /* autoguider_guide.c
 ** Autoguider guide routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.8 2006-06-22 15:51:56 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.9 2006-06-27 20:45:02 cjm Exp $
 */
 /**
  * Guide routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.8 $
+ * @version $Revision: 1.9 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -96,7 +96,7 @@ struct Guide_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_guide.c,v 1.8 2006-06-22 15:51:56 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_guide.c,v 1.9 2006-06-27 20:45:02 cjm Exp $";
 /**
  * Instance of guide data.
  * @see #Guide_Struct
@@ -116,6 +116,7 @@ static struct Guide_Struct Guide_Data =
 static void *Guide_Thread(void *user_arg);
 static int Guide_Reduce(void);
 static int Guide_Packet_Send(int terminating,float timecode_secs);
+static int Guide_Scaling_Config_Load(void);
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -224,6 +225,7 @@ int Autoguider_Guide_Exposure_Length_Set(int exposure_length,int lock)
  * @return The routine returns TRUE on success, and FALSE on failure.
  * @see #Autoguider_Guide_Is_Guiding
  * @see #Guide_Thread
+ * @see #Guide_Scaling_Config_Load
  * @see autoguider_buffer.html#Autoguider_Buffer_Raw_Guide_Lock
  * @see autoguider_buffer.html#Autoguider_Buffer_Raw_Guide_Unlock
  * @see autoguider_buffer.html#Autoguider_Buffer_Get_Guide_Pixel_Count
@@ -301,6 +303,9 @@ int Autoguider_Guide_On(void)
 	}
 	Guide_Data.Binned_NCols = Guide_Data.Unbinned_NCols / Guide_Data.Bin_X;
 	Guide_Data.Binned_NRows = Guide_Data.Unbinned_NRows / Guide_Data.Bin_Y;
+	/* get/reload scaling config */
+	if(!Guide_Scaling_Config_Load())
+		return FALSE;
 	/* default exposure length */
 	/* we have to do something more complicated here */
 	/* depending on whether we have moved on sky, we should start with the default and increase (loop!)
@@ -1167,6 +1172,7 @@ static int Guide_Reduce(void)
  * @param terminating Boolean. If TRUE the autoguider is stopping guiding.
  * @param timecode_secs The number of seconds the TCS should wait for until the next guide packet will be sent. 
  *        This is a float in the range 0..9999 seconds.
+ * @return The routine returns TRUE on success and FALSE on failure.
  * @see #Guide_Data
  * @see autoguider_cil.html#Autoguider_CIL_Guide_Packet_Send
  * @see autoguider_general.html#Autoguider_General_Error
@@ -1233,6 +1239,7 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 		}
 		/* we have one object on the guide frame */
 		/* reliability tests */
+		/*diddly*/
 		/*
 		** 0 means confident
 		** Bit 0 set means FWHM approaching limit
@@ -1240,13 +1247,10 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 		** Bit 2 set means critical error
 		*/
 		reliability = 0;
-		if(object.Is_Stellar == FALSE)
+		/*if(object.Is_Stellar == FALSE)*/
+		if(fabs((object.FWHM_X/object.FWHM_Y)-1.0f) > 1.0f)
 		{
 			reliability += (1<<0);
-			/*
-			** if(fabs((object.FWHM_X/object.FWHM_Y)-1.0f) < 0.1f)
-			** reliability++;
-			*/
 		}
 		if((object.Peak_Counts < 100)||(object.Peak_Counts > 40000))
 		{
@@ -1297,8 +1301,28 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 	return TRUE;
 }
 
+/**
+ * Load guide scaling configuration.
+ * @return The routine returns TRUE on success and FALSE on failure.
+ */
+static int Guide_Scaling_Config_Load(void)
+{
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Scaling_Config_Load:starteed.");
+#endif
+
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Scaling_Config_Load:finished.");
+#endif
+	return TRUE;
+}
+
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.8  2006/06/22 15:51:56  cjm
+** Added Loop_Cadence to data for status reporting purposes.
+** Added routine to return exposure length for status reporting purposes.
+**
 ** Revision 1.7  2006/06/21 14:07:40  cjm
 ** Rewritten status char calculation following more info from TTL.
 **
