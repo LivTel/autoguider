@@ -1,13 +1,13 @@
 /* autoguider_object.c
 ** Autoguider object detection routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_object.c,v 1.3 2006-06-21 17:09:09 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_object.c,v 1.4 2006-06-27 20:45:02 cjm Exp $
 */
 /**
  * Object detection routines for the autoguider program.
  * Uses libdprt_object.
  * Has it's own buffer, as Object_List_Get destroys the data within it's buffer argument.
  * @author Chris Mottram
- * @version $Revision: 1.3 $
+ * @version $Revision: 1.4 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -84,7 +84,7 @@ struct Object_Internal_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_object.c,v 1.3 2006-06-21 17:09:09 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_object.c,v 1.4 2006-06-27 20:45:02 cjm Exp $";
 /**
  * Instance of object data.
  * @see #Object_Internal_Struct
@@ -103,6 +103,7 @@ static int Object_Buffer_Copy(float *buffer,int naxis1,int naxis2);
 static int Object_Create_Object_List(int use_standard_deviation,int start_x,int start_y);
 static int Object_Set_Stats(void);
 static int Object_Sort_Float_List(const void *p1, const void *p2);
+static int Object_Sort_Object_List_By_Total_Counts(const void *p1, const void *p2);
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -278,6 +279,121 @@ int Autoguider_Object_List_Get_Object(int index,struct Autoguider_Object_Struct 
 	retval = Autoguider_General_Mutex_Unlock(&(Object_Data.Object_List_Mutex));
 	if(retval == FALSE)
 		return FALSE;
+	return TRUE;
+}
+
+/**
+ * Routine to select a suitable guide object from the list.
+ * @param on_type How to select the AG guide object.
+ * @param pixel_x If on_type is COMMAND_AG_ON_TYPE_PIXEL, the x pixel position.
+ * @param pixel_y If on_type is COMMAND_AG_ON_TYPE_PIXEL, the y pixel position.
+ * @param rank If on_type is COMMAND_AG_ON_TYPE_RANK, the rank (ordered index pf brightness).
+ * @param selected_object_index The address of an integer to store the selected object index.
+ * @return The routine returns TRUE on success, and FALSE on failure.
+ * @see #Object_Data
+ * @see autoguider_command.html#COMMAND_AG_ON_TYPE
+ * @see autoguider_general.html#Autoguider_General_Error_Number
+ * @see autoguider_general.html#Autoguider_General_Error_String
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_OBJECT
+ */
+int Autoguider_Object_Guide_Object_Get(enum COMMAND_AG_ON_TYPE on_type,float pixel_x,float pixel_y,
+				       int rank,int *selected_object_index)
+{
+	int index,retval;
+	float max_total_counts,distance,closest_distance,xsq,ysq;
+
+	if(selected_object_index == NULL)
+	{
+		Autoguider_General_Error_Number = 1012;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Object_Guide_Object_Get:"
+			"Selected object index is NULL.");
+		return FALSE;
+	}
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Autoguider_Object_Guide_Object_Get:started.");
+#endif
+	/* lock mutex */
+	retval = Autoguider_General_Mutex_Lock(&(Object_Data.Object_List_Mutex));
+	if(retval == FALSE)
+		return FALSE;
+	if(Object_Data.Object_Count < 1)
+	{
+		/* unlock mutex */
+		Autoguider_General_Mutex_Unlock(&(Object_Data.Object_List_Mutex));
+		Autoguider_General_Error_Number = 1013;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Object_Guide_Object_Get:No objects.");
+		return FALSE;
+	}
+	(*selected_object_index) = -1;
+	switch(on_type)
+	{
+		case COMMAND_AG_ON_TYPE_BRIGHTEST:
+			index = 0;
+			max_total_counts = 0.0f;
+			while(index < Object_Data.Object_Count)
+			{
+				if(Object_Data.Object_List[index].Total_Counts > max_total_counts)
+				{
+					max_total_counts = Object_Data.Object_List[index].Total_Counts;
+					(*selected_object_index) = index;
+				}
+				index++;
+			}/* end while */
+			break;
+		case COMMAND_AG_ON_TYPE_PIXEL:
+			index = 0;
+			distance = 0.0f;
+			closest_distance = 9999.9f;
+			while(index < Object_Data.Object_Count)
+			{
+				xsq = pow((double)(Object_Data.Object_List[index].CCD_X_Position-pixel_x),2.0f);
+				ysq = pow((double)(Object_Data.Object_List[index].CCD_Y_Position-pixel_y),2.0f);
+				distance  = sqrt(xsq + ysq);
+				if(distance <  closest_distance)
+				{
+					closest_distance = distance;
+					(*selected_object_index) = index;
+				}
+				index++;
+			}/* end while */
+			break;
+		case COMMAND_AG_ON_TYPE_RANK:
+			/* assumes object list sorted by total counts (Object_Sort_Object_List_By_Total_Counts) */
+			if(rank >= Object_Data.Object_Count)
+			{
+				Autoguider_General_Mutex_Unlock(&(Object_Data.Object_List_Mutex));
+				Autoguider_General_Error_Number = 1016;
+				sprintf(Autoguider_General_Error_String,"Autoguider_Object_Guide_Object_Get:"
+					"Rank %d out of range 0..%d.",rank,Object_Data.Object_Count);
+				return FALSE;
+			}
+			(*selected_object_index) = rank;
+			break;
+		default:
+			/* unlock mutex */
+			Autoguider_General_Mutex_Unlock(&(Object_Data.Object_List_Mutex));
+			Autoguider_General_Error_Number = 1014;
+			sprintf(Autoguider_General_Error_String,"Autoguider_Object_Guide_Object_Get:"
+				"Illegal on_type %d.",on_type);
+			return FALSE;
+			break;
+	}
+	/* unlock mutex */
+	retval = Autoguider_General_Mutex_Unlock(&(Object_Data.Object_List_Mutex));
+	if(retval == FALSE)
+		return FALSE;
+	/* check results */
+	if((*selected_object_index) == -1)
+	{
+		Autoguider_General_Error_Number = 1015;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Object_Guide_Object_Get:"
+			"Failed to find selected object for on_type %d.",on_type);
+		return FALSE;
+	}
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Autoguider_Object_Guide_Object_Get:finished.");
+#endif
 	return TRUE;
 }
 
@@ -496,6 +612,7 @@ static int Object_Buffer_Copy(float *buffer,int naxis1,int naxis2)
  * Create the object list from the copied image data.
  * Locks the Image_Data_Mutex whilst accessing the image data.
  * Locks the Object_List_Mutex whilst modifying the object list.
+ * Currently sorted (after setting the index!) into total count order (Object_Sort_Object_List_By_Total_Counts).
  * @param use_standard_deviation A boolean, whether to use standard deviation when calculating the object 
  *        threshold value. The SD is useful for sky gradients on field buffers, but the guide buffer SD is
  *        skewed by being mostly filled (hopefully) with a star, and so this variable should be set to FALSE
@@ -505,6 +622,7 @@ static int Object_Buffer_Copy(float *buffer,int naxis1,int naxis2)
  * @return The routine returns TRUE on success, and FALSE on failure.
  * @see #Object_Data
  * @see #Object_Set_Stats
+ * @see #Object_Sort_Object_List_By_Total_Counts
  * @see autoguider_general.html#Autoguider_General_Log
  * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_OBJECT
  * @see autoguider_general.html#Autoguider_General_Mutex_Lock
@@ -706,6 +824,9 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
 		sprintf(Autoguider_General_Error_String,"Object_Create_Object_List:Object_List_Free failed.");
 		return FALSE;
 	}
+	/* sort by total (integrated) counts */
+	qsort(Object_Data.Object_List,Object_Data.Object_Count,sizeof(struct Autoguider_Object_Struct),
+	      Object_Sort_Object_List_By_Total_Counts);
 	/* unlock object list mutex */
 	retval = Autoguider_General_Mutex_Unlock(&(Object_Data.Object_List_Mutex));
 	if(retval == FALSE)
@@ -805,8 +926,29 @@ static int Object_Sort_Float_List(const void *p1, const void *p2)
 		return 0;
 }
 
+/**
+ * Autoguider_Object_Struct list sort comparator, for use with qsort. Sorts by total (integrated) counts.
+ */
+static int Object_Sort_Object_List_By_Total_Counts(const void *p1, const void *p2)
+{
+	struct Autoguider_Object_Struct a1,a2;
+	float f1,f2;
+
+	a1 = (struct Autoguider_Object_Struct)(*(struct Autoguider_Object_Struct*)p1);
+	a2 = (struct Autoguider_Object_Struct)(*(struct Autoguider_Object_Struct*)p2);
+	if(a1.Total_Counts > a2.Total_Counts)
+		return -1;
+	else if(a2.Total_Counts > a1.Total_Counts)
+		return 1;
+	else
+		return 0;
+}
+
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.3  2006/06/21 17:09:09  cjm
+** Made Object_Create_Object_List ignore Object error 7 : All objects were too small.
+**
 ** Revision 1.2  2006/06/02 13:46:56  cjm
 ** Added FWHM tests. EXtra logging/checks to try and diagnose seg faults (actually in command server logging).
 **
