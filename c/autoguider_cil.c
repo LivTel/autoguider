@@ -1,11 +1,11 @@
 /* autoguider_cil.c
 ** Autoguider CIL server routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_cil.c,v 1.4 2006-06-21 14:07:01 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_cil.c,v 1.5 2006-06-27 20:43:21 cjm Exp $
 */
 /**
  * Autoguider CIL Server routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.4 $
+ * @version $Revision: 1.5 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -28,6 +28,7 @@
 #include "ngatcil_tcs_guide_packet.h" /* tcs guide packets */
 #include "ngatcil_udp_raw.h"
 
+#include "autoguider_command.h"
 #include "autoguider_general.h"
 #include "autoguider_guide.h"
 
@@ -35,7 +36,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_cil.c,v 1.4 2006-06-21 14:07:01 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_cil.c,v 1.5 2006-06-27 20:43:21 cjm Exp $";
 /**
  * UDP CIL port to wait for TCS commands on.
  * @see ../cdocs/ngatcil_cil.html#NGATCIL_CIL_AGS_PORT_DEFAULT
@@ -464,6 +465,8 @@ int Autoguider_CIL_Guide_Packet_Send_Get(void)
  * @return The routine returns TRUE if successfull, and FALSE if an error occurs.
  * @see #CIL_UDP_Autoguider_On_Reply_Send
  * @see #CIL_UDP_Autoguider_Off_Reply_Send
+ * @see autoguider_command.html#Autoguider_Command_Autoguide_On
+ * @see autoguider_command.html#COMMAND_AG_ON_TYPE
  * @see autoguider_general.html#Autoguider_General_Log
  * @see autoguider_general.html#Autoguider_General_Log_Format
  * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_CIL
@@ -483,12 +486,15 @@ static int Autoguider_CIL_Server_Connection_Callback(int socket_id,void* message
 	int sequence_number = 0,status = 0,retval;
 	int *debug_message_buff_ptr = NULL;
 
+#ifndef AUTOGUIDER_CIL_SILENCE
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,
 				      "Autoguider_CIL_Server_Connection_Callback:started.");
 #endif
+#endif
 	if(message_length != NGATCIL_CIL_PACKET_LENGTH)
 	{
+#ifndef AUTOGUIDER_CIL_SILENCE
 #if AUTOGUIDER_DEBUG > 1
 		debug_message_buff_ptr = (int*)message_buff;
 		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,
@@ -502,6 +508,7 @@ static int Autoguider_CIL_Server_Connection_Callback(int socket_id,void* message
 		sprintf(Autoguider_General_Error_String,"Autoguider_CIL_Server_Connection_Callback:"
 			"received CIL packet of wrong length %d vs %d.",message_length,NGATCIL_CIL_PACKET_LENGTH);
 		Autoguider_General_Error();
+#endif
 		return FALSE;
 	}
 	/* diddly won't work if NGATCIL_CIL_PACKET_LENGTH != sizeof(struct NGATCil_Cil_Packet_Struct) */
@@ -538,9 +545,8 @@ static int Autoguider_CIL_Server_Connection_Callback(int socket_id,void* message
 				CIL_UDP_Autoguider_On_Reply_Send(pixel_x,pixel_y,E_AGS_BAD_CMD,sequence_number);
 				return FALSE;
 			}
-			/* start guide thread */
-			/* diddly NB should really field etc first - need a higher level routine here */
-			retval = Autoguider_Guide_On();
+			/* field, select object nearest pixel, start guide thread */
+			retval = Autoguider_Command_Autoguide_On(COMMAND_AG_ON_TYPE_PIXEL,pixel_x,pixel_y,0);
 			if(retval == TRUE)
 			{
 				if(!CIL_UDP_Autoguider_On_Reply_Send(pixel_x,pixel_y,SYS_NOMINAL,sequence_number))
@@ -732,6 +738,9 @@ static int CIL_UDP_Autoguider_Off_Reply_Send(int status,int sequence_number)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.4  2006/06/21 14:07:01  cjm
+** Added information on status char.
+**
 ** Revision 1.3  2006/06/20 18:42:38  cjm
 ** Added capability to turn CIL UDP server on or off.
 **
