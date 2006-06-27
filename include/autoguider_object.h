@@ -1,8 +1,10 @@
 /* autoguider_object.h
-** $Header: /home/cjm/cvs/autoguider/include/autoguider_object.h,v 1.1 2006-06-01 15:19:05 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/include/autoguider_object.h,v 1.2 2006-06-27 20:44:15 cjm Exp $
 */
 #ifndef AUTOGUIDER_OBJECT_H
 #define AUTOGUIDER_OBJECT_H
+/* for COMMAND_AG_ON_TYPE */
+#include "autoguider_command.h"
 
 /**
  * Structure defining a single object recognised in the image. Consists of:
@@ -50,9 +52,14 @@ extern int Autoguider_Object_Detect(float *buffer,int naxis1,int naxis2,int star
 extern int Autoguider_Object_Shutdown(void);
 extern int Autoguider_Object_List_Get_Count(int *count);
 extern int Autoguider_Object_List_Get_Object(int index,struct Autoguider_Object_Struct *object);
+extern int Autoguider_Object_Guide_Object_Get(enum COMMAND_AG_ON_TYPE on_type,float pixel_x,float pixel_y,
+					      int rank,int *selected_object_index);
 extern int Autoguider_Object_List_Get_Object_List_String(char **object_list_string);
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2006/06/01 15:19:05  cjm
+** Initial revision
+**
 */
 #endif
