@@ -1,11 +1,11 @@
 /* autoguider_command.c
 ** Autoguider command routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_command.c,v 1.6 2006-06-22 15:52:42 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_command.c,v 1.7 2006-06-27 20:43:52 cjm Exp $
 */
 /**
  * Command routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.6 $
+ * @version $Revision: 1.7 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -40,28 +40,11 @@
 #include "autoguider_guide.h"
 #include "autoguider_object.h"
 
-/* enum */
-/**
- * Enum describing type of "autoguider on" command.:
- * <ul>
- * <li>COMMAND_AG_ON_TYPE_BRIGHTEST
- * <li>COMMAND_AG_ON_TYPE_PIXEL
- * <li>COMMAND_AG_ON_TYPE_RANK
- * </ul>
- */
-enum COMMAND_AG_ON_TYPE
-{
-	COMMAND_AG_ON_TYPE_BRIGHTEST,
-	COMMAND_AG_ON_TYPE_PIXEL,
-	COMMAND_AG_ON_TYPE_RANK
-};
-
-
 /* internal data */
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_command.c,v 1.6 2006-06-22 15:52:42 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_command.c,v 1.7 2006-06-27 20:43:52 cjm Exp $";
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -117,6 +100,7 @@ int Autoguider_Command_Abort(char *command_string,char **reply_string)
  * @param command_string The command. This is not changed during this routine.
  * @param reply_string The address of a pointer to allocate and set the reply string.
  * @return The routine returns TRUE on success and FALSE on failure.
+ * @see #Autoguider_Command_Autoguide_On
  * @see autoguider_general.html#Autoguider_General_Add_String
  * @see autoguider_general.html#Autoguider_General_Log
  * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_COMMAND
@@ -130,7 +114,7 @@ int Autoguider_Command_Autoguide(char *command_string,char **reply_string)
 	char parameter1_string[64];
 	char parameter2_string[64];
 	char parameter3_string[64];
-	int retval,parameter_count,rank,on_type,selected_object_index;
+	int retval,parameter_count,rank,on_type;
 	float pixel_x,pixel_y;
 
 #if AUTOGUIDER_DEBUG > 1
@@ -221,45 +205,16 @@ int Autoguider_Command_Autoguide(char *command_string,char **reply_string)
 				command_string,parameter1_string);
 			return FALSE;
 		}
-		/* do fielding */
-		retval = Autoguider_Field();
+		/* turn autoguider on */
+		retval = Autoguider_Command_Autoguide_On(on_type,pixel_x,pixel_y,rank);
 		if(retval == FALSE)
 		{
 			Autoguider_General_Error();
-			if(!Autoguider_General_Add_String(reply_string,"1 autoguide on:Field failed."))
+			if(!Autoguider_General_Add_String(reply_string,"1 autoguide on failed."))
 				return FALSE;
 			return TRUE;
 		}
-		/* check we have an object to guide on */
-		/* diddly
-		retval = Autoguider_Object_Guide_Object_Get(on_type,pixel_x,pixel_y,rank,&selected_object_index);
-		if(retval == FALSE)
-		{
-			Autoguider_General_Error();
-			if(!Autoguider_General_Add_String(reply_string,"1 autoguide on:"
-							  "Failed to find suitable guide object."))
-				return FALSE;
-			return TRUE;
-		}
-		*/
-		/* do object selection/ guide setup */
-		retval = Autoguider_Guide_Set_Guide_Object(selected_object_index);
-		if(retval == FALSE)
-		{
-			Autoguider_General_Error();
-			if(!Autoguider_General_Add_String(reply_string,"1 autoguide on:Guide set object failed."))
-				return FALSE;
-			return TRUE;
-		}
-		/* turn guide loop on */
-		retval = Autoguider_Guide_On();
-		if(retval == FALSE)
-		{
-			Autoguider_General_Error();
-			if(!Autoguider_General_Add_String(reply_string,"1 autoguide on:Guide on failed."))
-				return FALSE;
-			return TRUE;
-		}
+
 		return TRUE;
 	}
 	else if(strcmp(onoff_string,"off") == 0)
@@ -289,6 +244,56 @@ int Autoguider_Command_Autoguide(char *command_string,char **reply_string)
 		return FALSE;
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Autoguide:finished.");
+#endif
+	return TRUE;
+}
+
+/**
+ * Turn the autoguider 'on'.
+ * @param on_type How to select the AG guide object.
+ * @param pixel_x If on_type is COMMAND_AG_ON_TYPE_PIXEL, the x pixel position.
+ * @param pixel_y If on_type is COMMAND_AG_ON_TYPE_PIXEL, the y pixel position.
+ * @param rank If on_type is COMMAND_AG_ON_TYPE_RANK, the rank (ordered index pf brightness).
+ * @return The routine returns TRUE on success, and FALSE on failure.
+ * @see #COMMAND_AG_ON_TYPE
+ * @see autoguider_field.html#Autoguider_Field
+ * @see autoguider_object.html#Autoguider_Object_Guide_Object_Get
+ * @see autoguider_guide.html#Autoguider_Guide_Set_Guide_Object
+ * @see autoguider_guide.html#Autoguider_Guide_On
+ */
+int Autoguider_Command_Autoguide_On(enum COMMAND_AG_ON_TYPE on_type,float pixel_x,float pixel_y,int rank)
+{
+	int selected_object_index,retval;
+
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Autoguide_On:started.");
+#endif
+	/* do fielding */
+	retval = Autoguider_Field();
+	if(retval == FALSE)
+	{
+		return FALSE;
+	}
+	/* check we have an object to guide on */
+	retval = Autoguider_Object_Guide_Object_Get(on_type,pixel_x,pixel_y,rank,&selected_object_index);
+	if(retval == FALSE)
+	{
+		return FALSE;
+	}
+	/* do object selection/ guide setup */
+	retval = Autoguider_Guide_Set_Guide_Object(selected_object_index);
+	if(retval == FALSE)
+	{
+		return FALSE;
+	}
+	/* turn guide loop on */
+	retval = Autoguider_Guide_On();
+	if(retval == FALSE)
+	{
+		return FALSE;
+	}
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Autoguide_On:finished.");
 #endif
 	return TRUE;
 }
@@ -1581,6 +1586,9 @@ int Autoguider_Command_Log_Level(char *command_string,char **reply_string)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.6  2006/06/22 15:52:42  cjm
+** Added status commands to get guide loop cadence/exposure_length.
+**
 ** Revision 1.5  2006/06/21 14:09:01  cjm
 ** Added guide exposure length locking.
 ** "autoguide on/off" still not finished yet.
