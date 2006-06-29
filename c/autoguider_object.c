@@ -1,13 +1,13 @@
 /* autoguider_object.c
 ** Autoguider object detection routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_object.c,v 1.4 2006-06-27 20:45:02 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_object.c,v 1.5 2006-06-29 17:04:34 cjm Exp $
 */
 /**
  * Object detection routines for the autoguider program.
  * Uses libdprt_object.
  * Has it's own buffer, as Object_List_Get destroys the data within it's buffer argument.
  * @author Chris Mottram
- * @version $Revision: 1.4 $
+ * @version $Revision: 1.5 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -84,7 +84,7 @@ struct Object_Internal_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_object.c,v 1.4 2006-06-27 20:45:02 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_object.c,v 1.5 2006-06-29 17:04:34 cjm Exp $";
 /**
  * Instance of object data.
  * @see #Object_Internal_Struct
@@ -337,19 +337,42 @@ int Autoguider_Object_Guide_Object_Get(enum COMMAND_AG_ON_TYPE on_type,float pix
 				{
 					max_total_counts = Object_Data.Object_List[index].Total_Counts;
 					(*selected_object_index) = index;
+#if AUTOGUIDER_DEBUG > 9
+					Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,
+						  "Autoguider_Object_Guide_Object_Get:Object index %d (%.2f,%.2f) "
+						  "is brightest so far (%.2f).",index,
+							       Object_Data.Object_List[index].CCD_X_Position,
+							       Object_Data.Object_List[index].CCD_Y_Position,
+							       Object_Data.Object_List[index].Total_Counts);
+#endif
 				}
 				index++;
 			}/* end while */
+#if AUTOGUIDER_DEBUG > 5
+			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,
+					 "Autoguider_Object_Guide_Object_Get:Brightest Object index %d (%.2f,%.2f) "
+						  "with total counts (%.2f).",(*selected_object_index),
+						 Object_Data.Object_List[(*selected_object_index)].CCD_X_Position,
+						 Object_Data.Object_List[(*selected_object_index)].CCD_Y_Position,
+						 Object_Data.Object_List[(*selected_object_index)].Total_Counts);
+#endif
 			break;
 		case COMMAND_AG_ON_TYPE_PIXEL:
 			index = 0;
-			distance = 0.0f;
-			closest_distance = 9999.9f;
+			closest_distance = 999999.9f;
 			while(index < Object_Data.Object_Count)
 			{
 				xsq = pow((double)(Object_Data.Object_List[index].CCD_X_Position-pixel_x),2.0f);
 				ysq = pow((double)(Object_Data.Object_List[index].CCD_Y_Position-pixel_y),2.0f);
 				distance  = sqrt(xsq + ysq);
+#if AUTOGUIDER_DEBUG > 9
+				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,
+						  "Autoguider_Object_Guide_Object_Get:Object index %d (%.2f,%.2f) "
+						  "is %.2f pixels away from (%.2f,%.2f).",index,
+						       Object_Data.Object_List[index].CCD_X_Position,
+						       Object_Data.Object_List[index].CCD_Y_Position,
+						       distance,pixel_x,pixel_y);
+#endif
 				if(distance <  closest_distance)
 				{
 					closest_distance = distance;
@@ -357,6 +380,14 @@ int Autoguider_Object_Guide_Object_Get(enum COMMAND_AG_ON_TYPE on_type,float pix
 				}
 				index++;
 			}/* end while */
+#if AUTOGUIDER_DEBUG > 5
+			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,
+					     "Autoguider_Object_Guide_Object_Get:Closest Object index %d (%.2f,%.2f) "
+					       "is %.2f pixels away from (%.2f,%.2f).",(*selected_object_index),
+					       Object_Data.Object_List[(*selected_object_index)].CCD_X_Position,
+					       Object_Data.Object_List[(*selected_object_index)].CCD_Y_Position,
+					       closest_distance,pixel_x,pixel_y);
+#endif
 			break;
 		case COMMAND_AG_ON_TYPE_RANK:
 			/* assumes object list sorted by total counts (Object_Sort_Object_List_By_Total_Counts) */
@@ -946,6 +977,10 @@ static int Object_Sort_Object_List_By_Total_Counts(const void *p1, const void *p
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.4  2006/06/27 20:45:02  cjm
+** Added Autoguider_Object_Guide_Object_Get.
+** Object_List now sorted by total counts (Object_Sort_Object_List_By_Total_Counts) to make autoguide on rank easier.
+**
 ** Revision 1.3  2006/06/21 17:09:09  cjm
 ** Made Object_Create_Object_List ignore Object error 7 : All objects were too small.
 **
