@@ -1,11 +1,11 @@
 /* autoguider_command.c
 ** Autoguider command routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_command.c,v 1.7 2006-06-27 20:43:52 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_command.c,v 1.8 2006-06-29 17:04:34 cjm Exp $
 */
 /**
  * Command routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.7 $
+ * @version $Revision: 1.8 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -44,7 +44,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_command.c,v 1.7 2006-06-27 20:43:52 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_command.c,v 1.8 2006-06-29 17:04:34 cjm Exp $";
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -120,13 +120,6 @@ int Autoguider_Command_Autoguide(char *command_string,char **reply_string)
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Autoguide:started.");
 #endif
-	/* are we fielding/guiding etc? */
-	if((Autoguider_Field_Is_Fielding() == TRUE)||(Autoguider_Guide_Is_Guiding() == TRUE))
-	{
-		if(!Autoguider_General_Add_String(reply_string,"1 Failed:Already Fielding / Guiding."))
-			return FALSE;
-		return TRUE;
-	}
 	/* parse the command */
 	parameter_count = sscanf(command_string,"autoguide %63s %63s %63s %63s",onoff_string,parameter1_string,
 			parameter2_string,parameter3_string);
@@ -214,7 +207,8 @@ int Autoguider_Command_Autoguide(char *command_string,char **reply_string)
 				return FALSE;
 			return TRUE;
 		}
-
+		if(!Autoguider_General_Add_String(reply_string,"0 Autoguide on suceeded."))
+			return FALSE;
 		return TRUE;
 	}
 	else if(strcmp(onoff_string,"off") == 0)
@@ -228,6 +222,8 @@ int Autoguider_Command_Autoguide(char *command_string,char **reply_string)
 				return FALSE;
 			return TRUE;
 		}
+		if(!Autoguider_General_Add_String(reply_string,"0 Autoguide off suceeded."))
+			return FALSE;
 		return TRUE;
 	}
 	else 
@@ -269,24 +265,39 @@ int Autoguider_Command_Autoguide_On(enum COMMAND_AG_ON_TYPE on_type,float pixel_
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Autoguide_On:started.");
 #endif
 	/* do fielding */
+#if AUTOGUIDER_DEBUG > 5
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Autoguide_On:Fielding.");
+#endif
 	retval = Autoguider_Field();
 	if(retval == FALSE)
 	{
 		return FALSE;
 	}
 	/* check we have an object to guide on */
+#if AUTOGUIDER_DEBUG > 5
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Autoguide_On:"
+			       "Getting suitable object.");
+#endif
 	retval = Autoguider_Object_Guide_Object_Get(on_type,pixel_x,pixel_y,rank,&selected_object_index);
 	if(retval == FALSE)
 	{
 		return FALSE;
 	}
 	/* do object selection/ guide setup */
+#if AUTOGUIDER_DEBUG > 5
+	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Autoguide_On:"
+			       "Setting guide object to %d.",selected_object_index);
+#endif
 	retval = Autoguider_Guide_Set_Guide_Object(selected_object_index);
 	if(retval == FALSE)
 	{
 		return FALSE;
 	}
 	/* turn guide loop on */
+#if AUTOGUIDER_DEBUG > 5
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Autoguide_On:"
+			       "Turning on guide loop.");
+#endif
 	retval = Autoguider_Guide_On();
 	if(retval == FALSE)
 	{
@@ -1586,6 +1597,9 @@ int Autoguider_Command_Log_Level(char *command_string,char **reply_string)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.7  2006/06/27 20:43:52  cjm
+** Added Autoguider_Command_Autoguide_On.
+**
 ** Revision 1.6  2006/06/22 15:52:42  cjm
 ** Added status commands to get guide loop cadence/exposure_length.
 **
