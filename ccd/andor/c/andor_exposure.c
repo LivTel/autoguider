@@ -1,11 +1,11 @@
 /* andor_exposure.c
 ** Autoguider Andor CCD Library exposure routines
-** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_exposure.c,v 1.4 2006-04-28 14:11:49 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_exposure.c,v 1.5 2006-06-29 20:14:41 cjm Exp $
 */
 /**
  * Exposure routines for the Andor autoguider CCD library.
  * @author Chris Mottram
- * @version $Revision: 1.4 $
+ * @version $Revision: 1.5 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -28,6 +28,12 @@
 #include "ccd_general.h"
 #include "andor_setup.h"
 #include "andor_exposure.h"
+
+/* hash defines */
+/**
+ * Number of seconds to wait after an exposure is meant to have finished, before we abort with a timeout signal.
+ */
+#define EXPOSURE_TIMEOUT_SECS     (30)
 
 /* data types */
 /**
@@ -52,7 +58,7 @@ struct Exposure_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: andor_exposure.c,v 1.4 2006-04-28 14:11:49 cjm Exp $";
+static char rcsid[] = "$Id: andor_exposure.c,v 1.5 2006-06-29 20:14:41 cjm Exp $";
 /**
  * Data holding the current status of ccd_exposure.
  * @see #Exposure_Struct
@@ -91,6 +97,7 @@ void Andor_Exposure_Initialise(void)
  * @param buffer_length The length of the buffer in <b>pixels</b>.
  * @return Returns TRUE if the exposure succeeds and the data read out into the buffer, returns FALSE if an error
  *	occurs or the exposure is aborted.
+ * @see #EXPOSURE_TIMEOUT_SECS
  * @see andor_general.html#Andor_General_ErrorCode_To_String
  * @see andor_general.html#ANDOR_GENERAL_LOG_BIT_EXPOSURE
  * @see andor_setup.html#Andor_Setup_Get_Buffer_Length
@@ -268,6 +275,28 @@ int Andor_Exposure_Expose(int open_shutter,struct timespec start_time,int exposu
 			sprintf(CCD_General_Error_String,"Andor_Exposure_Expose:Aborted.");
 			return FALSE;
 		}
+		/* timeout */
+#ifdef _POSIX_TIMERS
+		clock_gettime(CLOCK_REALTIME,&current_time);
+#else
+		gettimeofday(&gtod_current_time,NULL);
+		current_time.tv_sec = gtod_current_time.tv_sec;
+		current_time.tv_nsec = gtod_current_time.tv_usec*CCD_GLOBAL_ONE_MICROSECOND_NS;
+#endif
+		if(fdifftime(Exposure_Data.Exposure_Start_Time,current_time) >
+		   ((((double)Exposure_Data.Exposure_Length)/1000.0)+EXPOSURE_TIMEOUT_SECS))
+		{
+			CCD_General_Log_Format(ANDOR_GENERAL_LOG_BIT_EXPOSURE,"Andor_Exposure_Expose():"
+					       "Timeout detected, attempting Andor AbortAcquisition.");
+			andor_retval = AbortAcquisition();
+			CCD_General_Log_Format(ANDOR_GENERAL_LOG_BIT_EXPOSURE,"Andor_Exposure_Expose():"
+					       "AbortAcquisition() return %u.",andor_retval);
+			Exposure_Data.Exposure_Status = CCD_EXPOSURE_STATUS_NONE;
+			CCD_General_Error_Number = 1110;
+			sprintf(CCD_General_Error_String,"Andor_Exposure_Expose:"
+				"Timeout (Andor library stuck in DRV_ACQUIRING).");
+			return FALSE;
+		}
 	}
 	while(exposure_status==DRV_ACQUIRING);
 #if ANDOR_DEBUG
@@ -359,6 +388,9 @@ struct timespec Andor_Exposure_Get_Exposure_Start_Time(void)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.4  2006/04/28 14:11:49  cjm
+** Added Andor_Exposure_Get_Exposure_Start_Time and Andor_Exposure_Expose sets Exposure_Data.Exposure_Start_Time.
+**
 ** Revision 1.3  2006/04/10 15:53:19  cjm
 ** Comment fix.
 **
