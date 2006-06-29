@@ -1,11 +1,11 @@
 /* autoguider_server.c
 ** Autoguider server routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_server.c,v 1.6 2006-06-21 14:10:04 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_server.c,v 1.7 2006-06-29 17:04:34 cjm Exp $
 */
 /**
  * Command Server routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.6 $
+ * @version $Revision: 1.7 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -31,7 +31,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_server.c,v 1.6 2006-06-21 14:10:04 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_server.c,v 1.7 2006-06-29 17:04:34 cjm Exp $";
 /**
  * The server context to use for this server.
  * @see ../command_server/cdocs/command_server.html#Command_Server_Server_Context_T
@@ -385,6 +385,8 @@ static void Autoguider_Server_Connection_Callback(Command_Server_Handle_T connec
 #endif
 		Send_Reply(connection_handle, "help:\n"
 			   "\tabort\n"
+			   "\tautoguide on <brightest|pixel <x> <y>|rank <n>>\n"
+			   "\tautoguide off"
 			   "\tconfigload\n"
 			   "\texpose <ms>\n"
 			   "\tfield [<ms> [lock]]\n"
@@ -589,6 +591,9 @@ static int Send_Binary_Reply_Error(Command_Server_Handle_T connection_handle)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.6  2006/06/21 14:10:04  cjm
+** Updated help.
+**
 ** Revision 1.5  2006/06/20 18:42:38  cjm
 ** Fixed help message.
 **
