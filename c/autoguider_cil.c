@@ -1,11 +1,11 @@
 /* autoguider_cil.c
 ** Autoguider CIL server routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_cil.c,v 1.5 2006-06-27 20:43:21 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_cil.c,v 1.6 2006-06-29 17:04:34 cjm Exp $
 */
 /**
  * Autoguider CIL Server routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.5 $
+ * @version $Revision: 1.6 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -36,7 +36,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_cil.c,v 1.5 2006-06-27 20:43:21 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_cil.c,v 1.6 2006-06-29 17:04:34 cjm Exp $";
 /**
  * UDP CIL port to wait for TCS commands on.
  * @see ../cdocs/ngatcil_cil.html#NGATCIL_CIL_AGS_PORT_DEFAULT
@@ -77,7 +77,9 @@ static int CIL_TCS_UDP_Guide_Packet_Send = TRUE;
 
 /* internal functions */
 static int Autoguider_CIL_Server_Connection_Callback(int socket_id,void* message_buff,int message_length);
-static int CIL_UDP_Autoguider_On_Reply_Send(float pixel_x,float pixel_y,int status,int sequence_number);
+static int CIL_UDP_Autoguider_On_Pixel_Reply_Send(float pixel_x,float pixel_y,int status,int sequence_number);
+static int CIL_UDP_Autoguider_On_Brightest_Reply_Send(int status,int sequence_number);
+static int CIL_UDP_Autoguider_On_Rank_Reply_Send(int rank,int status,int sequence_number);
 static int CIL_UDP_Autoguider_Off_Reply_Send(int status,int sequence_number);
 
 /* ----------------------------------------------------------------------------
@@ -463,7 +465,9 @@ int Autoguider_CIL_Guide_Packet_Send_Get(void)
  * @param message_buff A pointer to the memory holding the CIL message.
  * @param message_length The length of message_buff in bytes.
  * @return The routine returns TRUE if successfull, and FALSE if an error occurs.
- * @see #CIL_UDP_Autoguider_On_Reply_Send
+ * @see #CIL_UDP_Autoguider_On_Pixel_Reply_Send
+ * @see #CIL_UDP_Autoguider_On_Brightest_Reply_Send
+ * @see #CIL_UDP_Autoguider_On_Rank_Reply_Send
  * @see #CIL_UDP_Autoguider_Off_Reply_Send
  * @see autoguider_command.html#Autoguider_Command_Autoguide_On
  * @see autoguider_command.html#COMMAND_AG_ON_TYPE
@@ -483,7 +487,7 @@ static int Autoguider_CIL_Server_Connection_Callback(int socket_id,void* message
 {
 	struct NGATCil_Cil_Packet_Struct cil_packet;
 	float pixel_x = 0.0f,pixel_y = 0.0f;
-	int sequence_number = 0,status = 0,retval;
+	int sequence_number = 0,status = 0,retval,rank;
 	int *debug_message_buff_ptr = NULL;
 
 #ifndef AUTOGUIDER_CIL_SILENCE
@@ -517,7 +521,7 @@ static int Autoguider_CIL_Server_Connection_Callback(int socket_id,void* message
 	{
 		Autoguider_General_Error_Number = 1104;
 		sprintf(Autoguider_General_Error_String,"Autoguider_CIL_Server_Connection_Callback:"
-			"received CIL packet for wrong class %d vs %d.",cil_packet.Class,E_CIL_CMD_CLASS);
+			"received CIL packet for wrong class %#x vs %#x.",cil_packet.Class,E_CIL_CMD_CLASS);
 		Autoguider_General_Error();
 		return FALSE;
 	}
@@ -525,12 +529,47 @@ static int Autoguider_CIL_Server_Connection_Callback(int socket_id,void* message
 	{
 		Autoguider_General_Error_Number = 1105;
 		sprintf(Autoguider_General_Error_String,"Autoguider_CIL_Server_Connection_Callback:"
-			"received CIL packet for wrong service %d vs %d.",cil_packet.Service,E_AGS_CMD);
+			"received CIL packet for wrong service %#x vs %#x.",cil_packet.Service,E_AGS_CMD);
 		Autoguider_General_Error();
 		return FALSE;
 	}
 	switch(cil_packet.Command)
 	{
+		case E_AGS_GUIDE_ON_BRIGHTEST:
+#if AUTOGUIDER_DEBUG > 3
+			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,
+				      "Autoguider_CIL_Server_Connection_Callback:Command is autoguider on brightest.");
+#endif
+			if(!NGATCil_Cil_Autoguide_On_Brightest_Parse(cil_packet,&sequence_number))
+			{
+				Autoguider_General_Error_Number = 1126;
+				sprintf(Autoguider_General_Error_String,"Autoguider_CIL_Server_Connection_Callback:"
+					"Failed to parse autoguider on brightest command.");
+				Autoguider_General_Error();
+				CIL_UDP_Autoguider_On_Brightest_Reply_Send(E_AGS_BAD_CMD,sequence_number);
+				return FALSE;
+			}
+			/* field, select object nearest pixel, start guide thread */
+			retval = Autoguider_Command_Autoguide_On(COMMAND_AG_ON_TYPE_BRIGHTEST,0.0f,0.0f,0);
+			if(retval == TRUE)
+			{
+				if(!CIL_UDP_Autoguider_On_Brightest_Reply_Send(SYS_NOMINAL,sequence_number))
+				{
+					Autoguider_General_Error_Number = 1127;
+					sprintf(Autoguider_General_Error_String,
+						"Autoguider_CIL_Server_Connection_Callback:"
+						"Failed to send autoguider on brightest reply.");
+					Autoguider_General_Error();
+					return FALSE;
+				}
+			}
+			else
+			{
+				Autoguider_General_Error();
+				CIL_UDP_Autoguider_On_Brightest_Reply_Send(E_AGS_LOOP_ERROR,sequence_number);
+				return FALSE;
+			}
+			break;
 		case E_AGS_GUIDE_ON_PIXEL:
 #if AUTOGUIDER_DEBUG > 3
 			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,
@@ -542,14 +581,14 @@ static int Autoguider_CIL_Server_Connection_Callback(int socket_id,void* message
 				sprintf(Autoguider_General_Error_String,"Autoguider_CIL_Server_Connection_Callback:"
 					"Failed to parse autoguider on pixel command.");
 				Autoguider_General_Error();
-				CIL_UDP_Autoguider_On_Reply_Send(pixel_x,pixel_y,E_AGS_BAD_CMD,sequence_number);
+				CIL_UDP_Autoguider_On_Pixel_Reply_Send(pixel_x,pixel_y,E_AGS_BAD_CMD,sequence_number);
 				return FALSE;
 			}
 			/* field, select object nearest pixel, start guide thread */
 			retval = Autoguider_Command_Autoguide_On(COMMAND_AG_ON_TYPE_PIXEL,pixel_x,pixel_y,0);
 			if(retval == TRUE)
 			{
-				if(!CIL_UDP_Autoguider_On_Reply_Send(pixel_x,pixel_y,SYS_NOMINAL,sequence_number))
+				if(!CIL_UDP_Autoguider_On_Pixel_Reply_Send(pixel_x,pixel_y,SYS_NOMINAL,sequence_number))
 				{
 					Autoguider_General_Error_Number = 1107;
 					sprintf(Autoguider_General_Error_String,
@@ -562,7 +601,42 @@ static int Autoguider_CIL_Server_Connection_Callback(int socket_id,void* message
 			else
 			{
 				Autoguider_General_Error();
-				CIL_UDP_Autoguider_On_Reply_Send(pixel_x,pixel_y,E_AGS_LOOP_ERROR,sequence_number);
+				CIL_UDP_Autoguider_On_Pixel_Reply_Send(pixel_x,pixel_y,E_AGS_LOOP_ERROR,sequence_number);
+				return FALSE;
+			}
+			break;
+		case E_AGS_GUIDE_ON_RANK:
+#if AUTOGUIDER_DEBUG > 3
+			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,
+				      "Autoguider_CIL_Server_Connection_Callback:Command is autoguider on rank.");
+#endif
+			if(!NGATCil_Cil_Autoguide_On_Rank_Parse(cil_packet,&rank,&sequence_number))
+			{
+				Autoguider_General_Error_Number = 1131;
+				sprintf(Autoguider_General_Error_String,"Autoguider_CIL_Server_Connection_Callback:"
+					"Failed to parse autoguider on rank command.");
+				Autoguider_General_Error();
+				CIL_UDP_Autoguider_On_Rank_Reply_Send(rank,E_AGS_BAD_CMD,sequence_number);
+				return FALSE;
+			}
+			/* field, select object nearest pixel, start guide thread */
+			retval = Autoguider_Command_Autoguide_On(COMMAND_AG_ON_TYPE_RANK,0.0f,0.0f,rank);
+			if(retval == TRUE)
+			{
+				if(!CIL_UDP_Autoguider_On_Rank_Reply_Send(rank,SYS_NOMINAL,sequence_number))
+				{
+					Autoguider_General_Error_Number = 1132;
+					sprintf(Autoguider_General_Error_String,
+						"Autoguider_CIL_Server_Connection_Callback:"
+						"Failed to send autoguider on rank reply.");
+					Autoguider_General_Error();
+					return FALSE;
+				}
+			}
+			else
+			{
+				Autoguider_General_Error();
+				CIL_UDP_Autoguider_On_Rank_Reply_Send(rank,E_AGS_LOOP_ERROR,sequence_number);
 				return FALSE;
 			}
 			break;
@@ -613,6 +687,68 @@ static int Autoguider_CIL_Server_Connection_Callback(int socket_id,void* message
 }
 
 /**
+ * Send a reply to an "autoguider on brightest" command sent to the AGS CIL port,
+ * by sending a CIL UDP reply packet to the TCS UDP CIL command port.
+ * @param status Whether the autoguider has started autoguiding, either SYS_NOMINAL or an error code.
+ * @param sequence_number The command sequence number - should be the same as parsed from the command request.
+ * @return The routine returns TRUE if successfull, and FALSE if an error occurs. If an error occurs,
+ *        Autoguider_General_Error_Number and Autoguider_General_Error_String are set.
+ * @see #TCC_Hostname
+ * @see #CIL_TCS_UDP_Port
+ * @see autoguider_general.html#Autoguider_General_Error_Number
+ * @see autoguider_general.html#Autoguider_General_Error_String
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#Autoguider_General_Log_Format
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_CIL
+ * @see ../ngatcil/cdocs/ngatcil_cil.html#NGATCil_UDP_Open
+ * @see ../ngatcil/cdocs/ngatcil_cil.html#NGATCil_UDP_Close
+ * @see ../ngatcil/cdocs/ngatcil_cil.html#NGATCil_Cil_Autoguide_On_Brightest_Reply_Send
+ */
+static int CIL_UDP_Autoguider_On_Brightest_Reply_Send(int status,int sequence_number)
+{
+	int retval,socket_fd;
+
+#if AUTOGUIDER_DEBUG > 3
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"CIL_UDP_Autoguider_On_Brightest_Reply_Send:started.");
+#endif
+#if AUTOGUIDER_DEBUG > 3
+	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,
+				      "CIL_UDP_Autoguider_On_Brightest_Reply_Send:Opening UDP connection to %s:%d.",
+				      TCC_Hostname,CIL_TCS_UDP_Port);
+#endif
+	retval = NGATCil_UDP_Open(TCC_Hostname,CIL_TCS_UDP_Port,&socket_fd);
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 1128;
+		sprintf(Autoguider_General_Error_String,"CIL_UDP_Autoguider_On_Brightest_Reply_Send:"
+			"Failed to open UDP CIL port (%s:%d).",TCC_Hostname,CIL_TCS_UDP_Port);
+		return FALSE;
+	}
+	retval = NGATCil_Cil_Autoguide_On_Brightest_Reply_Send(socket_fd,status,sequence_number);
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 1129;
+		sprintf(Autoguider_General_Error_String,"CIL_UDP_Autoguider_On_Pixel_Reply_Send:"
+			"Failed to send autoguide on pixel reply packet.");
+		NGATCil_UDP_Close(socket_fd);
+		return FALSE;
+	}
+	retval = NGATCil_UDP_Close(socket_fd);
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 1130;
+		sprintf(Autoguider_General_Error_String,"CIL_UDP_Autoguider_On_Brightest_Reply_Send:"
+			"Failed to close UDP CIL port (%s:%d).",
+			TCC_Hostname,CIL_TCS_UDP_Port);
+		return FALSE;
+	}
+#if AUTOGUIDER_DEBUG > 3
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"CIL_UDP_Autoguider_On_Brightest_Reply_Send:finished.");
+#endif
+	return TRUE;
+}
+
+/**
  * Send a reply to an "autoguider on pixel" command sent to the AGS CIL port,
  * by sending a CIL UDP reply packet to the TCS UDP CIL command port.
  * @param pixel_x The X pixel to guide on in pixels.
@@ -632,23 +768,23 @@ static int Autoguider_CIL_Server_Connection_Callback(int socket_id,void* message
  * @see ../ngatcil/cdocs/ngatcil_cil.html#NGATCil_UDP_Close
  * @see ../ngatcil/cdocs/ngatcil_cil.html#NGATCil_Cil_Autoguide_On_Pixel_Reply_Send
  */
-static int CIL_UDP_Autoguider_On_Reply_Send(float pixel_x,float pixel_y,int status,int sequence_number)
+static int CIL_UDP_Autoguider_On_Pixel_Reply_Send(float pixel_x,float pixel_y,int status,int sequence_number)
 {
 	int retval,socket_fd;
 
 #if AUTOGUIDER_DEBUG > 3
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"CIL_UDP_Autoguider_On_Reply_Send:started.");
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"CIL_UDP_Autoguider_On_Pixel_Reply_Send:started.");
 #endif
 #if AUTOGUIDER_DEBUG > 3
 	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,
-				      "CIL_UDP_Autoguider_On_Reply_Send:Opening UDP connection to %s:%d.",
+				      "CIL_UDP_Autoguider_On_Pixel_Reply_Send:Opening UDP connection to %s:%d.",
 				      TCC_Hostname,CIL_TCS_UDP_Port);
 #endif
 	retval = NGATCil_UDP_Open(TCC_Hostname,CIL_TCS_UDP_Port,&socket_fd);
 	if(retval == FALSE)
 	{
 		Autoguider_General_Error_Number = 1114;
-		sprintf(Autoguider_General_Error_String,"CIL_UDP_Autoguider_On_Reply_Send:"
+		sprintf(Autoguider_General_Error_String,"CIL_UDP_Autoguider_On_Pixel_Reply_Send:"
 			"Failed to open UDP CIL port (%s:%d).",TCC_Hostname,CIL_TCS_UDP_Port);
 		return FALSE;
 	}
@@ -656,7 +792,7 @@ static int CIL_UDP_Autoguider_On_Reply_Send(float pixel_x,float pixel_y,int stat
 	if(retval == FALSE)
 	{
 		Autoguider_General_Error_Number = 1115;
-		sprintf(Autoguider_General_Error_String,"CIL_UDP_Autoguider_On_Reply_Send:"
+		sprintf(Autoguider_General_Error_String,"CIL_UDP_Autoguider_On_Pixel_Reply_Send:"
 			"Failed to send autoguide on pixel reply packet.");
 		NGATCil_UDP_Close(socket_fd);
 		return FALSE;
@@ -665,13 +801,76 @@ static int CIL_UDP_Autoguider_On_Reply_Send(float pixel_x,float pixel_y,int stat
 	if(retval == FALSE)
 	{
 		Autoguider_General_Error_Number = 1116;
-		sprintf(Autoguider_General_Error_String,"CIL_UDP_Autoguider_On_Reply_Send:"
+		sprintf(Autoguider_General_Error_String,"CIL_UDP_Autoguider_On_Pixel_Reply_Send:"
 			"Failed to close UDP CIL port (%s:%d).",
 			TCC_Hostname,CIL_TCS_UDP_Port);
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 3
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"CIL_UDP_Autoguider_On_Reply_Send:finished.");
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"CIL_UDP_Autoguider_On_Pixel_Reply_Send:finished.");
+#endif
+	return TRUE;
+}
+
+/**
+ * Send a reply to an "autoguider on rank" command sent to the AGS CIL port,
+ * by sending a CIL UDP reply packet to the TCS UDP CIL command port.
+ * @param rank The rank of star to guide on.
+ * @param status Whether the autoguider has started autoguiding, either SYS_NOMINAL or an error code.
+ * @param sequence_number The command sequence number - should be the same as parsed from the command request.
+ * @return The routine returns TRUE if successfull, and FALSE if an error occurs. If an error occurs,
+ *        Autoguider_General_Error_Number and Autoguider_General_Error_String are set.
+ * @see #TCC_Hostname
+ * @see #CIL_TCS_UDP_Port
+ * @see autoguider_general.html#Autoguider_General_Error_Number
+ * @see autoguider_general.html#Autoguider_General_Error_String
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#Autoguider_General_Log_Format
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_CIL
+ * @see ../ngatcil/cdocs/ngatcil_cil.html#NGATCil_UDP_Open
+ * @see ../ngatcil/cdocs/ngatcil_cil.html#NGATCil_UDP_Close
+ * @see ../ngatcil/cdocs/ngatcil_cil.html#NGATCil_Cil_Autoguide_On_Rank_Reply_Send
+ */
+static int CIL_UDP_Autoguider_On_Rank_Reply_Send(int rank,int status,int sequence_number)
+{
+	int retval,socket_fd;
+
+#if AUTOGUIDER_DEBUG > 3
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"CIL_UDP_Autoguider_On_Rank_Reply_Send:started.");
+#endif
+#if AUTOGUIDER_DEBUG > 3
+	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,
+				      "CIL_UDP_Autoguider_On_Rank_Reply_Send:Opening UDP connection to %s:%d.",
+				      TCC_Hostname,CIL_TCS_UDP_Port);
+#endif
+	retval = NGATCil_UDP_Open(TCC_Hostname,CIL_TCS_UDP_Port,&socket_fd);
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 1133;
+		sprintf(Autoguider_General_Error_String,"CIL_UDP_Autoguider_On_Rank_Reply_Send:"
+			"Failed to open UDP CIL port (%s:%d).",TCC_Hostname,CIL_TCS_UDP_Port);
+		return FALSE;
+	}
+	retval = NGATCil_Cil_Autoguide_On_Rank_Reply_Send(socket_fd,rank,status,sequence_number);
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 1134;
+		sprintf(Autoguider_General_Error_String,"CIL_UDP_Autoguider_On_Rank_Reply_Send:"
+			"Failed to send autoguide on rank reply packet.");
+		NGATCil_UDP_Close(socket_fd);
+		return FALSE;
+	}
+	retval = NGATCil_UDP_Close(socket_fd);
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 1135;
+		sprintf(Autoguider_General_Error_String,"CIL_UDP_Autoguider_On_Rank_Reply_Send:"
+			"Failed to close UDP CIL port (%s:%d).",
+			TCC_Hostname,CIL_TCS_UDP_Port);
+		return FALSE;
+	}
+#if AUTOGUIDER_DEBUG > 3
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"CIL_UDP_Autoguider_On_Rank_Reply_Send:finished.");
 #endif
 	return TRUE;
 }
@@ -738,6 +937,10 @@ static int CIL_UDP_Autoguider_Off_Reply_Send(int status,int sequence_number)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.5  2006/06/27 20:43:21  cjm
+** Added AUTOGUIDER_CIL_SILENCE.
+** Added Autoguider_Command_Autoguide_On call.
+**
 ** Revision 1.4  2006/06/21 14:07:01  cjm
 ** Added information on status char.
 **
