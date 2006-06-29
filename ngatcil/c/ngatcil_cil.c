@@ -1,11 +1,11 @@
 /* ngatcil_cil.c
 ** NGATCil General CIL packet tranmitting/receiving routines.
-** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_cil.c,v 1.2 2006-06-07 11:11:24 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_cil.c,v 1.3 2006-06-29 17:02:19 cjm Exp $
 */
 /**
  * NGAT Cil library transmission/receiving of CIL packets over UDP.
  * @author Chris Mottram
- * @version $Revision: 1.2 $
+ * @version $Revision: 1.3 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -189,7 +189,7 @@ enum eCilNames
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: ngatcil_cil.c,v 1.2 2006-06-07 11:11:24 cjm Exp $";
+static char rcsid[] = "$Id: ngatcil_cil.c,v 1.3 2006-06-29 17:02:19 cjm Exp $";
 /**
  * CIL packet sequence number.
  */
@@ -612,6 +612,237 @@ int NGATCil_Cil_Autoguide_On_Pixel_Reply_Parse(struct NGATCil_Cil_Packet_Struct 
 }
 
 /**
+ * Parse an "autoguide on brightest" CIL command packet.
+ * For use by the AGS.
+ * @param packet The received packet to parse. This should have been translated to host byte order using
+ *         NGATCil_Cil_Packet_Recv.
+ * @param sequence_number The address of an integer to store the sequence_number.
+ * @return The routine returns TRUE on success and FALSE on failure. If the routine failed,
+ *      NGATCil_General_Error_Number and NGATCil_General_Error_String should be set.
+ * @see #E_CIL_CMD_CLASS
+ * @see #E_AGS_CMD
+ * @see #E_AGS_GUIDE_ON_BRIGHTEST
+ * @see ngatcil_general.html#NGATCil_General_Error_Number
+ * @see ngatcil_general.html#NGATCil_General_Error_String
+ * @see ngatcil_general.html#NGATCil_General_Log
+ * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_CIL
+ */
+int NGATCil_Cil_Autoguide_On_Brightest_Parse(struct NGATCil_Cil_Packet_Struct packet,int *sequence_number)
+{
+#if NGATCIL_DEBUG > 1
+	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Autoguide_On_Brightest_Parse:started.");
+#endif
+	if(sequence_number == NULL)
+	{
+		NGATCil_General_Error_Number = 331;
+		sprintf(NGATCil_General_Error_String,"NGATCil_Cil_Autoguide_On_Brightest_Parse:"
+			"Sequence number was NULL.");
+		return FALSE;
+	}
+	if(packet.Class != E_CIL_CMD_CLASS)
+	{
+		NGATCil_General_Error_Number = 332;
+		sprintf(NGATCil_General_Error_String,"NGATCil_Cil_Autoguide_On_Brightest_Parse:"
+			"Wrong class number (%d vs %d).",packet.Class,E_CIL_CMD_CLASS);
+		return FALSE;
+	}
+	if(packet.Service != E_AGS_CMD)
+	{
+		NGATCil_General_Error_Number = 333;
+		sprintf(NGATCil_General_Error_String,"NGATCil_Cil_Autoguide_On_Brightest_Parse:"
+			"Wrong service number (%d vs %d).",packet.Service,E_AGS_CMD);
+		return FALSE;
+	}
+	if(packet.Command != E_AGS_GUIDE_ON_BRIGHTEST)
+	{
+		NGATCil_General_Error_Number = 334;
+		sprintf(NGATCil_General_Error_String,"NGATCil_Cil_Autoguide_On_Brightest_Parse:"
+			"Wrong command number (%d vs %d).",packet.Command,E_AGS_GUIDE_ON_BRIGHTEST);
+		return FALSE;
+	}
+	(*sequence_number) = packet.Seq_Num;
+#if NGATCIL_DEBUG > 1
+	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_CIL,
+				   "NGATCil_Cil_Autoguide_On_Brightest_Parse:(%.2f,%.2f,%d):finished.",
+				   (*sequence_number));
+#endif
+	return TRUE;
+}
+
+/**
+ * Send an "autoguide on brightest" CIL reply packet on the specified socket.
+ * For use by the AGS.
+ * @param socket_id The socket to send the packet over.
+ * @param status The status to send for this packet. 
+ * @param sequence_number The sequence number to use for this packet. Should be retrieved from the
+ *        "autoguide on brightest" CIL command packet that caused this response to be sent.
+ * @return The routine returns TRUE on success and FALSE on failure. If the routine failed,
+ *      NGATCil_General_Error_Number and NGATCil_General_Error_String should be set.
+ * @see #SYS_NOMINAL
+ * @see #E_AGS_GUIDE_ON_BRIGHTEST
+ * @see #E_AGS_CMD
+ * @see #E_CIL_RSP_CLASS
+ * @see #Sequence_Number
+ * @see #NGATCil_Cil_Packet_Send
+ * @see ngatcil_general.html#NGATCil_General_Error_Number
+ * @see ngatcil_general.html#NGATCil_General_Error_String
+ * @see ngatcil_general.html#NGATCil_General_Log
+ * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_CIL
+ */
+int NGATCil_Cil_Autoguide_On_Brightest_Reply_Send(int socket_id,int status,int sequence_number)
+{
+	struct timespec current_time;
+	struct NGATCil_Cil_Packet_Struct packet;
+	int retval;
+
+#if NGATCIL_DEBUG > 1
+	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_CIL,
+				   "NGATCil_Cil_Autoguide_On_Brightest_Reply_Send(%#x,%d):started.",
+				   status,sequence_number);
+#endif
+	packet.Source_Id = E_CIL_AGS;
+	packet.Dest_Id = E_CIL_TCS;
+	packet.Class = E_CIL_RSP_CLASS;
+	packet.Service = E_AGS_CMD;
+	packet.Seq_Num = sequence_number;
+	clock_gettime(CLOCK_REALTIME,&current_time);
+	packet.Timestamp_Seconds = current_time.tv_sec;
+	packet.Timestamp_Nanoseconds = current_time.tv_nsec;
+	packet.Command = E_AGS_GUIDE_ON_BRIGHTEST;
+	packet.Status = status;
+	packet.Param1 = 0;
+	packet.Param2 = 0;
+	/* send packet */
+	retval = NGATCil_Cil_Packet_Send(socket_id,packet);
+	if(retval == FALSE)
+		return FALSE;
+#if NGATCIL_DEBUG > 1
+	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Autoguide_On_Brightest_Reply_Send:finished.");
+#endif
+	return TRUE;
+}
+
+/**
+ * Parse an "autoguide on rank <n>" CIL command packet.
+ * For use by the AGS.
+ * @param packet The received packet to parse. This should have been translated to host byte order using
+ *         NGATCil_Cil_Packet_Recv or UDP_Raw_Server_Thread.
+ * @param rank The address of an integer to store  the parsed rank.
+ * @param sequence_number The address of an integer to store the sequence_number.
+ * @return The routine returns TRUE on success and FALSE on failure. If the routine failed,
+ *      NGATCil_General_Error_Number and NGATCil_General_Error_String should be set.
+ * @see #E_CIL_CMD_CLASS
+ * @see #E_AGS_CMD
+ * @see #E_AGS_GUIDE_ON_RANK
+ * @see ngatcil_general.html#NGATCil_General_Error_Number
+ * @see ngatcil_general.html#NGATCil_General_Error_String
+ * @see ngatcil_general.html#NGATCil_General_Log
+ * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_CIL
+ */
+int NGATCil_Cil_Autoguide_On_Rank_Parse(struct NGATCil_Cil_Packet_Struct packet,int *rank,int *sequence_number)
+{
+#if NGATCIL_DEBUG > 1
+	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Autoguide_On_Rank_Parse:started.");
+#endif
+	if(sequence_number == NULL)
+	{
+		NGATCil_General_Error_Number = 335;
+		sprintf(NGATCil_General_Error_String,"NGATCil_Cil_Autoguide_On_Rank_Parse:"
+			"Sequence number was NULL.");
+		return FALSE;
+	}
+	if(rank == NULL)
+	{
+		NGATCil_General_Error_Number = 336;
+		sprintf(NGATCil_General_Error_String,"NGATCil_Cil_Autoguide_On_Rank_Parse:Rank was NULL.");
+		return FALSE;
+	}
+	if(packet.Class != E_CIL_CMD_CLASS)
+	{
+		NGATCil_General_Error_Number = 337;
+		sprintf(NGATCil_General_Error_String,"NGATCil_Cil_Autoguide_On_Rank_Parse:"
+			"Wrong class number (%d vs %d).",packet.Class,E_CIL_CMD_CLASS);
+		return FALSE;
+	}
+	if(packet.Service != E_AGS_CMD)
+	{
+		NGATCil_General_Error_Number = 338;
+		sprintf(NGATCil_General_Error_String,"NGATCil_Cil_Autoguide_On_Rank_Parse:"
+			"Wrong service number (%d vs %d).",packet.Service,E_AGS_CMD);
+		return FALSE;
+	}
+	if(packet.Command != E_AGS_GUIDE_ON_RANK)
+	{
+		NGATCil_General_Error_Number = 339;
+		sprintf(NGATCil_General_Error_String,"NGATCil_Cil_Autoguide_On_Rank_Parse:"
+			"Wrong command number (%d vs %d).",packet.Command,E_AGS_GUIDE_ON_RANK);
+		return FALSE;
+	}
+	(*sequence_number) = packet.Seq_Num;
+	(*rank) = packet.Param1;
+#if NGATCIL_DEBUG > 1
+	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_CIL,
+				   "NGATCil_Cil_Autoguide_On_Rank_Parse:(%.2f,%.2f,%d,%d):finished.",
+				   (*rank),(*sequence_number));
+#endif
+	return TRUE;
+}
+
+/**
+ * Send an "autoguide on rank" CIL reply packet on the specified socket.
+ * For use by the AGS.
+ * @param socket_id The socket to send the packet over.
+ * @param rank The rank requested to autoguide on.
+ * @param status The status to send for this packet. 
+ * @param sequence_number The sequence number to use for this packet. Should be retrieved from the
+ *        "autoguide on rank" CIL command packet that caused this response to be sent.
+ * @return The routine returns TRUE on success and FALSE on failure. If the routine failed,
+ *      NGATCil_General_Error_Number and NGATCil_General_Error_String should be set.
+ * @see #SYS_NOMINAL
+ * @see #E_AGS_GUIDE_ON_RANK
+ * @see #E_AGS_CMD
+ * @see #E_CIL_RSP_CLASS
+ * @see #Sequence_Number
+ * @see #NGATCil_Cil_Packet_Send
+ * @see ngatcil_general.html#NGATCil_General_Error_Number
+ * @see ngatcil_general.html#NGATCil_General_Error_String
+ * @see ngatcil_general.html#NGATCil_General_Log
+ * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_CIL
+ */
+int NGATCil_Cil_Autoguide_On_Rank_Reply_Send(int socket_id,int rank,int status,int sequence_number)
+{
+	struct timespec current_time;
+	struct NGATCil_Cil_Packet_Struct packet;
+	int retval;
+
+#if NGATCIL_DEBUG > 1
+	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_CIL,
+				   "NGATCil_Cil_Autoguide_On_Rank_Reply_Send(%d,%#x,%d):started.",
+				   rank,status,sequence_number);
+#endif
+	packet.Source_Id = E_CIL_AGS;
+	packet.Dest_Id = E_CIL_TCS;
+	packet.Class = E_CIL_RSP_CLASS;
+	packet.Service = E_AGS_CMD;
+	packet.Seq_Num = sequence_number;
+	clock_gettime(CLOCK_REALTIME,&current_time);
+	packet.Timestamp_Seconds = current_time.tv_sec;
+	packet.Timestamp_Nanoseconds = current_time.tv_nsec;
+	packet.Command = E_AGS_GUIDE_ON_RANK;
+	packet.Status = status;
+	packet.Param1 = rank;
+	packet.Param2 = 0;
+	/* send packet */
+	retval = NGATCil_Cil_Packet_Send(socket_id,packet);
+	if(retval == FALSE)
+		return FALSE;
+#if NGATCIL_DEBUG > 1
+	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Autoguide_On_Brightest_Reply_Send:finished.");
+#endif
+	return TRUE;
+}
+
+/**
  * Send an "Autoguide off" CIL command packet on the specified socket.
  * For use for TCS (simulators).
  * @param socket_id The socket to send the packet over.
@@ -860,6 +1091,9 @@ int NGATCil_Cil_Autoguide_Off_Reply_Parse(struct NGATCil_Cil_Packet_Struct packe
 ** ---------------------------------------------------------------------------- */
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.2  2006/06/07 11:11:24  cjm
+** Added logging.
+**
 ** Revision 1.1  2006/06/06 15:58:00  cjm
 ** Initial revision
 **

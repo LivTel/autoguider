@@ -1,5 +1,5 @@
 /* ngatcil_cil.h
-** $Header: /home/cjm/cvs/autoguider/ngatcil/include/ngatcil_cil.h,v 1.2 2006-06-12 19:26:14 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ngatcil/include/ngatcil_cil.h,v 1.3 2006-06-29 17:04:24 cjm Exp $
 */
 #ifndef NGATCIL_CIL_H
 #define NGATCIL_CIL_H
@@ -165,6 +165,12 @@ int NGATCil_Cil_Autoguide_On_Pixel_Reply_Send(int socket_id,float pixel_x,float 
 int NGATCil_Cil_Autoguide_On_Pixel_Reply_Parse(struct NGATCil_Cil_Packet_Struct packet,float *pixel_x,float *pixel_y,
 					       int *status,int *sequence_number);
 
+int NGATCil_Cil_Autoguide_On_Brightest_Parse(struct NGATCil_Cil_Packet_Struct packet,int *sequence_number);
+int NGATCil_Cil_Autoguide_On_Brightest_Reply_Send(int socket_id,int status,int sequence_number);
+
+int NGATCil_Cil_Autoguide_On_Rank_Parse(struct NGATCil_Cil_Packet_Struct packet,int *rank,int *sequence_number);
+int NGATCil_Cil_Autoguide_On_Rank_Reply_Send(int socket_id,int rank,int status,int sequence_number);
+
 int NGATCil_Cil_Autoguide_Off_Send(int socket_id,int *sequence_number);
 int NGATCil_Cil_Autoguide_Off_Parse(struct NGATCil_Cil_Packet_Struct packet,int *status,int *sequence_number);
 
@@ -173,6 +179,9 @@ int NGATCil_Cil_Autoguide_Off_Reply_Parse(struct NGATCil_Cil_Packet_Struct packe
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.2  2006/06/12 19:26:14  cjm
+** Added more #defines/enums.
+**
 ** Revision 1.1  2006/06/06 15:58:03  cjm
 ** Initial revision
 **
