@@ -1,11 +1,11 @@
 /* autoguider_guide.c
 ** Autoguider guide routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.9 2006-06-27 20:45:02 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.10 2006-06-29 17:04:34 cjm Exp $
 */
 /**
  * Guide routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.9 $
+ * @version $Revision: 1.10 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -96,7 +96,7 @@ struct Guide_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_guide.c,v 1.9 2006-06-27 20:45:02 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_guide.c,v 1.10 2006-06-29 17:04:34 cjm Exp $";
 /**
  * Instance of guide data.
  * @see #Guide_Struct
@@ -578,11 +578,11 @@ int Autoguider_Guide_Set_Guide_Object(int index)
 	}
 	/* compute window position */
 	sx = object.CCD_X_Position-(default_window_width/2);
-	if(sx < 0)
-		sx = 0;
+	if(sx < 1)
+		sx = 1;
 	sy = object.CCD_Y_Position-(default_window_height/2);
-	if(sy < 0)
-		sy = 0;
+	if(sy < 1)
+		sy = 1;
 	ex = sx + default_window_width;
 	ey = sy + default_window_height;
 	/* set guide window data */
@@ -1319,6 +1319,9 @@ static int Guide_Scaling_Config_Load(void)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.9  2006/06/27 20:45:02  cjm
+** Relaxed FWHM constraint due to dodgy optics.
+**
 ** Revision 1.8  2006/06/22 15:51:56  cjm
 ** Added Loop_Cadence to data for status reporting purposes.
 ** Added routine to return exposure length for status reporting purposes.
