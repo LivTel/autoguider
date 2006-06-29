@@ -1,11 +1,11 @@
 /* ngatcil_udp_raw.c
 ** NGATCil UDP raw transmission routines
-** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_udp_raw.c,v 1.3 2006-06-07 11:11:25 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_udp_raw.c,v 1.4 2006-06-29 17:02:19 cjm Exp $
 */
 /**
  * NGAT Cil library raw UDP packet transmission.
  * @author Chris Mottram
- * @version $Revision: 1.3 $
+ * @version $Revision: 1.4 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -53,7 +53,7 @@ struct UDP_Raw_Server_Context_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: ngatcil_udp_raw.c,v 1.3 2006-06-07 11:11:25 cjm Exp $";
+static char rcsid[] = "$Id: ngatcil_udp_raw.c,v 1.4 2006-06-29 17:02:19 cjm Exp $";
 
 /* internal function declaration */
 static void *UDP_Raw_Server_Thread(void *);
@@ -394,7 +394,8 @@ static void *UDP_Raw_Server_Thread(void *arg)
 	struct UDP_Raw_Server_Context_Struct *server_context = NULL;
 	struct sockaddr_in client;
 	void *message_buff = NULL;
-	int done,retval,socket_errno,current_client_length;
+	int *int_message_ptr = NULL;
+	int done,retval,socket_errno,current_client_length,recv_message_length,i;
 
 #if NGATCIL_DEBUG > 1
 	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,"UDP_Raw_Server_Thread:started.");
@@ -423,36 +424,36 @@ static void *UDP_Raw_Server_Thread(void *arg)
 	done = FALSE;
 	while(done == FALSE)
 	{
-#if NGATCIL_DEBUG > 3
+#if NGATCIL_DEBUG > 9
 		NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,
 					   "UDP_Raw_Server_Thread:Waiting for UDP packeton socket %d.",
 					   server_context->Socket_Id);
 #endif
 		current_client_length = sizeof(client);
-		retval = recvfrom(server_context->Socket_Id,message_buff,server_context->Message_Length,0, 
+		recv_message_length = recvfrom(server_context->Socket_Id,message_buff,server_context->Message_Length,0,
 				  (struct sockaddr *)&client,&current_client_length);
-		if(retval < 0)
+		if(recv_message_length < 0)
 		{
 			socket_errno = errno;
 			/* quit server - hopefully error due to closing socket? */
 			done = TRUE;
-#if NGATCIL_DEBUG > 3
+#if NGATCIL_DEBUG > 9
 			NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,"UDP_Raw_Server_Thread:Terminating:"
-						   "recvfrom returned %d (%d:%s).",retval,socket_errno,
+						   "recvfrom returned %d (%d:%s).",recv_message_length,socket_errno,
 						   strerror(socket_errno));
 #endif
 		}
 		else /* something was received */
 		{
-			if(retval != server_context->Message_Length)
+			if(recv_message_length != server_context->Message_Length)
 			{
-#if NGATCIL_DEBUG > 3
+#if NGATCIL_DEBUG > 9
 				NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,"UDP_Raw_Server_Thread:"
-							   "Detected short packet (%d vs %d).",retval,
+							   "Detected short packet (%d vs %d).",recv_message_length,
 							   server_context->Message_Length);
 #endif
 				/* we seem to get 0 length packets when the server socket is closed */
-				if(retval == 0)
+				if(recv_message_length == 0)
 				{
 					done = TRUE;
 #if NGATCIL_DEBUG > 3
@@ -462,15 +463,33 @@ static void *UDP_Raw_Server_Thread(void *arg)
 #endif
 				}
 			}
-			if(server_context->Connection_Handler != NULL)
+			/* network to host */
+			if((recv_message_length % sizeof(int)) == 0)
 			{
-				(server_context->Connection_Handler)(server_context->Socket_Id,message_buff,retval);
-			}
+				int_message_ptr = (int*)message_buff;
+				for(i=0;i < (recv_message_length/sizeof(int));i++)
+				{
+					int_message_ptr[i] = ntohl(int_message_ptr[i]);
+				}
+				if(server_context->Connection_Handler != NULL)
+				{
+					(server_context->Connection_Handler)(server_context->Socket_Id,message_buff,
+									     recv_message_length);
+				}
+				else
+				{
+#if NGATCIL_DEBUG > 3
+					NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,"UDP_Raw_Server_Thread:"
+							 "Packet received but Connection Handler appears to be NULL.");
+#endif
+				}
+			} /* if */
 			else
 			{
 #if NGATCIL_DEBUG > 3
-				NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,"UDP_Raw_Server_Thread:"
-						    "Packet received but Connection Handler appears to be NULL.");
+				NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,"UDP_Raw_Server_Thread:"
+							   "Packet received with non-word number of bytes %d.",
+							   recv_message_length);
 #endif
 			}
 		}/* if */
@@ -490,6 +509,9 @@ static void *UDP_Raw_Server_Thread(void *arg)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.3  2006/06/07 11:11:25  cjm
+** Added logging.
+**
 ** Revision 1.2  2006/06/05 18:56:29  cjm
 ** Fixed setting host network address.
 ** Added 0 byte received == termination test.
