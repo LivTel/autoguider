@@ -1,13 +1,13 @@
 /* autoguider_object.c
 ** Autoguider object detection routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_object.c,v 1.5 2006-06-29 17:04:34 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_object.c,v 1.6 2006-07-14 09:35:12 cjm Exp $
 */
 /**
  * Object detection routines for the autoguider program.
  * Uses libdprt_object.
  * Has it's own buffer, as Object_List_Get destroys the data within it's buffer argument.
  * @author Chris Mottram
- * @version $Revision: 1.5 $
+ * @version $Revision: 1.6 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -19,6 +19,7 @@
 #define _POSIX_C_SOURCE 199309L
 
 #include <errno.h>
+#include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
@@ -84,7 +85,7 @@ struct Object_Internal_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_object.c,v 1.5 2006-06-29 17:04:34 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_object.c,v 1.6 2006-07-14 09:35:12 cjm Exp $";
 /**
  * Instance of object data.
  * @see #Object_Internal_Struct
@@ -301,7 +302,7 @@ int Autoguider_Object_Guide_Object_Get(enum COMMAND_AG_ON_TYPE on_type,float pix
 				       int rank,int *selected_object_index)
 {
 	int index,retval;
-	float max_total_counts,distance,closest_distance,xsq,ysq;
+	float max_total_counts,distance,closest_distance,xsq,ysq,xdiff,ydiff;
 
 	if(selected_object_index == NULL)
 	{
@@ -362,9 +363,11 @@ int Autoguider_Object_Guide_Object_Get(enum COMMAND_AG_ON_TYPE on_type,float pix
 			closest_distance = 999999.9f;
 			while(index < Object_Data.Object_Count)
 			{
-				xsq = pow((double)(Object_Data.Object_List[index].CCD_X_Position-pixel_x),2.0f);
-				ysq = pow((double)(Object_Data.Object_List[index].CCD_Y_Position-pixel_y),2.0f);
-				distance  = sqrt(xsq + ysq);
+				xdiff = Object_Data.Object_List[index].CCD_X_Position-pixel_x;
+				ydiff = Object_Data.Object_List[index].CCD_Y_Position-pixel_y;
+				xsq = xdiff*xdiff;
+				ysq = ydiff*ydiff;
+				distance = (float)sqrt((double)(xsq + ysq));
 #if AUTOGUIDER_DEBUG > 9
 				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,
 						  "Autoguider_Object_Guide_Object_Get:Object index %d (%.2f,%.2f) "
@@ -813,17 +816,8 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
 		Object_Data.Object_List[index].Pixel_Count = current_object_ptr->numpix;
 		Object_Data.Object_List[index].Peak_Counts = current_object_ptr->peak;
 		Object_Data.Object_List[index].Is_Stellar = current_object_ptr->is_stellar;
-		/* libdprt_object only sets fwhm if object is stellar atm */
-		if(current_object_ptr->is_stellar == TRUE)
-		{
-			Object_Data.Object_List[index].FWHM_X = current_object_ptr->fwhmx;
-			Object_Data.Object_List[index].FWHM_Y = current_object_ptr->fwhmy;
-		}
-		else
-		{
-			Object_Data.Object_List[index].FWHM_X = 0.0f;
-			Object_Data.Object_List[index].FWHM_Y = 0.0f;
-		}
+		Object_Data.Object_List[index].FWHM_X = current_object_ptr->fwhmx;
+		Object_Data.Object_List[index].FWHM_Y = current_object_ptr->fwhmy;
 #if AUTOGUIDER_DEBUG > 5
 		if(index < 1000) /* try to speed up situations where too many objects are being detected */
 		{
@@ -977,6 +971,9 @@ static int Object_Sort_Object_List_By_Total_Counts(const void *p1, const void *p
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.5  2006/06/29 17:04:34  cjm
+** More logging
+**
 ** Revision 1.4  2006/06/27 20:45:02  cjm
 ** Added Autoguider_Object_Guide_Object_Get.
 ** Object_List now sorted by total counts (Object_Sort_Object_List_By_Total_Counts) to make autoguide on rank easier.
