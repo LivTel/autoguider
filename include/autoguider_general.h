@@ -1,5 +1,5 @@
 /* autoguider_general.h
-** $Header: /home/cjm/cvs/autoguider/include/autoguider_general.h,v 1.2 2006-06-12 19:24:55 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/include/autoguider_general.h,v 1.3 2006-07-14 14:02:14 cjm Exp $
 */
 #ifndef AUTOGUIDER_GENERAL_H
 #define AUTOGUIDER_GENERAL_H
@@ -98,6 +98,11 @@
  * @see #Autoguider_General_Log
  */
 #define AUTOGUIDER_GENERAL_LOG_BIT_CIL	        (1<<10)
+/**
+ * Value to pass into logging calls, used for FITS Header code logging.
+ * @see #Autoguider_General_Log
+ */
+#define AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER	(1<<11)
 
 /**
  * The number of nanoseconds in one second. A struct timespec has fields in nanoseconds.
@@ -163,6 +168,10 @@ extern char *Autoguider_General_Get_Config_Filename(void);
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.2  2006/06/12 19:24:55  cjm
+** Added CIL log bit.
+** Added fdifftime.
+**
 ** Revision 1.1  2006/06/01 15:19:05  cjm
 ** Initial revision
 **
