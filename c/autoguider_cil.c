@@ -1,11 +1,11 @@
 /* autoguider_cil.c
 ** Autoguider CIL server routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_cil.c,v 1.6 2006-06-29 17:04:34 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_cil.c,v 1.7 2006-07-14 14:01:48 cjm Exp $
 */
 /**
  * Autoguider CIL Server routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.6 $
+ * @version $Revision: 1.7 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -36,7 +36,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_cil.c,v 1.6 2006-06-29 17:04:34 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_cil.c,v 1.7 2006-07-14 14:01:48 cjm Exp $";
 /**
  * UDP CIL port to wait for TCS commands on.
  * @see ../cdocs/ngatcil_cil.html#NGATCIL_CIL_AGS_PORT_DEFAULT
@@ -126,7 +126,7 @@ int Autoguider_CIL_Server_Initialise(void)
 	retval = CCD_Config_Get_Boolean("cil.server.start",&CIL_UDP_Server_Start);
 	if(retval == FALSE)
 	{
-		Autoguider_General_Error_Number = 1100;
+		Autoguider_General_Error_Number = 1136;
 		sprintf(Autoguider_General_Error_String,"Autoguider_CIL_Server_Initialise:"
 			"Failed to find CIL server start (cil.server.start) in config file.");
 		return FALSE;
@@ -937,6 +937,9 @@ static int CIL_UDP_Autoguider_Off_Reply_Send(int status,int sequence_number)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.6  2006/06/29 17:04:34  cjm
+** Added CIL handling of rank/brightest.
+**
 ** Revision 1.5  2006/06/27 20:43:21  cjm
 ** Added AUTOGUIDER_CIL_SILENCE.
 ** Added Autoguider_Command_Autoguide_On call.
