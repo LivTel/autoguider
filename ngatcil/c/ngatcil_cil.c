@@ -1,11 +1,11 @@
 /* ngatcil_cil.c
 ** NGATCil General CIL packet tranmitting/receiving routines.
-** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_cil.c,v 1.3 2006-06-29 17:02:19 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_cil.c,v 1.4 2006-07-16 20:12:46 cjm Exp $
 */
 /**
  * NGAT Cil library transmission/receiving of CIL packets over UDP.
  * @author Chris Mottram
- * @version $Revision: 1.3 $
+ * @version $Revision: 1.4 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -189,7 +189,7 @@ enum eCilNames
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: ngatcil_cil.c,v 1.3 2006-06-29 17:02:19 cjm Exp $";
+static char rcsid[] = "$Id: ngatcil_cil.c,v 1.4 2006-07-16 20:12:46 cjm Exp $";
 /**
  * CIL packet sequence number.
  */
@@ -347,6 +347,10 @@ int NGATCil_Cil_Autoguide_On_Pixel_Send(int socket_id,float pixel_x,float pixel_
 			"Pixel Y %.2f out of range (0..1023).",pixel_y);
 		return FALSE;
 	}
+	/* diddly rewrite using NGATCil_Cil_Packet_Create to packet is in network byte order
+	retval = NGATCil_Cil_Packet_Create(E_CIL_TCS,E_CIL_AGS,E_CIL_CMD_CLASS,E_AGS_CMD,Sequence_Number,E_AGS_GUIDE_ON_PIXEL,
+			     SYS_NOMINAL,int param1, int param2,struct NGATCil_Cil_Packet_Struct *packet)
+	*/
 	packet.Source_Id = E_CIL_TCS;
 	packet.Dest_Id = E_CIL_AGS;
 	packet.Class = E_CIL_CMD_CLASS;
@@ -470,6 +474,7 @@ int NGATCil_Cil_Autoguide_On_Pixel_Parse(struct NGATCil_Cil_Packet_Struct packet
  * @see #E_CIL_RSP_CLASS
  * @see #Sequence_Number
  * @see #NGATCil_Cil_Packet_Send
+ & @see #NGATCil_Cil_Packet_Create
  * @see ngatcil_general.html#NGATCil_General_Error_Number
  * @see ngatcil_general.html#NGATCil_General_Error_String
  * @see ngatcil_general.html#NGATCil_General_Log
@@ -501,22 +506,18 @@ int NGATCil_Cil_Autoguide_On_Pixel_Reply_Send(int socket_id,float pixel_x,float 
 			"Pixel Y %.2f out of range (0..1023).",pixel_y);
 		return FALSE;
 	}
-	packet.Source_Id = E_CIL_AGS;
-	packet.Dest_Id = E_CIL_TCS;
-	packet.Class = E_CIL_RSP_CLASS;
-	packet.Service = E_AGS_CMD;
-	packet.Seq_Num = sequence_number;
-	clock_gettime(CLOCK_REALTIME,&current_time);
-	packet.Timestamp_Seconds = current_time.tv_sec;
-	packet.Timestamp_Nanoseconds = current_time.tv_nsec;
-	packet.Command = E_AGS_GUIDE_ON_PIXEL;
-	packet.Status = status;
 	/* param 1 is X pixel position in millipixels */
 	pixel_x_i = (int)(pixel_x * 1000.0f);
 	packet.Param1 = pixel_x_i;
 	/* param 2 is Y pixel position in millipixels */
 	pixel_y_i = (int)(pixel_y * 1000.0f);
 	packet.Param2 = pixel_y_i;
+	/* use NGATCil_Cil_Packet_Create to packet is in network byte order*/
+	retval = NGATCil_Cil_Packet_Create(E_CIL_AGS,E_CIL_TCS,E_CIL_RSP_CLASS,E_AGS_CMD,sequence_number,
+					   E_AGS_GUIDE_ON_PIXEL,
+					   status,pixel_x_i,pixel_y_i,&packet);
+	if(retval == FALSE)
+		return FALSE;
 	/* send packet */
 	retval = NGATCil_Cil_Packet_Send(socket_id,packet);
 	if(retval == FALSE)
@@ -684,6 +685,7 @@ int NGATCil_Cil_Autoguide_On_Brightest_Parse(struct NGATCil_Cil_Packet_Struct pa
  * @see #E_CIL_RSP_CLASS
  * @see #Sequence_Number
  * @see #NGATCil_Cil_Packet_Send
+ * @see #NGATCil_Cil_Packet_Create
  * @see ngatcil_general.html#NGATCil_General_Error_Number
  * @see ngatcil_general.html#NGATCil_General_Error_String
  * @see ngatcil_general.html#NGATCil_General_Log
@@ -700,18 +702,10 @@ int NGATCil_Cil_Autoguide_On_Brightest_Reply_Send(int socket_id,int status,int s
 				   "NGATCil_Cil_Autoguide_On_Brightest_Reply_Send(%#x,%d):started.",
 				   status,sequence_number);
 #endif
-	packet.Source_Id = E_CIL_AGS;
-	packet.Dest_Id = E_CIL_TCS;
-	packet.Class = E_CIL_RSP_CLASS;
-	packet.Service = E_AGS_CMD;
-	packet.Seq_Num = sequence_number;
-	clock_gettime(CLOCK_REALTIME,&current_time);
-	packet.Timestamp_Seconds = current_time.tv_sec;
-	packet.Timestamp_Nanoseconds = current_time.tv_nsec;
-	packet.Command = E_AGS_GUIDE_ON_BRIGHTEST;
-	packet.Status = status;
-	packet.Param1 = 0;
-	packet.Param2 = 0;
+	retval = NGATCil_Cil_Packet_Create(E_CIL_AGS,E_CIL_TCS,E_CIL_RSP_CLASS,E_AGS_CMD,sequence_number,
+					   E_AGS_GUIDE_ON_BRIGHTEST,status,0,0,&packet);
+	if(retval == FALSE)
+		return FALSE;
 	/* send packet */
 	retval = NGATCil_Cil_Packet_Send(socket_id,packet);
 	if(retval == FALSE)
@@ -804,6 +798,7 @@ int NGATCil_Cil_Autoguide_On_Rank_Parse(struct NGATCil_Cil_Packet_Struct packet,
  * @see #E_CIL_RSP_CLASS
  * @see #Sequence_Number
  * @see #NGATCil_Cil_Packet_Send
+ * @see #NGATCil_Cil_Packet_Create
  * @see ngatcil_general.html#NGATCil_General_Error_Number
  * @see ngatcil_general.html#NGATCil_General_Error_String
  * @see ngatcil_general.html#NGATCil_General_Log
@@ -820,18 +815,10 @@ int NGATCil_Cil_Autoguide_On_Rank_Reply_Send(int socket_id,int rank,int status,i
 				   "NGATCil_Cil_Autoguide_On_Rank_Reply_Send(%d,%#x,%d):started.",
 				   rank,status,sequence_number);
 #endif
-	packet.Source_Id = E_CIL_AGS;
-	packet.Dest_Id = E_CIL_TCS;
-	packet.Class = E_CIL_RSP_CLASS;
-	packet.Service = E_AGS_CMD;
-	packet.Seq_Num = sequence_number;
-	clock_gettime(CLOCK_REALTIME,&current_time);
-	packet.Timestamp_Seconds = current_time.tv_sec;
-	packet.Timestamp_Nanoseconds = current_time.tv_nsec;
-	packet.Command = E_AGS_GUIDE_ON_RANK;
-	packet.Status = status;
-	packet.Param1 = rank;
-	packet.Param2 = 0;
+	retval = NGATCil_Cil_Packet_Create(E_CIL_AGS,E_CIL_TCS,E_CIL_RSP_CLASS,E_AGS_CMD,sequence_number,
+					   E_AGS_GUIDE_ON_RANK,status,rank,0,&packet);
+	if(retval == FALSE)
+		return FALSE;
 	/* send packet */
 	retval = NGATCil_Cil_Packet_Send(socket_id,packet);
 	if(retval == FALSE)
@@ -997,18 +984,10 @@ int NGATCil_Cil_Autoguide_Off_Reply_Send(int socket_id,int status,int sequence_n
 	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_CIL,
 				   "NGATCil_Cil_Autoguide_Off_Reply_Send(%#x,%d):started.",status,sequence_number);
 #endif
-	packet.Source_Id = E_CIL_AGS;
-	packet.Dest_Id = E_CIL_TCS;
-	packet.Class = E_CIL_RSP_CLASS;
-	packet.Service = E_AGS_CMD;
-	packet.Seq_Num = sequence_number;
-	clock_gettime(CLOCK_REALTIME,&current_time);
-	packet.Timestamp_Seconds = current_time.tv_sec;
-	packet.Timestamp_Nanoseconds = current_time.tv_nsec;
-	packet.Command = E_AGS_GUIDE_OFF;
-	packet.Status = status;
-	packet.Param1 = 0;
-	packet.Param2 = 0;
+	retval = NGATCil_Cil_Packet_Create(E_CIL_AGS,E_CIL_TCS,E_CIL_RSP_CLASS,E_AGS_CMD,sequence_number,
+					   E_AGS_GUIDE_OFF,status,0,0,&packet);
+	if(retval == FALSE)
+		return FALSE;
 	/* send packet */
 	retval = NGATCil_Cil_Packet_Send(socket_id,packet);
 	if(retval == FALSE)
@@ -1091,6 +1070,9 @@ int NGATCil_Cil_Autoguide_Off_Reply_Parse(struct NGATCil_Cil_Packet_Struct packe
 ** ---------------------------------------------------------------------------- */
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.3  2006/06/29 17:02:19  cjm
+** Added Rank/Brightest AG code.
+**
 ** Revision 1.2  2006/06/07 11:11:24  cjm
 ** Added logging.
 **
