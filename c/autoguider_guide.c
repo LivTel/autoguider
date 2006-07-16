@@ -1,11 +1,11 @@
 /* autoguider_guide.c
 ** Autoguider guide routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.11 2006-06-29 20:39:38 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.12 2006-07-16 20:13:54 cjm Exp $
 */
 /**
  * Guide routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.11 $
+ * @version $Revision: 1.12 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -96,7 +96,7 @@ struct Guide_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_guide.c,v 1.11 2006-06-29 20:39:38 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_guide.c,v 1.12 2006-07-16 20:13:54 cjm Exp $";
 /**
  * Instance of guide data.
  * @see #Guide_Struct
@@ -1274,9 +1274,12 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 		*/
 		reliability = 0;
 		/*if(object.Is_Stellar == FALSE)*/
-		if(fabs((object.FWHM_X/object.FWHM_Y)-1.0f) > guide_ellipticity)
+		if(object.FWHM_Y != 0.0f)
 		{
-			reliability += (1<<0);
+			if(fabs((object.FWHM_X/object.FWHM_Y)-1.0f) > guide_ellipticity)
+			{
+				reliability += (1<<0);
+			}
 		}
 		if((object.Peak_Counts < guide_counts_min_peak)||(object.Peak_Counts > guide_counts_max_peak))
 		{
@@ -1345,6 +1348,9 @@ static int Guide_Scaling_Config_Load(void)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.11  2006/06/29 20:39:38  cjm
+** Made Guide_Packet_Send configurable.
+**
 ** Revision 1.10  2006/06/29 17:04:34  cjm
 ** Changed window test so window start position always at least 1, 0 does not work.
 **
