@@ -1,11 +1,11 @@
 /* autoguider_guide.c
 ** Autoguider guide routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.12 2006-07-16 20:13:54 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.13 2006-07-17 13:43:11 cjm Exp $
 */
 /**
  * Guide routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.12 $
+ * @version $Revision: 1.13 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -96,7 +96,7 @@ struct Guide_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_guide.c,v 1.12 2006-07-16 20:13:54 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_guide.c,v 1.13 2006-07-17 13:43:11 cjm Exp $";
 /**
  * Instance of guide data.
  * @see #Guide_Struct
@@ -117,6 +117,7 @@ static void *Guide_Thread(void *user_arg);
 static int Guide_Reduce(void);
 static int Guide_Packet_Send(int terminating,float timecode_secs);
 static int Guide_Scaling_Config_Load(void);
+static int Guide_Dimension_Config_Load(void);
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -125,6 +126,7 @@ static int Guide_Scaling_Config_Load(void);
  * Guide initialisation routine. Loads default values from properties file.
  * @return The routine returns TRUE on success and FALSE on failure.
  * @see #Guide_Data
+ * @see #Guide_Dimension_Config_Load
  */
 int Autoguider_Guide_Initialise(void)
 {
@@ -158,6 +160,10 @@ int Autoguider_Guide_Initialise(void)
 			"Getting object detect boolean failed.");
 		return FALSE;
 	}
+	/* get dimensions config
+	** reloaded by Autoguider_Guide_On, but needed initially for guide window checking */
+	if(!Guide_Dimension_Config_Load())
+		return FALSE;
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Autoguider_Guide_Initialise:finished.");
 #endif
@@ -175,7 +181,7 @@ int Autoguider_Guide_Initialise(void)
  */
 int Autoguider_Guide_Window_Set(int sx,int sy,int ex,int ey)
 {
-	if((sx < 0)||(sy < 0)||(ex < 0)||(ey < 0))
+	if((sx < 1)||(sy < 1)||(ex < 1)||(ey < 1))
 	{
 		Autoguider_General_Error_Number = 700;
 		sprintf(Autoguider_General_Error_String,"Autoguider_Guide_Window_Set:"
@@ -183,7 +189,38 @@ int Autoguider_Guide_Window_Set(int sx,int sy,int ex,int ey)
 		return FALSE;
 	}
 	/* check sx < ex, sy < ey */
-	/* check vs overall dimensions - what if they are not initialised yet! */
+	if(sx >= ex)
+	{
+		Autoguider_General_Error_Number = ;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Guide_Window_Set:"
+			"Window out of range (%d,%d,%d,%d) : Start X %d after End X %d.",sx,sy,ex,ey,sx,ex);
+		return FALSE;
+	}
+	if(sy >= ey)
+	{
+		Autoguider_General_Error_Number = ;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Guide_Window_Set:"
+			"Window out of range (%d,%d,%d,%d) : Start Y %d after End Y %d.",sx,sy,ex,ey,sy,ey);
+		return FALSE;
+	}
+	/* check vs overall dimensions - 
+	** Binned_NCols/NRows should be loaded/computed as part of Guide initialisation. */
+	if(ex > (Guide_Data.Binned_NCols-1))
+	{
+		Autoguider_General_Error_Number = ;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Guide_Window_Set:"
+			"Window out of range (%d,%d,%d,%d) : End X %d off end of CCD %d.",sx,sy,ex,ey,ex,
+			Guide_Data.Binned_NCols);
+		return FALSE;
+	}
+	if(ey > (Guide_Data.Binned_NRows-1))
+	{
+		Autoguider_General_Error_Number = ;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Guide_Window_Set:"
+			"Window out of range (%d,%d,%d,%d) : End y %d off end of CCD %d.",sx,sy,ex,ey,ey,
+			Guide_Data.Binned_NRows);
+		return FALSE;
+	}
 	Guide_Data.Window.X_Start = sx;
 	Guide_Data.Window.Y_Start = sy;
 	Guide_Data.Window.X_End = ex;
@@ -225,6 +262,7 @@ int Autoguider_Guide_Exposure_Length_Set(int exposure_length,int lock)
  * @return The routine returns TRUE on success, and FALSE on failure.
  * @see #Autoguider_Guide_Is_Guiding
  * @see #Guide_Thread
+ * @see #Guide_Dimension_Config_Load
  * @see #Guide_Scaling_Config_Load
  * @see autoguider_buffer.html#Autoguider_Buffer_Raw_Guide_Lock
  * @see autoguider_buffer.html#Autoguider_Buffer_Raw_Guide_Unlock
@@ -237,7 +275,6 @@ int Autoguider_Guide_Exposure_Length_Set(int exposure_length,int lock)
  * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_GUIDE
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
- * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Integer
  */
 int Autoguider_Guide_On(void)
 {
@@ -268,41 +305,8 @@ int Autoguider_Guide_On(void)
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Autoguider_Guide_On:Getting Dimensions.");
 #endif
 	/* get dimensions */
-	/* nb this code is replicated in autoguider_buffer.c : Autoguider_Buffer_Initialise.
-	** We could perhaps only load from config once, and have getters in autoguider_buffer.c. */
-	/* Also see Autoguider_Field (autogudier_field.c) */ 
-	/* We could also have a Guide_Initialise that did this, but reloading from config every time may be good,
-	** if we are going to allow dynamic reloading of the config file. */
-	retval = CCD_Config_Get_Integer("ccd.guide.ncols",&(Guide_Data.Unbinned_NCols));
-	if(retval == FALSE)
-	{
-		Autoguider_General_Error_Number = 704;
-		sprintf(Autoguider_General_Error_String,"Autoguider_Guide_On:Getting guide NCols failed.");
+	if(!Guide_Dimension_Config_Load())
 		return FALSE;
-	}
-	retval = CCD_Config_Get_Integer("ccd.guide.nrows",&(Guide_Data.Unbinned_NRows));
-	if(retval == FALSE)
-	{
-		Autoguider_General_Error_Number = 705;
-		sprintf(Autoguider_General_Error_String,"Autoguider_Guide_On:Getting guide NRows failed.");
-		return FALSE;
-	}
-	retval = CCD_Config_Get_Integer("ccd.guide.x_bin",&(Guide_Data.Bin_X));
-	if(retval == FALSE)
-	{
-		Autoguider_General_Error_Number = 706;
-		sprintf(Autoguider_General_Error_String,"Autoguider_Guide_On:Getting guide X Binning failed.");
-		return FALSE;
-	}
-	retval = CCD_Config_Get_Integer("ccd.guide.y_bin",&(Guide_Data.Bin_Y));
-	if(retval == FALSE)
-	{
-		Autoguider_General_Error_Number = 707;
-		sprintf(Autoguider_General_Error_String,"Autoguider_Guide_On:Getting guide Y Binning failed.");
-		return FALSE;
-	}
-	Guide_Data.Binned_NCols = Guide_Data.Unbinned_NCols / Guide_Data.Bin_X;
-	Guide_Data.Binned_NRows = Guide_Data.Unbinned_NRows / Guide_Data.Bin_Y;
 	/* get/reload scaling config */
 	if(!Guide_Scaling_Config_Load())
 		return FALSE;
@@ -582,9 +586,13 @@ int Autoguider_Guide_Set_Guide_Object(int index)
 		sx = 1;
 	sy = object.CCD_Y_Position-(default_window_height/2);
 	if(sy < 1)
-		sy = 1;
+		sy = 1; 
 	ex = sx + default_window_width;
+	if(ex > Guide_Data.Binned_NCols)
+		ex = Guide_Data.Binned_NCols - 1;
 	ey = sy + default_window_height;
+	if(ey > Guide_Data.Binned_NRows)
+		ey = Guide_Data.Binned_NRows - 1;
 	/* set guide window data */
 	if(!Autoguider_Guide_Window_Set(sx,sy,ex,ey))
 		return FALSE;
@@ -901,7 +909,8 @@ static void *Guide_Thread(void *user_arg)
 			Autoguider_General_Error_Number = 713;
 			sprintf(Autoguider_General_Error_String,"Guide_Thread:CCD_Exposure_Expose failed.");
 			Autoguider_General_Error();
-			/* diddly send tcs guide packet termination packet. */
+			/* send tcs guide packet termination packet. */
+			Guide_Packet_Send(TRUE,Guide_Data.Loop_Cadence*2.0f);
 			/* close tcs guide packet socket */
 			Autoguider_CIL_Guide_Packet_Close();
 			return NULL;
@@ -930,7 +939,8 @@ static void *Guide_Thread(void *user_arg)
 			/* reset in use buffer index */
 			Guide_Data.In_Use_Buffer_Index = -1;
 			Autoguider_General_Error();
-			/* diddly send tcs guide packet termination packet. */
+			/* send tcs guide packet termination packet. */
+			Guide_Packet_Send(TRUE,Guide_Data.Loop_Cadence*2.0f);
 			/* close tcs guide packet socket */
 			Autoguider_CIL_Guide_Packet_Close();
 			return NULL;
@@ -952,7 +962,8 @@ static void *Guide_Thread(void *user_arg)
 			/* reset in use buffer index */
 			Guide_Data.In_Use_Buffer_Index = -1;
 			Autoguider_General_Error();
-			/* diddly send tcs guide packet termination packet. */
+			/* send tcs guide packet termination packet. */
+			Guide_Packet_Send(TRUE,Guide_Data.Loop_Cadence*2.0f);
 			/* close tcs guide packet socket */
 			Autoguider_CIL_Guide_Packet_Close();
 			return NULL;
@@ -978,7 +989,8 @@ static void *Guide_Thread(void *user_arg)
 			/* reset in use buffer index */
 			Guide_Data.In_Use_Buffer_Index = -1;
 			Autoguider_General_Error();
-			/* diddly send tcs guide packet termination packet. */
+			/* send tcs guide packet termination packet. */
+			Guide_Packet_Send(TRUE,Guide_Data.Loop_Cadence*2.0f);
 			/* close tcs guide packet socket */
 			Autoguider_CIL_Guide_Packet_Close();
 			return NULL;
@@ -1346,8 +1358,66 @@ static int Guide_Scaling_Config_Load(void)
 	return TRUE;
 }
 
+/**
+ * Load guide dimension configuration.
+ * @return The routine returns TRUE on success and FALSE on failure.
+ * @see autoguider_general.html#Autoguider_General_Error
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#Autoguider_General_Log_Format
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_GUIDE
+ * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Integer
+ */
+static int Guide_Dimension_Config_Load(void)
+{
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Dimension_Config_Load:starteed.");
+#endif
+	/* nb this code is replicated in autoguider_buffer.c : Autoguider_Buffer_Initialise.
+	** We could perhaps only load from config once, and have getters in autoguider_buffer.c. */
+	/* Also see Autoguider_Field (autoguider_field.c) */ 
+	/* Guide_Initialise calls this routine to initialise these values sensibly for guide window setting,
+	** Autoguider_Guide_On calls this to reload from config every time,
+	** as we are going to allow dynamic reloading of the config file. */
+	retval = CCD_Config_Get_Integer("ccd.guide.ncols",&(Guide_Data.Unbinned_NCols));
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 704;
+		sprintf(Autoguider_General_Error_String,"Guide_Dimension_Config_Load:Getting guide NCols failed.");
+		return FALSE;
+	}
+	retval = CCD_Config_Get_Integer("ccd.guide.nrows",&(Guide_Data.Unbinned_NRows));
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 705;
+		sprintf(Autoguider_General_Error_String,"Guide_Dimension_Config_Load:Getting guide NRows failed.");
+		return FALSE;
+	}
+	retval = CCD_Config_Get_Integer("ccd.guide.x_bin",&(Guide_Data.Bin_X));
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 706;
+		sprintf(Autoguider_General_Error_String,"Guide_Dimension_Config_Load:Getting guide X Binning failed.");
+		return FALSE;
+	}
+	retval = CCD_Config_Get_Integer("ccd.guide.y_bin",&(Guide_Data.Bin_Y));
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 707;
+		sprintf(Autoguider_General_Error_String,"Guide_Dimension_Config_Load:Getting guide Y Binning failed.");
+		return FALSE;
+	}
+	Guide_Data.Binned_NCols = Guide_Data.Unbinned_NCols / Guide_Data.Bin_X;
+	Guide_Data.Binned_NRows = Guide_Data.Unbinned_NRows / Guide_Data.Bin_Y;
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Dimension_Config_Load:finished.");
+#endif
+	return TRUE;
+}
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.12  2006/07/16 20:13:54  cjm
+** Added divide by zero protection on FWHMs.
+**
 ** Revision 1.11  2006/06/29 20:39:38  cjm
 ** Made Guide_Packet_Send configurable.
 **
