@@ -1,11 +1,11 @@
 /* autoguider_fits_header.c
 ** Autoguider fits header list handling routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_fits_header.c,v 1.1 2006-07-16 20:13:54 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_fits_header.c,v 1.2 2006-07-17 13:45:30 cjm Exp $
 */
 /**
  * Routines to look after lists of FITS headers to go into images.
  * @author Chris Mottram
- * @version $Revision: 1.1 $
+ * @version $Revision: 1.2 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -97,7 +97,7 @@ struct Fits_Header_Card_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_fits_header.c,v 1.1 2006-07-16 20:13:54 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_fits_header.c,v 1.2 2006-07-17 13:45:30 cjm Exp $";
 
 /* internal functions */
 static int Fits_Header_Add_Card(struct Fits_Header_Struct *header,struct Fits_Header_Card_Struct card);
@@ -148,7 +148,6 @@ int Autoguider_Fits_Header_Clear(struct Fits_Header_Struct *header)
  * @see autoguider.general.html#AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER
  * @see autoguider.general.html#Autoguider_General_Error_Number
  * @see autoguider.general.html#Autoguider_General_Error_String
- *
  */
 int Autoguider_Fits_Header_Delete(struct Fits_Header_Struct *header,char *keyword)
 {
@@ -638,4 +637,7 @@ static int Fits_Header_Add_Card(struct Fits_Header_Struct *header,struct Fits_He
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2006/07/16 20:13:54  cjm
+** Initial revision
+**
 */
