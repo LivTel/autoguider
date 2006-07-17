@@ -1,11 +1,11 @@
 /* autoguider_guide.c
 ** Autoguider guide routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.13 2006-07-17 13:43:11 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.14 2006-07-17 13:45:39 cjm Exp $
 */
 /**
  * Guide routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.13 $
+ * @version $Revision: 1.14 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -96,7 +96,7 @@ struct Guide_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_guide.c,v 1.13 2006-07-17 13:43:11 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_guide.c,v 1.14 2006-07-17 13:45:39 cjm Exp $";
 /**
  * Instance of guide data.
  * @see #Guide_Struct
@@ -191,14 +191,14 @@ int Autoguider_Guide_Window_Set(int sx,int sy,int ex,int ey)
 	/* check sx < ex, sy < ey */
 	if(sx >= ex)
 	{
-		Autoguider_General_Error_Number = ;
+		Autoguider_General_Error_Number = 734;
 		sprintf(Autoguider_General_Error_String,"Autoguider_Guide_Window_Set:"
 			"Window out of range (%d,%d,%d,%d) : Start X %d after End X %d.",sx,sy,ex,ey,sx,ex);
 		return FALSE;
 	}
 	if(sy >= ey)
 	{
-		Autoguider_General_Error_Number = ;
+		Autoguider_General_Error_Number = 735;
 		sprintf(Autoguider_General_Error_String,"Autoguider_Guide_Window_Set:"
 			"Window out of range (%d,%d,%d,%d) : Start Y %d after End Y %d.",sx,sy,ex,ey,sy,ey);
 		return FALSE;
@@ -207,7 +207,7 @@ int Autoguider_Guide_Window_Set(int sx,int sy,int ex,int ey)
 	** Binned_NCols/NRows should be loaded/computed as part of Guide initialisation. */
 	if(ex > (Guide_Data.Binned_NCols-1))
 	{
-		Autoguider_General_Error_Number = ;
+		Autoguider_General_Error_Number = 736;
 		sprintf(Autoguider_General_Error_String,"Autoguider_Guide_Window_Set:"
 			"Window out of range (%d,%d,%d,%d) : End X %d off end of CCD %d.",sx,sy,ex,ey,ex,
 			Guide_Data.Binned_NCols);
@@ -215,7 +215,7 @@ int Autoguider_Guide_Window_Set(int sx,int sy,int ex,int ey)
 	}
 	if(ey > (Guide_Data.Binned_NRows-1))
 	{
-		Autoguider_General_Error_Number = ;
+		Autoguider_General_Error_Number = 737;
 		sprintf(Autoguider_General_Error_String,"Autoguider_Guide_Window_Set:"
 			"Window out of range (%d,%d,%d,%d) : End y %d off end of CCD %d.",sx,sy,ex,ey,ey,
 			Guide_Data.Binned_NRows);
@@ -1369,6 +1369,8 @@ static int Guide_Scaling_Config_Load(void)
  */
 static int Guide_Dimension_Config_Load(void)
 {
+	int retval;
+
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Dimension_Config_Load:starteed.");
 #endif
@@ -1415,6 +1417,12 @@ static int Guide_Dimension_Config_Load(void)
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.13  2006/07/17 13:43:11  cjm
+** Added Guide_Dimension_Config_Load.
+** Added calls to Guide_Dimension_Config_Load in Autoguider_Guide_Initialise and
+** Autoguider_Guide_On.
+** Autoguider_Guide_Set_Guide_Object now creates a window that doesn't exceed the number of rows/columns on chip.
+**
 ** Revision 1.12  2006/07/16 20:13:54  cjm
 ** Added divide by zero protection on FWHMs.
 **
