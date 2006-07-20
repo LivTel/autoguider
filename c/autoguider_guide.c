@@ -1,11 +1,11 @@
 /* autoguider_guide.c
 ** Autoguider guide routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.14 2006-07-17 13:45:39 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.15 2006-07-20 15:15:03 cjm Exp $
 */
 /**
  * Guide routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.14 $
+ * @version $Revision: 1.15 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -29,6 +29,7 @@
 #include "ccd_setup.h"
 #include "ccd_temperature.h"
 
+#include "ngatcil_ags_sdb.h"
 #include "ngatcil_tcs_guide_packet.h"
 
 #include "autoguider_cil.h"
@@ -96,7 +97,7 @@ struct Guide_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_guide.c,v 1.14 2006-07-17 13:45:39 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_guide.c,v 1.15 2006-07-20 15:15:03 cjm Exp $";
 /**
  * Instance of guide data.
  * @see #Guide_Struct
@@ -345,6 +346,9 @@ int Autoguider_Guide_On(void)
 	retval = Autoguider_Flat_Set(Guide_Data.Bin_X,Guide_Data.Bin_Y);
 	if(retval == FALSE)
 		return FALSE;
+	/* update SDB */
+	if(!Autoguider_CIL_SDB_Packet_Exp_Time_Set(Guide_Data.Exposure_Length))
+		Autoguider_General_Error(); /* no need to fail */
 	/* initialise thread quit variable */
 	Guide_Data.Quit_Guiding = FALSE;
 	/* initialise Guide ID */
@@ -782,6 +786,11 @@ static void *Guide_Thread(void *user_arg)
 #endif
 	/* set is guiding flag */
 	Guide_Data.Is_Guiding = TRUE;
+	/* update SDB */
+	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_ON_BRIGHTEST))/* diddly bodge */
+		Autoguider_General_Error(); /* no need to fail */
+	if(!Autoguider_CIL_SDB_Packet_Send())
+		Autoguider_General_Error(); /* no need to fail */
 	/* reset frame number */
 	Guide_Data.Frame_Number = 0;
 	/* get loop start time for stats/guide packet */
@@ -803,6 +812,9 @@ static void *Guide_Thread(void *user_arg)
 		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:"
 				       "Failed on CCD_Setup_Dimensions.");
 #endif
+		/* update SDB */
+		if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE))/* diddly bodge */
+			Autoguider_General_Error(); /* no need to fail */
 		/* reset guiding flag */
 		Guide_Data.Is_Guiding = FALSE;
 		Autoguider_General_Error_Number = 711;
@@ -829,6 +841,9 @@ static void *Guide_Thread(void *user_arg)
 		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:"
 				       "Failed on Autoguider_Buffer_Set_Guide_Dimension.");
 #endif
+		/* update SDB */
+		if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE))/* diddly bodge */
+			Autoguider_General_Error(); /* no need to fail */
 		/* reset guiding flag */
 		Guide_Data.Is_Guiding = FALSE;
 		Autoguider_General_Error();
@@ -842,6 +857,9 @@ static void *Guide_Thread(void *user_arg)
 		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:"
 				       "Failed on Autoguider_CIL_Guide_Packet_Open.");
 #endif
+		/* update SDB */
+		if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE))/* diddly bodge */
+			Autoguider_General_Error(); /* no need to fail */
 		/* reset guiding flag */
 		Guide_Data.Is_Guiding = FALSE;
 		Autoguider_General_Error();
@@ -868,6 +886,9 @@ static void *Guide_Thread(void *user_arg)
 			Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:"
 					       "Failed on Autoguider_Buffer_Raw_Guide_Lock.");
 #endif
+			/* update SDB */
+			if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE))
+				Autoguider_General_Error(); /* no need to fail */
 			/* reset guiding flag */
 			Guide_Data.Is_Guiding = FALSE;
 			/* reset in use buffer index */
@@ -900,6 +921,9 @@ static void *Guide_Thread(void *user_arg)
 			Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:"
 					       "Failed on CCD_Exposure_Expose.");
 #endif
+			/* update SDB */
+			if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE))
+				Autoguider_General_Error(); /* no need to fail */
 			/* reset guiding flag */
 			Guide_Data.Is_Guiding = FALSE;
 			/* attempt buffer unlock, and reset in use index */
@@ -943,6 +967,9 @@ static void *Guide_Thread(void *user_arg)
 			Guide_Packet_Send(TRUE,Guide_Data.Loop_Cadence*2.0f);
 			/* close tcs guide packet socket */
 			Autoguider_CIL_Guide_Packet_Close();
+			/* update SDB */
+			if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE))
+				Autoguider_General_Error(); /* no need to fail */
 			return NULL;
 		}
 		/* reduce data */
@@ -966,6 +993,9 @@ static void *Guide_Thread(void *user_arg)
 			Guide_Packet_Send(TRUE,Guide_Data.Loop_Cadence*2.0f);
 			/* close tcs guide packet socket */
 			Autoguider_CIL_Guide_Packet_Close();
+			/* update SDB */
+			if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE))
+				Autoguider_General_Error(); /* no need to fail */
 			return NULL;
 		}
 		/* get loop time for stats/guide packet */
@@ -993,6 +1023,9 @@ static void *Guide_Thread(void *user_arg)
 			Guide_Packet_Send(TRUE,Guide_Data.Loop_Cadence*2.0f);
 			/* close tcs guide packet socket */
 			Autoguider_CIL_Guide_Packet_Close();
+			/* update SDB */
+			if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE))
+				Autoguider_General_Error(); /* no need to fail */
 			return NULL;
 		}
 		/* reset buffer indexs */
@@ -1017,6 +1050,9 @@ static void *Guide_Thread(void *user_arg)
 		Autoguider_General_Error();
 		/* close tcs guide packet socket */
 		Autoguider_CIL_Guide_Packet_Close();
+       		/* update SDB */
+	       	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE))
+		       	Autoguider_General_Error(); /* no need to fail */
 		return NULL;
 	}
 	/* close guide packet socket */
@@ -1030,6 +1066,11 @@ static void *Guide_Thread(void *user_arg)
 		Autoguider_General_Error();
 		return NULL;
 	}
+       	/* update SDB */
+	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE))
+		Autoguider_General_Error(); /* no need to fail */
+	if(!Autoguider_CIL_SDB_Packet_Send())
+		Autoguider_General_Error(); /* no need to fail */
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:finished.");
 #endif
@@ -1179,6 +1220,8 @@ static int Guide_Reduce(void)
  * <li>We check whether the centroid is within 1 FWHM of the edge of the window, and if so set the status char to
  *     NGATCIL_TCS_GUIDE_PACKET_STATUS_WINDOW.
  * <li>We send the guide packet to the TCS.
+ * <li>We use Autoguider_CIL_SDB_Packet_Centroid_Set and Autoguider_CIL_SDB_Packet_Send to
+ *     update the SDB centroid.
  * </ul>
  * If an error occurs during processing, a guide packet with status NGATCIL_TCS_GUIDE_PACKET_STATUS_FAILED
  * and "unreliable packet" timecode is sent, with as much information (centroid etc) filled in as possible.
@@ -1188,6 +1231,8 @@ static int Guide_Reduce(void)
  * @return The routine returns TRUE on success and FALSE on failure.
  * @see #Guide_Data
  * @see autoguider_cil.html#Autoguider_CIL_Guide_Packet_Send
+ * @see autoguider_cil.html#Autoguider_CIL_SDB_Packet_Send
+ * @see autoguider_cil.html#Autoguider_CIL_SDB_Packet_Centroid_Set
  * @see autoguider_general.html#Autoguider_General_Error
  * @see autoguider_general.html#Autoguider_General_Log
  * @see autoguider_general.html#Autoguider_General_Log_Format
@@ -1201,7 +1246,7 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 	int object_count,reliability,guide_counts_min_peak,guide_counts_max_peak,retval;
 	struct Autoguider_Object_Struct object;
 	char status_char;
-	float fwhm,guide_ellipticity;
+	float fwhm,guide_ellipticity,mag;
 
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Packet_Send:started.");
@@ -1328,6 +1373,15 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 		if(!Autoguider_CIL_Guide_Packet_Send(object.CCD_X_Position,object.CCD_Y_Position,
 						     terminating,FALSE,timecode_secs,status_char))
 			Autoguider_General_Error();
+		/* update SDB  - bodge the mag */
+		if(Guide_Data.Exposure_Length != 0)
+			mag = 20.0f-(object.Peak_Counts/Guide_Data.Exposure_Length);
+		else
+			mag = 20.0f;
+		if(!Autoguider_CIL_SDB_Packet_Centroid_Set(object.CCD_X_Position,object.CCD_Y_Position,fwhm,mag))
+			Autoguider_General_Error(); /* no need to fail */
+		if(!Autoguider_CIL_SDB_Packet_Send())
+			Autoguider_General_Error(); /* no need to fail */
 	}/* end if object detection enabled */
 	else
 	{
@@ -1417,6 +1471,9 @@ static int Guide_Dimension_Config_Load(void)
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.14  2006/07/17 13:45:39  cjm
+** Made compilable.
+**
 ** Revision 1.13  2006/07/17 13:43:11  cjm
 ** Added Guide_Dimension_Config_Load.
 ** Added calls to Guide_Dimension_Config_Load in Autoguider_Guide_Initialise and
