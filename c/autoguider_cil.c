@@ -1,11 +1,11 @@
 /* autoguider_cil.c
 ** Autoguider CIL server routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_cil.c,v 1.7 2006-07-14 14:01:48 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_cil.c,v 1.8 2006-07-20 15:11:48 cjm Exp $
 */
 /**
  * Autoguider CIL Server routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.7 $
+ * @version $Revision: 1.8 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -23,6 +23,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "ngatcil_ags_sdb.h"
 #include "ngatcil_general.h"
 #include "ngatcil_cil.h"
 #include "ngatcil_tcs_guide_packet.h" /* tcs guide packets */
@@ -36,7 +37,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_cil.c,v 1.7 2006-07-14 14:01:48 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_cil.c,v 1.8 2006-07-20 15:11:48 cjm Exp $";
 /**
  * UDP CIL port to wait for TCS commands on.
  * @see ../cdocs/ngatcil_cil.html#NGATCIL_CIL_AGS_PORT_DEFAULT
@@ -75,6 +76,25 @@ static int CIL_TCS_Guide_Packet_Socket_Fd = -1;
  */
 static int CIL_TCS_UDP_Guide_Packet_Send = TRUE;
 
+/**
+ * MCC hostname, the MCC should be running the SDB.
+ * @see ../cdocs/ngatcil_tcs_guide_packet.html#NGATCIL_AGS_SDB_MCC_DEFAULT
+ */
+static char MCC_Hostname[256] = NGATCIL_AGS_SDB_MCC_DEFAULT;
+/**
+ * SDB UDP CIL Command port. Used for AGS SDB CIL submissions.
+ * @see ../ngatcil/cdocs/ngatcil_cil.html#NGATCIL_AGS_SDB_CIL_PORT_DEFAULT
+ */
+static int CIL_SDB_UDP_Port = NGATCIL_AGS_SDB_CIL_PORT_DEFAULT;
+/**
+ * UDP Socket file descriptor of the opened SDB submission socket.
+ */
+static int CIL_SDB_Socket_Fd = -1;
+/**
+ * Boolean used to determine whether to send TCS guide packets.
+ */
+static int CIL_SDB_Send = TRUE;
+
 /* internal functions */
 static int Autoguider_CIL_Server_Connection_Callback(int socket_id,void* message_buff,int message_length);
 static int CIL_UDP_Autoguider_On_Pixel_Reply_Send(float pixel_x,float pixel_y,int status,int sequence_number);
@@ -97,6 +117,9 @@ static int CIL_UDP_Autoguider_Off_Reply_Send(int status,int sequence_number);
  * @see #CIL_TCS_UDP_Port
  * @see #CIL_TCS_UDP_Guide_Port
  * @see #CIL_TCS_UDP_Guide_Packet_Send
+ * @see #MCC_Hostname
+ * @see #CIL_SDB_UDP_Port
+ * @see #CIL_SDB_Send 
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  * @see autoguider_general.html#Autoguider_General_Log
@@ -104,6 +127,7 @@ static int CIL_UDP_Autoguider_Off_Reply_Send(int status,int sequence_number);
  * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_CIL
  * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_String
  * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Integer
+ * @see ../ngatcil/cdocs/ngatcil_ags_sdb.html#NGATCil_AGS_SDB_Initialise
  */
 int Autoguider_CIL_Server_Initialise(void)
 {
@@ -174,6 +198,55 @@ int Autoguider_CIL_Server_Initialise(void)
 		Autoguider_General_Error_Number = 1124;
 		sprintf(Autoguider_General_Error_String,"Autoguider_CIL_Server_Initialise:"
 		      "Failed to find CIL TCS guide packet send (cil.tcs.guide_packet.send) in config file.");
+		return FALSE;
+	}
+ 	/* get cil MCC server hostname from config */
+	retval = CCD_Config_Get_String("cil.mcc.hostname",&string_ptr);
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 1137;
+		sprintf(Autoguider_General_Error_String,"Autoguider_CIL_Server_Initialise:"
+			"Failed to find CIL MCC server hostname (cil.mcc.hostname) in config file.");
+		return FALSE;
+	}
+	if(strlen(string_ptr) > 255)
+	{
+		Autoguider_General_Error_Number = 1138;
+		sprintf(Autoguider_General_Error_String,"Autoguider_CIL_Server_Initialise:"
+			"CIL MCC server hostname is too long (%d).",strlen(string_ptr));
+		return FALSE;
+	}
+	strcpy(MCC_Hostname,string_ptr);
+	free(string_ptr);
+	/* get cil SDB port number from config */
+	retval = CCD_Config_Get_Integer("cil.sdb.port_number",&CIL_SDB_UDP_Port);
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 1139;
+		sprintf(Autoguider_General_Error_String,"Autoguider_CIL_Server_Initialise:"
+		      "Failed to find CIL SDB port number (cil.sdb.port_number) in config file.");
+		return FALSE;
+	}
+	/* get whether to send cil SDB packets from config */
+	retval = CCD_Config_Get_Boolean("cil.sdb.packet.send",&CIL_SDB_Send);
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 1149;
+		sprintf(Autoguider_General_Error_String,"Autoguider_CIL_Server_Initialise:"
+		      "Failed to find CIL SDB packet send (cil.sdb.packet.send) in config file.");
+		return FALSE;
+	}
+	/* initialise AGS SDB timestamps */
+#if AUTOGUIDER_DEBUG > 1
+	 Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_CIL,
+				"Autoguider_CIL_Server_Initialise:NGATCil_AGS_SDB_Initialise.");
+#endif
+	retval = NGATCil_AGS_SDB_Initialise();
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 1141;
+		sprintf(Autoguider_General_Error_String,"Autoguider_CIL_Server_Initialise:"
+		      "NGATCil_AGS_SDB_Initialise failed.");
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 1
@@ -455,6 +528,283 @@ int Autoguider_CIL_Guide_Packet_Send_Get(void)
 {
 	return CIL_TCS_UDP_Guide_Packet_Send;
 }
+
+/**
+ * Routine to open a socket file descriptor to send CIL packets to the SDB.
+ * Assumes Autoguider_CIL_Server_Initialise has been called to setup MCC_Hostname/CIL_SDB_UDP_Port.
+ * @return The routine returns TRUE if successfull, and FALSE if an error occurs. If an error occurs,
+ *        Autoguider_General_Error_Number and Autoguider_General_Error_String are set.
+ * @see #MCC_Hostname
+ * @see #CIL_SDB_UDP_Port
+ * @see #CIL_SDB_Socket_Fd
+ * @see autoguider_general.html#Autoguider_General_Error_Number
+ * @see autoguider_general.html#Autoguider_General_Error_String
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#Autoguider_General_Log_Format
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_CIL
+ * @see ../ngatcil/cdocs/ngatcil_udp_raw.html#NGATCil_UDP_Open
+ */
+int Autoguider_CIL_SDB_Packet_Open(void)
+{
+	int retval;
+
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"Autoguider_CIL_SDB_Packet_Open:started.");
+#endif
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"Autoguider_CIL_SDB_Packet_Open:Opening %s:%d.",
+				      MCC_Hostname,CIL_SDB_UDP_Port);
+#endif
+	retval = NGATCil_UDP_Open(MCC_Hostname,CIL_SDB_UDP_Port,&CIL_SDB_Socket_Fd);
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 1142;
+		sprintf(Autoguider_General_Error_String,"Autoguider_CIL_SDB_Packet_Open:NGATCil_UDP_Open failed.");
+		return FALSE;
+	}
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"Autoguider_CIL_SDB_Packet_Open:finished.");
+#endif
+	return TRUE;
+}
+
+/**
+ * Set the Autoguider AG state.
+ * @param state The state to use, from eAgsState_t (ngatcil_ags_sdb.h).
+ * @return The routine returns TRUE if successfull, and FALSE if an error occurs. If an error occurs,
+ *        Autoguider_General_Error_Number and Autoguider_General_Error_String are set.
+ * @see autoguider_general.html#Autoguider_General_Error_Number
+ * @see autoguider_general.html#Autoguider_General_Error_String
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#Autoguider_General_Log_Format
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_CIL
+ * @see ../ngatcil/cdocs/ngatcil_ags_sdb.html#eAgsState_t
+ */
+int Autoguider_CIL_SDB_Packet_State_Set(eAgsState_t state)
+{
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,
+				      "Autoguider_CIL_SDB_Packet_State_Set(%d):started.",state);
+#endif
+	if(!NGATCil_AGS_SDB_Value_Set(D_AGS_AGSTATE,state))
+	{
+		Autoguider_General_Error_Number = 1140;
+		sprintf(Autoguider_General_Error_String,"Autoguider_CIL_SDB_Packet_State_Set:"
+			"NGATCil_AGS_SDB_Value_Set failed.");
+		return FALSE;
+	}
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"Autoguider_CIL_SDB_Packet_State_Set:finished.");
+#endif
+	return TRUE;
+}
+
+/**
+ * Tell the SDB about the Autoguider exposure length.
+ * @param ms The exposure length, in milliseconds.
+ * @return The routine returns TRUE if successfull, and FALSE if an error occurs. If an error occurs,
+ *        Autoguider_General_Error_Number and Autoguider_General_Error_String are set.
+ * @see autoguider_general.html#Autoguider_General_Error_Number
+ * @see autoguider_general.html#Autoguider_General_Error_String
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#Autoguider_General_Log_Format
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_CIL
+ * @see ../ngatcil/cdocs/ngatcil_ags_sdb.html#eAgsState_t
+ */
+int Autoguider_CIL_SDB_Packet_Exp_Time_Set(int ms)
+{
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,
+				      "Autoguider_CIL_SDB_Packet_Exp_Time_Set(%d):started.",ms);
+#endif
+	if(!NGATCil_AGS_SDB_Value_Set(D_AGS_INTTIME,ms))
+	{
+		Autoguider_General_Error_Number = 1145;
+		sprintf(Autoguider_General_Error_String,"Autoguider_CIL_SDB_Packet_Exp_Time_Set:"
+			"NGATCil_AGS_SDB_Value_Set failed.");
+		return FALSE;
+	}
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"Autoguider_CIL_SDB_Packet_Exp_Time_Set:finished.");
+#endif
+	return TRUE;
+}
+
+/**
+ * Tell the SDB about the Autogudier guide centroid.
+ * @param cx The centroid x position in pixels. Converted internally into millipixels to send to the SDB.
+ * @param cy The centroid y position in pixels. Converted internally into millipixels to send to the SDB.
+ * @param fwhm The centroid full width half maximum in pixels. 
+ *        Converted internally into millipixels to send to the SDB.
+ * @param mag The centroid magnitude.  
+ *        Converted internally into millistarmags to send to the SDB.
+ * @return The routine returns TRUE if successfull, and FALSE if an error occurs. If an error occurs,
+ *        Autoguider_General_Error_Number and Autoguider_General_Error_String are set.
+ * @see autoguider_general.html#Autoguider_General_Error_Number
+ * @see autoguider_general.html#Autoguider_General_Error_String
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#Autoguider_General_Log_Format
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_CIL
+ */
+int Autoguider_CIL_SDB_Packet_Centroid_Set(float cx,float cy,float fwhm,float mag)
+{
+	int ivalue;
+
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,
+				 "Autoguider_CIL_SDB_Packet_Centroid_Set(cx=%.2f,cy=%.2f,fwhm=%.2f,mag%.2f):started.",
+				      cx,cy,fwhm,mag);
+#endif
+	ivalue = (int)(cx*1000.0f);
+	if(!NGATCil_AGS_SDB_Value_Set(D_AGS_CENTROIDX,ivalue))
+	{
+		Autoguider_General_Error_Number = 1146;
+		sprintf(Autoguider_General_Error_String,"Autoguider_CIL_SDB_Packet_Centroid_Set:"
+			"NGATCil_AGS_SDB_Value_Set failed.");
+		return FALSE;
+	}
+	ivalue = (int)(cy*1000.0f);
+	if(!NGATCil_AGS_SDB_Value_Set(D_AGS_CENTROIDY,ivalue))
+	{
+		Autoguider_General_Error_Number = 1147;
+		sprintf(Autoguider_General_Error_String,"Autoguider_CIL_SDB_Packet_Centroid_Set:"
+			"NGATCil_AGS_SDB_Value_Set failed.");
+		return FALSE;
+	}
+	ivalue = (int)(fwhm*1000.0f);
+	if(!NGATCil_AGS_SDB_Value_Set(D_AGS_FWHM,ivalue))
+	{
+		Autoguider_General_Error_Number = 1148;
+		sprintf(Autoguider_General_Error_String,"Autoguider_CIL_SDB_Packet_Centroid_Set:"
+			"NGATCil_AGS_SDB_Value_Set failed.");
+		return FALSE;
+	}
+	ivalue = (int)(mag*1000.0f);
+	if(!NGATCil_AGS_SDB_Value_Set(D_AGS_GUIDEMAG,ivalue))
+	{
+		Autoguider_General_Error_Number = 1150;
+		sprintf(Autoguider_General_Error_String,"Autoguider_CIL_SDB_Packet_Centroid_Set:"
+			"NGATCil_AGS_SDB_Value_Set failed.");
+		return FALSE;
+	}
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"Autoguider_CIL_SDB_Packet_Centroid_Set:finished.");
+#endif
+	return TRUE;
+}
+
+/**
+ * Routine to submit status to the SDB using CIL.
+ * Assumes Autoguider_CIL_SDB_Open has been called to setup CIL_SDB_Socket_Fd.
+ * The packet is only sent if CIL_SDB_Send is TRUE.
+ * @return The routine returns TRUE if successfull, and FALSE if an error occurs. If an error occurs,
+ *        Autoguider_General_Error_Number and Autoguider_General_Error_String are set.
+ * @see #CIL_SDB_Socket_Fd
+ * @see #CIL_SDB_Send
+ * @see autoguider_general.html#Autoguider_General_Error_Number
+ * @see autoguider_general.html#Autoguider_General_Error_String
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#Autoguider_General_Log_Format
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_CIL
+ * @see ../ngatcil/cdocs/ngatcil_agssdb.html#NGATCil_AGS_SDB_Status_Send
+ */
+int Autoguider_CIL_SDB_Packet_Send(void)
+{
+	int retval;
+
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"Autoguider_CIL_SDB_Packet_Send:started.");
+#endif
+	if(CIL_SDB_Send)
+	{
+		/* submit the status to the SDB */
+		retval = NGATCil_AGS_SDB_Status_Send(CIL_SDB_Socket_Fd);
+		if(retval == FALSE)
+		{
+			Autoguider_General_Error_Number = 1151;
+			sprintf(Autoguider_General_Error_String,
+			"Autoguider_CIL_SDB_Packet_Send:NGATCil_AGS_SDB_Status_Send failed.");
+			return FALSE;
+		}
+	}
+	else
+	{
+#if AUTOGUIDER_DEBUG > 1
+		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"Autoguider_CIL_SDB_Packet_Send:"
+				      "Send is FALSE:Did not send packet.");
+#endif
+	}
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"Autoguider_CIL_SDB_Packet_Send:finished.");
+#endif
+	return TRUE;
+}
+
+/**
+ * Routine to close the opened socket file descriptor CIL_SDB_Socket_Fd.
+ * Assumes Autoguider_CIL_SDB_Packet_Open has been called to setup CIL_SDB_Socket_Fd.
+ * @return The routine returns TRUE if successfull, and FALSE if an error occurs. If an error occurs,
+ *        Autoguider_General_Error_Number and Autoguider_General_Error_String are set.
+ * @see #CIL_SDB_Socket_Fd
+ * @see autoguider_general.html#Autoguider_General_Error_Number
+ * @see autoguider_general.html#Autoguider_General_Error_String
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#Autoguider_General_Log_Format
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_CIL
+ * @see ../ngatcil/cdocs/ngatcil_udp_raw.html#NGATCil_UDP_Close
+ */
+int Autoguider_CIL_SDB_Packet_Close(void)
+{
+	int retval;
+
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"Autoguider_CIL_SDB_Packet_Close:started.");
+#endif
+	retval = NGATCil_UDP_Close(CIL_SDB_Socket_Fd);
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 1143;
+		sprintf(Autoguider_General_Error_String,"Autoguider_CIL_SDB_Packet_Close:NGATCil_UDP_Close failed.");
+		return FALSE;
+	}
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"Autoguider_CIL_SDB_Packet_Close:finished.");
+#endif
+	return TRUE;
+}
+
+/**
+ * Set whether the autoguider is configured to send SDB packets to the SDB.
+ * @param on The value to use, either TRUE or FALSE.
+ * @return The routine returns TRUE if successfull, and FALSE if an error occurs. If an error occurs,
+ *        Autoguider_General_Error_Number and Autoguider_General_Error_String are set.
+ * @see #CIL_SDB_Send
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_IS_BOOLEAN
+ * @see autoguider_general.html#Autoguider_General_Error_Number
+ * @see autoguider_general.html#Autoguider_General_Error_String
+ */
+int Autoguider_CIL_SDB_Packet_Send_Set(int on)
+{
+	if(!AUTOGUIDER_GENERAL_IS_BOOLEAN(on))
+	{
+		Autoguider_General_Error_Number = 1144;
+		sprintf(Autoguider_General_Error_String,"Autoguider_CIL_SDB_Packet_Send_Set:Illegal argument %d.",
+			on);
+		return FALSE;
+	}
+	CIL_SDB_Send = on;
+	return TRUE;
+}
+
+/**
+ * Get whether the autoguider is configured to send SDB packets to the SDB.
+ * @see #CIL_SDB_Send
+ */
+int Autoguider_CIL_SDB_Packet_Send_Get(void)
+{
+	return CIL_SDB_Send;
+}
+
 
 /* ----------------------------------------------------------------------------
 ** 		internal functions 
@@ -937,6 +1287,9 @@ static int CIL_UDP_Autoguider_Off_Reply_Send(int status,int sequence_number)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.7  2006/07/14 14:01:48  cjm
+** Fixed duplicate error code.
+**
 ** Revision 1.6  2006/06/29 17:04:34  cjm
 ** Added CIL handling of rank/brightest.
 **
