@@ -1,11 +1,11 @@
 /* autoguider_field.c
 ** Autoguider field routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_field.c,v 1.3 2006-06-20 13:05:21 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_field.c,v 1.4 2006-07-20 15:12:46 cjm Exp $
 */
 /**
  * Field routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.3 $
+ * @version $Revision: 1.4 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -28,6 +28,9 @@
 #include "ccd_setup.h"
 #include "ccd_temperature.h"
 
+#include "ngatcil_ags_sdb.h"
+
+#include "autoguider_cil.h"
 #include "autoguider_dark.h"
 #include "autoguider_field.h"
 #include "autoguider_flat.h"
@@ -84,7 +87,7 @@ struct Field_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_field.c,v 1.3 2006-06-20 13:05:21 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_field.c,v 1.4 2006-07-20 15:12:46 cjm Exp $";
 /**
  * Instance of field data.
  * @see #Field_Struct
@@ -250,6 +253,11 @@ int Autoguider_Field(void)
 		return FALSE;
 	}
 	Field_Data.Is_Fielding = TRUE;
+	/* update SDB */
+	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_WORKING))
+		Autoguider_General_Error(); /* no need to fail */
+	if(!Autoguider_CIL_SDB_Packet_Send())
+		Autoguider_General_Error(); /* no need to fail */
 	/* get dimensions */
 	/* nb this code is replicated in autoguider_buffer.c : Autoguider_Buffer_Initialise.
 	** We could perhaps only load from config once, and have getters in autoguider_buffer.c. */
@@ -257,6 +265,9 @@ int Autoguider_Field(void)
 	** if we are going to allow dynamic reloading of the config file. */
 	if(!Field_Set_Dimensions())
 	{
+		/* update SDB */
+		if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE))
+			Autoguider_General_Error(); /* no need to fail */
 		/* reset fielding flag */
 		Field_Data.Is_Fielding = FALSE;
 		return FALSE;
@@ -271,6 +282,9 @@ int Autoguider_Field(void)
 				      Field_Data.Bin_X,Field_Data.Bin_Y,FALSE,window);
 	if(retval == FALSE)
 	{
+		/* update SDB */
+		if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE))
+			Autoguider_General_Error(); /* no need to fail */
 		/* reset fielding flag */
 		Field_Data.Is_Fielding = FALSE;
 		Autoguider_General_Error_Number = 504;
@@ -286,6 +300,9 @@ int Autoguider_Field(void)
 		retval = CCD_Config_Get_Integer("ccd.exposure.field.default",&(Field_Data.Exposure_Length));
 		if(retval == FALSE)
 		{
+			/* update SDB */
+			if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE))
+				Autoguider_General_Error(); /* no need to fail */
 			/* reset fielding flag */
 			Field_Data.Is_Fielding = FALSE;
 			Autoguider_General_Error_Number = 505;
@@ -311,6 +328,9 @@ int Autoguider_Field(void)
 	/* round field exposure length to nearest available dark */
 	if(!Autoguider_Dark_Get_Exposure_Length_Nearest(&Field_Data.Exposure_Length,&dark_exposure_length_index))
 	{
+		/* update SDB */
+		if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE))
+			Autoguider_General_Error(); /* no need to fail */
 		/* reset fielding flag */
 		Field_Data.Is_Fielding = FALSE;
 		return FALSE;
@@ -324,6 +344,9 @@ int Autoguider_Field(void)
 	retval = Autoguider_Flat_Set(Field_Data.Bin_X,Field_Data.Bin_Y);
 	if(retval == FALSE)
 	{
+		/* update SDB */
+		if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE))
+			Autoguider_General_Error(); /* no need to fail */
 		/* reset fielding flag */
 		Field_Data.Is_Fielding = FALSE;
 		return FALSE;
@@ -338,10 +361,16 @@ int Autoguider_Field(void)
 	done = FALSE;
 	while(done == FALSE)
 	{
+		/* update SDB */
+		if(!Autoguider_CIL_SDB_Packet_Exp_Time_Set(Field_Data.Exposure_Length))
+			Autoguider_General_Error(); /* no need to fail */
 		/* ensure the correct dark is loaded */
 		retval = Autoguider_Dark_Set(Field_Data.Bin_X,Field_Data.Bin_Y,Field_Data.Exposure_Length);
 		if(retval == FALSE)
 		{
+			/* update SDB */
+			if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE))
+				Autoguider_General_Error(); /* no need to fail */
 			/* reset fielding flag */
 			Field_Data.Is_Fielding = FALSE;
 			return FALSE;
@@ -357,6 +386,9 @@ int Autoguider_Field(void)
 		retval = Autoguider_Buffer_Raw_Field_Lock(Field_Data.In_Use_Buffer_Index,&buffer_ptr);
 		if(retval == FALSE)
 		{
+			/* update SDB */
+			if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE))
+				Autoguider_General_Error(); /* no need to fail */
 			/* reset fielding flag */
 			Field_Data.Is_Fielding = FALSE;
 			/* reset in use buffer index */
@@ -380,6 +412,9 @@ int Autoguider_Field(void)
 					     Autoguider_Buffer_Get_Field_Pixel_Count());
 		if(retval == FALSE)
 		{
+			/* update SDB */
+			if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE))
+				Autoguider_General_Error(); /* no need to fail */
 			/* reset fielding flag */
 			Field_Data.Is_Fielding = FALSE;
 			/* attempt buffer unlock, and reset in use index */
@@ -402,6 +437,9 @@ int Autoguider_Field(void)
 		retval = Autoguider_Buffer_Raw_Field_Unlock(Field_Data.In_Use_Buffer_Index);
 		if(retval == FALSE)
 		{
+			/* update SDB */
+			if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE))
+				Autoguider_General_Error(); /* no need to fail */
 			/* reset fielding flag */
 			Field_Data.Is_Fielding = FALSE;
 			Autoguider_General_Error_Number = 508;
@@ -418,6 +456,9 @@ int Autoguider_Field(void)
 		retval = Field_Reduce(Field_Data.In_Use_Buffer_Index);
 		if(retval == FALSE)
 		{
+			/* update SDB */
+			if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE))
+				Autoguider_General_Error(); /* no need to fail */
 			/* reset fielding flag */
 			Field_Data.Is_Fielding = FALSE;
 			/* reset in use buffer index */
@@ -434,6 +475,9 @@ int Autoguider_Field(void)
 		/* Check whether we have found suitable objects to guide on */
 		if(!Field_Check_Done(&done,&dark_exposure_length_index))
 		{
+			/* update SDB */
+			if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE))
+				Autoguider_General_Error(); /* no need to fail */
 			/* reset fielding flag */
 			Field_Data.Is_Fielding = FALSE;
 			return FALSE;
@@ -441,6 +485,11 @@ int Autoguider_Field(void)
 	}/* end while */
 	/* reset fielding flag */
 	Field_Data.Is_Fielding = FALSE;
+	/* update SDB */
+	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE))
+		Autoguider_General_Error(); /* no need to fail */
+	if(!Autoguider_CIL_SDB_Packet_Send())
+		Autoguider_General_Error(); /* no need to fail */
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field:finished.");
 #endif
@@ -1310,6 +1359,11 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.3  2006/06/20 13:05:21  cjm
+** Added exposure length locking.
+** Autoguider_Field now loops until some suitable objects have been found.
+** Initial implementation to check that suitable objects have been found - this needs rewriting.
+**
 ** Revision 1.2  2006/06/12 19:22:13  cjm
 ** Fixed Field_ID oddities.
 **
