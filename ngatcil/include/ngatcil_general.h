@@ -1,5 +1,5 @@
 /* ngatcil_general.h
-** $Header: /home/cjm/cvs/autoguider/ngatcil/include/ngatcil_general.h,v 1.2 2006-06-06 10:33:17 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ngatcil/include/ngatcil_general.h,v 1.3 2006-07-20 15:16:01 cjm Exp $
 */
 #ifndef NGATCIL_GENERAL_H
 #define NGATCIL_GENERAL_H
@@ -65,6 +65,11 @@
  * @see #Autoguider_General_Log
  */
 #define NGATCIL_GENERAL_LOG_BIT_CIL              (1<<3)
+/**
+ * Value to pass into logging calls, used for AGS SDB CIL packet logging.
+ * @see #Autoguider_General_Log
+ */
+#define NGATCIL_GENERAL_LOG_BIT_AGS_SDB          (1<<4)
 
 /* external variabless */
 extern int NGATCil_General_Error_Number;
@@ -95,6 +100,9 @@ extern int NGATCil_General_Int_List_Sort(const void *f,const void *s);
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.2  2006/06/06 10:33:17  cjm
+** Added NGATCIL_GENERAL_LOG_BIT_CIL.
+**
 ** Revision 1.1  2006/06/01 15:28:10  cjm
 ** Initial revision
 **
