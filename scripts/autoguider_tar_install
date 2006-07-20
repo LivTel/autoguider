@@ -1,6 +1,6 @@
 #!/bin/csh
-# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_tar_install,v 1.1 2006-06-02 13:55:07 cjm Exp $
-# Version: $Revision: 1.1 $
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_tar_install,v 1.2 2006-07-20 15:40:51 cjm Exp $
+# Version: $Revision: 1.2 $
 # By $Author: cjm $
 # Install a deployment tar created by autoguider_make_deployment, not on a floppy
 # Usage:
@@ -43,12 +43,10 @@ end
 if ( -x /icc/bin/scripts/killhup.csh ) then
     echo "Trying to kill AutoBooter."
     /icc/bin/scripts/killhup.csh AutoBooter
-    echo "Trying to kill AutoGuider."
-    /icc/bin/scripts/killhup.csh AutoGuider
-    echo "Trying to kill DpRt."
-    /icc/bin/scripts/killhup.csh DpRt
-    echo "Trying to kill icsd_inet."
-    /icc/bin/scripts/killhup.csh icsd_inet
+    echo "Trying to kill autoguider."
+    /icc/bin/scripts/killhup.csh autoguider
+#    echo "Trying to kill icsd_inet."
+#    /icc/bin/scripts/killhup.csh icsd_inet
 else
     echo "killhup not found:FAILED to stop running processess."
 endif
@@ -107,38 +105,38 @@ endif
 # Init script setup
 #
 # Init script already copied as /etc/init.d/autobooter
-#echo "Setting up autobooter initialisation script."
-#if( "${HOSTTYPE}" == "sun4" ) then
-#    set dir_list = "/etc/rc0.d /etc/rc1.d /etc/rc3.d /etc/rcS.d"
-#else if ( "${HOSTTYPE}" == "i386-linux" ) then
-#    set dir_list = "/etc/rc0.d /etc/rc1.d /etc/rc2.d /etc/rc4.d /etc/rc6.d"
-#else
-#    echo "Illegal hosttype ${HOSTTYPE}."
-#    exit 1
-#endif
-#foreach dir ( ${dir_list} )
-#    cd ${dir}
-#    if( ! -e K01autobooter ) then
-#	ln -s ../init.d/autobooter K01autobooter
-#    endif
-#end
-#if( "${HOSTTYPE}" == "sun4" ) then
-#    set dir_list = "/etc/rc2.d"
-#else if ( "${HOSTTYPE}" == "i386-linux" ) then
-#    set dir_list = "/etc/rc3.d /etc/rc5.d"
-#else
-#    echo "Illegal hosttype ${HOSTTYPE}."
-#    exit 1
-#endif
-#foreach dir ( ${dir_list} )
-#    cd ${dir}
-#    if( ! -e S99autobooter ) then
-#	ln -s ../init.d/autobooter S99autobooter
-#    endif
-#end
-#echo "Setting up autobooter script."
-#chmod u+x /etc/init.d/autobooter
-#chown root:sys /etc/init.d/autobooter
+echo "Setting up autobooter initialisation script."
+if( "${HOSTTYPE}" == "sun4" ) then
+    set dir_list = "/etc/rc0.d /etc/rc1.d /etc/rc3.d /etc/rcS.d"
+else if ( "${HOSTTYPE}" == "i386-linux" ) then
+    set dir_list = "/etc/rc0.d /etc/rc1.d /etc/rc2.d /etc/rc4.d /etc/rc6.d"
+else
+    echo "Illegal hosttype ${HOSTTYPE}."
+    exit 1
+endif
+foreach dir ( ${dir_list} )
+    cd ${dir}
+    if( ! -e K01autobooter ) then
+	ln -s ../init.d/autobooter K01autobooter
+    endif
+end
+if( "${HOSTTYPE}" == "sun4" ) then
+    set dir_list = "/etc/rc2.d"
+else if ( "${HOSTTYPE}" == "i386-linux" ) then
+    set dir_list = "/etc/rc3.d /etc/rc5.d"
+else
+    echo "Illegal hosttype ${HOSTTYPE}."
+    exit 1
+endif
+foreach dir ( ${dir_list} )
+    cd ${dir}
+    if( ! -e S99autobooter ) then
+	ln -s ../init.d/autobooter S99autobooter
+    endif
+end
+echo "Setting up autobooter script."
+chmod u+x /etc/init.d/autobooter
+chown root:sys /etc/init.d/autobooter
 #
 # Set up /icc ownership
 #
