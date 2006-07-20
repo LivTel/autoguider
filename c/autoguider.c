@@ -1,10 +1,10 @@
 /* autoguider.c
-** $Header: /home/cjm/cvs/autoguider/c/autoguider.c,v 1.3 2006-06-20 18:42:38 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider.c,v 1.4 2006-07-20 15:14:31 cjm Exp $
 */
 /**
  * Autoguider main program.
  * @author $Author: cjm $
- * @version $Revision: 1.3 $
+ * @version $Revision: 1.4 $
  */
 #include <signal.h> /* signal handling */
 #include <stdio.h>
@@ -13,6 +13,7 @@
 
 #include "command_server.h"
 
+#include "ngatcil_ags_sdb.h"
 #include "ngatcil_general.h"
 
 #include "object.h"
@@ -46,7 +47,7 @@
 /**
  * Revision control system identifier.
  */
-static char rcsid[] = "$Id: autoguider.c,v 1.3 2006-06-20 18:42:38 cjm Exp $";
+static char rcsid[] = "$Id: autoguider.c,v 1.4 2006-07-20 15:14:31 cjm Exp $";
 
 /* internal routines */
 static int Autoguider_Initialise_Signal(void);
@@ -70,6 +71,10 @@ static void Help(void);
  * @see autoguider_cil.html#Autoguider_CIL_Server_Initialise
  * @see autoguider_cil.html#Autoguider_CIL_Server_Start
  * @see autoguider_cil.html#Autoguider_CIL_Server_Stop
+ * @see autoguider_cil.html#Autoguider_CIL_SDB_Packet_Open
+ * @see autoguider_cil.html#Autoguider_CIL_SDB_State_Set
+ * @see autoguider_cil.html#Autoguider_CIL_SDB_Packet_Send
+ * @see autoguider_cil.html#Autoguider_CIL_SDB_Packet_Close
  * @see autoguider_dark.html#Autoguider_Dark_Initialise
  * @see autoguider_dark.html#Autoguider_Dark_Shutdown
  * @see autoguider_field.html#Autoguider_Field_Initialise
@@ -82,9 +87,9 @@ static void Help(void);
  * @see autoguider_object.html#Autoguider_Object_Shutdown
  * @see autoguider_server.html#Autoguider_Server_Initialise
  * @see autoguider_server.html#Autoguider_Server_Start
- * @see ../../cdocs/ccd_config.html#CCD_Config_Initialise
- * @see ../../cdocs/ccd_config.html#CCD_Config_Load
- * @see ../../cdocs/ccd_config.html#CCD_Config_Shutdown
+ * @see ../../ccd/cdocs/ccd_config.html#CCD_Config_Initialise
+ * @see ../../ccd/cdocs/ccd_config.html#CCD_Config_Load
+ * @see ../../ccd/cdocs/ccd_config.html#CCD_Config_Shutdown
  */
 int main(int argc, char *argv[])
 {
@@ -202,7 +207,7 @@ int main(int argc, char *argv[])
 		Autoguider_Shutdown_CCD();
 		return 5;
 	}
-	/* initialise and start CIL command server */
+	/* initialise CIL command server/CIL SDB connection */
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"main:Autoguider_CIL_Server_Initialise.");
 #endif
@@ -214,6 +219,19 @@ int main(int argc, char *argv[])
 		Autoguider_Shutdown_CCD();
 		return 4;
 	}
+	/* start client end connection to SDB */
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"main:Autoguider_CIL_SDB_Packet_Open.");
+#endif
+	retval = Autoguider_CIL_SDB_Packet_Open();
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error();
+		/* ensure CCD is warmed up */
+		Autoguider_Shutdown_CCD();
+		return 4;
+	}
+	/* start CIL command server */
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"main:Autoguider_CIL_Server_Start.");
 #endif
@@ -225,6 +243,11 @@ int main(int argc, char *argv[])
 		Autoguider_Shutdown_CCD();
 		return 4;
 	}
+	/* write IDLE (ready) to SDB. */
+	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE))
+		Autoguider_General_Error(); /* no need to fail */
+	if(!Autoguider_CIL_SDB_Packet_Send())
+		Autoguider_General_Error(); /* no need to fail */
 	/* initialise command server */
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"main:Autoguider_Server_Initialise.");
@@ -249,6 +272,13 @@ int main(int argc, char *argv[])
 		Autoguider_Shutdown_CCD();
 		return 4;
 	}
+	/* shutdown cil sdb connection */
+	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_OFF))
+		Autoguider_General_Error(); /* no need to fail */
+	if(!Autoguider_CIL_SDB_Packet_Send())
+		Autoguider_General_Error(); /* no need to fail */
+	if(!Autoguider_CIL_SDB_Packet_Close())
+		Autoguider_General_Error(); /* no need to fail */
 	/* shutdown cil server */
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"main:Autoguider_CIL_Server_Stop.");
@@ -834,6 +864,9 @@ static int Parse_Arguments(int argc, char *argv[])
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.3  2006/06/20 18:42:38  cjm
+** Added setting of autoguider logging to bitwise filtering.
+**
 ** Revision 1.2  2006/06/12 19:22:13  cjm
 ** Added -ngatcil_log_level.
 ** Added NGATCil logging setup.
