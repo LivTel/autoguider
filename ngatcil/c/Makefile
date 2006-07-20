@@ -1,4 +1,4 @@
-# $Header: /home/cjm/cvs/autoguider/ngatcil/c/Makefile,v 1.2 2006-06-06 10:34:01 cjm Exp $
+# $Header: /home/cjm/cvs/autoguider/ngatcil/c/Makefile,v 1.3 2006-07-20 15:16:42 cjm Exp $
 
 include ../../../Makefile.common
 include ../../Makefile.common
@@ -14,7 +14,7 @@ DEBUG_CFLAGS	= -DNGATCIL_DEBUG=10
 CFLAGS 		= -g -I$(INCDIR) $(DEBUG_CFLAGS)
 DOCFLAGS 	= -static
 
-LIB_SRCS	=ngatcil_general.c ngatcil_udp_raw.c ngatcil_tcs_guide_packet.c ngatcil_cil.c
+LIB_SRCS	=ngatcil_general.c ngatcil_udp_raw.c ngatcil_tcs_guide_packet.c ngatcil_cil.c ngatcil_ags_sdb.c
 SRCS		= $(LIB_SRCS)
 LIB_HEADERS	= $(LIB_SRCS:%.c=$(INCDIR)/%.h)
 HEADERS		= $(LIB_HEADERS)
@@ -62,6 +62,9 @@ checkout:
 
 #
 # $Log: not supported by cvs2svn $
+# Revision 1.2  2006/06/06 10:34:01  cjm
+# Added ngatcil_cil.c.
+#
 # Revision 1.1  2006/06/01 15:28:13  cjm
 # Initial revision
 #
@@ -153,3 +156,45 @@ checkout:
 /home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_udp_raw.o: /usr/include/bits/uio.h
 /home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_udp_raw.o: /home/dev/src/autoguider/ngatcil/include/ngatcil_general.h
 /home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_udp_raw.o: /home/dev/src/autoguider/ngatcil/include/ngatcil_udp_raw.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_tcs_guide_packet.o: /usr/include/stdio.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_tcs_guide_packet.o: /usr/include/features.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_tcs_guide_packet.o: /usr/include/sys/cdefs.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_tcs_guide_packet.o: /usr/include/gnu/stubs.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_tcs_guide_packet.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stddef.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_tcs_guide_packet.o: /usr/include/bits/types.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_tcs_guide_packet.o: /usr/include/bits/wordsize.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_tcs_guide_packet.o: /usr/include/bits/typesizes.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_tcs_guide_packet.o: /usr/include/libio.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_tcs_guide_packet.o: /usr/include/_G_config.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_tcs_guide_packet.o: /usr/include/wchar.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_tcs_guide_packet.o: /usr/include/bits/wchar.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_tcs_guide_packet.o: /usr/include/gconv.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_tcs_guide_packet.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stdarg.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_tcs_guide_packet.o: /usr/include/bits/stdio_lim.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_tcs_guide_packet.o: /usr/include/bits/sys_errlist.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_tcs_guide_packet.o: /usr/include/string.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_tcs_guide_packet.o: /home/dev/src/autoguider/ngatcil/include/ngatcil_general.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_tcs_guide_packet.o: /home/dev/src/autoguider/ngatcil/include/ngatcil_udp_raw.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_tcs_guide_packet.o: /home/dev/src/autoguider/ngatcil/include/ngatcil_tcs_guide_packet.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_cil.o: /usr/include/stdio.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_cil.o: /usr/include/features.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_cil.o: /usr/include/sys/cdefs.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_cil.o: /usr/include/gnu/stubs.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_cil.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stddef.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_cil.o: /usr/include/bits/types.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_cil.o: /usr/include/bits/wordsize.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_cil.o: /usr/include/bits/typesizes.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_cil.o: /usr/include/libio.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_cil.o: /usr/include/_G_config.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_cil.o: /usr/include/wchar.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_cil.o: /usr/include/bits/wchar.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_cil.o: /usr/include/gconv.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_cil.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stdarg.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_cil.o: /usr/include/bits/stdio_lim.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_cil.o: /usr/include/bits/sys_errlist.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_cil.o: /usr/include/string.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_cil.o: /usr/include/time.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_cil.o: /usr/include/bits/time.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_cil.o: /home/dev/src/autoguider/ngatcil/include/ngatcil_general.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_cil.o: /home/dev/src/autoguider/ngatcil/include/ngatcil_udp_raw.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_cil.o: /home/dev/src/autoguider/ngatcil/include/ngatcil_cil.h
