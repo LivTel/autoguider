@@ -1,11 +1,11 @@
 /* autoguider_field.c
 ** Autoguider field routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_field.c,v 1.5 2006-07-20 16:07:40 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_field.c,v 1.6 2006-07-20 16:08:33 cjm Exp $
 */
 /**
  * Field routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.5 $
+ * @version $Revision: 1.6 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -87,7 +87,7 @@ struct Field_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_field.c,v 1.5 2006-07-20 16:07:40 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_field.c,v 1.6 2006-07-20 16:08:33 cjm Exp $";
 /**
  * Instance of field data.
  * @see #Field_Struct
@@ -326,7 +326,7 @@ int Autoguider_Field(void)
 	if(!Autoguider_Dark_Get_Exposure_Length_Nearest(&Field_Data.Exposure_Length,&dark_exposure_length_index))
 	{
 		/* update SDB */
-		Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE)
+		Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE);
 		/* reset fielding flag */
 		Field_Data.Is_Fielding = FALSE;
 		return FALSE;
@@ -1367,6 +1367,10 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.5  2006/07/20 16:07:40  cjm
+** Changed SDB call on failure.
+** Added exposure SDB calls.
+**
 ** Revision 1.4  2006/07/20 15:12:46  cjm
 ** Added SDB submission software.
 **
