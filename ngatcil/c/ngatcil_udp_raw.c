@@ -1,11 +1,11 @@
 /* ngatcil_udp_raw.c
 ** NGATCil UDP raw transmission routines
-** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_udp_raw.c,v 1.4 2006-06-29 17:02:19 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_udp_raw.c,v 1.5 2006-08-29 14:07:57 cjm Exp $
 */
 /**
  * NGAT Cil library raw UDP packet transmission.
  * @author Chris Mottram
- * @version $Revision: 1.4 $
+ * @version $Revision: 1.5 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -53,7 +53,7 @@ struct UDP_Raw_Server_Context_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: ngatcil_udp_raw.c,v 1.4 2006-06-29 17:02:19 cjm Exp $";
+static char rcsid[] = "$Id: ngatcil_udp_raw.c,v 1.5 2006-08-29 14:07:57 cjm Exp $";
 
 /* internal function declaration */
 static void *UDP_Raw_Server_Thread(void *);
@@ -152,6 +152,53 @@ int NGATCil_UDP_Open(char *hostname,int port_number,int *socket_id)
 }
 
 /**
+ * Change the specified host ordered buffer of ints into network byte order
+ * @param message_buf A pointer to an area of memory containing the message change byte order.
+ * @param message_buff_len The size of the message to send, in bytes.
+ * @return The routine returns TRUE on success, and FALSE on failure. If the routine failed,
+ *      NGATCil_General_Error_Number and NGATCil_General_Error_String should be set.
+ * @see ngatcil_general.html#NGATCil_General_Error_Number
+ * @see ngatcil_general.html#NGATCil_General_Error_String
+ * @see ngatcil_general.html#NGATCil_General_Log
+ * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_UDP_RAW
+ */
+int NGATCil_UDP_Raw_To_Network_Byte_Order(void *message_buff,size_t message_buff_len)
+{
+	int *message_buff_int_ptr = NULL;
+	int retval,int_count,i;
+
+#if NGATCIL_DEBUG > 1
+	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,
+				   "NGATCil_UDP_Raw_To_Network_Byte_Order(length=%d):started.",message_buff_len);
+#endif
+	if(message_buff == NULL)
+	{
+		NGATCil_General_Error_Number = 124;
+		sprintf(NGATCil_General_Error_String,"NGATCil_UDP_Raw_To_Network_Byte_Order:message_buff was NULL.");
+		return FALSE;
+	}
+	if((message_buff_len % sizeof(int)) != 0)
+	{
+		NGATCil_General_Error_Number = 125;
+		sprintf(NGATCil_General_Error_String,
+			"NGATCil_UDP_Raw_To_Network_Byte_Order:message_buff_len %d was not a whole number of ints.",
+			message_buff_len);
+		return FALSE;
+	}
+	int_count = message_buff_len/sizeof(int);
+	message_buff_int_ptr = (int*)message_buff;
+	for(i=0;i<int_count;i++)
+	{
+		message_buff_int_ptr[i] = htonl(message_buff_int_ptr[i]);
+	}
+#if NGATCIL_DEBUG > 1
+	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,
+				   "NGATCil_UDP_Raw_To_Network_Byte_Order(%d):finished.",message_buff_len);
+#endif
+	return TRUE;
+}
+
+/**
  * Send the specified data over the specified socket.
  * @param socket_id A previously opened and connected socket to send the buffer over.
  * @param message_buf A pointer to an area of memory containing the message to send.
@@ -168,7 +215,8 @@ int NGATCil_UDP_Raw_Send(int socket_id,void *message_buff,size_t message_buff_le
 	int retval,send_errno;
 
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,"NGATCil_UDP_Raw_Send(%d):started.",socket_id);
+	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,
+				   "NGATCil_UDP_Raw_Send(socket=%d,length=%d):started.",socket_id,message_buff_len);
 #endif
 	if(message_buff == NULL)
 	{
@@ -194,6 +242,92 @@ int NGATCil_UDP_Raw_Send(int socket_id,void *message_buff,size_t message_buff_le
 	}
 #if NGATCIL_DEBUG > 1
 	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,"NGATCil_UDP_Raw_Send(%d):finished.",socket_id);
+#endif
+	return TRUE;
+}
+
+/**
+ * Send the specified data over the specified socket to the specified endpoint.
+ * @param socket_fd A previously opened socket to send the buffer over. It need not have been connected.
+ * @param hostname The hostname the socket will talk to, either numeric or via /etc/hosts.
+ * @param port_number The port number to send to in host (normal) byte order.
+ * @param message_buf A pointer to an area of memory containing the message to send.
+ * @param message_buff_len The size of the message to send, in bytes.
+ * @return The routine returns TRUE on success, and FALSE on failure. If the routine failed,
+ *      NGATCil_General_Error_Number and NGATCil_General_Error_String should be set.
+ * @see ngatcil_general.html#NGATCil_General_Error_Number
+ * @see ngatcil_general.html#NGATCil_General_Error_String
+ * @see ngatcil_general.html#NGATCil_General_Log
+ * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_UDP_RAW
+ */
+int NGATCil_UDP_Raw_Send_To(int socket_fd,char *hostname,int port_number,void *message_buff,size_t message_buff_len)
+{
+	int retval,send_errno;
+	in_addr_t saddr;
+	struct sockaddr_in to_addr;
+	struct hostent *host_entry;
+	size_t to_len = sizeof(to_addr);
+
+	if(hostname == NULL)
+	{
+		NGATCil_General_Error_Number = 119;
+		sprintf(NGATCil_General_Error_String,"NGATCil_UDP_Raw_Send_To:message_buff was NULL.");
+		return FALSE;
+	}
+#if NGATCIL_DEBUG > 1
+	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,
+				   "NGATCil_UDP_Raw_Send_To(socket=%d,hostname=%s,port_number=%d,length=%d):started.",
+				   socket_fd,hostname,port_number,message_buff_len);
+#endif
+	if(message_buff == NULL)
+	{
+		NGATCil_General_Error_Number = 120;
+		sprintf(NGATCil_General_Error_String,"NGATCil_UDP_Raw_Send_To:message_buff was NULL.");
+		return FALSE;
+	}
+	/* try to convert hostname to address in network byte order */
+	/* try numeric address conversion first */
+	saddr = inet_addr(hostname);
+	if(saddr == INADDR_NONE)
+	{
+#if NGATCIL_DEBUG > 10
+		NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,
+					   "NGATCil_UDP_Raw_Send_To:inet_addr didn't work:trying gethostbyname(%s).",
+					   hostname);
+#endif
+		/* try getting by hostname instead */
+		host_entry = gethostbyname(hostname);
+		if(host_entry == NULL)
+		{
+			NGATCil_General_Error_Number = 121;
+			sprintf(NGATCil_General_Error_String,
+				"NGATCil_UDP_Raw_Send_To:Failed to get host address from (%s).",hostname);
+			return FALSE;
+		}
+		memcpy(&saddr,host_entry->h_addr_list[0],host_entry->h_length);
+	}
+	/* Formulate the socket address */
+	to_addr.sin_family = AF_INET;
+	to_addr.sin_port = htons((short)port_number);
+	to_addr.sin_addr.s_addr = saddr;
+	retval = sendto(socket_fd,message_buff,message_buff_len,0,(void*)&to_addr,to_len);
+	if(retval < 0)
+	{
+		send_errno = errno;
+		NGATCil_General_Error_Number = 122;
+		sprintf(NGATCil_General_Error_String,"NGATCil_UDP_Raw_Send_To:"
+			"Sendto failed %d (%s).",send_errno,strerror(send_errno));
+		return FALSE;
+	}
+	if(retval != message_buff_len)
+	{
+		NGATCil_General_Error_Number = 123;
+		sprintf(NGATCil_General_Error_String,"NGATCil_UDP_Raw_Send_To:"
+			"Sendto returned %d vs %d.",retval,message_buff_len);
+		return FALSE;
+	}
+#if NGATCIL_DEBUG > 1
+	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,"NGATCil_UDP_Raw_Send_To(%d):finished.",socket_fd);
 #endif
 	return TRUE;
 }
@@ -426,7 +560,7 @@ static void *UDP_Raw_Server_Thread(void *arg)
 	{
 #if NGATCIL_DEBUG > 9
 		NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,
-					   "UDP_Raw_Server_Thread:Waiting for UDP packeton socket %d.",
+					   "UDP_Raw_Server_Thread:Waiting for UDP packet on socket %d.",
 					   server_context->Socket_Id);
 #endif
 		current_client_length = sizeof(client);
@@ -466,6 +600,10 @@ static void *UDP_Raw_Server_Thread(void *arg)
 			/* network to host */
 			if((recv_message_length % sizeof(int)) == 0)
 			{
+#if NGATCIL_DEBUG > 9
+				NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,"UDP_Raw_Server_Thread:"
+						    "Translating packet contents from network to host byte order.");
+#endif
 				int_message_ptr = (int*)message_buff;
 				for(i=0;i < (recv_message_length/sizeof(int));i++)
 				{
@@ -509,6 +647,9 @@ static void *UDP_Raw_Server_Thread(void *arg)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.4  2006/06/29 17:02:19  cjm
+** Now UDP_Raw_Server_Thread does network to host word conversion.
+**
 ** Revision 1.3  2006/06/07 11:11:25  cjm
 ** Added logging.
 **
