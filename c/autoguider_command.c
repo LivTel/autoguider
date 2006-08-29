@@ -1,11 +1,11 @@
 /* autoguider_command.c
 ** Autoguider command routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_command.c,v 1.8 2006-06-29 17:04:34 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_command.c,v 1.9 2006-08-29 13:55:42 cjm Exp $
 */
 /**
  * Command routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.8 $
+ * @version $Revision: 1.9 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -44,7 +44,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_command.c,v 1.8 2006-06-29 17:04:34 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_command.c,v 1.9 2006-08-29 13:55:42 cjm Exp $";
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -91,6 +91,61 @@ int Autoguider_Command_Abort(char *command_string,char **reply_string)
 		return FALSE;
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Abort:finished.");
+#endif
+	return TRUE;
+}
+
+/**
+ * Handle a command of the form: "agstate <ms>".
+ * @param command_string The command. This is not changed during this routine.
+ * @param reply_string The address of a pointer to allocate and set the reply string.
+ * @return The routine returns TRUE on success and FALSE on failure.
+ * @see autoguider_cil.html#Autoguider_CIL_SDB_State_Set
+ * @see autoguider_cil.html#Autoguider_CIL_SDB_Packet_Send
+ * @see autoguider_general.html#Autoguider_General_Add_String
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_COMMAND
+ * @see autoguider_general.html#Autoguider_General_Error_Number
+ * @see autoguider_general.html#Autoguider_General_Error_String
+ */
+int Autoguider_Command_Agstate(char *command_string,char **reply_string)
+{
+	int retval,agstate;
+
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Agstate:started.");
+#endif
+	/* parse command */
+	retval = sscanf(command_string,"agstate %d",&agstate);
+	if(retval != 1)
+	{
+		Autoguider_General_Error_Number = 329;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Command_Agstate:"
+			"Failed to parse command %s (%d).",command_string,retval);
+#if AUTOGUIDER_DEBUG > 1
+		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,
+				       "Autoguider_Command_Agstate:finished (command parse failed).");
+#endif
+		return FALSE;
+	}
+	if(!Autoguider_CIL_SDB_Packet_State_Set(agstate))
+	{
+		Autoguider_General_Error();
+		if(!Autoguider_General_Add_String(reply_string,"1 Setting AgState failed."))
+			return FALSE;
+		return TRUE;
+	}
+	if(!Autoguider_CIL_SDB_Packet_Send())
+	{
+		Autoguider_General_Error();
+		if(!Autoguider_General_Add_String(reply_string,"1 Sending AgState to SDB failed."))
+			return FALSE;
+		return TRUE;
+	}
+	if(!Autoguider_General_Add_String(reply_string,"0 Agstate suceeded."))
+		return FALSE;
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Agstate:finished.");
 #endif
 	return TRUE;
 }
@@ -252,6 +307,8 @@ int Autoguider_Command_Autoguide(char *command_string,char **reply_string)
  * @param rank If on_type is COMMAND_AG_ON_TYPE_RANK, the rank (ordered index pf brightness).
  * @return The routine returns TRUE on success, and FALSE on failure.
  * @see #COMMAND_AG_ON_TYPE
+ * @see autoguider_cil.html#Autoguider_CIL_SDB_Packet_State_Set
+ * @see autoguider_cil.html#Autoguider_CIL_SDB_Packet_Send
  * @see autoguider_field.html#Autoguider_Field
  * @see autoguider_object.html#Autoguider_Object_Guide_Object_Get
  * @see autoguider_guide.html#Autoguider_Guide_Set_Guide_Object
@@ -281,6 +338,11 @@ int Autoguider_Command_Autoguide_On(enum COMMAND_AG_ON_TYPE on_type,float pixel_
 	retval = Autoguider_Object_Guide_Object_Get(on_type,pixel_x,pixel_y,rank,&selected_object_index);
 	if(retval == FALSE)
 	{
+		/* update SDB */
+		if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
+			Autoguider_General_Error(); /* no need to fail */
+		if(!Autoguider_CIL_SDB_Packet_Send())
+			Autoguider_General_Error(); /* no need to fail */
 		return FALSE;
 	}
 	/* do object selection/ guide setup */
@@ -291,6 +353,11 @@ int Autoguider_Command_Autoguide_On(enum COMMAND_AG_ON_TYPE on_type,float pixel_
 	retval = Autoguider_Guide_Set_Guide_Object(selected_object_index);
 	if(retval == FALSE)
 	{
+		/* update SDB */
+		if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
+			Autoguider_General_Error(); /* no need to fail */
+		if(!Autoguider_CIL_SDB_Packet_Send())
+			Autoguider_General_Error(); /* no need to fail */
 		return FALSE;
 	}
 	/* turn guide loop on */
@@ -301,6 +368,11 @@ int Autoguider_Command_Autoguide_On(enum COMMAND_AG_ON_TYPE on_type,float pixel_
 	retval = Autoguider_Guide_On();
 	if(retval == FALSE)
 	{
+		/* update SDB */
+		if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
+			Autoguider_General_Error(); /* no need to fail */
+		if(!Autoguider_CIL_SDB_Packet_Send())
+			Autoguider_General_Error(); /* no need to fail */
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 1
@@ -930,6 +1002,8 @@ int Autoguider_Command_Temperature(char *command_string,char **reply_string)
  * @param command_string The command. This is not changed during this routine.
  * @param reply_string The address of a pointer to allocate and set the reply string.
  * @return The routine returns TRUE on success and FALSE on failure.
+ * @see autoguider_cil.html#Autoguider_CIL_SDB_Packet_State_Set
+ * @see autoguider_cil.html#Autoguider_CIL_SDB_Packet_Send
  * @see autoguider_general.html#Autoguider_General_Add_String
  * @see autoguider_general.html#Autoguider_General_Log
  * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_COMMAND
@@ -1079,6 +1153,11 @@ int Autoguider_Command_Field(char *command_string,char **reply_string)
 				return FALSE;
 			return TRUE;
 		}
+		/* update SDB */
+		if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
+			Autoguider_General_Error(); /* no need to fail */
+		if(!Autoguider_CIL_SDB_Packet_Send())
+			Autoguider_General_Error(); /* no need to fail */
 		if(!Autoguider_General_Add_String(reply_string,"0 Field suceeded."))
 			return FALSE;
 	}/* end else */
@@ -1597,6 +1676,10 @@ int Autoguider_Command_Log_Level(char *command_string,char **reply_string)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.8  2006/06/29 17:04:34  cjm
+** Moved silly is-use check from AG on command.
+** More logging
+**
 ** Revision 1.7  2006/06/27 20:43:52  cjm
 ** Added Autoguider_Command_Autoguide_On.
 **
