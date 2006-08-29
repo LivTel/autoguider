@@ -1,10 +1,10 @@
 /* autoguider.c
-** $Header: /home/cjm/cvs/autoguider/c/autoguider.c,v 1.4 2006-07-20 15:14:31 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider.c,v 1.5 2006-08-29 13:55:42 cjm Exp $
 */
 /**
  * Autoguider main program.
  * @author $Author: cjm $
- * @version $Revision: 1.4 $
+ * @version $Revision: 1.5 $
  */
 #include <signal.h> /* signal handling */
 #include <stdio.h>
@@ -47,7 +47,7 @@
 /**
  * Revision control system identifier.
  */
-static char rcsid[] = "$Id: autoguider.c,v 1.4 2006-07-20 15:14:31 cjm Exp $";
+static char rcsid[] = "$Id: autoguider.c,v 1.5 2006-08-29 13:55:42 cjm Exp $";
 
 /* internal routines */
 static int Autoguider_Initialise_Signal(void);
@@ -71,10 +71,8 @@ static void Help(void);
  * @see autoguider_cil.html#Autoguider_CIL_Server_Initialise
  * @see autoguider_cil.html#Autoguider_CIL_Server_Start
  * @see autoguider_cil.html#Autoguider_CIL_Server_Stop
- * @see autoguider_cil.html#Autoguider_CIL_SDB_Packet_Open
  * @see autoguider_cil.html#Autoguider_CIL_SDB_State_Set
  * @see autoguider_cil.html#Autoguider_CIL_SDB_Packet_Send
- * @see autoguider_cil.html#Autoguider_CIL_SDB_Packet_Close
  * @see autoguider_dark.html#Autoguider_Dark_Initialise
  * @see autoguider_dark.html#Autoguider_Dark_Shutdown
  * @see autoguider_field.html#Autoguider_Field_Initialise
@@ -219,18 +217,6 @@ int main(int argc, char *argv[])
 		Autoguider_Shutdown_CCD();
 		return 4;
 	}
-	/* start client end connection to SDB */
-#if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"main:Autoguider_CIL_SDB_Packet_Open.");
-#endif
-	retval = Autoguider_CIL_SDB_Packet_Open();
-	if(retval == FALSE)
-	{
-		Autoguider_General_Error();
-		/* ensure CCD is warmed up */
-		Autoguider_Shutdown_CCD();
-		return 4;
-	}
 	/* start CIL command server */
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"main:Autoguider_CIL_Server_Start.");
@@ -244,7 +230,7 @@ int main(int argc, char *argv[])
 		return 4;
 	}
 	/* write IDLE (ready) to SDB. */
-	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE))
+	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
 		Autoguider_General_Error(); /* no need to fail */
 	if(!Autoguider_CIL_SDB_Packet_Send())
 		Autoguider_General_Error(); /* no need to fail */
@@ -273,11 +259,9 @@ int main(int argc, char *argv[])
 		return 4;
 	}
 	/* shutdown cil sdb connection */
-	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_OFF))
+	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_OFF))
 		Autoguider_General_Error(); /* no need to fail */
 	if(!Autoguider_CIL_SDB_Packet_Send())
-		Autoguider_General_Error(); /* no need to fail */
-	if(!Autoguider_CIL_SDB_Packet_Close())
 		Autoguider_General_Error(); /* no need to fail */
 	/* shutdown cil server */
 #if AUTOGUIDER_DEBUG > 1
@@ -864,6 +848,9 @@ static int Parse_Arguments(int argc, char *argv[])
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.4  2006/07/20 15:14:31  cjm
+** Added SDB Open/Close initial Status setting.
+**
 ** Revision 1.3  2006/06/20 18:42:38  cjm
 ** Added setting of autoguider logging to bitwise filtering.
 **
