@@ -1,11 +1,11 @@
 /* autoguider_guide.c
 ** Autoguider guide routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.17 2006-08-29 13:20:48 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.18 2006-08-29 13:55:31 cjm Exp $
 */
 /**
  * Guide routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.17 $
+ * @version $Revision: 1.18 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -97,7 +97,7 @@ struct Guide_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_guide.c,v 1.17 2006-08-29 13:20:48 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_guide.c,v 1.18 2006-08-29 13:55:31 cjm Exp $";
 /**
  * Instance of guide data.
  * @see #Guide_Struct
@@ -380,9 +380,15 @@ int Autoguider_Guide_On(void)
 
 /**
  * Routine to stop the guide loop (thread).
- * Sets Guide_Data.Quit_Guiding.
+ * Sets Guide_Data.Quit_Guiding. Now also sets AGS SDB state to E_AGG_STATE_IDLE - this is a bit dodgy,
+ * as it is still guiding until the Guide_Thread loop has quit - but it allows TCS "autoguide off" commands
+ * to keep trying to reset the SDB AG_STATE, which should stop autoguider lock-ups where "autoguide on" keeps
+ * returning "Already autoguiding".
  * @return The routine returns TRUE on success, and FALSE on failure.
  * @see #Autoguider_Guide_Is_Guiding
+ * @see autoguider_cil.html#Autoguider_CIL_SDB_Packet_State_Set
+ * @see autoguider_cil.html#Autoguider_CIL_SDB_Packet_Send
+ * @see ../ngatcil/cdocs/ngatcil_ags_sdb.html#eAggState_e
  */
 int Autoguider_Guide_Off(void)
 {
@@ -394,6 +400,11 @@ int Autoguider_Guide_Off(void)
 		return FALSE;
 	}
 	Guide_Data.Quit_Guiding = TRUE;
+	/* update SDB */
+	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
+		Autoguider_General_Error(); /* no need to fail */
+	if(!Autoguider_CIL_SDB_Packet_Send())
+		Autoguider_General_Error(); /* no need to fail */
 	return TRUE;
 }
 
@@ -774,12 +785,15 @@ int Autoguider_Guide_Exposure_Length_Get(void)
  * @see autoguider_buffer.html#Autoguider_Buffer_Raw_Guide_Unlock
  * @see autoguider_cil.html#Autoguider_CIL_Guide_Packet_Open
  * @see autoguider_cil.html#Autoguider_CIL_Guide_Packet_Close
+ * @see autoguider_cil.html#Autoguider_CIL_SDB_Packet_State_Set
+ * @see autoguider_cil.html#Autoguider_CIL_SDB_Packet_Send
  * @see autoguider_general.html#fdifftime
  * @see autoguider_general.html#Autoguider_General_Log
  * @see autoguider_general.html#Autoguider_General_Log_Format
  * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_GUIDE
  * @see ../ccd/cdocs/ccd_exposure.html#CCD_Exposure_Expose
  * @see ../ccd/cdocs/ccd_setup.html#CCD_Setup_Dimensions
+ * @see ../ngatcil/cdocs/ngatcil_ags_sdb.html#eAggState_e
  */
 static void *Guide_Thread(void *user_arg)
 {
@@ -826,6 +840,8 @@ static void *Guide_Thread(void *user_arg)
 		/* update SDB */
 		if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
 			Autoguider_General_Error(); /* no need to fail */
+		if(!Autoguider_CIL_SDB_Packet_Send())
+			Autoguider_General_Error(); /* no need to fail */
 		return NULL;
 	}
 	/* ensure the buffer is the right size */
@@ -853,6 +869,8 @@ static void *Guide_Thread(void *user_arg)
 		/* update SDB */
 		if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
 			Autoguider_General_Error(); /* no need to fail */
+		if(!Autoguider_CIL_SDB_Packet_Send())
+			Autoguider_General_Error(); /* no need to fail */
 		return NULL;
 	}
 	/* open guide packet socket */
@@ -868,6 +886,8 @@ static void *Guide_Thread(void *user_arg)
 		Autoguider_General_Error();
 		/* update SDB */
 		if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
+			Autoguider_General_Error(); /* no need to fail */
+		if(!Autoguider_CIL_SDB_Packet_Send())
 			Autoguider_General_Error(); /* no need to fail */
 		return NULL;
 	}
@@ -906,6 +926,8 @@ static void *Guide_Thread(void *user_arg)
 			/* update SDB */
 			if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
 				Autoguider_General_Error(); /* no need to fail */
+			if(!Autoguider_CIL_SDB_Packet_Send())
+				Autoguider_General_Error(); /* no need to fail */
 			return NULL;
 		}
 #if AUTOGUIDER_DEBUG > 9
@@ -943,6 +965,8 @@ static void *Guide_Thread(void *user_arg)
 			/* update SDB */
 			if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
 				Autoguider_General_Error(); /* no need to fail */
+			if(!Autoguider_CIL_SDB_Packet_Send())
+				Autoguider_General_Error(); /* no need to fail */
 			return NULL;
 		}
 #if AUTOGUIDER_DEBUG > 9
@@ -976,6 +1000,8 @@ static void *Guide_Thread(void *user_arg)
 			/* update SDB */
 			if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
 				Autoguider_General_Error(); /* no need to fail */
+			if(!Autoguider_CIL_SDB_Packet_Send())
+				Autoguider_General_Error(); /* no need to fail */
 			return NULL;
 		}
 		/* reduce data */
@@ -1001,6 +1027,8 @@ static void *Guide_Thread(void *user_arg)
 			Autoguider_CIL_Guide_Packet_Close();
 			/* update SDB */
 			if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
+				Autoguider_General_Error(); /* no need to fail */
+			if(!Autoguider_CIL_SDB_Packet_Send())
 				Autoguider_General_Error(); /* no need to fail */
 			return NULL;
 		}
@@ -1032,6 +1060,8 @@ static void *Guide_Thread(void *user_arg)
 			/* update SDB */
 			if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
 				Autoguider_General_Error(); /* no need to fail */
+			if(!Autoguider_CIL_SDB_Packet_Send())
+				Autoguider_General_Error(); /* no need to fail */
 			return NULL;
 		}
 		/* reset buffer indexs */
@@ -1059,6 +1089,8 @@ static void *Guide_Thread(void *user_arg)
        		/* update SDB */
 	       	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
 		       	Autoguider_General_Error(); /* no need to fail */
+		if(!Autoguider_CIL_SDB_Packet_Send())
+			Autoguider_General_Error(); /* no need to fail */
 		return NULL;
 	}
 	/* close guide packet socket */
@@ -1073,6 +1105,8 @@ static void *Guide_Thread(void *user_arg)
        		/* update SDB */
 	       	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
 		       	Autoguider_General_Error(); /* no need to fail */
+		if(!Autoguider_CIL_SDB_Packet_Send())
+			Autoguider_General_Error(); /* no need to fail */
 		return NULL;
 	}
        	/* update SDB */
@@ -1484,6 +1518,10 @@ static int Guide_Dimension_Config_Load(void)
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.17  2006/08/29 13:20:48  cjm
+** SDB now uses AGG_STATE rather than AGS_STATE.
+** Checks on position near edge of window relaxed.
+**
 ** Revision 1.16  2006/07/20 16:07:51  cjm
 ** Changed SDB calls on failure.
 **
