@@ -1,11 +1,11 @@
 /* autoguider_server.c
 ** Autoguider server routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_server.c,v 1.8 2006-07-16 20:13:54 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_server.c,v 1.9 2006-08-29 13:55:42 cjm Exp $
 */
 /**
  * Command Server routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.8 $
+ * @version $Revision: 1.9 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -31,7 +31,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_server.c,v 1.8 2006-07-16 20:13:54 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_server.c,v 1.9 2006-08-29 13:55:42 cjm Exp $";
 /**
  * The server context to use for this server.
  * @see ../command_server/cdocs/command_server.html#Command_Server_Server_Context_T
@@ -240,6 +240,29 @@ static void Autoguider_Server_Connection_Callback(Command_Server_Handle_T connec
 				Autoguider_General_Error();
 		}
 	}
+	else if(strncmp(client_message,"agstate",7) == 0)
+	{
+#if AUTOGUIDER_DEBUG > 1
+		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_SERVER,"Autoguider_Server_Connection_Callback:"
+				       "agstate detected.");
+#endif
+		retval = Autoguider_Command_Agstate(client_message,&reply_string);
+		if(retval == TRUE)
+		{
+			retval = Send_Reply(connection_handle,reply_string);
+			if(reply_string != NULL)
+				free(reply_string);
+			if(retval == FALSE)
+				Autoguider_General_Error();
+		}
+		else
+		{
+			Autoguider_General_Error();
+			retval = Send_Reply(connection_handle, "1 Autoguider_Command_Agstate failed.");
+			if(retval == FALSE)
+				Autoguider_General_Error();
+		}
+	}
 	else if(strncmp(client_message,"configload",10) == 0)
 	{
 #if AUTOGUIDER_DEBUG > 1
@@ -385,6 +408,7 @@ static void Autoguider_Server_Connection_Callback(Command_Server_Handle_T connec
 #endif
 		Send_Reply(connection_handle, "help:\n"
 			   "\tabort\n"
+			   "\tagstate <n>\n"
 			   "\tautoguide on <brightest|pixel <x> <y>|rank <n>>\n"
 			   "\tautoguide off\n"
 			   "\tconfigload\n"
@@ -591,6 +615,9 @@ static int Send_Binary_Reply_Error(Command_Server_Handle_T connection_handle)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.8  2006/07/16 20:13:54  cjm
+** Fixed help.
+**
 ** Revision 1.7  2006/06/29 17:04:34  cjm
 ** Added help message.
 **
