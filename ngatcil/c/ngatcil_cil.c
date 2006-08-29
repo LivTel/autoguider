@@ -1,11 +1,11 @@
 /* ngatcil_cil.c
 ** NGATCil General CIL packet tranmitting/receiving routines.
-** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_cil.c,v 1.5 2006-07-20 15:15:27 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_cil.c,v 1.6 2006-08-29 14:07:57 cjm Exp $
 */
 /**
  * NGAT Cil library transmission/receiving of CIL packets over UDP.
  * @author Chris Mottram
- * @version $Revision: 1.5 $
+ * @version $Revision: 1.6 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -32,7 +32,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: ngatcil_cil.c,v 1.5 2006-07-20 15:15:27 cjm Exp $";
+static char rcsid[] = "$Id: ngatcil_cil.c,v 1.6 2006-08-29 14:07:57 cjm Exp $";
 /**
  * CIL packet sequence number.
  */
@@ -51,8 +51,10 @@ static int Sequence_Number = 0;
  * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_CIL
  */
 int NGATCil_Cil_Packet_Create(int source_id,int dest_id,int class,int service,int seq_num,int command,
-			      int status,int param1, int param2,struct NGATCil_Cil_Packet_Struct *packet)
+			      int status,int param1, int param2,struct NGATCil_Ags_Packet_Struct *packet)
 {
+	struct timespec current_time;
+
 #if NGATCIL_DEBUG > 1
 	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Packet_Create:started.");
 #endif
@@ -62,11 +64,16 @@ int NGATCil_Cil_Packet_Create(int source_id,int dest_id,int class,int service,in
 		sprintf(NGATCil_General_Error_String,"NGATCil_Cil_Packet_Create:packet was NULL.");
 		return FALSE;
 	}
-	packet->Source_Id = htonl(source_id);
-	packet->Dest_Id = htonl(dest_id);
-	packet->Class = htonl(class);
-	packet->Service = htonl(service);
-	packet->Seq_Num = htonl(seq_num);
+	packet->Cil_Base.Source_Id = htonl(source_id);
+	packet->Cil_Base.Dest_Id = htonl(dest_id);
+	packet->Cil_Base.Class = htonl(class);
+	packet->Cil_Base.Service = htonl(service);
+	packet->Cil_Base.Seq_Num = htonl(seq_num);
+	clock_gettime(CLOCK_REALTIME,&current_time);
+	packet->Cil_Base.Timestamp_Seconds = current_time.tv_sec-TTL_TIMESTAMP_OFFSET;
+	packet->Cil_Base.Timestamp_Nanoseconds = current_time.tv_nsec;
+	packet->Cil_Base.Timestamp_Seconds     = htonl(packet->Cil_Base.Timestamp_Seconds);
+	packet->Cil_Base.Timestamp_Nanoseconds = htonl(packet->Cil_Base.Timestamp_Nanoseconds);
 	packet->Command = htonl(command);
 	packet->Status = htonl(status);
 	packet->Param1 = htonl(param1);
@@ -80,22 +87,25 @@ int NGATCil_Cil_Packet_Create(int source_id,int dest_id,int class,int service,in
 /**
  * Send a CIL packet. 
  * @param socket_id The socket file descriptor to use.
+ * @param hostname The hostname of the host to send the packet to.
+ * @param port_number The port number of the host to send the packet to.
  * @param packet The packet to send. The contents should have been put into network byte order
  *        (NGATCil_Cil_Packet_Create does this automatically).
  * @return The routine returns TRUE on success and FALSE on failure. If the routine failed,
  *      NGATCil_General_Error_Number and NGATCil_General_Error_String should be set.
- * @see ngatcil_udp_raw.html#NGATCil_UDP_Raw_Send
+ * @see ngatcil_udp_raw.html#NGATCil_UDP_Raw_Send_To
  */
-int NGATCil_Cil_Packet_Send(int socket_id,struct NGATCil_Cil_Packet_Struct packet)
+int NGATCil_Cil_Packet_Send_To(int socket_id,char *hostname,int port_number,struct NGATCil_Ags_Packet_Struct packet)
 {
 	int retval;
 
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Packet_Send:started.");
+	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Packet_Send_To:started.");
 #endif
-	retval = NGATCil_UDP_Raw_Send(socket_id,(void*)&packet,sizeof(struct NGATCil_Cil_Packet_Struct));
+	retval = NGATCil_UDP_Raw_Send_To(socket_id,hostname,port_number,(void*)&packet,
+				      sizeof(struct NGATCil_Ags_Packet_Struct));
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Packet_Send:finished.");
+	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Packet_Send_To:finished.");
 #endif
 	return retval;
 }
@@ -109,7 +119,7 @@ int NGATCil_Cil_Packet_Send(int socket_id,struct NGATCil_Cil_Packet_Struct packe
  *      NGATCil_General_Error_Number and NGATCil_General_Error_String should be set.
  * @see ngatcil_udp_raw.html#NGATCil_UDP_Raw_Recv
  */
-int NGATCil_Cil_Packet_Recv(int socket_id,struct NGATCil_Cil_Packet_Struct *packet)
+int NGATCil_Cil_Packet_Recv(int socket_id,struct NGATCil_Ags_Packet_Struct *packet)
 {
 	int retval;
 
@@ -122,14 +132,16 @@ int NGATCil_Cil_Packet_Recv(int socket_id,struct NGATCil_Cil_Packet_Struct *pack
 		sprintf(NGATCil_General_Error_String,"NGATCil_Cil_Packet_Recv:packet was NULL.");
 		return FALSE;
 	}
-	retval = NGATCil_UDP_Raw_Recv(socket_id,packet,sizeof(struct NGATCil_Cil_Packet_Struct));
+	retval = NGATCil_UDP_Raw_Recv(socket_id,packet,sizeof(struct NGATCil_Ags_Packet_Struct));
 	if(retval == FALSE)
 		return FALSE;
-	packet->Source_Id = ntohl(packet->Source_Id);
-	packet->Dest_Id = ntohl(packet->Dest_Id);
-	packet->Class = ntohl(packet->Class);
-	packet->Service = ntohl(packet->Service);
-	packet->Seq_Num = ntohl(packet->Seq_Num);
+	packet->Cil_Base.Source_Id = ntohl(packet->Cil_Base.Source_Id);
+	packet->Cil_Base.Dest_Id = ntohl(packet->Cil_Base.Dest_Id);
+	packet->Cil_Base.Class = ntohl(packet->Cil_Base.Class);
+	packet->Cil_Base.Service = ntohl(packet->Cil_Base.Service);
+	packet->Cil_Base.Seq_Num = ntohl(packet->Cil_Base.Seq_Num);
+	packet->Cil_Base.Timestamp_Seconds     = ntohl(packet->Cil_Base.Timestamp_Seconds);
+	packet->Cil_Base.Timestamp_Nanoseconds = ntohl(packet->Cil_Base.Timestamp_Nanoseconds);
 	packet->Command = ntohl(packet->Command);
 	packet->Status = ntohl(packet->Status);
 	packet->Param1 = ntohl(packet->Param1);
@@ -144,12 +156,14 @@ int NGATCil_Cil_Packet_Recv(int socket_id,struct NGATCil_Cil_Packet_Struct *pack
  * Send an "Autoguide on pixel x y" CIL command packet on the specified socket.
  * For use for TCS (simulators).
  * @param socket_id The socket to send the packet over.
+ * @param socket_id The socket to send the packet over.
+ * @param hostname The hostname of the host to send the packet to.
  * @param pixel_x The X pixel position, 0..1023.
  * @param pixel_y The Y pixel position, 0..1023.
  * @param sequence_number The address of an integer to store the sequence number generated for this packet.
  * @return The routine returns TRUE on success and FALSE on failure. If the routine failed,
  *      NGATCil_General_Error_Number and NGATCil_General_Error_String should be set.
- * @see #NGATCil_Cil_Packet_Send
+ * @see #NGATCil_Cil_Packet_Send_To
  * @see #SYS_NOMINAL
  * @see #E_AGS_GUIDE_ON_PIXEL
  * @see #E_AGS_CMD
@@ -160,10 +174,11 @@ int NGATCil_Cil_Packet_Recv(int socket_id,struct NGATCil_Cil_Packet_Struct *pack
  * @see ngatcil_general.html#NGATCil_General_Log
  * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_CIL
  */
-int NGATCil_Cil_Autoguide_On_Pixel_Send(int socket_id,float pixel_x,float pixel_y,int *sequence_number)
+int NGATCil_Cil_Autoguide_On_Pixel_Send(int socket_id,char *hostname,int port_number,float pixel_x,float pixel_y,
+					int *sequence_number)
 {
 	struct timespec current_time;
-	struct NGATCil_Cil_Packet_Struct packet;
+	struct NGATCil_Ags_Packet_Struct packet;
 	int pixel_x_i,pixel_y_i,retval;
 
 #if NGATCIL_DEBUG > 1
@@ -192,21 +207,21 @@ int NGATCil_Cil_Autoguide_On_Pixel_Send(int socket_id,float pixel_x,float pixel_
 	}
 	/* diddly rewrite using NGATCil_Cil_Packet_Create to packet is in network byte order
 	retval = NGATCil_Cil_Packet_Create(E_CIL_TCS,E_CIL_AGS,E_CIL_CMD_CLASS,E_AGS_CMD,Sequence_Number,E_AGS_GUIDE_ON_PIXEL,
-			     SYS_NOMINAL,int param1, int param2,struct NGATCil_Cil_Packet_Struct *packet)
+			     SYS_NOMINAL,int param1, int param2,struct NGATCil_Ags_Packet_Struct *packet)
 	*/
-	packet.Source_Id = E_CIL_TCS;
-	packet.Dest_Id = E_CIL_AGS;
-	packet.Class = E_CIL_CMD_CLASS;
-	packet.Service = E_AGS_CMD;
+	packet.Cil_Base.Source_Id = E_CIL_TCS;
+	packet.Cil_Base.Dest_Id = E_CIL_AGS;
+	packet.Cil_Base.Class = E_CIL_CMD_CLASS;
+	packet.Cil_Base.Service = E_AGS_CMD;
 	/* increment sequence number - prevent overflow */
 	Sequence_Number++;
 	if(Sequence_Number > 200000000)
 		Sequence_Number = 0;
-	packet.Seq_Num = Sequence_Number;
+	packet.Cil_Base.Seq_Num = Sequence_Number;
 	(*sequence_number) = Sequence_Number;
 	clock_gettime(CLOCK_REALTIME,&current_time);
-	packet.Timestamp_Seconds = current_time.tv_sec;
-	packet.Timestamp_Nanoseconds = current_time.tv_nsec;
+	packet.Cil_Base.Timestamp_Seconds = current_time.tv_sec;
+	packet.Cil_Base.Timestamp_Nanoseconds = current_time.tv_nsec;
 	packet.Command = E_AGS_GUIDE_ON_PIXEL;
 	packet.Status = SYS_NOMINAL;
 	/* param 1 is X pixel position in millipixels */
@@ -216,7 +231,7 @@ int NGATCil_Cil_Autoguide_On_Pixel_Send(int socket_id,float pixel_x,float pixel_
 	pixel_y_i = (int)(pixel_y * 1000.0f);
 	packet.Param2 = pixel_y_i;
 	/* send packet */
-	retval = NGATCil_Cil_Packet_Send(socket_id,packet);
+	retval = NGATCil_Cil_Packet_Send_To(socket_id,hostname,port_number,packet);
 	if(retval == FALSE)
 		return FALSE;
 #if NGATCIL_DEBUG > 1
@@ -244,7 +259,7 @@ int NGATCil_Cil_Autoguide_On_Pixel_Send(int socket_id,float pixel_x,float pixel_
  * @see ngatcil_general.html#NGATCil_General_Log
  * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_CIL
  */
-int NGATCil_Cil_Autoguide_On_Pixel_Parse(struct NGATCil_Cil_Packet_Struct packet,float *pixel_x,float *pixel_y,
+int NGATCil_Cil_Autoguide_On_Pixel_Parse(struct NGATCil_Ags_Packet_Struct packet,float *pixel_x,float *pixel_y,
 					 int *sequence_number)
 {
 #if NGATCIL_DEBUG > 1
@@ -268,18 +283,18 @@ int NGATCil_Cil_Autoguide_On_Pixel_Parse(struct NGATCil_Cil_Packet_Struct packet
 		sprintf(NGATCil_General_Error_String,"NGATCil_Cil_Autoguide_On_Pixel_Parse:Sequence number was NULL.");
 		return FALSE;
 	}
-	if(packet.Class != E_CIL_CMD_CLASS)
+	if(packet.Cil_Base.Class != E_CIL_CMD_CLASS)
 	{
 		NGATCil_General_Error_Number = 308;
 		sprintf(NGATCil_General_Error_String,"NGATCil_Cil_Autoguide_On_Pixel_Parse:"
-			"Wrong class number (%d vs %d).",packet.Class,E_CIL_CMD_CLASS);
+			"Wrong class number (%d vs %d).",packet.Cil_Base.Class,E_CIL_CMD_CLASS);
 		return FALSE;
 	}
-	if(packet.Service != E_AGS_CMD)
+	if(packet.Cil_Base.Service != E_AGS_CMD)
 	{
 		NGATCil_General_Error_Number = 309;
 		sprintf(NGATCil_General_Error_String,"NGATCil_Cil_Autoguide_On_Pixel_Parse:"
-			"Wrong service number (%d vs %d).",packet.Service,E_AGS_CMD);
+			"Wrong service number (%d vs %d).",packet.Cil_Base.Service,E_AGS_CMD);
 		return FALSE;
 	}
 	if(packet.Command != E_AGS_GUIDE_ON_PIXEL)
@@ -291,7 +306,7 @@ int NGATCil_Cil_Autoguide_On_Pixel_Parse(struct NGATCil_Cil_Packet_Struct packet
 	}
 	(*pixel_x) = ((float)(packet.Param1))/1000.0f;
 	(*pixel_y) = ((float)(packet.Param2))/1000.0f;
-	(*sequence_number) = packet.Seq_Num;
+	(*sequence_number) = packet.Cil_Base.Seq_Num;
 #if NGATCIL_DEBUG > 1
 	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_CIL,
 				   "NGATCil_Cil_Autoguide_On_Pixel_Parse:(%.2f,%.2f,%d):finished.",
@@ -304,6 +319,8 @@ int NGATCil_Cil_Autoguide_On_Pixel_Parse(struct NGATCil_Cil_Packet_Struct packet
  * Send an "Autoguide on pixel x y" CIL reply packet on the specified socket.
  * For use by the AGS.
  * @param socket_id The socket to send the packet over.
+ * @param hostname The hostname of the host to send the packet to.
+ * @param port_number The port number of the host to send the packet to.
  * @param pixel_x The X pixel position, 0..1023.
  * @param pixel_y The Y pixel position, 0..1023.
  * @param status The status to send for this packet. 
@@ -316,18 +333,18 @@ int NGATCil_Cil_Autoguide_On_Pixel_Parse(struct NGATCil_Cil_Packet_Struct packet
  * @see #E_AGS_CMD
  * @see #E_CIL_RSP_CLASS
  * @see #Sequence_Number
- * @see #NGATCil_Cil_Packet_Send
+ * @see #NGATCil_Cil_Packet_Send_To
  * @see #NGATCil_Cil_Packet_Create
  * @see ngatcil_general.html#NGATCil_General_Error_Number
  * @see ngatcil_general.html#NGATCil_General_Error_String
  * @see ngatcil_general.html#NGATCil_General_Log
  * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_CIL
  */
-int NGATCil_Cil_Autoguide_On_Pixel_Reply_Send(int socket_id,float pixel_x,float pixel_y,int status,
-					      int sequence_number)
+int NGATCil_Cil_Autoguide_On_Pixel_Reply_Send(int socket_id,char *hostname,int port_number,float pixel_x,float pixel_y,
+					      int status,int sequence_number)
 {
 	struct timespec current_time;
-	struct NGATCil_Cil_Packet_Struct packet;
+	struct NGATCil_Ags_Packet_Struct packet;
 	int pixel_x_i,pixel_y_i,retval;
 
 #if NGATCIL_DEBUG > 1
@@ -362,7 +379,7 @@ int NGATCil_Cil_Autoguide_On_Pixel_Reply_Send(int socket_id,float pixel_x,float 
 	if(retval == FALSE)
 		return FALSE;
 	/* send packet */
-	retval = NGATCil_Cil_Packet_Send(socket_id,packet);
+	retval = NGATCil_Cil_Packet_Send_To(socket_id,hostname,port_number,packet);
 	if(retval == FALSE)
 		return FALSE;
 #if NGATCIL_DEBUG > 1
@@ -390,7 +407,7 @@ int NGATCil_Cil_Autoguide_On_Pixel_Reply_Send(int socket_id,float pixel_x,float 
  * @see ngatcil_general.html#NGATCil_General_Log
  * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_CIL
  */
-int NGATCil_Cil_Autoguide_On_Pixel_Reply_Parse(struct NGATCil_Cil_Packet_Struct packet,float *pixel_x,float *pixel_y,
+int NGATCil_Cil_Autoguide_On_Pixel_Reply_Parse(struct NGATCil_Ags_Packet_Struct packet,float *pixel_x,float *pixel_y,
 					       int *status,int *sequence_number)
 {
 #if NGATCIL_DEBUG > 1
@@ -422,18 +439,18 @@ int NGATCil_Cil_Autoguide_On_Pixel_Reply_Parse(struct NGATCil_Cil_Packet_Struct 
 			"NGATCil_Cil_Autoguide_On_Pixel_Reply_Parse:status was NULL.");
 		return FALSE;
 	}
-	if(packet.Class != E_CIL_RSP_CLASS)
+	if(packet.Cil_Base.Class != E_CIL_RSP_CLASS)
 	{
 		NGATCil_General_Error_Number = 317;
 		sprintf(NGATCil_General_Error_String,"NGATCil_Cil_Autoguide_On_Pixel_Reply_Parse:"
-			"Wrong class number (%d vs %d).",packet.Class,E_CIL_RSP_CLASS);
+			"Wrong class number (%d vs %d).",packet.Cil_Base.Class,E_CIL_RSP_CLASS);
 		return FALSE;
 	}
-	if(packet.Service != E_AGS_CMD)
+	if(packet.Cil_Base.Service != E_AGS_CMD)
 	{
 		NGATCil_General_Error_Number = 318;
 		sprintf(NGATCil_General_Error_String,"NGATCil_Cil_Autoguide_On_Pixel_Reply_Parse:"
-			"Wrong service number (%d vs %d).",packet.Service,E_AGS_CMD);
+			"Wrong service number (%d vs %d).",packet.Cil_Base.Service,E_AGS_CMD);
 		return FALSE;
 	}
 	if(packet.Command != E_AGS_GUIDE_ON_PIXEL)
@@ -446,7 +463,7 @@ int NGATCil_Cil_Autoguide_On_Pixel_Reply_Parse(struct NGATCil_Cil_Packet_Struct 
 	(*status) = packet.Status;
 	(*pixel_x) = ((float)(packet.Param1))/1000.0f;
 	(*pixel_y) = ((float)(packet.Param2))/1000.0f;
-	(*sequence_number) = packet.Seq_Num;
+	(*sequence_number) = packet.Cil_Base.Seq_Num;
 #if NGATCIL_DEBUG > 1
 	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_CIL,
 				   "NGATCil_Cil_Autoguide_On_Pixel_Reply_Parse:(%#x,%.2f,%.2f,%d):finished.",
@@ -471,7 +488,7 @@ int NGATCil_Cil_Autoguide_On_Pixel_Reply_Parse(struct NGATCil_Cil_Packet_Struct 
  * @see ngatcil_general.html#NGATCil_General_Log
  * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_CIL
  */
-int NGATCil_Cil_Autoguide_On_Brightest_Parse(struct NGATCil_Cil_Packet_Struct packet,int *sequence_number)
+int NGATCil_Cil_Autoguide_On_Brightest_Parse(struct NGATCil_Ags_Packet_Struct packet,int *sequence_number)
 {
 #if NGATCIL_DEBUG > 1
 	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Autoguide_On_Brightest_Parse:started.");
@@ -483,18 +500,18 @@ int NGATCil_Cil_Autoguide_On_Brightest_Parse(struct NGATCil_Cil_Packet_Struct pa
 			"Sequence number was NULL.");
 		return FALSE;
 	}
-	if(packet.Class != E_CIL_CMD_CLASS)
+	if(packet.Cil_Base.Class != E_CIL_CMD_CLASS)
 	{
 		NGATCil_General_Error_Number = 332;
 		sprintf(NGATCil_General_Error_String,"NGATCil_Cil_Autoguide_On_Brightest_Parse:"
-			"Wrong class number (%d vs %d).",packet.Class,E_CIL_CMD_CLASS);
+			"Wrong class number (%d vs %d).",packet.Cil_Base.Class,E_CIL_CMD_CLASS);
 		return FALSE;
 	}
-	if(packet.Service != E_AGS_CMD)
+	if(packet.Cil_Base.Service != E_AGS_CMD)
 	{
 		NGATCil_General_Error_Number = 333;
 		sprintf(NGATCil_General_Error_String,"NGATCil_Cil_Autoguide_On_Brightest_Parse:"
-			"Wrong service number (%d vs %d).",packet.Service,E_AGS_CMD);
+			"Wrong service number (%d vs %d).",packet.Cil_Base.Service,E_AGS_CMD);
 		return FALSE;
 	}
 	if(packet.Command != E_AGS_GUIDE_ON_BRIGHTEST)
@@ -504,7 +521,7 @@ int NGATCil_Cil_Autoguide_On_Brightest_Parse(struct NGATCil_Cil_Packet_Struct pa
 			"Wrong command number (%d vs %d).",packet.Command,E_AGS_GUIDE_ON_BRIGHTEST);
 		return FALSE;
 	}
-	(*sequence_number) = packet.Seq_Num;
+	(*sequence_number) = packet.Cil_Base.Seq_Num;
 #if NGATCIL_DEBUG > 1
 	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_CIL,
 				   "NGATCil_Cil_Autoguide_On_Brightest_Parse:(%.2f,%.2f,%d):finished.",
@@ -516,6 +533,8 @@ int NGATCil_Cil_Autoguide_On_Brightest_Parse(struct NGATCil_Cil_Packet_Struct pa
 /**
  * Send an "autoguide on brightest" CIL reply packet on the specified socket.
  * For use by the AGS.
+ * @param hostname The hostname of the host to send the packet to.
+ * @param port_number The port number of the host to send the packet to.
  * @param socket_id The socket to send the packet over.
  * @param status The status to send for this packet. 
  * @param sequence_number The sequence number to use for this packet. Should be retrieved from the
@@ -527,17 +546,18 @@ int NGATCil_Cil_Autoguide_On_Brightest_Parse(struct NGATCil_Cil_Packet_Struct pa
  * @see #E_AGS_CMD
  * @see #E_CIL_RSP_CLASS
  * @see #Sequence_Number
- * @see #NGATCil_Cil_Packet_Send
+ * @see #NGATCil_Cil_Packet_Send_To
  * @see #NGATCil_Cil_Packet_Create
  * @see ngatcil_general.html#NGATCil_General_Error_Number
  * @see ngatcil_general.html#NGATCil_General_Error_String
  * @see ngatcil_general.html#NGATCil_General_Log
  * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_CIL
  */
-int NGATCil_Cil_Autoguide_On_Brightest_Reply_Send(int socket_id,int status,int sequence_number)
+int NGATCil_Cil_Autoguide_On_Brightest_Reply_Send(int socket_id,char *hostname,int port_number,int status,
+						  int sequence_number)
 {
 	struct timespec current_time;
-	struct NGATCil_Cil_Packet_Struct packet;
+	struct NGATCil_Ags_Packet_Struct packet;
 	int retval;
 
 #if NGATCIL_DEBUG > 1
@@ -550,7 +570,7 @@ int NGATCil_Cil_Autoguide_On_Brightest_Reply_Send(int socket_id,int status,int s
 	if(retval == FALSE)
 		return FALSE;
 	/* send packet */
-	retval = NGATCil_Cil_Packet_Send(socket_id,packet);
+	retval = NGATCil_Cil_Packet_Send_To(socket_id,hostname,port_number,packet);
 	if(retval == FALSE)
 		return FALSE;
 #if NGATCIL_DEBUG > 1
@@ -576,7 +596,7 @@ int NGATCil_Cil_Autoguide_On_Brightest_Reply_Send(int socket_id,int status,int s
  * @see ngatcil_general.html#NGATCil_General_Log
  * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_CIL
  */
-int NGATCil_Cil_Autoguide_On_Rank_Parse(struct NGATCil_Cil_Packet_Struct packet,int *rank,int *sequence_number)
+int NGATCil_Cil_Autoguide_On_Rank_Parse(struct NGATCil_Ags_Packet_Struct packet,int *rank,int *sequence_number)
 {
 #if NGATCIL_DEBUG > 1
 	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Autoguide_On_Rank_Parse:started.");
@@ -594,18 +614,18 @@ int NGATCil_Cil_Autoguide_On_Rank_Parse(struct NGATCil_Cil_Packet_Struct packet,
 		sprintf(NGATCil_General_Error_String,"NGATCil_Cil_Autoguide_On_Rank_Parse:Rank was NULL.");
 		return FALSE;
 	}
-	if(packet.Class != E_CIL_CMD_CLASS)
+	if(packet.Cil_Base.Class != E_CIL_CMD_CLASS)
 	{
 		NGATCil_General_Error_Number = 337;
 		sprintf(NGATCil_General_Error_String,"NGATCil_Cil_Autoguide_On_Rank_Parse:"
-			"Wrong class number (%d vs %d).",packet.Class,E_CIL_CMD_CLASS);
+			"Wrong class number (%d vs %d).",packet.Cil_Base.Class,E_CIL_CMD_CLASS);
 		return FALSE;
 	}
-	if(packet.Service != E_AGS_CMD)
+	if(packet.Cil_Base.Service != E_AGS_CMD)
 	{
 		NGATCil_General_Error_Number = 338;
 		sprintf(NGATCil_General_Error_String,"NGATCil_Cil_Autoguide_On_Rank_Parse:"
-			"Wrong service number (%d vs %d).",packet.Service,E_AGS_CMD);
+			"Wrong service number (%d vs %d).",packet.Cil_Base.Service,E_AGS_CMD);
 		return FALSE;
 	}
 	if(packet.Command != E_AGS_GUIDE_ON_RANK)
@@ -615,7 +635,7 @@ int NGATCil_Cil_Autoguide_On_Rank_Parse(struct NGATCil_Cil_Packet_Struct packet,
 			"Wrong command number (%d vs %d).",packet.Command,E_AGS_GUIDE_ON_RANK);
 		return FALSE;
 	}
-	(*sequence_number) = packet.Seq_Num;
+	(*sequence_number) = packet.Cil_Base.Seq_Num;
 	(*rank) = packet.Param1;
 #if NGATCIL_DEBUG > 1
 	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_CIL,
@@ -629,6 +649,8 @@ int NGATCil_Cil_Autoguide_On_Rank_Parse(struct NGATCil_Cil_Packet_Struct packet,
  * Send an "autoguide on rank" CIL reply packet on the specified socket.
  * For use by the AGS.
  * @param socket_id The socket to send the packet over.
+ * @param hostname The hostname of the host to send the packet to.
+ * @param port_number The port number of the host to send the packet to.
  * @param rank The rank requested to autoguide on.
  * @param status The status to send for this packet. 
  * @param sequence_number The sequence number to use for this packet. Should be retrieved from the
@@ -640,17 +662,18 @@ int NGATCil_Cil_Autoguide_On_Rank_Parse(struct NGATCil_Cil_Packet_Struct packet,
  * @see #E_AGS_CMD
  * @see #E_CIL_RSP_CLASS
  * @see #Sequence_Number
- * @see #NGATCil_Cil_Packet_Send
+ * @see #NGATCil_Cil_Packet_Send_To
  * @see #NGATCil_Cil_Packet_Create
  * @see ngatcil_general.html#NGATCil_General_Error_Number
  * @see ngatcil_general.html#NGATCil_General_Error_String
  * @see ngatcil_general.html#NGATCil_General_Log
  * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_CIL
  */
-int NGATCil_Cil_Autoguide_On_Rank_Reply_Send(int socket_id,int rank,int status,int sequence_number)
+int NGATCil_Cil_Autoguide_On_Rank_Reply_Send(int socket_id,char *hostname,int port_number,int rank,int status,
+					     int sequence_number)
 {
 	struct timespec current_time;
-	struct NGATCil_Cil_Packet_Struct packet;
+	struct NGATCil_Ags_Packet_Struct packet;
 	int retval;
 
 #if NGATCIL_DEBUG > 1
@@ -663,7 +686,7 @@ int NGATCil_Cil_Autoguide_On_Rank_Reply_Send(int socket_id,int rank,int status,i
 	if(retval == FALSE)
 		return FALSE;
 	/* send packet */
-	retval = NGATCil_Cil_Packet_Send(socket_id,packet);
+	retval = NGATCil_Cil_Packet_Send_To(socket_id,hostname,port_number,packet);
 	if(retval == FALSE)
 		return FALSE;
 #if NGATCIL_DEBUG > 1
@@ -676,6 +699,8 @@ int NGATCil_Cil_Autoguide_On_Rank_Reply_Send(int socket_id,int rank,int status,i
  * Send an "Autoguide off" CIL command packet on the specified socket.
  * For use for TCS (simulators).
  * @param socket_id The socket to send the packet over.
+ * @param hostname The hostname of the host to send the packet to.
+ * @param port_number The port number of the host to send the packet to.
  * @param sequence_number The address of an integer to store the sequence number generated for this packet.
  * @return The routine returns TRUE on success and FALSE on failure. If the routine failed,
  *      NGATCil_General_Error_Number and NGATCil_General_Error_String should be set.
@@ -684,16 +709,16 @@ int NGATCil_Cil_Autoguide_On_Rank_Reply_Send(int socket_id,int rank,int status,i
  * @see #E_AGS_CMD
  * @see #E_CIL_CMD_CLASS
  * @see #Sequence_Number
- * @see #NGATCil_Cil_Packet_Send
+ * @see #NGATCil_Cil_Packet_Send_To
  * @see ngatcil_general.html#NGATCil_General_Error_Number
  * @see ngatcil_general.html#NGATCil_General_Error_String
  * @see ngatcil_general.html#NGATCil_General_Log
  * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_CIL
  */
-int NGATCil_Cil_Autoguide_Off_Send(int socket_id,int *sequence_number)
+int NGATCil_Cil_Autoguide_Off_Send(int socket_id,char *hostname,int port_number,int *sequence_number)
 {
 	struct timespec current_time;
-	struct NGATCil_Cil_Packet_Struct packet;
+	struct NGATCil_Ags_Packet_Struct packet;
 	int retval;
 
 #if NGATCIL_DEBUG > 1
@@ -705,25 +730,25 @@ int NGATCil_Cil_Autoguide_Off_Send(int socket_id,int *sequence_number)
 		sprintf(NGATCil_General_Error_String,"NGATCil_Cil_Autoguide_Off_Send:Sequence number was NULL.");
 		return FALSE;
 	}
-	packet.Source_Id = E_CIL_TCS;
-	packet.Dest_Id = E_CIL_AGS;
-	packet.Class = E_CIL_CMD_CLASS;
-	packet.Service = E_AGS_CMD;
+	packet.Cil_Base.Source_Id = E_CIL_TCS;
+	packet.Cil_Base.Dest_Id = E_CIL_AGS;
+	packet.Cil_Base.Class = E_CIL_CMD_CLASS;
+	packet.Cil_Base.Service = E_AGS_CMD;
 	/* increment sequence number - prevent overflow */
 	Sequence_Number++;
 	if(Sequence_Number > 200000000)
 		Sequence_Number = 0;
-	packet.Seq_Num = Sequence_Number;
+	packet.Cil_Base.Seq_Num = Sequence_Number;
 	(*sequence_number) = Sequence_Number;
 	clock_gettime(CLOCK_REALTIME,&current_time);
-	packet.Timestamp_Seconds = current_time.tv_sec;
-	packet.Timestamp_Nanoseconds = current_time.tv_nsec;
+	packet.Cil_Base.Timestamp_Seconds = current_time.tv_sec;
+	packet.Cil_Base.Timestamp_Nanoseconds = current_time.tv_nsec;
 	packet.Command = E_AGS_GUIDE_OFF;
 	packet.Status = SYS_NOMINAL;
 	packet.Param1 = 0;
 	packet.Param2 = 0;
 	/* send packet */
-	retval = NGATCil_Cil_Packet_Send(socket_id,packet);
+	retval = NGATCil_Cil_Packet_Send_To(socket_id,hostname,port_number,packet);
 	if(retval == FALSE)
 		return FALSE;
 #if NGATCIL_DEBUG > 1
@@ -750,7 +775,7 @@ int NGATCil_Cil_Autoguide_Off_Send(int socket_id,int *sequence_number)
  * @see ngatcil_general.html#NGATCil_General_Log
  * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_CIL
  */
-int NGATCil_Cil_Autoguide_Off_Parse(struct NGATCil_Cil_Packet_Struct packet,int *status,int *sequence_number)
+int NGATCil_Cil_Autoguide_Off_Parse(struct NGATCil_Ags_Packet_Struct packet,int *status,int *sequence_number)
 {
 #if NGATCIL_DEBUG > 1
 	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Autoguide_Off_Parse:started.");
@@ -767,18 +792,18 @@ int NGATCil_Cil_Autoguide_Off_Parse(struct NGATCil_Cil_Packet_Struct packet,int 
 		sprintf(NGATCil_General_Error_String,"NGATCil_Cil_Autoguide_Off_Parse:Sequence number was NULL.");
 		return FALSE;
 	}
-	if(packet.Class != E_CIL_CMD_CLASS)
+	if(packet.Cil_Base.Class != E_CIL_CMD_CLASS)
 	{
 		NGATCil_General_Error_Number = 323;
 		sprintf(NGATCil_General_Error_String,"NGATCil_Cil_Autoguide_Off_Parse:"
-			"Wrong class number (%d vs %d).",packet.Class,E_CIL_CMD_CLASS);
+			"Wrong class number (%d vs %d).",packet.Cil_Base.Class,E_CIL_CMD_CLASS);
 		return FALSE;
 	}
-	if(packet.Service != E_AGS_CMD)
+	if(packet.Cil_Base.Service != E_AGS_CMD)
 	{
 		NGATCil_General_Error_Number = 324;
 		sprintf(NGATCil_General_Error_String,"NGATCil_Cil_Autoguide_Off_Parse:"
-			"Wrong service number (%d vs %d).",packet.Service,E_AGS_CMD);
+			"Wrong service number (%d vs %d).",packet.Cil_Base.Service,E_AGS_CMD);
 		return FALSE;
 	}
 	if(packet.Command != E_AGS_GUIDE_OFF)
@@ -789,7 +814,7 @@ int NGATCil_Cil_Autoguide_Off_Parse(struct NGATCil_Cil_Packet_Struct packet,int 
 		return FALSE;
 	}
 	(*status) = packet.Status;
-	(*sequence_number) = packet.Seq_Num;
+	(*sequence_number) = packet.Cil_Base.Seq_Num;
 #if NGATCIL_DEBUG > 1
 	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Autoguide_Off_Parse:(%#x,%d):finished.",
 				   (*status),(*sequence_number));
@@ -801,6 +826,8 @@ int NGATCil_Cil_Autoguide_Off_Parse(struct NGATCil_Cil_Packet_Struct packet,int 
  * Send an "Autoguide off" CIL reply packet on the specified socket.
  * For use by the AGS.
  * @param socket_id The socket to send the packet over.
+ * @param hostname The hostname of the host to send the packet to.
+ * @param port_number The port number of the host to send the packet to.
  * @param status The status to send for this packet. 
  * @param sequence_number The sequence number to use for this packet. Should be retrieved from the
  *        "Autoguide off" CIL command packet that caused this response to be sent.
@@ -811,16 +838,16 @@ int NGATCil_Cil_Autoguide_Off_Parse(struct NGATCil_Cil_Packet_Struct packet,int 
  * @see #E_AGS_CMD
  * @see #E_CIL_RSP_CLASS
  * @see #Sequence_Number
- * @see #NGATCil_Cil_Packet_Send
+ * @see #NGATCil_Cil_Packet_Send_To
  * @see ngatcil_general.html#NGATCil_General_Error_Number
  * @see ngatcil_general.html#NGATCil_General_Error_String
  * @see ngatcil_general.html#NGATCil_General_Log
  * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_CIL
  */
-int NGATCil_Cil_Autoguide_Off_Reply_Send(int socket_id,int status,int sequence_number)
+int NGATCil_Cil_Autoguide_Off_Reply_Send(int socket_id,char *hostname,int port_number,int status,int sequence_number)
 {
 	struct timespec current_time;
-	struct NGATCil_Cil_Packet_Struct packet;
+	struct NGATCil_Ags_Packet_Struct packet;
 	int retval;
 
 #if NGATCIL_DEBUG > 1
@@ -832,7 +859,7 @@ int NGATCil_Cil_Autoguide_Off_Reply_Send(int socket_id,int status,int sequence_n
 	if(retval == FALSE)
 		return FALSE;
 	/* send packet */
-	retval = NGATCil_Cil_Packet_Send(socket_id,packet);
+	retval = NGATCil_Cil_Packet_Send_To(socket_id,hostname,port_number,packet);
 	if(retval == FALSE)
 		return FALSE;
 #if NGATCIL_DEBUG > 1
@@ -858,7 +885,7 @@ int NGATCil_Cil_Autoguide_Off_Reply_Send(int socket_id,int status,int sequence_n
  * @see ngatcil_general.html#NGATCil_General_Log
  * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_CIL
  */
-int NGATCil_Cil_Autoguide_Off_Reply_Parse(struct NGATCil_Cil_Packet_Struct packet,int *status,int *sequence_number)
+int NGATCil_Cil_Autoguide_Off_Reply_Parse(struct NGATCil_Ags_Packet_Struct packet,int *status,int *sequence_number)
 {
 #if NGATCIL_DEBUG > 1
 	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Autoguide_Off_Reply_Parse:started.");
@@ -877,18 +904,18 @@ int NGATCil_Cil_Autoguide_Off_Reply_Parse(struct NGATCil_Cil_Packet_Struct packe
 			"NGATCil_Cil_Autoguide_Off_Reply_Parse:status was NULL.");
 		return FALSE;
 	}
-	if(packet.Class != E_CIL_RSP_CLASS)
+	if(packet.Cil_Base.Class != E_CIL_RSP_CLASS)
 	{
 		NGATCil_General_Error_Number = 328;
 		sprintf(NGATCil_General_Error_String,"NGATCil_Cil_Autoguide_Off_Reply_Parse:"
-			"Wrong class number (%d vs %d).",packet.Class,E_CIL_RSP_CLASS);
+			"Wrong class number (%d vs %d).",packet.Cil_Base.Class,E_CIL_RSP_CLASS);
 		return FALSE;
 	}
-	if(packet.Service != E_AGS_CMD)
+	if(packet.Cil_Base.Service != E_AGS_CMD)
 	{
 		NGATCil_General_Error_Number = 329;
 		sprintf(NGATCil_General_Error_String,"NGATCil_Cil_Autoguide_Off_Reply_Parse:"
-			"Wrong service number (%d vs %d).",packet.Service,E_AGS_CMD);
+			"Wrong service number (%d vs %d).",packet.Cil_Base.Service,E_AGS_CMD);
 		return FALSE;
 	}
 	if(packet.Command != E_AGS_GUIDE_OFF)
@@ -899,7 +926,7 @@ int NGATCil_Cil_Autoguide_Off_Reply_Parse(struct NGATCil_Cil_Packet_Struct packe
 		return FALSE;
 	}
 	(*status) = packet.Status;
-	(*sequence_number) = packet.Seq_Num;
+	(*sequence_number) = packet.Cil_Base.Seq_Num;
 #if NGATCIL_DEBUG > 1
 	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_CIL,
 				   "NGATCil_Cil_Autoguide_Off_Reply_Parse:(%#x,%d):finished.",
@@ -913,6 +940,9 @@ int NGATCil_Cil_Autoguide_Off_Reply_Parse(struct NGATCil_Cil_Packet_Struct packe
 ** ---------------------------------------------------------------------------- */
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.5  2006/07/20 15:15:27  cjm
+** Removed eCilNames (and put in header).
+**
 ** Revision 1.4  2006/07/16 20:12:46  cjm
 ** rewrite using NGATCil_Cil_Packet_Create to ensure packet is in network byte order.
 **
