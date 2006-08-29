@@ -1,5 +1,5 @@
 /* test_tcs.c
-** $Header: /home/cjm/cvs/autoguider/ngatcil/test/test_tcs.c,v 1.2 2006-06-07 13:43:09 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ngatcil/test/test_tcs.c,v 1.3 2006-08-29 14:15:44 cjm Exp $
 */
 /**
  * Test server that pretends to be an TCS, and receives guide packets sent by an autoguider.
@@ -8,7 +8,7 @@
  * test_tcs 
  * </pre>
  * @author Chris Mottram
- * @version $Revision: 1.2 $
+ * @version $Revision: 1.3 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -33,7 +33,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: test_tcs.c,v 1.2 2006-06-07 13:43:09 cjm Exp $";
+static char rcsid[] = "$Id: test_tcs.c,v 1.3 2006-08-29 14:15:44 cjm Exp $";
 /**
  * Command server (telnet) port.
  */
@@ -121,7 +121,7 @@ int main(int argc, char* argv[])
 	}
 	/* start NGAT CIL TCS Command reply packet server */
 	fprintf(stdout, "Starting TCS CIL Command reply UDP server on port %d.\n",TCS_UDP_CIL_Command_Port);
-	retval = NGATCil_UDP_Server_Start(TCS_UDP_CIL_Command_Port,NGATCIL_CIL_PACKET_LENGTH,
+	retval = NGATCil_UDP_Server_Start(TCS_UDP_CIL_Command_Port,NGATCIL_CIL_AGS_PACKET_LENGTH,
 					  &TCS_UDP_CIL_Command_Socket_Fd,Test_TCS_CIL_Command_UDP_Server_Callback);
 	if(retval == FALSE)
 	{
@@ -246,32 +246,17 @@ static void Send_Reply(Command_Server_Handle_T connection_handle,char *reply_mes
  * Send an autoguider on pixel CIL UDP command to the AGS.
  * @see #ACC_Hostname
  * @see #AGS_CIL_UDP_Port
+ * @see #TCS_UDP_CIL_Command_Socket_Fd
  */
 static int Send_Autoguider_On(float x,float y,int *sequence_number)
 {
-	int retval,socket_fd;
+	int retval;
 
-	retval = NGATCil_UDP_Open(ACC_Hostname,AGS_CIL_UDP_Port,&socket_fd);
-	if(retval == FALSE)
-	{
-		fprintf(stderr,"Send_Autoguider_On:Failed to open UDP CIL port (%s:%d).\n",
-			ACC_Hostname,AGS_CIL_UDP_Port);
-		NGATCil_General_Error();
-		return FALSE;
-	}
-	retval = NGATCil_Cil_Autoguide_On_Pixel_Send(socket_fd,x,y,sequence_number);
+	retval = NGATCil_Cil_Autoguide_On_Pixel_Send(TCS_UDP_CIL_Command_Socket_Fd,ACC_Hostname,AGS_CIL_UDP_Port,
+						     x,y,sequence_number);
 	if(retval == FALSE)
 	{
 		fprintf(stderr,"Send_Autoguider_On:Failed to send autoguide on pixel packet.\n");
-		NGATCil_General_Error();
-		NGATCil_UDP_Close(socket_fd);
-		return FALSE;
-	}
-	retval = NGATCil_UDP_Close(socket_fd);
-	if(retval == FALSE)
-	{
-		fprintf(stderr,"Send_Autoguider_On:Failed to close UDP CIL port (%s:%d).\n",
-			ACC_Hostname,AGS_CIL_UDP_Port);
 		NGATCil_General_Error();
 		return FALSE;
 	}
@@ -282,32 +267,17 @@ static int Send_Autoguider_On(float x,float y,int *sequence_number)
  * Send an autoguider off CIL UDP command to the AGS.
  * @see #ACC_Hostname
  * @see #AGS_CIL_UDP_Port
+ * @see #TCS_UDP_CIL_Command_Socket_Fd
  */
 static int Send_Autoguider_Off(int *sequence_number)
 {
-	int retval,socket_fd;
+	int retval;
 
-	retval = NGATCil_UDP_Open(ACC_Hostname,AGS_CIL_UDP_Port,&socket_fd);
-	if(retval == FALSE)
-	{
-		fprintf(stderr,"Send_Autoguider_Off:Failed to open UDP CIL port (%s:%d).\n",
-			ACC_Hostname,AGS_CIL_UDP_Port);
-		NGATCil_General_Error();
-		return FALSE;
-	}
-	retval = NGATCil_Cil_Autoguide_Off_Send(socket_fd,sequence_number);
+	retval = NGATCil_Cil_Autoguide_Off_Send(TCS_UDP_CIL_Command_Socket_Fd,ACC_Hostname,AGS_CIL_UDP_Port,
+						sequence_number);
 	if(retval == FALSE)
 	{
 		fprintf(stderr,"Send_Autoguider_Off:Failed to send autoguide off pixel packet.\n");
-		NGATCil_General_Error();
-		NGATCil_UDP_Close(socket_fd);
-		return FALSE;
-	}
-	retval = NGATCil_UDP_Close(socket_fd);
-	if(retval == FALSE)
-	{
-		fprintf(stderr,"Send_Autoguider_Off:Failed to close UDP CIL port (%s:%d).\n",
-			ACC_Hostname,AGS_CIL_UDP_Port);
 		NGATCil_General_Error();
 		return FALSE;
 	}
@@ -366,34 +336,36 @@ static int Test_TCS_Guide_UDP_Server_Callback(int socket_id,void *message_buff,i
 static int Test_TCS_CIL_Command_UDP_Server_Callback(int socket_id,void *message_buff,int message_length)
 {
 	struct NGATCil_Cil_Packet_Struct cil_packet;
+	struct NGATCil_Ags_Packet_Struct ags_cil_packet;
 	float pixel_x,pixel_y;
 	int sequence_number,status;
 
-	if(message_length != NGATCIL_CIL_PACKET_LENGTH)
+	if(message_length != NGATCIL_CIL_AGS_PACKET_LENGTH)
 	{
 		fprintf(stderr,"Test_TCS_CIL_Command_UDP_Server_Callback:"
-			"received CIL packet of wrong length %d vs %d.\n",message_length,NGATCIL_CIL_PACKET_LENGTH);
+			"received CIL packet of wrong length %d vs %d.\n",message_length,
+			NGATCIL_CIL_AGS_PACKET_LENGTH);
 		return FALSE;
 	}
-	/* diddly won't work if NGATCIL_CIL_PACKET_LENGTH != sizeof(struct NGATCil_Cil_Packet_Struct) */
-	memcpy(&cil_packet,message_buff,message_length);
-	if(cil_packet.Class != E_CIL_RSP_CLASS)
+	/* diddly won't work if NGATCIL_CIL_AGS_PACKET_LENGTH != sizeof(struct NGATCil_Ags_Packet_Struct) */
+	memcpy(&ags_cil_packet,message_buff,message_length);
+	if(ags_cil_packet.Cil_Base.Class != E_CIL_RSP_CLASS)
 	{
 		fprintf(stderr,"Test_TCS_CIL_Command_UDP_Server_Callback:"
-			"received CIL packet for wrong class %d vs %d.\n",cil_packet.Class,E_CIL_RSP_CLASS);
+			"received CIL packet for wrong class %d vs %d.\n",ags_cil_packet.Cil_Base.Class,E_CIL_RSP_CLASS);
 		return FALSE;
 	}
-	if(cil_packet.Service != E_AGS_CMD)
+	if(ags_cil_packet.Cil_Base.Service != E_AGS_CMD)
 	{
 		fprintf(stderr,"Test_TCS_CIL_Command_UDP_Server_Callback:"
-			"received CIL packet for wrong service %d vs %d.\n",cil_packet.Service,E_AGS_CMD);
+			"received CIL packet for wrong service %d vs %d.\n",ags_cil_packet.Cil_Base.Service,E_AGS_CMD);
 		return FALSE;
 	}
-	switch(cil_packet.Command)
+	switch(ags_cil_packet.Command)
 	{
 		case E_AGS_GUIDE_ON_PIXEL:
 			fprintf(stdout,"Test_TCS_CIL_Command_UDP_Server_Callback:Reply is autoguider on pixel.\n");
-			if(!NGATCil_Cil_Autoguide_On_Pixel_Reply_Parse(cil_packet,&pixel_x,&pixel_y,
+			if(!NGATCil_Cil_Autoguide_On_Pixel_Reply_Parse(ags_cil_packet,&pixel_x,&pixel_y,
 								       &status,&sequence_number))
 			{
 				fprintf(stderr,"Test_TCS_CIL_Command_UDP_Server_Callback:"
@@ -406,7 +378,7 @@ static int Test_TCS_CIL_Command_UDP_Server_Callback(int socket_id,void *message_
 			break;
 		case E_AGS_GUIDE_OFF:
 			fprintf(stdout,"Test_TCS_CIL_Command_UDP_Server_Callback:Reply is autoguider off.\n");
-			if(!NGATCil_Cil_Autoguide_Off_Reply_Parse(cil_packet,&status,&sequence_number))
+			if(!NGATCil_Cil_Autoguide_Off_Reply_Parse(ags_cil_packet,&status,&sequence_number))
 			{
 				fprintf(stderr,"Test_TCS_CIL_Command_UDP_Server_Callback:"
 					"Failed to parse autoguider off reply.\n");
@@ -417,7 +389,7 @@ static int Test_TCS_CIL_Command_UDP_Server_Callback(int socket_id,void *message_
 			break;
 		default:
 			fprintf(stderr,"Test_TCS_CIL_Command_UDP_Server_Callback:"
-				"received CIL packet with unknown command %d.\n",cil_packet.Command);
+				"received CIL packet with unknown command %d.\n",ags_cil_packet.Command);
 			return FALSE;
 			break;
 	}
@@ -516,6 +488,9 @@ static void Help(void)
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.2  2006/06/07 13:43:09  cjm
+** Added CIL command handling.
+**
 ** Revision 1.1  2006/06/01 15:28:14  cjm
 ** Initial revision
 **
