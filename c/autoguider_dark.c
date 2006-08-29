@@ -1,11 +1,11 @@
 /* autoguider_dark.c
 ** Autoguider dark routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_dark.c,v 1.1 2006-06-01 15:18:38 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_dark.c,v 1.2 2006-08-29 14:35:38 cjm Exp $
 */
 /**
  * Dark routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.1 $
+ * @version $Revision: 1.2 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -71,7 +71,7 @@ struct Dark_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_dark.c,v 1.1 2006-06-01 15:18:38 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_dark.c,v 1.2 2006-08-29 14:35:38 cjm Exp $";
 /**
  * Instance of dark data.
  * @see #Dark_Struct
@@ -346,19 +346,19 @@ int Autoguider_Dark_Subtract(float *buffer_ptr,int pixel_count,int ncols,int nro
 				window.X_End,window.X_Start,window.Y_End,window.Y_Start,pixel_count);
 			return FALSE;
 		}
-		if((window.X_End+1) >= Dark_Data.Binned_NCols)
+		if(window.X_End >= Dark_Data.Binned_NCols)
 		{
 			Autoguider_General_Error_Number = 823;
 			sprintf(Autoguider_General_Error_String,"Autoguider_Dark_Subtract:"
-			"Windowed buffer dimension mismatch: Window X end (%d+1) >= Dark binned ncols (%d).",
+			"Windowed buffer dimension mismatch: Window X end (%d) >= Dark binned ncols (%d).",
 				window.X_End,Dark_Data.Binned_NCols);
 			return FALSE;
 		}
-		if((window.Y_End+1) >= Dark_Data.Binned_NRows)
+		if(window.Y_End >= Dark_Data.Binned_NRows)
 		{
 			Autoguider_General_Error_Number = 824;
 			sprintf(Autoguider_General_Error_String,"Autoguider_Dark_Subtract:"
-			"Windowed buffer dimension mismatch: Window Y end (%d+1) >= Dark binned nrows (%d).",
+			"Windowed buffer dimension mismatch: Window Y end (%d) >= Dark binned nrows (%d).",
 				window.Y_End,Dark_Data.Binned_NRows);
 			return FALSE;
 		}
@@ -823,4 +823,7 @@ static int Dark_Exposure_Length_List_Initialise(void)
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2006/06/01 15:18:38  cjm
+** Initial revision
+**
 */
