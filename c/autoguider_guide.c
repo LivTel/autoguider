@@ -1,11 +1,11 @@
 /* autoguider_guide.c
 ** Autoguider guide routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.18 2006-08-29 13:55:31 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.19 2006-08-29 14:39:13 cjm Exp $
 */
 /**
  * Guide routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.18 $
+ * @version $Revision: 1.19 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -97,7 +97,7 @@ struct Guide_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_guide.c,v 1.18 2006-08-29 13:55:31 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_guide.c,v 1.19 2006-08-29 14:39:13 cjm Exp $";
 /**
  * Instance of guide data.
  * @see #Guide_Struct
@@ -609,10 +609,11 @@ int Autoguider_Guide_Set_Guide_Object(int index)
 	if(sy < 1)
 		sy = 1; 
 	ex = sx + default_window_width;
-	if(ex > Guide_Data.Binned_NCols)
+	/* guide windows are inclusive i.e. pixel 0..1023 - 1023 is the last pixel where npixels is 1024 */
+	if(ex >= Guide_Data.Binned_NCols)
 		ex = Guide_Data.Binned_NCols - 1;
 	ey = sy + default_window_height;
-	if(ey > Guide_Data.Binned_NRows)
+	if(ey >= Guide_Data.Binned_NRows)
 		ey = Guide_Data.Binned_NRows - 1;
 	/* set guide window data */
 	if(!Autoguider_Guide_Window_Set(sx,sy,ex,ey))
@@ -1518,6 +1519,13 @@ static int Guide_Dimension_Config_Load(void)
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.18  2006/08/29 13:55:31  cjm
+** Added Autoguider_CIL_SDB_Packet_Send so that reseting SDB AG_STATE to idle
+** is sent to the SDB on errors in the Guide_Thread.
+** Added  Autoguider_CIL_SDB_Packet_State_Set and Autoguider_CIL_SDB_Packet_Send calls
+** to Autoguider_Guide_Off so it tries to set the SDB state every time the autoguider
+** is told to stop.
+**
 ** Revision 1.17  2006/08/29 13:20:48  cjm
 ** SDB now uses AGG_STATE rather than AGS_STATE.
 ** Checks on position near edge of window relaxed.
