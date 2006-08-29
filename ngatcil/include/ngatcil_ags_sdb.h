@@ -1,5 +1,5 @@
 /* ngatcil_ags_sdb.h
-** $Header: /home/cjm/cvs/autoguider/ngatcil/include/ngatcil_ags_sdb.h,v 1.1 2006-07-20 15:12:17 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ngatcil/include/ngatcil_ags_sdb.h,v 1.2 2006-08-29 14:12:06 cjm Exp $
 */
 #ifndef NGATCIL_AGS_SDB_H
 #define NGATCIL_AGS_SDB_H
@@ -19,7 +19,7 @@
  * Global data submitted to the SDB on behalf of each application.
  * TtlSystem.h.
  */
-typedef enum eMcpDataId_e
+enum eMcpDataId_e
 {
    D_MCP_DATAID_BOL = 0,     /* Beginning of data list                        */
    D_MCP_PROC_STATE = 1,     /* Process state                                 */
@@ -32,13 +32,21 @@ typedef enum eMcpDataId_e
                              /*  units : MVERSION,   enum : -                 */
    D_MCP_FIRST_USER_DATUM,   /* First datum slot available to user            */
    D_MCP_DATAID_EOL          /* End of list marker                            */
-} eMcpDataId_t;
+};
+
+/**
+ * Typedef of global data submitted to the SDB on behalf of each application.
+ * TtlSystem.h.
+ * @see #eMcpDataId_e
+ */
+typedef enum eMcpDataId_e eMcpDataId_t;
 
 /**
  * Enumerated list of states reported to the SDB by the autoguider. 
+ * Doesn't actually seem to be used - AGSTATE filled in with AggState...
  * Ags.h.
  */
-typedef enum eAgsState_e
+enum eAgsState_e
 {
   E_AGS_OFF,                  /* Not ready to accept observing commands. */
   E_AGS_ON_BRIGHTEST,         /* Supplying guiding corrections on brightest */
@@ -59,13 +67,83 @@ typedef enum eAgsState_e
                               /* suppliying guiding data. */
   E_AGS_ERROR,                /* Recoverable error. */
   E_AGS_NON_RECOVERABLE_ERROR /* Non recoverable error. */
-} eAgsState_t;   
+};   
+
+/**
+ * Typedef of enumerated list of states reported to the SDB by the autoguider. 
+ * Ags.h.
+ * @see #eAgsState_e
+ */
+typedef enum eAgsState_e eAgsState_t;
+
+/**
+ * Enumerated list of keywords used to build up commands to the AGG. 
+ * Agg.h.
+ */
+enum eAggCmdKeyword_e
+{
+   E_AGG_ON,                 /* Turn on (ie guiding, loop). */ 
+   E_AGG_OFF,                /* Turn off (ie guiding, loop). */
+   E_AGG_BRIGHTEST,          /* Guide on brightest source. */
+   E_AGG_RANGE,              /* Guide on source within magnitude range. */
+   E_AGG_RANK,               /* Guide on source of given rank. */
+   E_AGG_PIXEL,              /* Guide on source closest to supplied pixel. */
+   E_AGG_CONF_EXPTIME,       /* Configure exposure time. */
+   E_AGG_CONF_FRATE,         /* Configure frame rate. */
+   E_AGG_CONF_FAVERAGE,      /* Configure frame average. */ 
+   E_AGG_CONF_CALIB          /* Configure calibration (grey level->rank). */
+};
+
+/**
+ * Typedef of enumerated list of keywords used to build up commands to the AGG. 
+ * Agg.h.
+ * @see #eAggCmdKeyword_e
+ */
+typedef enum eAggCmdKeyword_e eAggCmdKeyword_t;
+
+/**
+ * Enumerated list of Agg states.
+ * Agg.h.
+ */
+enum eAggState_e
+{
+   E_AGG_STATE_UNKNOWN          = 0x0,
+   E_AGG_STATE_OK               = 0x10,
+   E_AGG_STATE_OFF,
+   E_AGG_STATE_STANDBY,
+   E_AGG_STATE_IDLE,
+   E_AGG_STATE_WORKING,
+   E_AGG_STATE_INIT,
+   E_AGG_STATE_FAILED,
+   E_AGG_STATE_INTWORK,
+   E_AGG_STATE_ERROR            = 0x100,
+   E_AGG_STATE_NONRECERR,
+   E_AGG_STATE_LOOP_RUNNING     = 0x1000,
+   E_AGG_STATE_GUIDEONBRIGHT    = E_AGG_STATE_LOOP_RUNNING + E_AGG_BRIGHTEST,
+   E_AGG_STATE_GUIDEONRANGE     = E_AGG_STATE_LOOP_RUNNING + E_AGG_RANGE,
+   E_AGG_STATE_GUIDEONRANK      = E_AGG_STATE_LOOP_RUNNING + E_AGG_RANK,
+   E_AGG_STATE_GUIDEONPIXEL     = E_AGG_STATE_LOOP_RUNNING + E_AGG_PIXEL,
+   E_AGG_STATE_INTON,
+   E_AGG_TSTATE_AT_TEMP         = 0x10000,
+   E_AGG_TSTATE_ABOVE_TEMP,
+   E_AGG_TSTATE_BELOW_TEMP,
+   E_AGG_TSTATE_ERROR,
+   E_AGG_STATE_EOL
+};
+
+/**
+ * Typedef of enumerated list of AGG states reported to the SDB by the autoguider. 
+ * Ags.h.
+ * @see #eAggState_e
+ */
+typedef enum eAggState_e eAggState_t;   
+
 
 /**
  * Global data for submission to the Status Database (SDB).
  * Ags.h.
  */
-typedef enum eAgsDataId_e
+enum eAgsDataId_e
 {
    D_AGS_DATAID_BOL = 0,     /* Begining of data list */
 
@@ -95,12 +173,18 @@ typedef enum eAgsDataId_e
    D_AGS_AGFRAMEMEAN,        /* Autoguider frame mean */
    D_AGS_AGFRAMERMS,         /* Autoguider frame rms */
    D_AGS_DATAID_EOL          /* End of list.                                */
-} eAgsDataId_t;
+};
 
+/**
+ * Typedef of global data for submission to the Status Database (SDB).
+ * Ags.h.
+ * @see #eAgsDataId_e
+ */
+typedef enum eAgsDataId_e eAgsDataId_t;
 
 /* external function declarations */
 extern int NGATCil_AGS_SDB_Initialise(void);
-extern int NGATCil_AGS_SDB_Open_Default(int *socket_id);
+extern int NGATCil_AGS_SDB_Remote_Host_Set(char *hostname,int port_number);
 extern int NGATCil_AGS_SDB_Status_Send(int socket_id);
 extern int NGATCil_AGS_SDB_Value_Set(eAgsDataId_t datum_id,int value);
 
