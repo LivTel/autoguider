@@ -1,6 +1,6 @@
 #!/bin/csh
-# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_tar_install,v 1.2 2006-07-20 15:40:51 cjm Exp $
-# Version: $Revision: 1.2 $
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_tar_install,v 1.3 2006-08-29 15:03:30 cjm Exp $
+# Version: $Revision: 1.3 $
 # By $Author: cjm $
 # Install a deployment tar created by autoguider_make_deployment, not on a floppy
 # Usage:
@@ -38,17 +38,26 @@ foreach file ( ${file_list} )
     endif
 end
 #
+# Ensure LD_LIBRARY_PATH includes autoguider libraries dir so send_command below works.
+#
+if ( -d /icc/bin/autoguider/lib/i386-linux ) then
+    echo "Adding /icc/bin/autoguider/lib/i386-linux to LD_LIBRARY_PATH."
+    setenv LD_LIBRARY_PATH "${LD_LIBRARY_PATH}:/icc/bin/autoguider/lib/i386-linux"
+endif
+#
 # Kill any running processes
 #
 if ( -x /icc/bin/scripts/killhup.csh ) then
     echo "Trying to kill AutoBooter."
     /icc/bin/scripts/killhup.csh AutoBooter
-    echo "Trying to kill autoguider."
-    /icc/bin/scripts/killhup.csh autoguider
-#    echo "Trying to kill icsd_inet."
-#    /icc/bin/scripts/killhup.csh icsd_inet
 else
     echo "killhup not found:FAILED to stop running processess."
+endif
+if ( -x /icc/bin/autoguider/commandserver/test/i386-linux/send_command ) then
+    echo "Trying to kill autoguider by sending shutdown command."
+    /icc/bin/autoguider/commandserver/test/i386-linux/send_command -h ${machine_name} -p 6571 -c "shutdown"
+else
+    echo "send_command not found:FAILED to stop running autoguider."
 endif
 #
 # Kill nfs server - /icc/tmp is usually mounted for the rcs machine
@@ -64,15 +73,12 @@ else
 endif
 #
 # Delete old installation
+# DON'T delete the log directory.
 #
 if( -d /${icc}/bin ) then
     echo "Deleting /${icc}/bin directory."
     rm -rf /${icc}/bin/*
 endif
-#if( -d /${icc}/log ) then
-#    echo "Deleting /${icc}/log directory."
-#    rm -rf /${icc}/log/*
-#endif
 #
 # Create new top level directory (if it does not already exist
 # test for presence of /space, if it exists make /icc -> /space/icc
