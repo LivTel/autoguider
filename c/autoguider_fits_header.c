@@ -1,11 +1,11 @@
 /* autoguider_fits_header.c
 ** Autoguider fits header list handling routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_fits_header.c,v 1.2 2006-07-17 13:45:30 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_fits_header.c,v 1.3 2006-08-29 13:55:42 cjm Exp $
 */
 /**
  * Routines to look after lists of FITS headers to go into images.
  * @author Chris Mottram
- * @version $Revision: 1.2 $
+ * @version $Revision: 1.3 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -97,7 +97,7 @@ struct Fits_Header_Card_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_fits_header.c,v 1.2 2006-07-17 13:45:30 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_fits_header.c,v 1.3 2006-08-29 13:55:42 cjm Exp $";
 
 /* internal functions */
 static int Fits_Header_Add_Card(struct Fits_Header_Struct *header,struct Fits_Header_Card_Struct card);
@@ -517,28 +517,53 @@ int Autoguider_Fits_Header_Free(struct Fits_Header_Struct *header)
  */
 int Autoguider_Fits_Header_Write_To_Fits(struct Fits_Header_Struct header,fitsfile *fits_fp)
 {
-	int i;
+	int i,status,retval;
+	char buff[32]; /* fits_get_errstatus returns 30 chars max */
+
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER,
 			       "Autoguider_Fits_Header_Write_To_Fits:started.");
 #endif
+	status = 0;
 	for(i=0;i<header.Card_Count;i++)
 	{
 		switch(header.Card_List[i].Type)
 		{
 			case FITS_HEADER_TYPE_STRING:
-
+				retval = fits_update_key(fits_fp,TSTRING,header.Card_List[i].Keyword,
+							 header.Card_List[i].Value.String,NULL,&status);
 				break;
 			case FITS_HEADER_TYPE_INTEGER:
+				retval = fits_update_key(fits_fp,TINT,header.Card_List[i].Keyword,
+							 &(header.Card_List[i].Value.Int),NULL,&status);
 				break;
 			case FITS_HEADER_TYPE_FLOAT:
+				retval = fits_update_key_fixdbl(fits_fp,header.Card_List[i].Keyword,
+								header.Card_List[i].Value.Float,6,NULL,&status);
+				/*retval = fits_update_key(fits_fp,TDOUBLE,header.Keyword,header.Value.Float,
+				**NULL,&status);*/
 				break;
 			case FITS_HEADER_TYPE_LOGICAL:
+				retval = fits_update_key(fits_fp,TLOGICAL,header.Card_List[i].Keyword,
+							 &(header.Card_List[i].Value.Boolean),NULL,&status);
 				break;
-
 			default:
+				Autoguider_General_Error_Number = 1218;
+				sprintf(Autoguider_General_Error_String,"Autoguider_Fits_Header_Write_To_Fits:"
+					"Card %d (Keyword %s) has unknown type %d.",i,header.Card_List[i].Keyword,
+					header.Card_List[i].Type);
+				return FALSE;
 				break;
 		}
+		if(retval)
+		{
+			fits_get_errstatus(status,buff);
+			Autoguider_General_Error_Number = 1217;
+			sprintf(Autoguider_General_Error_String,"Autoguider_Fits_Header_Write_To_Fits:"
+				"Failed to update %d %s (%s).",i,header.Card_List[i].Keyword,buff);
+			return FALSE;
+		}
+		/* diddly comment */
 		/*diddly*/
 	}
 #if AUTOGUIDER_DEBUG > 1
@@ -637,6 +662,9 @@ static int Fits_Header_Add_Card(struct Fits_Header_Struct *header,struct Fits_He
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.2  2006/07/17 13:45:30  cjm
+** Fixed comment.
+**
 ** Revision 1.1  2006/07/16 20:13:54  cjm
 ** Initial revision
 **
