@@ -1,14 +1,25 @@
 /* ngatcil_cil.h
-** $Header: /home/cjm/cvs/autoguider/ngatcil/include/ngatcil_cil.h,v 1.4 2006-07-20 15:16:01 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ngatcil/include/ngatcil_cil.h,v 1.5 2006-08-29 14:12:06 cjm Exp $
 */
 #ifndef NGATCIL_CIL_H
 #define NGATCIL_CIL_H
+#include <stdint.h>
 
 /* hash defines */
 /**
- * Length of AGS CIL packet?
+ * Length of Base CIL packet.
+ * @see #NGATCil_Cil_Packet_Struct
  */
-#define NGATCIL_CIL_PACKET_LENGTH   (44)
+#define NGATCIL_CIL_BASE_PACKET_LENGTH  (28)
+/**
+ * Length of AGS CIL packet.
+ * @see #NGATCil_Ags_Packet_Struct
+ */
+#define NGATCIL_CIL_AGS_PACKET_LENGTH   (44)
+/**
+ * Maximum Length of packet the AGS can receive. See I_AGS_CIL_DATALEN, iAgsReceiveMessage in AgsMain.c.
+ */
+#define NGATCIL_CIL_AGS_MAX_PACKET_LENGTH (256)
 /**
  * Default port number for CIL UDP port for TCS commands to the TCS.
  * See Cil.map.
@@ -24,6 +35,27 @@
  * See Cil.map.
  */
 #define NGATCIL_CIL_ACC_DEFAULT      ("acc")
+/**
+ * Default machine name to send CHB (continuous heart beat) replies to (scc).
+ * See Cil.map.
+ */
+#define NGATCIL_CIL_CHB_HOSTNAME_DEFAULT   ("scc")
+/**
+ * Default port number to send CHB (continuous heart beat) replies on (13002).
+ * See Cil.map.
+ */
+#define NGATCIL_CIL_CHB_PORT_DEFAULT (13002)
+/**
+ * Default machine name to send MCP (master control process) replies to (scc).
+ * See Cil.map.
+ */
+#define NGATCIL_CIL_MCP_HOSTNAME_DEFAULT   ("scc")
+/**
+ * Default port number to send MCP (master control process) replies on (13001).
+ * See Cil.map.
+ */
+#define NGATCIL_CIL_MCP_PORT_DEFAULT (13001)
+
 /**
  * Used in CIL packets, Class field, for an invalid class of packet.
  * Derived from "Generic 2.0m Telescope, Autoguider to TCS Interface Control Document,
@@ -42,6 +74,26 @@
  * Version 0.01, 6th October 2005".
  */
 #define E_CIL_RSP_CLASS           (2)
+/**
+ * Used in CIL packets, Class field, for acknowledge class packets.
+ * Derived from Cil.h,eCilClass.
+ */
+#define E_CIL_ACK_CLASS           (3)
+/**
+ * Used in CIL packets, Class field, for acted upon class packets.
+ * Derived from Cil.h,eCilClass.
+ */
+#define E_CIL_ACT_CLASS           (4)
+/**
+ * Used in CIL packets, Class field, for completed class packets.
+ * Derived from Cil.h,eCilClass.
+ */
+#define E_CIL_COM_CLASS           (5)
+/**
+ * Used in CIL packets, Class field, for error class packets.
+ * Derived from Cil.h,eCilClass.
+ */
+#define E_CIL_ERR_CLASS           (6)
 /**
  * Used in CIL packets, Service field, to denote the AutoGuider Service.
  * Derived from "Generic 2.0m Telescope, Autoguider to TCS Interface Control Document,
@@ -79,11 +131,51 @@
  */
 #define E_AGS_GUIDE_OFF           (5)
 /**
+ * Used in CIL packets from the TCS, Command field, to tell the AGS to start a session.
+ * Derived from Ags.h
+ */
+#define E_AGS_START_SESSION       (10)
+/**
+ * Used in CIL packets from the TCS, Command field, to tell the AGS to end a session.
+ * Derived from Ags.h
+ */
+#define E_AGS_END_SESSION         (11)
+/**
+ * Used in CHB hearbeat messages as the Service.
+ * Value from TtlSystem.h.
+ */
+#define E_MCP_HEARTBEAT      255       /* heartbeat message */
+/**
+ * Used in MCP state change messages as the Service.
+ * Value from TtlSystem.h.
+ */
+#define E_MCP_SHUTDOWN       254       /* shutdown message */
+/**
+ * Used in MCP state change messages as the Service.
+ * Value from TtlSystem.h.
+ */
+#define E_MCP_SAFESTATE      253       /* safe-state message */
+/**
+ * Used in MCP state change messages as the Service.
+ * Value from TtlSystem.h.
+ */
+#define E_MCP_ACTIVATE       252       /* activate message from safe-state */
+/**
  * Used in CIL packets, Status field, to indicate all is well.
  * Derived from "Generic 2.0m Telescope, Autoguider to TCS Interface Control Document,
  * Version 0.01, 6th October 2005".
+ * According to the latest TtlSystem.h, it is STATUS_START(SYS), where STATUS_START is
+ * #define STATUS_START(x) ((x) << 16) and SYS is 0x0001
  */
 #define SYS_NOMINAL               (0x10000)
+/**
+ * According to folklore, TTL timestamps are not based on Unix time (1st Jan 1970) but on
+ * 5th Jan 1980 00:00:00. Accordingly, this offset is applied, based on "date -d "Jan 5 00:00:00 +00 1980" "+%s""
+ * returning 315878400.
+ * But apparently not, according to test_cil_server TTL timestamps are based on Unix time (1st Jan 1970).
+ */
+/* define TTL_TIMESTAMP_OFFSET (315878400)*/
+#define TTL_TIMESTAMP_OFFSET (0)
 
 /* enums */
 /**
@@ -273,70 +365,186 @@ enum NGATCIL_CIL_AGS_STATUS
 	E_AGS_HW_ERR                     /* Error reported by camera hardware. */
 };
 
+/**
+ * Process state definitions.
+ * The various processes of the telescope system maintain a concept of
+ * their own "state". This is used internally, but is also reported to
+ * other parts of the system. In order to provide a common form to
+ * specify these states, the following enumerated list is provided.
+ * Because these states are part of the interprocess communications,
+ * the list should only have additional states added to the end of it,
+ * and not inserted in the middle.
+ * Note also that these are process states and not other states (e.g.
+ * mechanisms). They are to be used to determine if a process is
+ * operating, rather than how a system is functioning, for the
+ * purposes of MCP control of software recovery.
+ * The SYS_OFF_STATE and SYS_TIMEOUT_STATE are not set by the process, 
+ * but may be set by the MCP. These are inferred states. 
+ * The SYS_INVALID_STATE is never explicitly set. It is to prevent an 
+ * uninitialised state variable from having a valid state on creation.
+ * All states must be explicitly set, and this guards against unset cases.
+ *  TtlSystem.h
+ */
+enum eSysProcState_e
+{
+   SYS_INVALID_STATE = 0,       /* No state has been set (uninitialised). */
+   SYS_OKAY_STATE,     /* The process is operating normally.              */
+   SYS_INIT_STATE,     /* The process is performing its initial start-up  */
+                       /* or awaiting initialisation commands to take the */
+                       /* process to SYS_OKAY_STATE (if appropriate).     */
+   SYS_STANDBY_STATE,  /* This state is used for a process or the system  */
+                       /* when software is running, but not yet ready for */
+                       /* full operation. To move from this state to OKAY */
+                       /* will require some action to be taken. For       */
+                       /* example, axis software will attain this state   */
+                       /* until the axis is homed.                        */
+   SYS_WARN_STATE,     /* A problem has occurred, but no automatic        */
+                       /* intervention is required from the MCP. The      */
+                       /* telescope may still be used in this state, but  */
+                       /* there is a possibility that operational         */
+                       /* performance may be degraded.                    */
+   SYS_FAILED_STATE,   /* A problem has occurred with the process that    */
+                       /* requires intervention by the MCP.               */
+   SYS_SAFE_STATE,     /* The process has ceased normal operation (maybe  */
+                       /* only temporarily) and is either about to        */
+                       /* terminate itself or be able to be terminated by */
+                       /* the MCP/system without risk of hardware damage  */
+                       /* or serious data loss.                           */
+   SYS_OFF_STATE,      /* The process is not running. THIS IS AN INFERRED */
+                       /* STATE which is set by the MCP only.             */
+   SYS_TIMEOUT_STATE,  /* The process is not responding to the MCP heart- */
+                       /* beat messages. THIS IS AN INFERRED STATE which  */
+                       /* is set by the MCP only.                         */
+   SYS_SUSPEND_STATE   /* This is the usual state of a process or the     */         
+                       /* system when it is awaiting the clearing of an   */
+                       /* external condition which prevents normal        */
+                       /* operation. The process is performing monitoring */
+                       /* and reporting duties, but it will not accept    */
+                       /* operating instructions (e.g. motion commands).  */
+};
+
 /* data types */
 /**
- * Structure defining packet contents of a CIL command/reply packet.
+ * Structure defining packet contents of a base CIL command/reply packet.
  * All the integers should be sent over UDP in network byte order (htonl).
- * Packet contents are derived from "Generic 2.0m Telescope, Autoguider to TCS Interface Control Document,
- * Version 0.01, 6th October 2005".
- * NB Assumes sizeof(int) == 32, should perhaps replace with Int32_t.
+ * Packet contents are derived from "Liverpool 2.0m Telescope, Communications Interface Library User Guide,
+ * Version 0.16, 21st May 2001".
  * <dl>
  * <dt>Source_Id</dt> <dd></dd>
  * <dt>DestId</dt> <dd></dd>
  * <dt>Class</dt> <dd></dd>
  * <dt>Service</dt> <dd></dd>
- * <dt>Seq_Num</dt> <dd></dd>
+ * <dt>Seq_Num</dt> <dd>Unsigned int</dd>
  * <dt>Timestamp_Seconds</dt> <dd></dd>
  * <dt>Timestamp_Nanoseconds</dt> <dd></dd>
+ * </dl>
+ */
+struct NGATCil_Cil_Packet_Struct
+{
+	int32_t Source_Id;
+	int32_t Dest_Id;
+	int32_t Class;
+	int32_t Service;
+	uint32_t Seq_Num;
+	int32_t Timestamp_Seconds;
+	int32_t Timestamp_Nanoseconds;
+};
+
+/**
+ * Structure defining packet contents of a AGS CIL command/reply packet.
+ * All the integers should be sent over UDP in network byte order (htonl).
+ * Packet contents are derived from "Generic 2.0m Telescope, Autoguider to TCS Interface Control Document,
+ * Version 0.01, 6th October 2005".
+ * NB Assumes sizeof(int) == 32, should perhaps replace with Int32_t.
+ * <dl>
+ * <dt>Cil_Base</dt> <dd>NGATCil_Cil_Packet_Struct, base Cil details.</dd>
  * <dt>Command</dt> <dd></dd>
  * <dt>Status</dt> <dd></dd>
  * <dt>Param1</dt> <dd></dd>
  * <dt>Param2</dt> <dd></dd>
  * </dl>
+ * @see #NGATCil_Cil_Packet_Struct
  */
-struct NGATCil_Cil_Packet_Struct
+struct NGATCil_Ags_Packet_Struct
 {
-	int Source_Id;
-	int Dest_Id;
-	int Class;
-	int Service;
-	int Seq_Num;
-	int Timestamp_Seconds;
-	int Timestamp_Nanoseconds;
+	struct NGATCil_Cil_Packet_Struct Cil_Base;
 	int Command;
 	int Status;
 	int Param1;
 	int Param2;
 };
 
-int NGATCil_Cil_Packet_Create(int source_id,int dest_id,int class,int service,int seq_num,int command,
-			      int status,int param1, int param2,struct NGATCil_Cil_Packet_Struct *packet);
-int NGATCil_Cil_Packet_Send(int socket_id,struct NGATCil_Cil_Packet_Struct packet);
-int NGATCil_Cil_Packet_Recv(int socket_id,struct NGATCil_Cil_Packet_Struct *packet);
+/**
+ * Structure defining packet contents of a AGS CIL reply packet, where the user data is just a status word.
+ * Used for CHB reply packets. Used for TCS START_SESSION/END_SESSION reply packets.
+ * Used for MCP COM reply packets.
+ * All the integers should be sent over UDP in network byte order (htonl).
+ * Packet contents are derived from AGS source code.
+ * NB Assumes sizeof(int) == 32, should perhaps replace with Int32_t.
+ * <dl>
+ * <dt>Cil_Base</dt> <dd>NGATCil_Cil_Packet_Struct, base Cil details.</dd>
+ * <dt>Status</dt> <dd></dd>
+ * </dl>
+ * @see #NGATCil_Cil_Packet_Struct
+ */
+struct NGATCil_Status_Reply_Packet_Struct
+{
+	struct NGATCil_Cil_Packet_Struct Cil_Base;
+	int Status;
+};
 
-int NGATCil_Cil_Autoguide_On_Pixel_Send(int socket_id,float pixel_x,float pixel_y,int *sequence_number);
-int NGATCil_Cil_Autoguide_On_Pixel_Parse(struct NGATCil_Cil_Packet_Struct packet,float *pixel_x,float *pixel_y,
+/**
+ * Structure defining packet contents of a AGS CIL TCS generic reply packet.
+ * Used for START_SESSION/END_SESSION TCS replies.
+ * All the integers should be sent over UDP in network byte order (htonl).
+ * Packet contents are derived from AGS source code.
+ * NB Assumes sizeof(int) == 32, should perhaps replace with Int32_t.
+ * <dl>
+ * <dt>Cil_Base</dt> <dd>NGATCil_Cil_Packet_Struct, base Cil details.</dd>
+ * <dt>Status</dt> <dd></dd>
+ * </dl>
+ * @see #NGATCil_Cil_Packet_Struct
+ */
+struct NGATCil_Tcs_Reply_Packet_Struct
+{
+	struct NGATCil_Cil_Packet_Struct Cil_Base;
+	int Status;
+};
+
+int NGATCil_Cil_Packet_Create(int source_id,int dest_id,int class,int service,int seq_num,int command,
+			      int status,int param1, int param2,struct NGATCil_Ags_Packet_Struct *packet);
+int NGATCil_Cil_Packet_Send_To(int socket_id,char *hostname,int port_number,struct NGATCil_Ags_Packet_Struct packet);
+int NGATCil_Cil_Packet_Recv(int socket_id,struct NGATCil_Ags_Packet_Struct *packet);
+
+int NGATCil_Cil_Autoguide_On_Pixel_Send(int socket_id,char *hostname,int port_number,float pixel_x,float pixel_y,
+					int *sequence_number);
+int NGATCil_Cil_Autoguide_On_Pixel_Parse(struct NGATCil_Ags_Packet_Struct packet,float *pixel_x,float *pixel_y,
 					 int *sequence_number);
 
-int NGATCil_Cil_Autoguide_On_Pixel_Reply_Send(int socket_id,float pixel_x,float pixel_y,int status,
-					      int sequence_number);
-int NGATCil_Cil_Autoguide_On_Pixel_Reply_Parse(struct NGATCil_Cil_Packet_Struct packet,float *pixel_x,float *pixel_y,
+int NGATCil_Cil_Autoguide_On_Pixel_Reply_Send(int socket_id,char *hostname,int port_number,float pixel_x,float pixel_y,
+					      int status,int sequence_number);
+int NGATCil_Cil_Autoguide_On_Pixel_Reply_Parse(struct NGATCil_Ags_Packet_Struct packet,float *pixel_x,float *pixel_y,
 					       int *status,int *sequence_number);
 
-int NGATCil_Cil_Autoguide_On_Brightest_Parse(struct NGATCil_Cil_Packet_Struct packet,int *sequence_number);
-int NGATCil_Cil_Autoguide_On_Brightest_Reply_Send(int socket_id,int status,int sequence_number);
+int NGATCil_Cil_Autoguide_On_Brightest_Parse(struct NGATCil_Ags_Packet_Struct packet,int *sequence_number);
+int NGATCil_Cil_Autoguide_On_Brightest_Reply_Send(int socket_id,char *hostname,int port_number,int status,
+						  int sequence_number);
 
-int NGATCil_Cil_Autoguide_On_Rank_Parse(struct NGATCil_Cil_Packet_Struct packet,int *rank,int *sequence_number);
-int NGATCil_Cil_Autoguide_On_Rank_Reply_Send(int socket_id,int rank,int status,int sequence_number);
+int NGATCil_Cil_Autoguide_On_Rank_Parse(struct NGATCil_Ags_Packet_Struct packet,int *rank,int *sequence_number);
+int NGATCil_Cil_Autoguide_On_Rank_Reply_Send(int socket_id,char *hostname,int port_number,int rank,int status,
+					     int sequence_number);
 
-int NGATCil_Cil_Autoguide_Off_Send(int socket_id,int *sequence_number);
-int NGATCil_Cil_Autoguide_Off_Parse(struct NGATCil_Cil_Packet_Struct packet,int *status,int *sequence_number);
+int NGATCil_Cil_Autoguide_Off_Send(int socket_id,char *hostname,int port_number,int *sequence_number);
+int NGATCil_Cil_Autoguide_Off_Parse(struct NGATCil_Ags_Packet_Struct packet,int *status,int *sequence_number);
 
-int NGATCil_Cil_Autoguide_Off_Reply_Send(int socket_id,int status,int sequence_number);
-int NGATCil_Cil_Autoguide_Off_Reply_Parse(struct NGATCil_Cil_Packet_Struct packet,int *status,int *sequence_number);
+int NGATCil_Cil_Autoguide_Off_Reply_Send(int socket_id,char *hostname,int port_number,int status,int sequence_number);
+int NGATCil_Cil_Autoguide_Off_Reply_Parse(struct NGATCil_Ags_Packet_Struct packet,int *status,int *sequence_number);
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.4  2006/07/20 15:16:01  cjm
+** Added eCilNames.
+**
 ** Revision 1.3  2006/06/29 17:04:24  cjm
 ** Added Rank/Brightest AG code.
 **
