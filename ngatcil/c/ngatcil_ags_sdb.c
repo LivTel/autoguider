@@ -1,11 +1,11 @@
 /* ngatcil_ags_sdb.c
 ** NGATCil AGS SDB CIL packet tranmitting/receiving routines.
-** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_ags_sdb.c,v 1.1 2006-07-20 15:15:15 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_ags_sdb.c,v 1.2 2006-08-29 14:07:57 cjm Exp $
 */
 /**
  * NGAT Cil library transmission of AGS SDB packets over UDP.
  * @author Chris Mottram
- * @version $Revision: 1.1 $
+ * @version $Revision: 1.2 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -50,11 +50,9 @@
  */
 #define I_AGS_FINAL_DATUMID    D_AGS_AGPERCPOW
 /**
- * According to folklore, TTL timestamps are not based on Unix time (1st Jan 1970) but on
- * 5th Jan 1980 00:00:00. Accordingly, this offset is applied, based on "date -d "Jan 5 00:00:00 +00 1980" "+%s""
- * returning 315878400.
+ * Length of hostname.
  */
-#define TTL_TIMESTAMP_OFFSET (315878400)
+#define HOSTNAME_LENGTH        (256)
 
 /* data types */
 /**
@@ -63,79 +61,29 @@
 typedef int Bool_t;
 
 /**
- * Process state definitions.
- * The various processes of the telescope system maintain a concept of
- * their own "state". This is used internally, but is also reported to
- * other parts of the system. In order to provide a common form to
- * specify these states, the following enumerated list is provided.
- * Because these states are part of the interprocess communications,
- * the list should only have additional states added to the end of it,
- * and not inserted in the middle.
- * Note also that these are process states and not other states (e.g.
- * mechanisms). They are to be used to determine if a process is
- * operating, rather than how a system is functioning, for the
- * purposes of MCP control of software recovery.
- * The SYS_OFF_STATE and SYS_TIMEOUT_STATE are not set by the process, 
- * but may be set by the MCP. These are inferred states. 
- * The SYS_INVALID_STATE is never explicitly set. It is to prevent an 
- * uninitialised state variable from having a valid state on creation.
- * All states must be explicitly set, and this guards against unset cases.
- *  TtlSystem.h
- */
-enum eSysProcState_e
-{
-   SYS_INVALID_STATE = 0,       /* No state has been set (uninitialised). */
-   SYS_OKAY_STATE,     /* The process is operating normally.              */
-   SYS_INIT_STATE,     /* The process is performing its initial start-up  */
-                       /* or awaiting initialisation commands to take the */
-                       /* process to SYS_OKAY_STATE (if appropriate).     */
-   SYS_STANDBY_STATE,  /* This state is used for a process or the system  */
-                       /* when software is running, but not yet ready for */
-                       /* full operation. To move from this state to OKAY */
-                       /* will require some action to be taken. For       */
-                       /* example, axis software will attain this state   */
-                       /* until the axis is homed.                        */
-   SYS_WARN_STATE,     /* A problem has occurred, but no automatic        */
-                       /* intervention is required from the MCP. The      */
-                       /* telescope may still be used in this state, but  */
-                       /* there is a possibility that operational         */
-                       /* performance may be degraded.                    */
-   SYS_FAILED_STATE,   /* A problem has occurred with the process that    */
-                       /* requires intervention by the MCP.               */
-   SYS_SAFE_STATE,     /* The process has ceased normal operation (maybe  */
-                       /* only temporarily) and is either about to        */
-                       /* terminate itself or be able to be terminated by */
-                       /* the MCP/system without risk of hardware damage  */
-                       /* or serious data loss.                           */
-   SYS_OFF_STATE,      /* The process is not running. THIS IS AN INFERRED */
-                       /* STATE which is set by the MCP only.             */
-   SYS_TIMEOUT_STATE,  /* The process is not responding to the MCP heart- */
-                       /* beat messages. THIS IS AN INFERRED STATE which  */
-                       /* is set by the MCP only.                         */
-   SYS_SUSPEND_STATE   /* This is the usual state of a process or the     */         
-                       /* system when it is awaiting the clearing of an   */
-                       /* external condition which prevents normal        */
-                       /* operation. The process is performing monitoring */
-                       /* and reporting duties, but it will not accept    */
-                       /* operating instructions (e.g. motion commands).  */
-};
-
-/**
  * TTL time structure.
  * TtlSystem.h.
  * @see #TTL_TIMESTAMP_OFFSET
  */
-typedef struct Ttl_Time_Struct
+struct Ttl_Time_Struct
 {
    Int32_t t_sec;      /* Elapsed time in seconds */
    Int32_t t_nsec;     /* Elapsed nanoseconds in present second */
-} eTtlTime_t;
+};
+
+/**
+ * Typedef of TTL time structure.
+ * TtlSystem.h.
+ * @see #TTL_TIMESTAMP_OFFSET
+ * @see #Ttl_Time_Struct
+ */
+typedef struct Ttl_Time_Struct eTtlTime_t;
 
 /**
  * States of MCB authorisation request/refused/obtained made via SDB.
  * Mcp.h.
  */
-typedef enum eMcpAuthState_e
+enum eMcpAuthState_e
 {
 
    E_MCP_AUTH_BOL,                     /* Beginning of list */
@@ -148,13 +96,20 @@ typedef enum eMcpAuthState_e
 
    E_MCP_AUTH_EOL                      /* End of list marker */
 
-} eMcpAuthState_t;
+};
+
+/**
+ * Typedef of states of MCB authorisation request/refused/obtained made via SDB.
+ * Mcp.h.
+ * @see #eMcpAuthState_e
+ */
+typedef enum eMcpAuthState_e eMcpAuthState_t;
 
 /**
  * Enumeration of MCP system requests.
  * Mcp.h.
  */
-typedef enum eMcpSysReqIndex_e
+enum eMcpSysReqIndex_e
 {
    E_MCP_SYSREQ_NULL = 0,              /* No system request (dummy) */
    E_MCP_SYSREQ_SAFE_STATE,            /* Request for safe-state */
@@ -187,13 +142,20 @@ typedef enum eMcpSysReqIndex_e
    E_MCP_SYSREQ_EOL                    /* End of list marker */
 
 
-} eMcpSysReqIndex_t;
+};
+
+/**
+ * Typedef of enumeration of MCP system requests.
+ * Mcp.h.
+ * @see #eMcpSysReqIndex_e
+ */
+typedef enum eMcpSysReqIndex_e eMcpSysReqIndex_t;
 
 /**
  * Offsets within system requests - same order as eMcpSysRequest_e below.
  * Mcp.h.
  */
-typedef enum eMcpSysReqOffset_e
+enum eMcpSysReqOffset_e
 {
 
    E_MCP_SYSREQ_REQ = 0,               /* System request */
@@ -203,7 +165,14 @@ typedef enum eMcpSysReqOffset_e
 
    E_MCP_SYSREQ_OFFSET                 /* Size of offset between system requests */
 
-} eMcpSysReqOffset_t;
+};
+
+/**
+ * Typedef of offsets within system requests - same order as eMcpSysRequest_e below.
+ * Mcp.h.
+ * @see #eMcpSysReqOffset_e
+ */
+typedef enum eMcpSysReqOffset_e eMcpSysReqOffset_t;
 
 /**
  * States of MCP system requests made in datum for each process in the SDB. 
@@ -211,7 +180,7 @@ typedef enum eMcpSysReqOffset_e
  * SDB to implement system requests.
  * Mcp.h.
  */
-typedef enum eMcpSysRequest_e
+enum eMcpSysRequest_e
 {
 
    E_MCP_SYSREQ_NONE                  = E_MCP_SYSREQ_REQ + ( E_MCP_SYSREQ_OFFSET * E_MCP_SYSREQ_NULL ),
@@ -347,12 +316,22 @@ typedef enum eMcpSysRequest_e
    E_MCP_SYSREQ_COM_SOFT_SHUTDOWN     = E_MCP_SYSREQ_COM + ( E_MCP_SYSREQ_OFFSET * E_MCP_SYSREQ_SOFT_SHUTDOWN ),
    E_MCP_SYSREQ_ERR_SOFT_SHUTDOWN     = E_MCP_SYSREQ_ERR + ( E_MCP_SYSREQ_OFFSET * E_MCP_SYSREQ_SOFT_SHUTDOWN )
 
-} eMcpSysRequest_t;
+};
 
-/* SDB command set (services offered to other programs) 
+/**
+ * Typedef of states of MCP system requests made in datum for each process in the SDB. 
+ * These are the definitions that should be submitted and retrieved to/from the
+ * SDB to implement system requests.
+ * Mcp.h.
+ * @see #eMcpSysRequest_e
+ */
+typedef enum eMcpSysRequest_e eMcpSysRequest_t;
+
+/**
+ * SDB command set (services offered to other programs) 
  * Sdb.h.
  */
-typedef enum eSdbCommands_e
+enum eSdbCommands_e
 {
 	/*E_SDB_HEARTBEAT = E_MCP_HEARTBEAT,*/  /* Heartbeat command */
 	/*E_SDB_SHUTDOWN  = E_MCP_SHUTDOWN,*/   /* Shutdown command */
@@ -378,14 +357,20 @@ typedef enum eSdbCommands_e
    E_SDB_RETRIEVE_L,         /* Request latest data from file (robust mode) */
    E_SDB_COMMAND_EOL,        /* End of enumerated list of commands */
    E_SDB_COMMAND_MAX_VALUE = INT_MAX   /* Req'd to force size to 4 bytes */
-} eSdbCommands_t;
+};
 
+/**
+ * Typedef of SDB command set (services offered to other programs).
+ * Sdb.h.
+ * @see #eSdbCommands_e
+ */
+typedef enum eSdbCommands_e eSdbCommands_t;
 
 /**
  * SDB units encodings.
  * Sdb.h
  */
-typedef enum eSdbUnit_e
+enum eSdbUnit_e
 {
    E_SDB_INVALID_UNITS = 0,  /* Trap for non-specified units (=start of list) */
 
@@ -516,15 +501,22 @@ typedef enum eSdbUnit_e
    E_SDB_NOMORE_UNITS,       /* End of enumerated list of units */
    E_SDB_UNITS_MAX_VALUE = INT_MAX     /* Req'd to force size to 4 bytes */
 
-} eSdbUnit_t;
+};
 
+/**
+ * Typedef of SDB units encodings.
+ * Sdb.h
+ * @see #eSdbUnit_e
+ */
+typedef enum eSdbUnit_e eSdbUnit_t;
 
 /**
  * Storage structures for submitted/requested SDB data. These are for use
  * by third party applications that wish to access the SDB.
  * Sdb.h.
  */
-typedef struct {             /* -- Measurement (time-value pair) -- */
+typedef struct
+{             /* -- Measurement (time-value pair) -- */
    eTtlTime_t  TimeStamp;    /* Timestamp associated with value */
    Int32_t     Value;        /* Actual value, encoded as per "Units" */
 } eSdbMsrment_t;
@@ -562,29 +554,16 @@ typedef struct iAgsSdbDat_e
  * Version 0.01, 6th October 2005", and AgsPrivate.h.
  * NB Assumes sizeof(int) == 32, should perhaps replace with Int32_t.
  * <dl>
- * <dt>Source_Id</dt> <dd></dd>
- * <dt>DestId</dt> <dd></dd>
- * <dt>Class</dt> <dd></dd>
- * <dt>Service</dt> <dd></dd>
- * <dt>Seq_Num</dt> <dd></dd>
- * <dt>Timestamp_Seconds</dt> <dd></dd>
- * <dt>Timestamp_Nanoseconds</dt> <dd></dd>
- * <dt>Command</dt> <dd></dd>
- * <dt>Status</dt> <dd></dd>
+ * <dt>Cil_Base</dt> <dd>NGATCil_Cil_Packet_Struct, base Cil details.</dd>
  * <dt>Datums</dt> <dd>Of type iAgsSdbDat_e</dd>
  * <dt>Param2</dt> <dd></dd>
  * </dl>
+ * @see ngatcil_cil.html#NGATCil_Cil_Packet_Struct
  * @see #iAgsSdbDat_e
  */
 struct NGATCil_AGS_SDB_Packet_Struct
 {
-	int Source_Id;
-	int Dest_Id;
-	int Class;
-	int Service;
-	int Seq_Num;
-	int Timestamp_Seconds;
-	int Timestamp_Nanoseconds;
+	struct NGATCil_Cil_Packet_Struct Cil_Base;
 	struct iAgsSdbDat_e Datums;
 };
 
@@ -605,7 +584,7 @@ typedef struct iAgsOidTable_s
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: ngatcil_ags_sdb.c,v 1.1 2006-07-20 15:15:15 cjm Exp $";
+static char rcsid[] = "$Id: ngatcil_ags_sdb.c,v 1.2 2006-08-29 14:07:57 cjm Exp $";
 
 /**
  * Internal data set of AGS OID's that can me modified and sent to the SDB.
@@ -640,12 +619,24 @@ static iAgsOidTable_t iAgsOidTable[] =
 };
 
 /**
+ * UDP CIL port number to send packet to.
+ * @see #NGATCIL_AGS_SDB_CIL_PORT_DEFAULT
+ */
+static int Remote_Port_Number = NGATCIL_AGS_SDB_CIL_PORT_DEFAULT;
+/**
+ * Hostname to send packet to.
+ * @see #NGATCIL_AGS_SDB_MCC_DEFAULT
+ * @see #HOSTNAME_LENGTH
+ */
+static char Remote_Hostname[HOSTNAME_LENGTH] = NGATCIL_AGS_SDB_MCC_DEFAULT;
+/**
  * CIL packet sequence number.
  */
 static int Sequence_Number = 0;
 
 /* internal function declarations */
-static int AGS_SDB_Packet_Send(int socket_id,struct NGATCil_AGS_SDB_Packet_Struct packet,int packet_length);
+static int AGS_SDB_Packet_Send_To(int socket_id,char *hostname,int port_number,
+			       struct NGATCil_AGS_SDB_Packet_Struct packet,int packet_length);
 static int AGS_SDB_Packet_To_Network_Byte_Order(struct NGATCil_AGS_SDB_Packet_Struct *sdb_packet,int packet_length);
 
 /* ----------------------------------------------------------------------------
@@ -686,13 +677,14 @@ int NGATCil_AGS_SDB_Initialise(void)
 }
 
 /**
- * Try to setup a UDP socket talking to the default SDB machine and CIL port.
- * @param socket_id The address of an integer to store the created socket file descriptor.
- *       This parameter is not checked for nullness, it is assumed the underlying NGATCil_UDP_Open
- *       routine checks this.
+ * Set the name and port number of the remote connection to contact when sending SDB entries.
+ * @param hostname A string respresenting the host name.
+ * @param port_number The port number.
  * @return The routine returns TRUE on success and FALSE on failure. If the routine failed,
  *      NGATCil_General_Error_Number and NGATCil_General_Error_String should be set.
- * @see ngatcil_udp_raw.html#NGATCil_UDP_Open
+ * @see #HOSTNAME_LENGTH
+ * @see #Remote_Hostname
+ * @see #Remote_Port_Number
  * @see #NGATCIL_AGS_SDB_MCC_DEFAULT
  * @see #NGATCIL_AGS_SDB_CIL_PORT_DEFAULT
  * @see ngatcil_general.html#NGATCil_General_Error_Number
@@ -700,27 +692,44 @@ int NGATCil_AGS_SDB_Initialise(void)
  * @see ngatcil_general.html#NGATCil_General_Log
  * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_AGS_SDB
  */
-int NGATCil_AGS_SDB_Open_Default(int *socket_id)
+int NGATCil_AGS_SDB_Remote_Host_Set(char *hostname,int port_number)
 {
-	int retval;
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_AGS_SDB,"NGATCil_AGS_SDB_Open_Default:started.");
+	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_AGS_SDB,"NGATCil_AGS_SDB_Remote_Host_Set:started.");
 #endif
-	retval = NGATCil_UDP_Open(NGATCIL_AGS_SDB_MCC_DEFAULT,NGATCIL_AGS_SDB_CIL_PORT_DEFAULT,
-				  socket_id);
+	if(hostname == NULL)
+	{
+		NGATCil_General_Error_Number = 401;
+		sprintf(NGATCil_General_Error_String,"NGATCil_AGS_SDB_Remote_Host_Set: Hostname was NULL.");
+		return FALSE;
+	}
+	if(strlen(hostname) >= HOSTNAME_LENGTH)
+	{
+		NGATCil_General_Error_Number = 402;
+		sprintf(NGATCil_General_Error_String,
+			"NGATCil_AGS_SDB_Remote_Host_Set: Hostname was too long (%d vs %d.",
+			strlen(hostname),HOSTNAME_LENGTH);
+		return FALSE;
+	}
+	strcpy(Remote_Hostname,hostname);
+	Remote_Port_Number = port_number;
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_AGS_SDB,"NGATCil_AGS_SDB_Open_Default:finished.");
+	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_AGS_SDB,"NGATCil_AGS_SDB_Remote_Host_Set:finished.");
 #endif
-	return retval;
+	return TRUE;
 }
-
 /**
  * Send an SDB packet containing latest status.
  * @param socket_id The file descriptor of an open socket to send the packet on.
+ * @param hostname A string representing the remote host to send the status to (mcc).
+ * @param port_number The remote port number to send the packet to (NGATCIL_AGS_SDB_CIL_PORT_DEFAULT).
  * @return The routine returns TRUE on success and FALSE on failure. If the routine failed,
  *      NGATCil_General_Error_Number and NGATCil_General_Error_String should be set.
  * @see #AGS_SDB_Packet_To_Network_Byte_Order
- * @see #AGS_SDB_Packet_Send
+ * @see #AGS_SDB_Packet_Send_To
+ * @see #Remote_Hostname
+ * @see #Remote_Port_Number
+ * @see #NGATCIL_AGS_SDB_CIL_PORT_DEFAULT
  * @see #TTL_TIMESTAMP_OFFSET
  * @see #iAgsOidTable
  * @see ngatcil_general.html#NGATCil_General_Error_Number
@@ -742,6 +751,11 @@ int NGATCil_AGS_SDB_Status_Send(int socket_id)
 	{
 		if(iAgsOidTable[oid_index].Changed == TRUE)
 		{
+#if NGATCIL_DEBUG > 5
+			NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_AGS_SDB,
+						   "NGATCil_AGS_SDB_Status_Send:Found changed OID %d at index %d.",
+						   iAgsOidTable[oid_index].Oid,oid_index);
+#endif
 			sdb_packet.Datums.Datum[sdb_index].SourceId          = E_CIL_AGS;
 			sdb_packet.Datums.Datum[sdb_index].DatumId           = iAgsOidTable[oid_index].Oid;
 			sdb_packet.Datums.Datum[sdb_index].Msrment.TimeStamp = iAgsOidTable[oid_index].TimeStamp;
@@ -752,23 +766,36 @@ int NGATCil_AGS_SDB_Status_Send(int socket_id)
 	}
 	if(sdb_index > 0)
 	{
-		sdb_packet.Source_Id = E_CIL_AGS;
-		sdb_packet.Dest_Id = E_CIL_SDB;
-		sdb_packet.Class = E_CIL_CMD_CLASS;
-		sdb_packet.Service = E_SDB_SUBMIT_1;
-		sdb_packet.Seq_Num = Sequence_Number++;
+		sdb_packet.Cil_Base.Source_Id = E_CIL_AGS;
+		sdb_packet.Cil_Base.Dest_Id = E_CIL_SDB;
+		sdb_packet.Cil_Base.Class = E_CIL_CMD_CLASS;
+		sdb_packet.Cil_Base.Service = E_SDB_SUBMIT_1;
+		sdb_packet.Cil_Base.Seq_Num = Sequence_Number++;
 		clock_gettime(CLOCK_REALTIME,&current_time);
-		sdb_packet.Timestamp_Seconds = current_time.tv_sec-TTL_TIMESTAMP_OFFSET;
-		sdb_packet.Timestamp_Nanoseconds = current_time.tv_nsec;
-		sdb_packet.Datums.NumElts = sdb_index;
+		sdb_packet.Cil_Base.Timestamp_Seconds = current_time.tv_sec-TTL_TIMESTAMP_OFFSET;
+		sdb_packet.Cil_Base.Timestamp_Nanoseconds = current_time.tv_nsec;
+		sdb_packet.Datums.NumElts = (Uint32_t)sdb_index;
+#if NGATCIL_DEBUG > 5
+		NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_AGS_SDB,
+					   "NGATCil_AGS_SDB_Status_Send:Found %d changed OIDs.",sdb_index);
+#endif
 		/* length of Datum data to submit */
 		data_length = sizeof(Int32_t) + (sdb_index * sizeof(eSdbDatum_t));
-		packet_length = data_length + (7 * sizeof(int)); /* packet has 7 int header */
+#if NGATCIL_DEBUG > 5
+		NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_AGS_SDB,
+					   "NGATCil_AGS_SDB_Status_Send:Data length %d.",data_length);
+#endif
+		/* packet has 7 int header (CilPrivate.h:I_CIL_HDRBLK_SIZE  28) */
+		packet_length = data_length + (7 * sizeof(int)); 
+#if NGATCIL_DEBUG > 5
+		NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_AGS_SDB,
+					   "NGATCil_AGS_SDB_Status_Send:Packet length %d.",packet_length);
+#endif
 		/* change to network byte order */
 		if(!AGS_SDB_Packet_To_Network_Byte_Order(&sdb_packet,packet_length))
 			return FALSE;
 		/* submit to sdb */
-		if(!AGS_SDB_Packet_Send(socket_id,sdb_packet,packet_length))
+		if(!AGS_SDB_Packet_Send_To(socket_id,Remote_Hostname,Remote_Port_Number,sdb_packet,packet_length))
 			return FALSE;
 	}
 	/* clear changed values if SDB has been updated */
@@ -804,7 +831,8 @@ int NGATCil_AGS_SDB_Value_Set(eAgsDataId_t datum_id,int value)
 	Int32_t old_value;
 
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_AGS_SDB,"NGATCil_AGS_SDB_Value_Set:finished.");
+	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_AGS_SDB,
+				   "NGATCil_AGS_SDB_Value_Set:started: Setting OID %d to %d.",datum_id,value);
 #endif
 	clock_gettime(CLOCK_REALTIME,&current_time);
 	time_now.t_sec = current_time.tv_sec-TTL_TIMESTAMP_OFFSET;
@@ -855,15 +883,15 @@ static int AGS_SDB_Packet_To_Network_Byte_Order(struct NGATCil_AGS_SDB_Packet_St
 #if NGATCIL_DEBUG > 1
 	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_AGS_SDB,"AGS_SDB_Packet_To_Network_Byte_Order:started.");
 #endif
-	sdb_packet->Source_Id             = htonl(sdb_packet->Source_Id);
-	sdb_packet->Dest_Id               = htonl(sdb_packet->Dest_Id);
-	sdb_packet->Class                 = htonl(sdb_packet->Class);
-	sdb_packet->Service               = htonl(sdb_packet->Service);
-	sdb_packet->Seq_Num               = htonl(sdb_packet->Seq_Num);
-	sdb_packet->Timestamp_Seconds     = htonl(sdb_packet->Timestamp_Seconds);
-	sdb_packet->Timestamp_Nanoseconds = htonl(sdb_packet->Timestamp_Nanoseconds);
-	datum_count = sdb_packet->Datums.NumElts;
-	sdb_packet->Datums.NumElts        = htonl(sdb_packet->Datums.NumElts);
+	sdb_packet->Cil_Base.Source_Id             = htonl(sdb_packet->Cil_Base.Source_Id);
+	sdb_packet->Cil_Base.Dest_Id               = htonl(sdb_packet->Cil_Base.Dest_Id);
+	sdb_packet->Cil_Base.Class                 = htonl(sdb_packet->Cil_Base.Class);
+	sdb_packet->Cil_Base.Service               = htonl(sdb_packet->Cil_Base.Service);
+	sdb_packet->Cil_Base.Seq_Num               = htonl(sdb_packet->Cil_Base.Seq_Num);
+	sdb_packet->Cil_Base.Timestamp_Seconds     = htonl(sdb_packet->Cil_Base.Timestamp_Seconds);
+	sdb_packet->Cil_Base.Timestamp_Nanoseconds = htonl(sdb_packet->Cil_Base.Timestamp_Nanoseconds);
+	datum_count                                = sdb_packet->Datums.NumElts;
+	sdb_packet->Datums.NumElts                 = htonl(sdb_packet->Datums.NumElts);
 	for(i=0;i<datum_count;i++)
 	{
 		sdb_packet->Datums.Datum[i].SourceId = htonl(sdb_packet->Datums.Datum[i].SourceId);
@@ -884,27 +912,35 @@ static int AGS_SDB_Packet_To_Network_Byte_Order(struct NGATCil_AGS_SDB_Packet_St
 /**
  * Send an AGS SDB CIL packet. 
  * @param socket_id The socket file descriptor to use.
+ * @param hostname The hostname of the host to send the packet to.
+ * @param port_number The port number of the host to send the packet to.
  * @param packet The packet to send. The contents should have been put into network byte order
  *        (NGATCil_AGS_SDB_Status_Send does this automatically).
  * @param packet_length How much of the packet to send.
  * @return The routine returns TRUE on success and FALSE on failure. If the routine failed,
  *      NGATCil_General_Error_Number and NGATCil_General_Error_String should be set.
- * @see ngatcil_udp_raw.html#NGATCil_UDP_Raw_Send
+ * @see ngatcil_udp_raw.html#NGATCil_UDP_Raw_Send_To
  */
-static int AGS_SDB_Packet_Send(int socket_id,struct NGATCil_AGS_SDB_Packet_Struct packet,int packet_length)
+static int AGS_SDB_Packet_Send_To(int socket_id,char *hostname,int port_number,
+			       struct NGATCil_AGS_SDB_Packet_Struct packet,int packet_length)
 {
 	int retval;
 
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_AGS_SDB,"NGATCil_AGS_SDB_Packet_Send:started.");
+	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_AGS_SDB,
+		     "AGS_SDB_Packet_Send_To:started (socket_id=%d,hostname=%s,port_number=%d,Packet_length=%d).",
+				   socket_id,hostname,port_number,packet_length);
 #endif
-	retval = NGATCil_UDP_Raw_Send(socket_id,(void*)&packet,packet_length);
+	retval = NGATCil_UDP_Raw_Send_To(socket_id,hostname,port_number,(void*)&packet,packet_length);
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_AGS_SDB,"NGATCil_AGS_SDB_Packet_Send:finished.");
+	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_AGS_SDB,"AGS_SDB_Packet_Send_To:finished.");
 #endif
 	return retval;
 }
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2006/07/20 15:15:15  cjm
+** Initial revision
+**
 */
