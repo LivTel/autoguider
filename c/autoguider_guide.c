@@ -1,11 +1,11 @@
 /* autoguider_guide.c
 ** Autoguider guide routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.16 2006-07-20 16:07:51 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.17 2006-08-29 13:20:48 cjm Exp $
 */
 /**
  * Guide routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.16 $
+ * @version $Revision: 1.17 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -97,7 +97,7 @@ struct Guide_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_guide.c,v 1.16 2006-07-20 16:07:51 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_guide.c,v 1.17 2006-08-29 13:20:48 cjm Exp $";
 /**
  * Instance of guide data.
  * @see #Guide_Struct
@@ -173,12 +173,15 @@ int Autoguider_Guide_Initialise(void)
 
 /**
  * Setup the autoguider window.
+ * Also calls Autoguider_CIL_SDB_Packet_Window_Set to set the internal SDB values, ready to send
+ * to the SDB later.
  * @param sx The start X position.
  * @param sy The start Y position.
  * @param ex The end X position.
  * @param ey The end Y position.
  * @return The routine returns TRUE on success and FALSE on failure.
  * @see #Guide_Data
+ * @see autoguider_cil.html#Autoguider_CIL_SDB_Packet_Window_Set
  */
 int Autoguider_Guide_Window_Set(int sx,int sy,int ex,int ey)
 {
@@ -226,6 +229,9 @@ int Autoguider_Guide_Window_Set(int sx,int sy,int ex,int ey)
 	Guide_Data.Window.Y_Start = sy;
 	Guide_Data.Window.X_End = ex;
 	Guide_Data.Window.Y_End = ey;
+	/* update SDB values */
+	if(!Autoguider_CIL_SDB_Packet_Window_Set(sx,sy,ex,ey))
+		Autoguider_General_Error(); /* no need to fail */
 	return TRUE;
 }
 
@@ -787,7 +793,7 @@ static void *Guide_Thread(void *user_arg)
 	/* set is guiding flag */
 	Guide_Data.Is_Guiding = TRUE;
 	/* update SDB */
-	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_ON_BRIGHTEST))/* diddly bodge */
+	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_GUIDEONBRIGHT))/* diddly bodge */
 		Autoguider_General_Error(); /* no need to fail */
 	if(!Autoguider_CIL_SDB_Packet_Send())
 		Autoguider_General_Error(); /* no need to fail */
@@ -818,7 +824,7 @@ static void *Guide_Thread(void *user_arg)
 		sprintf(Autoguider_General_Error_String,"Guide_Thread:CCD_Setup_Dimensions failed.");
 		Autoguider_General_Error();
 		/* update SDB */
-		if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE))
+		if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
 			Autoguider_General_Error(); /* no need to fail */
 		return NULL;
 	}
@@ -845,7 +851,7 @@ static void *Guide_Thread(void *user_arg)
 		Guide_Data.Is_Guiding = FALSE;
 		Autoguider_General_Error();
 		/* update SDB */
-		if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE))
+		if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
 			Autoguider_General_Error(); /* no need to fail */
 		return NULL;
 	}
@@ -861,7 +867,7 @@ static void *Guide_Thread(void *user_arg)
 		Guide_Data.Is_Guiding = FALSE;
 		Autoguider_General_Error();
 		/* update SDB */
-		if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE))
+		if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
 			Autoguider_General_Error(); /* no need to fail */
 		return NULL;
 	}
@@ -898,7 +904,7 @@ static void *Guide_Thread(void *user_arg)
 			/* close tcs guide packet socket */
 			Autoguider_CIL_Guide_Packet_Close();
 			/* update SDB */
-			if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE))
+			if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
 				Autoguider_General_Error(); /* no need to fail */
 			return NULL;
 		}
@@ -935,7 +941,7 @@ static void *Guide_Thread(void *user_arg)
 			/* close tcs guide packet socket */
 			Autoguider_CIL_Guide_Packet_Close();
 			/* update SDB */
-			if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE))
+			if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
 				Autoguider_General_Error(); /* no need to fail */
 			return NULL;
 		}
@@ -968,7 +974,7 @@ static void *Guide_Thread(void *user_arg)
 			/* close tcs guide packet socket */
 			Autoguider_CIL_Guide_Packet_Close();
 			/* update SDB */
-			if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE))
+			if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
 				Autoguider_General_Error(); /* no need to fail */
 			return NULL;
 		}
@@ -994,7 +1000,7 @@ static void *Guide_Thread(void *user_arg)
 			/* close tcs guide packet socket */
 			Autoguider_CIL_Guide_Packet_Close();
 			/* update SDB */
-			if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE))
+			if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
 				Autoguider_General_Error(); /* no need to fail */
 			return NULL;
 		}
@@ -1024,7 +1030,7 @@ static void *Guide_Thread(void *user_arg)
 			/* close tcs guide packet socket */
 			Autoguider_CIL_Guide_Packet_Close();
 			/* update SDB */
-			if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE))
+			if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
 				Autoguider_General_Error(); /* no need to fail */
 			return NULL;
 		}
@@ -1051,7 +1057,7 @@ static void *Guide_Thread(void *user_arg)
 		/* close tcs guide packet socket */
 		Autoguider_CIL_Guide_Packet_Close();
        		/* update SDB */
-	       	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE))
+	       	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
 		       	Autoguider_General_Error(); /* no need to fail */
 		return NULL;
 	}
@@ -1065,12 +1071,12 @@ static void *Guide_Thread(void *user_arg)
 #endif
 		Autoguider_General_Error();
        		/* update SDB */
-	       	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE))
+	       	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
 		       	Autoguider_General_Error(); /* no need to fail */
 		return NULL;
 	}
        	/* update SDB */
-	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE))
+	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
 		Autoguider_General_Error(); /* no need to fail */
 	if(!Autoguider_CIL_SDB_Packet_Send())
 		Autoguider_General_Error(); /* no need to fail */
@@ -1333,11 +1339,15 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 		** Bit 2 set means critical error
 		*/
 		reliability = 0;
-		/*if(object.Is_Stellar == FALSE)*/
 		if(object.FWHM_Y != 0.0f)
 		{
 			if(fabs((object.FWHM_X/object.FWHM_Y)-1.0f) > guide_ellipticity)
 			{
+#if AUTOGUIDER_DEBUG > 5
+				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
+					 "Guide_Packet_Send:Detected FWHM limit:Object has fwhmx=%.2f,fwhmy=%.2f.",
+							      object.FWHM_X,object.FWHM_Y);
+#endif
 				reliability += (1<<0);
 			}
 		}
@@ -1357,10 +1367,10 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 
 		/* check nearness to window edge */
 		fwhm = ((object.FWHM_X + object.FWHM_Y)/2.0f);/* in pixels */
-		if(((object.CCD_X_Position-Guide_Data.Window.X_Start) < fwhm)||
-		   ((Guide_Data.Window.X_End-object.CCD_X_Position) < fwhm)||
-		   ((object.CCD_Y_Position-Guide_Data.Window.Y_Start) < fwhm)||
-		   ((Guide_Data.Window.Y_End-object.CCD_Y_Position) < fwhm))
+		if(((object.CCD_X_Position-Guide_Data.Window.X_Start) < (fwhm*2.0f))||
+		   ((Guide_Data.Window.X_End-object.CCD_X_Position) < (fwhm*2.0f))||
+		   ((object.CCD_Y_Position-Guide_Data.Window.Y_Start) < (fwhm*2.0f))||
+		   ((Guide_Data.Window.Y_End-object.CCD_Y_Position) < (fwhm*2.0f)))
 		{
 			status_char = NGATCIL_TCS_GUIDE_PACKET_STATUS_WINDOW;
 #if AUTOGUIDER_DEBUG > 5
@@ -1474,6 +1484,9 @@ static int Guide_Dimension_Config_Load(void)
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.16  2006/07/20 16:07:51  cjm
+** Changed SDB calls on failure.
+**
 ** Revision 1.15  2006/07/20 15:15:03  cjm
 ** Added SDB updating calls.
 **
