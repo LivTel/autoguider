@@ -1,11 +1,11 @@
 /* autoguider_cil.c
 ** Autoguider CIL server routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_cil.c,v 1.8 2006-07-20 15:11:48 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_cil.c,v 1.9 2006-08-29 13:55:42 cjm Exp $
 */
 /**
  * Autoguider CIL Server routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.8 $
+ * @version $Revision: 1.9 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -37,7 +37,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_cil.c,v 1.8 2006-07-20 15:11:48 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_cil.c,v 1.9 2006-08-29 13:55:42 cjm Exp $";
 /**
  * UDP CIL port to wait for TCS commands on.
  * @see ../cdocs/ngatcil_cil.html#NGATCIL_CIL_AGS_PORT_DEFAULT
@@ -75,32 +75,33 @@ static int CIL_TCS_Guide_Packet_Socket_Fd = -1;
  * Boolean used to determine whether to send TCS guide packets.
  */
 static int CIL_TCS_UDP_Guide_Packet_Send = TRUE;
-
-/**
- * MCC hostname, the MCC should be running the SDB.
- * @see ../cdocs/ngatcil_tcs_guide_packet.html#NGATCIL_AGS_SDB_MCC_DEFAULT
- */
-static char MCC_Hostname[256] = NGATCIL_AGS_SDB_MCC_DEFAULT;
-/**
- * SDB UDP CIL Command port. Used for AGS SDB CIL submissions.
- * @see ../ngatcil/cdocs/ngatcil_cil.html#NGATCIL_AGS_SDB_CIL_PORT_DEFAULT
- */
-static int CIL_SDB_UDP_Port = NGATCIL_AGS_SDB_CIL_PORT_DEFAULT;
-/**
- * UDP Socket file descriptor of the opened SDB submission socket.
- */
-static int CIL_SDB_Socket_Fd = -1;
 /**
  * Boolean used to determine whether to send TCS guide packets.
  */
 static int CIL_SDB_Send = TRUE;
+/**
+ * Number of continuous hearbeats received.
+ */
+static int CIL_CHB_Count = 0;
 
 /* internal functions */
 static int Autoguider_CIL_Server_Connection_Callback(int socket_id,void* message_buff,int message_length);
+static int CIL_Command_TCS_Process(struct NGATCil_Cil_Packet_Struct cil_packet,void *message_buff,
+				   size_t message_length);
+static int CIL_Command_CHB_Process(struct NGATCil_Cil_Packet_Struct cil_packet,void *message_buff,
+				   size_t message_length);
+static int CIL_Command_MCP_Process(struct NGATCil_Cil_Packet_Struct cil_packet,void *message_buff,
+				   size_t message_length);
+static int CIL_Command_MCP_Activate_Process(struct NGATCil_Cil_Packet_Struct cil_packet,void *message_buff,
+					    size_t message_length,int status);
+static int CIL_Command_MCP_Safe_Process(struct NGATCil_Cil_Packet_Struct cil_packet,void *message_buff,
+					size_t message_length,int status);
 static int CIL_UDP_Autoguider_On_Pixel_Reply_Send(float pixel_x,float pixel_y,int status,int sequence_number);
 static int CIL_UDP_Autoguider_On_Brightest_Reply_Send(int status,int sequence_number);
 static int CIL_UDP_Autoguider_On_Rank_Reply_Send(int rank,int status,int sequence_number);
 static int CIL_UDP_Autoguider_Off_Reply_Send(int status,int sequence_number);
+static int CIL_Command_Start_Session_Reply_Send(struct NGATCil_Ags_Packet_Struct cil_packet,int status);
+static int CIL_Command_End_Session_Reply_Send(struct NGATCil_Ags_Packet_Struct cil_packet,int status);
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -133,6 +134,8 @@ int Autoguider_CIL_Server_Initialise(void)
 {
 	int retval;
 	char *string_ptr = NULL;
+	char mcc_hostname[256];
+	int sdb_udp_port;
 
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"Autoguider_CIL_Server_Initialise:started.");
@@ -216,10 +219,10 @@ int Autoguider_CIL_Server_Initialise(void)
 			"CIL MCC server hostname is too long (%d).",strlen(string_ptr));
 		return FALSE;
 	}
-	strcpy(MCC_Hostname,string_ptr);
+	strcpy(mcc_hostname,string_ptr);
 	free(string_ptr);
 	/* get cil SDB port number from config */
-	retval = CCD_Config_Get_Integer("cil.sdb.port_number",&CIL_SDB_UDP_Port);
+	retval = CCD_Config_Get_Integer("cil.sdb.port_number",&sdb_udp_port);
 	if(retval == FALSE)
 	{
 		Autoguider_General_Error_Number = 1139;
@@ -249,6 +252,16 @@ int Autoguider_CIL_Server_Initialise(void)
 		      "NGATCil_AGS_SDB_Initialise failed.");
 		return FALSE;
 	}
+	retval = NGATCil_AGS_SDB_Remote_Host_Set(mcc_hostname,sdb_udp_port);
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 1142;
+		sprintf(Autoguider_General_Error_String,"Autoguider_CIL_Server_Initialise:"
+		      "NGATCil_AGS_SDB_Remote_Host_Set(%s,%d) failed.",mcc_hostname,sdb_udp_port);
+		return FALSE;
+	}
+	/* reset heartbeat count */
+	CIL_CHB_Count = 0;
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"Autoguider_CIL_Server_Initialise:finished.");
 #endif
@@ -272,6 +285,7 @@ int Autoguider_CIL_Server_Initialise(void)
  * @see autoguider_general.html#Autoguider_General_Log_Format
  * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_CIL
  * @see ../ngatcil/cdocs/ngatcil_udp_raw.html#NGATCil_UDP_Server_Start
+ * @see ../ngatcil/cdocs/ngatcil_cil.html#NGATCIL_CIL_AGS_MAX_PACKET_LENGTH
  */
 int Autoguider_CIL_Server_Start(void)
 {
@@ -287,7 +301,8 @@ int Autoguider_CIL_Server_Start(void)
 					      "Autoguider_CIL_Server_Start:Starting server on port %d.",
 					      CIL_UDP_Port);
 #endif
-		retval = NGATCil_UDP_Server_Start(CIL_UDP_Port,NGATCIL_CIL_PACKET_LENGTH,&CIL_UDP_Socket_Fd,
+		/* iAgsReceiveMessage in AgsMain.c suggests a buffer length of BASE + I_AGS_CIL_DATALEN (256) */
+		retval = NGATCil_UDP_Server_Start(CIL_UDP_Port,NGATCIL_CIL_AGS_MAX_PACKET_LENGTH,&CIL_UDP_Socket_Fd,
 						  Autoguider_CIL_Server_Connection_Callback);
 		if(retval == FALSE)
 		{
@@ -433,7 +448,10 @@ int Autoguider_CIL_Guide_Packet_Send(float x_pos,float y_pos,int terminating,int
 	int retval;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"Autoguider_CIL_Guide_Packet_Send:started.");
+	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,
+				      "Autoguider_CIL_Guide_Packet_Send(x=%.2f,y=%.2f,terminating=%#x,unreliable=%#x,"
+				      "timecode=%.2f,status=%c):started.",x_pos,y_pos,terminating,unreliable,
+				      timecode_secs,status_char);
 #endif
 	if(CIL_TCS_UDP_Guide_Packet_Send)
 	{
@@ -530,45 +548,6 @@ int Autoguider_CIL_Guide_Packet_Send_Get(void)
 }
 
 /**
- * Routine to open a socket file descriptor to send CIL packets to the SDB.
- * Assumes Autoguider_CIL_Server_Initialise has been called to setup MCC_Hostname/CIL_SDB_UDP_Port.
- * @return The routine returns TRUE if successfull, and FALSE if an error occurs. If an error occurs,
- *        Autoguider_General_Error_Number and Autoguider_General_Error_String are set.
- * @see #MCC_Hostname
- * @see #CIL_SDB_UDP_Port
- * @see #CIL_SDB_Socket_Fd
- * @see autoguider_general.html#Autoguider_General_Error_Number
- * @see autoguider_general.html#Autoguider_General_Error_String
- * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#Autoguider_General_Log_Format
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_CIL
- * @see ../ngatcil/cdocs/ngatcil_udp_raw.html#NGATCil_UDP_Open
- */
-int Autoguider_CIL_SDB_Packet_Open(void)
-{
-	int retval;
-
-#if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"Autoguider_CIL_SDB_Packet_Open:started.");
-#endif
-#if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"Autoguider_CIL_SDB_Packet_Open:Opening %s:%d.",
-				      MCC_Hostname,CIL_SDB_UDP_Port);
-#endif
-	retval = NGATCil_UDP_Open(MCC_Hostname,CIL_SDB_UDP_Port,&CIL_SDB_Socket_Fd);
-	if(retval == FALSE)
-	{
-		Autoguider_General_Error_Number = 1142;
-		sprintf(Autoguider_General_Error_String,"Autoguider_CIL_SDB_Packet_Open:NGATCil_UDP_Open failed.");
-		return FALSE;
-	}
-#if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"Autoguider_CIL_SDB_Packet_Open:finished.");
-#endif
-	return TRUE;
-}
-
-/**
  * Set the Autoguider AG state.
  * @param state The state to use, from eAgsState_t (ngatcil_ags_sdb.h).
  * @return The routine returns TRUE if successfull, and FALSE if an error occurs. If an error occurs,
@@ -580,7 +559,7 @@ int Autoguider_CIL_SDB_Packet_Open(void)
  * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_CIL
  * @see ../ngatcil/cdocs/ngatcil_ags_sdb.html#eAgsState_t
  */
-int Autoguider_CIL_SDB_Packet_State_Set(eAgsState_t state)
+int Autoguider_CIL_SDB_Packet_State_Set(eAggState_t state)
 {
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,
@@ -694,12 +673,77 @@ int Autoguider_CIL_SDB_Packet_Centroid_Set(float cx,float cy,float fwhm,float ma
 }
 
 /**
- * Routine to submit status to the SDB using CIL.
- * Assumes Autoguider_CIL_SDB_Open has been called to setup CIL_SDB_Socket_Fd.
- * The packet is only sent if CIL_SDB_Send is TRUE.
+ * Tell the SDB about the Autogudier guide window.
+ * @param tlx The top left X position of the window in pixels. 
+ *            Converted internally into millipixels to send to the SDB.
+ * @param tly The top left Y position of the window in pixels. 
+ *            Converted internally into millipixels to send to the SDB.
+ * @param brx The bottom right X position of the window in pixels. 
+ *            Converted internally into millipixels to send to the SDB.
+ * @param bry The bottom right Y position of the window in pixels. 
+ *            Converted internally into millipixels to send to the SDB.
  * @return The routine returns TRUE if successfull, and FALSE if an error occurs. If an error occurs,
  *        Autoguider_General_Error_Number and Autoguider_General_Error_String are set.
- * @see #CIL_SDB_Socket_Fd
+ * @see autoguider_general.html#Autoguider_General_Error_Number
+ * @see autoguider_general.html#Autoguider_General_Error_String
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#Autoguider_General_Log_Format
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_CIL
+ */
+int Autoguider_CIL_SDB_Packet_Window_Set(int tlx,int tly,int brx,int bry)
+{
+	int ivalue;
+
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,
+				 "Autoguider_CIL_SDB_Packet_Window_Set(tlx=%d,tly=%d,brx=%d,bry=%d):started.",
+				      tlx,tly,brx,bry);
+#endif
+	ivalue = (int)(tlx*1000.0);
+	if(!NGATCil_AGS_SDB_Value_Set(D_AGS_WINDOW_TLX,ivalue))
+	{
+		Autoguider_General_Error_Number = 1104;
+		sprintf(Autoguider_General_Error_String,"Autoguider_CIL_SDB_Packet_Window_Set:"
+			"NGATCil_AGS_SDB_Value_Set failed.");
+		return FALSE;
+	}
+	ivalue = (int)(tly*1000.0);
+	if(!NGATCil_AGS_SDB_Value_Set(D_AGS_WINDOW_TLY,ivalue))
+	{
+		Autoguider_General_Error_Number = 1105;
+		sprintf(Autoguider_General_Error_String,"Autoguider_CIL_SDB_Packet_Window_Set:"
+			"NGATCil_AGS_SDB_Value_Set failed.");
+		return FALSE;
+	}
+	ivalue = (int)(brx*1000.0);
+	if(!NGATCil_AGS_SDB_Value_Set(D_AGS_WINDOW_BRX,ivalue))
+	{
+		Autoguider_General_Error_Number = 1114;
+		sprintf(Autoguider_General_Error_String,"Autoguider_CIL_SDB_Packet_Window_Set:"
+			"NGATCil_AGS_SDB_Value_Set failed.");
+		return FALSE;
+	}
+	ivalue = (int)(bry*1000.0);
+	if(!NGATCil_AGS_SDB_Value_Set(D_AGS_WINDOW_BRY,ivalue))
+	{
+		Autoguider_General_Error_Number = 1116;
+		sprintf(Autoguider_General_Error_String,"Autoguider_CIL_SDB_Packet_Window_Set:"
+			"NGATCil_AGS_SDB_Value_Set failed.");
+		return FALSE;
+	}
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"Autoguider_CIL_SDB_Packet_Window_Set:finished.");
+#endif
+	return TRUE;
+}
+
+/**
+ * Routine to submit status to the SDB using CIL.
+ * The packet is only sent if CIL_SDB_Send is TRUE.
+ * Assumes the CIL UDP server has previously been opened, to set CIL_UDP_Socket_Fd, 
+ * @return The routine returns TRUE if successfull, and FALSE if an error occurs. If an error occurs,
+ *        Autoguider_General_Error_Number and Autoguider_General_Error_String are set.
+ * @see #CIL_UDP_Socket_Fd
  * @see #CIL_SDB_Send
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
@@ -718,7 +762,7 @@ int Autoguider_CIL_SDB_Packet_Send(void)
 	if(CIL_SDB_Send)
 	{
 		/* submit the status to the SDB */
-		retval = NGATCil_AGS_SDB_Status_Send(CIL_SDB_Socket_Fd);
+		retval = NGATCil_AGS_SDB_Status_Send(CIL_UDP_Socket_Fd);
 		if(retval == FALSE)
 		{
 			Autoguider_General_Error_Number = 1151;
@@ -736,39 +780,6 @@ int Autoguider_CIL_SDB_Packet_Send(void)
 	}
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"Autoguider_CIL_SDB_Packet_Send:finished.");
-#endif
-	return TRUE;
-}
-
-/**
- * Routine to close the opened socket file descriptor CIL_SDB_Socket_Fd.
- * Assumes Autoguider_CIL_SDB_Packet_Open has been called to setup CIL_SDB_Socket_Fd.
- * @return The routine returns TRUE if successfull, and FALSE if an error occurs. If an error occurs,
- *        Autoguider_General_Error_Number and Autoguider_General_Error_String are set.
- * @see #CIL_SDB_Socket_Fd
- * @see autoguider_general.html#Autoguider_General_Error_Number
- * @see autoguider_general.html#Autoguider_General_Error_String
- * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#Autoguider_General_Log_Format
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_CIL
- * @see ../ngatcil/cdocs/ngatcil_udp_raw.html#NGATCil_UDP_Close
- */
-int Autoguider_CIL_SDB_Packet_Close(void)
-{
-	int retval;
-
-#if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"Autoguider_CIL_SDB_Packet_Close:started.");
-#endif
-	retval = NGATCil_UDP_Close(CIL_SDB_Socket_Fd);
-	if(retval == FALSE)
-	{
-		Autoguider_General_Error_Number = 1143;
-		sprintf(Autoguider_General_Error_String,"Autoguider_CIL_SDB_Packet_Close:NGATCil_UDP_Close failed.");
-		return FALSE;
-	}
-#if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"Autoguider_CIL_SDB_Packet_Close:finished.");
 #endif
 	return TRUE;
 }
@@ -815,17 +826,7 @@ int Autoguider_CIL_SDB_Packet_Send_Get(void)
  * @param message_buff A pointer to the memory holding the CIL message.
  * @param message_length The length of message_buff in bytes.
  * @return The routine returns TRUE if successfull, and FALSE if an error occurs.
- * @see #CIL_UDP_Autoguider_On_Pixel_Reply_Send
- * @see #CIL_UDP_Autoguider_On_Brightest_Reply_Send
- * @see #CIL_UDP_Autoguider_On_Rank_Reply_Send
- * @see #CIL_UDP_Autoguider_Off_Reply_Send
- * @see autoguider_command.html#Autoguider_Command_Autoguide_On
- * @see autoguider_command.html#COMMAND_AG_ON_TYPE
- * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#Autoguider_General_Log_Format
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_CIL
- * @see autoguider_guide.html#Autoguider_Guide_On
- * @see autoguider_guide.html#Autoguider_Guide_Off
+ * @see #CIL_Command_TCS_Process
  * @see ../ngatcil/cdocs/ngatcil_cil.html#E_CIL_CMD_CLASS
  * @see ../ngatcil/cdocs/ngatcil_cil.html#E_AGS_CMD
  * @see ../ngatcil/cdocs/ngatcil_cil.html#E_AGS_BAD_CMD
@@ -836,6 +837,7 @@ int Autoguider_CIL_SDB_Packet_Send_Get(void)
 static int Autoguider_CIL_Server_Connection_Callback(int socket_id,void* message_buff,int message_length)
 {
 	struct NGATCil_Cil_Packet_Struct cil_packet;
+	struct NGATCil_Ags_Packet_Struct ags_cil_packet;
 	float pixel_x = 0.0f,pixel_y = 0.0f;
 	int sequence_number = 0,status = 0,retval,rank;
 	int *debug_message_buff_ptr = NULL;
@@ -846,7 +848,7 @@ static int Autoguider_CIL_Server_Connection_Callback(int socket_id,void* message
 				      "Autoguider_CIL_Server_Connection_Callback:started.");
 #endif
 #endif
-	if(message_length != NGATCIL_CIL_PACKET_LENGTH)
+	if(message_length < NGATCIL_CIL_BASE_PACKET_LENGTH)
 	{
 #ifndef AUTOGUIDER_CIL_SILENCE
 #if AUTOGUIDER_DEBUG > 1
@@ -860,42 +862,353 @@ static int Autoguider_CIL_Server_Connection_Callback(int socket_id,void* message
 #endif
 		Autoguider_General_Error_Number = 1103;
 		sprintf(Autoguider_General_Error_String,"Autoguider_CIL_Server_Connection_Callback:"
-			"received CIL packet of wrong length %d vs %d.",message_length,NGATCIL_CIL_PACKET_LENGTH);
+			"received CIL packet of wrong length %d vs %d.",message_length,NGATCIL_CIL_BASE_PACKET_LENGTH);
 		Autoguider_General_Error();
 #endif
 		return FALSE;
 	}
-	/* diddly won't work if NGATCIL_CIL_PACKET_LENGTH != sizeof(struct NGATCil_Cil_Packet_Struct) */
-	memcpy(&cil_packet,message_buff,message_length);
+	/* diddly won't work if NGATCIL_CIL_BASE_PACKET_LENGTH != sizeof(struct NGATCil_Cil_Packet_Struct) */
+	memcpy(&cil_packet,message_buff,NGATCIL_CIL_BASE_PACKET_LENGTH);
+	switch(cil_packet.Source_Id)
+	{
+		case E_CIL_CHB:
+			if(!CIL_Command_CHB_Process(cil_packet,message_buff,message_length))
+			{
+				Autoguider_General_Error();
+				return FALSE;
+			}
+			break;
+		case E_CIL_MCP:
+			if(!CIL_Command_MCP_Process(cil_packet,message_buff,message_length))
+			{
+				Autoguider_General_Error();
+				return FALSE;
+			}
+			break;
+		case E_CIL_TCS:
+			if(!CIL_Command_TCS_Process(cil_packet,message_buff,message_length))
+			{
+				Autoguider_General_Error();
+				return FALSE;
+			}
+			break;
+		case E_CIL_SDB:
+#if AUTOGUIDER_DEBUG > 9
+			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,
+				"Autoguider_CIL_Server_Connection_Callback:SDB reply received (not processed yet).");
+#endif
+			break;
+		default:
+#if AUTOGUIDER_DEBUG > 1
+			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,
+				"Autoguider_CIL_Server_Connection_Callback:Source_Id %d not supported yet.",
+						      cil_packet.Source_Id);
+#endif
+			break;
+	}
+#if AUTOGUIDER_DEBUG > 1
+	if(cil_packet.Source_Id != E_CIL_CHB)
+	{
+		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,
+				      "Autoguider_CIL_Server_Connection_Callback:finished.");
+	}
+#endif
+	return TRUE;
+}
+
+/**
+ * Process a CHB command received from the server.
+ * @param cil_packet The parsed generic CIL header.
+ * @param message_buff A pointer to the memory holding the CIL message.
+ * @param message_length The length of message_buff in bytes.
+ * @return The routine returns TRUE if successfull, and FALSE if an error occurs.
+ * @see #CIL_UDP_Socket_Fd
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#Autoguider_General_Log_Format
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_CIL
+ * @see ../ngatcil/cdocs/ngatcil_cil.html#NGATCIL_CIL_CHB_HOSTNAME_DEFAULT
+ * @see ../ngatcil/cdocs/ngatcil_cil.html#NGATCIL_CIL_CHB_PORT_DEFAULT
+ * @see ../ngatcil/cdocs/ngatcil_cil.html#NGATCil_Status_Reply_Packet_Struct
+ * @see ../ngatcil/cdocs/ngatcil_udp_raw.html#NGATCil_UDP_Raw_To_Network_Byte_Order
+ * @see ../ngatcil/cdocs/ngatcil_udp_raw.html#NGATCil_UDP_Raw_Send_To
+ */
+static int CIL_Command_CHB_Process(struct NGATCil_Cil_Packet_Struct cil_packet,void *message_buff,
+				   size_t message_length)
+{
+	struct NGATCil_Status_Reply_Packet_Struct chb_reply_packet;
+	struct timespec current_time;
+	int sequence_number = 0,status = 0,retval;
+
+	if(cil_packet.Service != E_MCP_HEARTBEAT)
+	{
+		Autoguider_General_Error_Number = 1154;
+		sprintf(Autoguider_General_Error_String,"CIL_Command_CHB_Process:Service %d not heartbeat.",
+			cil_packet.Service);
+		return FALSE;
+	}
 	if(cil_packet.Class != E_CIL_CMD_CLASS)
 	{
-		Autoguider_General_Error_Number = 1104;
-		sprintf(Autoguider_General_Error_String,"Autoguider_CIL_Server_Connection_Callback:"
-			"received CIL packet for wrong class %#x vs %#x.",cil_packet.Class,E_CIL_CMD_CLASS);
-		Autoguider_General_Error();
+		Autoguider_General_Error_Number = 1155;
+		sprintf(Autoguider_General_Error_String,"CIL_Command_CHB_Process:Class %d not command.",
+			cil_packet.Class);
 		return FALSE;
 	}
-	if(cil_packet.Service != E_AGS_CMD)
+	chb_reply_packet.Cil_Base.Source_Id = E_CIL_AGS;
+	chb_reply_packet.Cil_Base.Dest_Id = E_CIL_CHB;
+	chb_reply_packet.Cil_Base.Class = E_CIL_RSP_CLASS;
+	chb_reply_packet.Cil_Base.Service = E_MCP_HEARTBEAT;
+	chb_reply_packet.Cil_Base.Seq_Num = cil_packet.Seq_Num;
+	clock_gettime(CLOCK_REALTIME,&current_time);
+	chb_reply_packet.Cil_Base.Timestamp_Seconds = current_time.tv_sec;
+	chb_reply_packet.Cil_Base.Timestamp_Nanoseconds = current_time.tv_nsec;
+	chb_reply_packet.Status = SYS_OKAY_STATE;
+	NGATCil_UDP_Raw_To_Network_Byte_Order((void*)&chb_reply_packet,sizeof(struct NGATCil_Status_Reply_Packet_Struct));
+	if(!NGATCil_UDP_Raw_Send_To(CIL_UDP_Socket_Fd,NGATCIL_CIL_CHB_HOSTNAME_DEFAULT,NGATCIL_CIL_CHB_PORT_DEFAULT,
+				    (void*)&chb_reply_packet,sizeof(struct NGATCil_Status_Reply_Packet_Struct)))
 	{
-		Autoguider_General_Error_Number = 1105;
-		sprintf(Autoguider_General_Error_String,"Autoguider_CIL_Server_Connection_Callback:"
-			"received CIL packet for wrong service %#x vs %#x.",cil_packet.Service,E_AGS_CMD);
-		Autoguider_General_Error();
+		Autoguider_General_Error_Number = 1156;
+		sprintf(Autoguider_General_Error_String,"CIL_Command_CHB_Process:NGATCil_UDP_Raw_Send_To failed.");
 		return FALSE;
 	}
-	switch(cil_packet.Command)
+	CIL_CHB_Count++;
+#if AUTOGUIDER_DEBUG > 9
+	if((CIL_CHB_Count % 1000) == 0)
+	{
+		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,
+					      "CIL_Command_CHB_Process:Received/Processed %d heartbeats.",
+					      CIL_CHB_Count);
+	}
+#endif
+
+	return TRUE;
+}
+
+/**
+ * Process a MCP command received from the server.
+ * @param cil_packet The parsed generic CIL header.
+ * @param message_buff A pointer to the memory holding the CIL message.
+ * @param message_length The length of message_buff in bytes.
+ * @return The routine returns TRUE if successfull, and FALSE if an error occurs.
+ * @see #CIL_Command_MCP_Activate_Process
+ * @see #CIL_Command_MCP_Safe_Process
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#Autoguider_General_Log_Format
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_CIL
+ */
+static int CIL_Command_MCP_Process(struct NGATCil_Cil_Packet_Struct cil_packet,void *message_buff,
+				   size_t message_length)
+{
+	struct NGATCil_Status_Reply_Packet_Struct chb_reply_packet;
+	struct timespec current_time;
+	int sequence_number = 0,status = 0,retval;
+
+	if(cil_packet.Class != E_CIL_CMD_CLASS)
+	{
+		Autoguider_General_Error_Number = 1128;
+		sprintf(Autoguider_General_Error_String,"CIL_Command_MCP_Process:Class %d not command.",
+			cil_packet.Class);
+		return FALSE;
+	}
+	switch(cil_packet.Service)
+	{
+		 case E_MCP_SHUTDOWN:
+			 break;
+		case E_MCP_ACTIVATE:
+#if AUTOGUIDER_DEBUG > 9
+			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,
+				"CIL_Command_MCP_Process:Processing MCP Activate request.");
+#endif
+			if(!CIL_Command_MCP_Activate_Process(cil_packet,message_buff,message_length,SYS_OKAY_STATE))
+				return FALSE;
+			break;
+		case E_MCP_SAFESTATE:
+#if AUTOGUIDER_DEBUG > 9
+			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,
+				"CIL_Command_MCP_Process:Processing MCP Safe state request.");
+#endif
+			if(!CIL_Command_MCP_Safe_Process(cil_packet,message_buff,message_length,SYS_OKAY_STATE))
+				return FALSE;
+			break;
+		default:
+			Autoguider_General_Error_Number = 1130;
+			sprintf(Autoguider_General_Error_String,"CIL_Command_MCP_Process:Unknown Service %d.",
+				cil_packet.Service);
+			return FALSE;
+			break;
+	}
+	return TRUE;
+}
+
+/**
+ * Process an MCP activate command.
+ * @param cil_packet The parsed generic CIL header.
+ * @param message_buff A pointer to the memory holding the CIL message.
+ * @param message_length The length of message_buff in bytes.
+ * @param status The status to return, ususally SYS_OKAY_STATE.
+ * @return The routine returns TRUE if successfull, and FALSE if an error occurs.
+ * @see #CIL_UDP_Socket_Fd
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#Autoguider_General_Log_Format
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_CIL
+ * @see ../ngatcil/cdocs/ngatcil_cil.html#NGATCIL_CIL_MCP_HOSTNAME_DEFAULT
+ * @see ../ngatcil/cdocs/ngatcil_cil.html#NGATCIL_CIL_MCP_PORT_DEFAULT
+ * @see ../ngatcil/cdocs/ngatcil_cil.html#NGATCil_Cil_Packet_Struct
+ * @see ../ngatcil/cdocs/ngatcil_cil.html#NGATCil_Status_Reply_Packet_Struct
+ * @see ../ngatcil/cdocs/ngatcil_udp_raw.html#NGATCil_UDP_Raw_To_Network_Byte_Order
+ * @see ../ngatcil/cdocs/ngatcil_udp_raw.html#NGATCil_UDP_Raw_Send_To
+ */
+static int CIL_Command_MCP_Activate_Process(struct NGATCil_Cil_Packet_Struct cil_packet,void *message_buff,
+					    size_t message_length,int status)
+{
+	struct NGATCil_Cil_Packet_Struct act_reply_packet;
+	struct NGATCil_Status_Reply_Packet_Struct com_reply_packet;
+	struct timespec current_time;
+
+	/* send Act reply */
+	act_reply_packet.Source_Id = cil_packet.Dest_Id;
+	act_reply_packet.Dest_Id = cil_packet.Source_Id;
+	act_reply_packet.Class = E_CIL_ACT_CLASS;
+	act_reply_packet.Service = cil_packet.Service;
+	act_reply_packet.Seq_Num = cil_packet.Seq_Num;
+	clock_gettime(CLOCK_REALTIME,&current_time);
+	act_reply_packet.Timestamp_Seconds = current_time.tv_sec;
+	act_reply_packet.Timestamp_Nanoseconds = current_time.tv_nsec;
+	NGATCil_UDP_Raw_To_Network_Byte_Order((void*)&act_reply_packet,sizeof(struct NGATCil_Cil_Packet_Struct));
+	/* act reply to mcp */
+	if(!NGATCil_UDP_Raw_Send_To(CIL_UDP_Socket_Fd,NGATCIL_CIL_MCP_HOSTNAME_DEFAULT,NGATCIL_CIL_MCP_PORT_DEFAULT,
+				    (void*)&act_reply_packet,sizeof(struct NGATCil_Cil_Packet_Struct)))
+	{
+		Autoguider_General_Error_Number = 1133;
+		sprintf(Autoguider_General_Error_String,"CIL_Command_MCP_Activate_Process:NGATCil_UDP_Raw_Send_To failed.");
+		return FALSE;
+	}
+	/* send COM reply */
+	com_reply_packet.Cil_Base.Source_Id = cil_packet.Dest_Id;
+	com_reply_packet.Cil_Base.Dest_Id = cil_packet.Source_Id;
+	com_reply_packet.Cil_Base.Class = E_CIL_COM_CLASS;
+	com_reply_packet.Cil_Base.Service = cil_packet.Service;
+	com_reply_packet.Cil_Base.Seq_Num = cil_packet.Seq_Num;
+	clock_gettime(CLOCK_REALTIME,&current_time);
+	com_reply_packet.Cil_Base.Timestamp_Seconds = current_time.tv_sec;
+	com_reply_packet.Cil_Base.Timestamp_Nanoseconds = current_time.tv_nsec;
+	com_reply_packet.Status = status;
+	NGATCil_UDP_Raw_To_Network_Byte_Order((void*)&com_reply_packet,
+					      sizeof(struct NGATCil_Status_Reply_Packet_Struct));
+	/* act reply to mcp */
+	if(!NGATCil_UDP_Raw_Send_To(CIL_UDP_Socket_Fd,NGATCIL_CIL_MCP_HOSTNAME_DEFAULT,NGATCIL_CIL_MCP_PORT_DEFAULT,
+				    (void*)&com_reply_packet,sizeof(struct NGATCil_Status_Reply_Packet_Struct)))
+	{
+		Autoguider_General_Error_Number = 1135;
+		sprintf(Autoguider_General_Error_String,"CIL_Command_MCP_Activate_Process:"
+			"NGATCil_UDP_Raw_Send_To failed.");
+		return FALSE;
+	}
+	return TRUE;
+}
+
+/**
+ * Process an MCP safe command.
+ * @param cil_packet The parsed generic CIL header.
+ * @param message_buff A pointer to the memory holding the CIL message.
+ * @param message_length The length of message_buff in bytes.
+ * @param status The status to return, ususally SYS_OKAY_STATE.
+ * @return The routine returns TRUE if successfull, and FALSE if an error occurs.
+ * @see #CIL_UDP_Socket_Fd
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#Autoguider_General_Log_Format
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_CIL
+ * @see ../ngatcil/cdocs/ngatcil_cil.html#NGATCIL_CIL_MCP_HOSTNAME_DEFAULT
+ * @see ../ngatcil/cdocs/ngatcil_cil.html#NGATCIL_CIL_MCP_PORT_DEFAULT
+ * @see ../ngatcil/cdocs/ngatcil_cil.html#NGATCil_Cil_Packet_Struct
+ * @see ../ngatcil/cdocs/ngatcil_cil.html#NGATCil_Status_Reply_Packet_Struct
+ * @see ../ngatcil/cdocs/ngatcil_udp_raw.html#NGATCil_UDP_Raw_To_Network_Byte_Order
+ * @see ../ngatcil/cdocs/ngatcil_udp_raw.html#NGATCil_UDP_Raw_Send_To
+ */
+static int CIL_Command_MCP_Safe_Process(struct NGATCil_Cil_Packet_Struct cil_packet,void *message_buff,
+					    size_t message_length,int status)
+{
+	struct NGATCil_Cil_Packet_Struct act_reply_packet;
+	struct timespec current_time;
+
+	/* send Act reply */
+	act_reply_packet.Source_Id = cil_packet.Dest_Id;
+	act_reply_packet.Dest_Id = cil_packet.Source_Id;
+	act_reply_packet.Class = E_CIL_ACT_CLASS;
+	act_reply_packet.Service = cil_packet.Service;
+	act_reply_packet.Seq_Num = cil_packet.Seq_Num;
+	clock_gettime(CLOCK_REALTIME,&current_time);
+	act_reply_packet.Timestamp_Seconds = current_time.tv_sec;
+	act_reply_packet.Timestamp_Nanoseconds = current_time.tv_nsec;
+	NGATCil_UDP_Raw_To_Network_Byte_Order((void*)&act_reply_packet,sizeof(struct NGATCil_Cil_Packet_Struct));
+	/* act reply to mcp */
+	if(!NGATCil_UDP_Raw_Send_To(CIL_UDP_Socket_Fd,NGATCIL_CIL_MCP_HOSTNAME_DEFAULT,NGATCIL_CIL_MCP_PORT_DEFAULT,
+				    (void*)&act_reply_packet,sizeof(struct NGATCil_Cil_Packet_Struct)))
+	{
+		Autoguider_General_Error_Number = 1143;
+		sprintf(Autoguider_General_Error_String,
+			"CIL_Command_MCP_Safe_Process:NGATCil_UDP_Raw_Send_To failed.");
+		return FALSE;
+	}
+	return TRUE;
+}
+
+/**
+ * Process a TCS command received from the server.
+ * @param cil_packet The parsed generic CIL header.
+ * @param message_buff A pointer to the memory holding the CIL message.
+ * @param message_length The length of message_buff in bytes.
+ * @return The routine returns TRUE if successfull, and FALSE if an error occurs.
+ * @see #CIL_UDP_Autoguider_On_Pixel_Reply_Send
+ * @see #CIL_UDP_Autoguider_On_Brightest_Reply_Send
+ * @see #CIL_UDP_Autoguider_On_Rank_Reply_Send
+ * @see #CIL_UDP_Autoguider_Off_Reply_Send
+ * @see #CIL_Command_Start_Session_Reply_Send
+ * @see #CIL_Command_End_Session_Reply_Send
+ * @see autoguider_command.html#Autoguider_Command_Autoguide_On
+ * @see autoguider_command.html#COMMAND_AG_ON_TYPE
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#Autoguider_General_Log_Format
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_CIL
+ * @see autoguider_guide.html#Autoguider_Guide_On
+ * @see autoguider_guide.html#Autoguider_Guide_Off
+ */
+static int CIL_Command_TCS_Process(struct NGATCil_Cil_Packet_Struct cil_packet,void *message_buff,
+				   size_t message_length)
+{
+	struct NGATCil_Ags_Packet_Struct ags_cil_packet;
+	float pixel_x = 0.0f,pixel_y = 0.0f;
+	int sequence_number = 0,status = 0,retval,rank;
+	int *debug_message_buff_ptr = NULL;
+
+	if((cil_packet.Class != E_CIL_CMD_CLASS))	       
+	{
+		Autoguider_General_Error_Number = 1152;
+		sprintf(Autoguider_General_Error_String,"CIL_Command_TCS_Process:Class %d not command.",
+			cil_packet.Class);
+		return FALSE;
+	}
+	if(message_length != NGATCIL_CIL_AGS_PACKET_LENGTH)
+	{
+		Autoguider_General_Error_Number = 1153;
+		sprintf(Autoguider_General_Error_String,"CIL_Command_TCS_Process:"
+			"received CIL AGS command packet of wrong length %d vs %d.",message_length,
+			NGATCIL_CIL_AGS_PACKET_LENGTH);
+		return FALSE;
+	}
+	/* diddly won't work if NGATCIL_CIL_AGS_PACKET_LENGTH != sizeof(struct NGATCil_Ags_Packet_Struct) */
+	memcpy(&ags_cil_packet,message_buff,NGATCIL_CIL_AGS_PACKET_LENGTH);
+	switch(ags_cil_packet.Command)
 	{
 		case E_AGS_GUIDE_ON_BRIGHTEST:
 #if AUTOGUIDER_DEBUG > 3
 			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,
-				      "Autoguider_CIL_Server_Connection_Callback:Command is autoguider on brightest.");
+				  "CIL_Command_TCS_Process:Command is autoguider on brightest.");
 #endif
-			if(!NGATCil_Cil_Autoguide_On_Brightest_Parse(cil_packet,&sequence_number))
+			if(!NGATCil_Cil_Autoguide_On_Brightest_Parse(ags_cil_packet,&sequence_number))
 			{
 				Autoguider_General_Error_Number = 1126;
-				sprintf(Autoguider_General_Error_String,"Autoguider_CIL_Server_Connection_Callback:"
+				sprintf(Autoguider_General_Error_String,"CIL_Command_TCS_Process:"
 					"Failed to parse autoguider on brightest command.");
-				Autoguider_General_Error();
 				CIL_UDP_Autoguider_On_Brightest_Reply_Send(E_AGS_BAD_CMD,sequence_number);
 				return FALSE;
 			}
@@ -907,15 +1220,13 @@ static int Autoguider_CIL_Server_Connection_Callback(int socket_id,void* message
 				{
 					Autoguider_General_Error_Number = 1127;
 					sprintf(Autoguider_General_Error_String,
-						"Autoguider_CIL_Server_Connection_Callback:"
+						"CIL_Command_TCS_Process:"
 						"Failed to send autoguider on brightest reply.");
-					Autoguider_General_Error();
 					return FALSE;
 				}
 			}
 			else
 			{
-				Autoguider_General_Error();
 				CIL_UDP_Autoguider_On_Brightest_Reply_Send(E_AGS_LOOP_ERROR,sequence_number);
 				return FALSE;
 			}
@@ -923,14 +1234,13 @@ static int Autoguider_CIL_Server_Connection_Callback(int socket_id,void* message
 		case E_AGS_GUIDE_ON_PIXEL:
 #if AUTOGUIDER_DEBUG > 3
 			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,
-				      "Autoguider_CIL_Server_Connection_Callback:Command is autoguider on pixel.");
+				    "CIL_Command_TCS_Process:Command is autoguider on pixel.");
 #endif
-			if(!NGATCil_Cil_Autoguide_On_Pixel_Parse(cil_packet,&pixel_x,&pixel_y,&sequence_number))
+			if(!NGATCil_Cil_Autoguide_On_Pixel_Parse(ags_cil_packet,&pixel_x,&pixel_y,&sequence_number))
 			{
 				Autoguider_General_Error_Number = 1106;
-				sprintf(Autoguider_General_Error_String,"Autoguider_CIL_Server_Connection_Callback:"
+				sprintf(Autoguider_General_Error_String,"CIL_Command_TCS_Process:"
 					"Failed to parse autoguider on pixel command.");
-				Autoguider_General_Error();
 				CIL_UDP_Autoguider_On_Pixel_Reply_Send(pixel_x,pixel_y,E_AGS_BAD_CMD,sequence_number);
 				return FALSE;
 			}
@@ -942,30 +1252,27 @@ static int Autoguider_CIL_Server_Connection_Callback(int socket_id,void* message
 				{
 					Autoguider_General_Error_Number = 1107;
 					sprintf(Autoguider_General_Error_String,
-						"Autoguider_CIL_Server_Connection_Callback:"
-						"Failed to send autoguider on pixel reply.");
-					Autoguider_General_Error();
+						"CIL_Command_TCS_Process:Failed to send autoguider on pixel reply.");
 					return FALSE;
 				}
 			}
 			else
 			{
-				Autoguider_General_Error();
-				CIL_UDP_Autoguider_On_Pixel_Reply_Send(pixel_x,pixel_y,E_AGS_LOOP_ERROR,sequence_number);
+				CIL_UDP_Autoguider_On_Pixel_Reply_Send(pixel_x,pixel_y,E_AGS_LOOP_ERROR,
+								       sequence_number);
 				return FALSE;
 			}
 			break;
 		case E_AGS_GUIDE_ON_RANK:
 #if AUTOGUIDER_DEBUG > 3
 			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,
-				      "Autoguider_CIL_Server_Connection_Callback:Command is autoguider on rank.");
+				    "CIL_Command_TCS_Process:Command is autoguider on rank.");
 #endif
-			if(!NGATCil_Cil_Autoguide_On_Rank_Parse(cil_packet,&rank,&sequence_number))
+			if(!NGATCil_Cil_Autoguide_On_Rank_Parse(ags_cil_packet,&rank,&sequence_number))
 			{
 				Autoguider_General_Error_Number = 1131;
-				sprintf(Autoguider_General_Error_String,"Autoguider_CIL_Server_Connection_Callback:"
+				sprintf(Autoguider_General_Error_String,"CIL_Command_TCS_Process:"
 					"Failed to parse autoguider on rank command.");
-				Autoguider_General_Error();
 				CIL_UDP_Autoguider_On_Rank_Reply_Send(rank,E_AGS_BAD_CMD,sequence_number);
 				return FALSE;
 			}
@@ -977,15 +1284,12 @@ static int Autoguider_CIL_Server_Connection_Callback(int socket_id,void* message
 				{
 					Autoguider_General_Error_Number = 1132;
 					sprintf(Autoguider_General_Error_String,
-						"Autoguider_CIL_Server_Connection_Callback:"
-						"Failed to send autoguider on rank reply.");
-					Autoguider_General_Error();
+						"CIL_Command_TCS_Process:Failed to send autoguider on rank reply.");
 					return FALSE;
 				}
 			}
 			else
 			{
-				Autoguider_General_Error();
 				CIL_UDP_Autoguider_On_Rank_Reply_Send(rank,E_AGS_LOOP_ERROR,sequence_number);
 				return FALSE;
 			}
@@ -993,17 +1297,16 @@ static int Autoguider_CIL_Server_Connection_Callback(int socket_id,void* message
 		case E_AGS_GUIDE_OFF:
 #if AUTOGUIDER_DEBUG > 3
 			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,
-				      "Autoguider_CIL_Server_Connection_Callback:Command is autoguider off.");
+					"CIL_Command_TCS_Process:Command is autoguider off.");
 #endif
-			if(!NGATCil_Cil_Autoguide_Off_Parse(cil_packet,&status,&sequence_number))
+			if(!NGATCil_Cil_Autoguide_Off_Parse(ags_cil_packet,&status,&sequence_number))
 			{
 				Autoguider_General_Error_Number = 1108;
-				sprintf(Autoguider_General_Error_String,"Autoguider_CIL_Server_Connection_Callback:"
-					"Failed to parse autoguider off command.");
-				Autoguider_General_Error();
+				sprintf(Autoguider_General_Error_String,"CIL_Command_TCS_Process:"
+						"Failed to parse autoguider off command.");
 				return FALSE;
 			}
-			/* stop guide thread */
+				/* stop guide thread */
 			retval = Autoguider_Guide_Off();
 			if(retval == TRUE)
 			{
@@ -1011,28 +1314,41 @@ static int Autoguider_CIL_Server_Connection_Callback(int socket_id,void* message
 				{
 					Autoguider_General_Error_Number = 1109;
 					sprintf(Autoguider_General_Error_String,
-						"Autoguider_CIL_Server_Connection_Callback:"
-						"Failed to send autoguider off reply.");
+						"CIL_Command_TCS_Process:Failed to send autoguider off reply.");
 					return FALSE;
 				}
 			}
 			else
 			{
-				Autoguider_General_Error();
 				CIL_UDP_Autoguider_Off_Reply_Send(E_AGS_LOOP_STOPPING,sequence_number);
 			}
 			break;
+		case E_AGS_START_SESSION:
+#if AUTOGUIDER_DEBUG > 3
+			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,
+					"CIL_Command_TCS_Process:Command is start session.");
+#endif
+			/* send reply OK */
+			if(!CIL_Command_Start_Session_Reply_Send(ags_cil_packet,SYS_NOMINAL))
+				Autoguider_General_Error();
+			break;
+		case E_AGS_END_SESSION:
+#if AUTOGUIDER_DEBUG > 3
+			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,
+					"CIL_Command_TCS_Process:Command is end session.");
+#endif
+			/* send reply OK */
+			if(!CIL_Command_End_Session_Reply_Send(ags_cil_packet,SYS_NOMINAL))
+				Autoguider_General_Error();
+			break;
+
 		default:
 			Autoguider_General_Error_Number = 1110;
-			sprintf(Autoguider_General_Error_String,"Autoguider_CIL_Server_Connection_Callback:"
-				"received CIL packet with unknown command %d.",cil_packet.Command);
+			sprintf(Autoguider_General_Error_String,"CIL_Command_TCS_Process:"
+				"received CIL packet from TCS with unknown command %d.",ags_cil_packet.Command);
 			return FALSE;
 			break;
-	}
-#if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,
-				      "Autoguider_CIL_Server_Connection_Callback:finished.");
-#endif
+	}/* end switch on command */
 	return TRUE;
 }
 
@@ -1045,6 +1361,7 @@ static int Autoguider_CIL_Server_Connection_Callback(int socket_id,void* message
  *        Autoguider_General_Error_Number and Autoguider_General_Error_String are set.
  * @see #TCC_Hostname
  * @see #CIL_TCS_UDP_Port
+ * @see #CIL_UDP_Socket_Fd
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  * @see autoguider_general.html#Autoguider_General_Log
@@ -1056,40 +1373,18 @@ static int Autoguider_CIL_Server_Connection_Callback(int socket_id,void* message
  */
 static int CIL_UDP_Autoguider_On_Brightest_Reply_Send(int status,int sequence_number)
 {
-	int retval,socket_fd;
+	int retval;
 
 #if AUTOGUIDER_DEBUG > 3
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"CIL_UDP_Autoguider_On_Brightest_Reply_Send:started.");
 #endif
-#if AUTOGUIDER_DEBUG > 3
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,
-				      "CIL_UDP_Autoguider_On_Brightest_Reply_Send:Opening UDP connection to %s:%d.",
-				      TCC_Hostname,CIL_TCS_UDP_Port);
-#endif
-	retval = NGATCil_UDP_Open(TCC_Hostname,CIL_TCS_UDP_Port,&socket_fd);
-	if(retval == FALSE)
-	{
-		Autoguider_General_Error_Number = 1128;
-		sprintf(Autoguider_General_Error_String,"CIL_UDP_Autoguider_On_Brightest_Reply_Send:"
-			"Failed to open UDP CIL port (%s:%d).",TCC_Hostname,CIL_TCS_UDP_Port);
-		return FALSE;
-	}
-	retval = NGATCil_Cil_Autoguide_On_Brightest_Reply_Send(socket_fd,status,sequence_number);
+	retval = NGATCil_Cil_Autoguide_On_Brightest_Reply_Send(CIL_UDP_Socket_Fd,TCC_Hostname,CIL_TCS_UDP_Port,status,
+							       sequence_number);
 	if(retval == FALSE)
 	{
 		Autoguider_General_Error_Number = 1129;
 		sprintf(Autoguider_General_Error_String,"CIL_UDP_Autoguider_On_Pixel_Reply_Send:"
 			"Failed to send autoguide on pixel reply packet.");
-		NGATCil_UDP_Close(socket_fd);
-		return FALSE;
-	}
-	retval = NGATCil_UDP_Close(socket_fd);
-	if(retval == FALSE)
-	{
-		Autoguider_General_Error_Number = 1130;
-		sprintf(Autoguider_General_Error_String,"CIL_UDP_Autoguider_On_Brightest_Reply_Send:"
-			"Failed to close UDP CIL port (%s:%d).",
-			TCC_Hostname,CIL_TCS_UDP_Port);
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 3
@@ -1109,6 +1404,7 @@ static int CIL_UDP_Autoguider_On_Brightest_Reply_Send(int status,int sequence_nu
  *        Autoguider_General_Error_Number and Autoguider_General_Error_String are set.
  * @see #TCC_Hostname
  * @see #CIL_TCS_UDP_Port
+ * @see #CIL_UDP_Socket_Fd
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  * @see autoguider_general.html#Autoguider_General_Log
@@ -1120,40 +1416,18 @@ static int CIL_UDP_Autoguider_On_Brightest_Reply_Send(int status,int sequence_nu
  */
 static int CIL_UDP_Autoguider_On_Pixel_Reply_Send(float pixel_x,float pixel_y,int status,int sequence_number)
 {
-	int retval,socket_fd;
+	int retval;
 
 #if AUTOGUIDER_DEBUG > 3
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"CIL_UDP_Autoguider_On_Pixel_Reply_Send:started.");
 #endif
-#if AUTOGUIDER_DEBUG > 3
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,
-				      "CIL_UDP_Autoguider_On_Pixel_Reply_Send:Opening UDP connection to %s:%d.",
-				      TCC_Hostname,CIL_TCS_UDP_Port);
-#endif
-	retval = NGATCil_UDP_Open(TCC_Hostname,CIL_TCS_UDP_Port,&socket_fd);
-	if(retval == FALSE)
-	{
-		Autoguider_General_Error_Number = 1114;
-		sprintf(Autoguider_General_Error_String,"CIL_UDP_Autoguider_On_Pixel_Reply_Send:"
-			"Failed to open UDP CIL port (%s:%d).",TCC_Hostname,CIL_TCS_UDP_Port);
-		return FALSE;
-	}
-	retval = NGATCil_Cil_Autoguide_On_Pixel_Reply_Send(socket_fd,pixel_x,pixel_y,status,sequence_number);
+	retval = NGATCil_Cil_Autoguide_On_Pixel_Reply_Send(CIL_UDP_Socket_Fd,TCC_Hostname,CIL_TCS_UDP_Port,
+							   pixel_x,pixel_y,status,sequence_number);
 	if(retval == FALSE)
 	{
 		Autoguider_General_Error_Number = 1115;
 		sprintf(Autoguider_General_Error_String,"CIL_UDP_Autoguider_On_Pixel_Reply_Send:"
 			"Failed to send autoguide on pixel reply packet.");
-		NGATCil_UDP_Close(socket_fd);
-		return FALSE;
-	}
-	retval = NGATCil_UDP_Close(socket_fd);
-	if(retval == FALSE)
-	{
-		Autoguider_General_Error_Number = 1116;
-		sprintf(Autoguider_General_Error_String,"CIL_UDP_Autoguider_On_Pixel_Reply_Send:"
-			"Failed to close UDP CIL port (%s:%d).",
-			TCC_Hostname,CIL_TCS_UDP_Port);
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 3
@@ -1172,6 +1446,7 @@ static int CIL_UDP_Autoguider_On_Pixel_Reply_Send(float pixel_x,float pixel_y,in
  *        Autoguider_General_Error_Number and Autoguider_General_Error_String are set.
  * @see #TCC_Hostname
  * @see #CIL_TCS_UDP_Port
+ * @see #CIL_UDP_Socket_Fd
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  * @see autoguider_general.html#Autoguider_General_Log
@@ -1183,7 +1458,7 @@ static int CIL_UDP_Autoguider_On_Pixel_Reply_Send(float pixel_x,float pixel_y,in
  */
 static int CIL_UDP_Autoguider_On_Rank_Reply_Send(int rank,int status,int sequence_number)
 {
-	int retval,socket_fd;
+	int retval;
 
 #if AUTOGUIDER_DEBUG > 3
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"CIL_UDP_Autoguider_On_Rank_Reply_Send:started.");
@@ -1193,30 +1468,13 @@ static int CIL_UDP_Autoguider_On_Rank_Reply_Send(int rank,int status,int sequenc
 				      "CIL_UDP_Autoguider_On_Rank_Reply_Send:Opening UDP connection to %s:%d.",
 				      TCC_Hostname,CIL_TCS_UDP_Port);
 #endif
-	retval = NGATCil_UDP_Open(TCC_Hostname,CIL_TCS_UDP_Port,&socket_fd);
-	if(retval == FALSE)
-	{
-		Autoguider_General_Error_Number = 1133;
-		sprintf(Autoguider_General_Error_String,"CIL_UDP_Autoguider_On_Rank_Reply_Send:"
-			"Failed to open UDP CIL port (%s:%d).",TCC_Hostname,CIL_TCS_UDP_Port);
-		return FALSE;
-	}
-	retval = NGATCil_Cil_Autoguide_On_Rank_Reply_Send(socket_fd,rank,status,sequence_number);
+	retval = NGATCil_Cil_Autoguide_On_Rank_Reply_Send(CIL_UDP_Socket_Fd,TCC_Hostname,CIL_TCS_UDP_Port,rank,status,
+							  sequence_number);
 	if(retval == FALSE)
 	{
 		Autoguider_General_Error_Number = 1134;
 		sprintf(Autoguider_General_Error_String,"CIL_UDP_Autoguider_On_Rank_Reply_Send:"
 			"Failed to send autoguide on rank reply packet.");
-		NGATCil_UDP_Close(socket_fd);
-		return FALSE;
-	}
-	retval = NGATCil_UDP_Close(socket_fd);
-	if(retval == FALSE)
-	{
-		Autoguider_General_Error_Number = 1135;
-		sprintf(Autoguider_General_Error_String,"CIL_UDP_Autoguider_On_Rank_Reply_Send:"
-			"Failed to close UDP CIL port (%s:%d).",
-			TCC_Hostname,CIL_TCS_UDP_Port);
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 3
@@ -1232,6 +1490,7 @@ static int CIL_UDP_Autoguider_On_Rank_Reply_Send(int rank,int status,int sequenc
  * @param sequence_number Sequence number.
  * @see #TCC_Hostname
  * @see #CIL_TCS_UDP_Port
+ * @see #CIL_UDP_Socket_Fd
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  * @see autoguider_general.html#Autoguider_General_Log
@@ -1243,7 +1502,7 @@ static int CIL_UDP_Autoguider_On_Rank_Reply_Send(int rank,int status,int sequenc
  */
 static int CIL_UDP_Autoguider_Off_Reply_Send(int status,int sequence_number)
 {
-	int retval,socket_fd;
+	int retval;
 
 #if AUTOGUIDER_DEBUG > 3
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_CIL,"CIL_UDP_Autoguider_Off_Reply_Send:started.");
@@ -1253,30 +1512,13 @@ static int CIL_UDP_Autoguider_Off_Reply_Send(int status,int sequence_number)
 				      "CIL_UDP_Autoguider_Off_Reply_Send:Opening UDP connection to %s:%d.",
 				      TCC_Hostname,CIL_TCS_UDP_Port);
 #endif
-	retval = NGATCil_UDP_Open(TCC_Hostname,CIL_TCS_UDP_Port,&socket_fd);
-	if(retval == FALSE)
-	{
-		Autoguider_General_Error_Number = 1117;
-		sprintf(Autoguider_General_Error_String,"CIL_UDP_Autoguider_Off_Reply_Send:"
-			"Failed to open UDP CIL port (%s:%d).",TCC_Hostname,CIL_TCS_UDP_Port);
-		NGATCil_General_Error();
-		return FALSE;
-	}
-	retval = NGATCil_Cil_Autoguide_Off_Reply_Send(socket_fd,status,sequence_number);
+	retval = NGATCil_Cil_Autoguide_Off_Reply_Send(CIL_UDP_Socket_Fd,TCC_Hostname,CIL_TCS_UDP_Port,status,
+						      sequence_number);
 	if(retval == FALSE)
 	{
 		Autoguider_General_Error_Number = 1118;
 		sprintf(Autoguider_General_Error_String,"CIL_UDP_Autoguider_Off_Reply_Send:"
 			"Failed to send autoguide off reply packet.");
-		NGATCil_UDP_Close(socket_fd);
-		return FALSE;
-	}
-	retval = NGATCil_UDP_Close(socket_fd);
-	if(retval == FALSE)
-	{
-		Autoguider_General_Error_Number = 1119;
-		sprintf(Autoguider_General_Error_String,"CIL_UDP_Autoguider_Off_Reply_Send:"
-			"Failed to close UDP CIL port (%s:%d).",TCC_Hostname,CIL_TCS_UDP_Port);
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 3
@@ -1285,8 +1527,102 @@ static int CIL_UDP_Autoguider_Off_Reply_Send(int status,int sequence_number)
 	return TRUE;
 }
 
+/**
+ * Process a Start Session command received from the TCS.
+ * @param cil_packet The parsed AGS to TCS CIL command.
+ * @param status What status to return to the TCS, should be SYS_NOMINAL.
+ * @return The routine returns TRUE if successfull, and FALSE if an error occurs.
+ * @see #CIL_UDP_Socket_Fd
+ * @see #TCC_Hostname
+ * @see #CIL_TCS_UDP_Port
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#Autoguider_General_Log_Format
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_CIL
+ * @see ../ngatcil/cdocs/ngatcil_cil.html#NGATCIL_CIL_TCS_HOSTNAME_DEFAULT
+ * @see ../ngatcil/cdocs/ngatcil_cil.html#NGATCIL_CIL_TCS_PORT_DEFAULT
+ * @see ../ngatcil/cdocs/ngatcil_cil.html#NGATCil_Ags_Packet_Struct
+ */
+static int CIL_Command_Start_Session_Reply_Send(struct NGATCil_Ags_Packet_Struct cil_packet,int status)
+{
+	struct NGATCil_Ags_Packet_Struct tcs_reply_packet;
+	struct timespec current_time;
+	int retval;
+
+	tcs_reply_packet.Cil_Base.Source_Id = E_CIL_AGS;
+	tcs_reply_packet.Cil_Base.Dest_Id = E_CIL_TCS;
+	tcs_reply_packet.Cil_Base.Class = E_CIL_RSP_CLASS;
+	tcs_reply_packet.Cil_Base.Service = cil_packet.Cil_Base.Service;
+	tcs_reply_packet.Cil_Base.Seq_Num = cil_packet.Cil_Base.Seq_Num;
+	clock_gettime(CLOCK_REALTIME,&current_time);
+	tcs_reply_packet.Cil_Base.Timestamp_Seconds = current_time.tv_sec;
+	tcs_reply_packet.Cil_Base.Timestamp_Nanoseconds = current_time.tv_nsec;
+	tcs_reply_packet.Command = cil_packet.Command;
+	tcs_reply_packet.Status = status;
+	tcs_reply_packet.Param1 = cil_packet.Param1;
+	tcs_reply_packet.Param2 = cil_packet.Param2;
+	NGATCil_UDP_Raw_To_Network_Byte_Order((void*)&tcs_reply_packet,sizeof(struct NGATCil_Ags_Packet_Struct));
+	if(!NGATCil_UDP_Raw_Send_To(CIL_UDP_Socket_Fd,TCC_Hostname,CIL_TCS_UDP_Port,
+				    (void*)&tcs_reply_packet,sizeof(struct NGATCil_Ags_Packet_Struct)))
+	{
+		Autoguider_General_Error_Number = 1117;
+		sprintf(Autoguider_General_Error_String,
+			"CIL_Command_Start_Session_Reply_Send:NGATCil_UDP_Raw_Send_To failed.");
+		return FALSE;
+	}
+	return TRUE;
+}
+
+/**
+ * Process a End Session command received from the TCS.
+ * @param cil_packet The parsed generic CIL header.
+ * @param status What status to return to the TCS, should be SYS_NOMINAL.
+ * @return The routine returns TRUE if successfull, and FALSE if an error occurs.
+ * @see #CIL_UDP_Socket_Fd
+ * @see #TCC_Hostname
+ * @see #CIL_TCS_UDP_Port
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#Autoguider_General_Log_Format
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_CIL
+ * @see ../ngatcil/cdocs/ngatcil_cil.html#NGATCIL_CIL_TCS_HOSTNAME_DEFAULT
+ * @see ../ngatcil/cdocs/ngatcil_cil.html#NGATCIL_CIL_TCS_PORT_DEFAULT
+ * @see ../ngatcil/cdocs/ngatcil_cil.html#NGATCil_Ags_Packet_Struct
+ */
+static int CIL_Command_End_Session_Reply_Send(struct NGATCil_Ags_Packet_Struct cil_packet,int status)
+{
+	struct NGATCil_Ags_Packet_Struct tcs_reply_packet;
+	struct timespec current_time;
+	int retval;
+
+	tcs_reply_packet.Cil_Base.Source_Id = E_CIL_AGS;
+	tcs_reply_packet.Cil_Base.Dest_Id = E_CIL_TCS;
+	tcs_reply_packet.Cil_Base.Class = E_CIL_RSP_CLASS;
+	tcs_reply_packet.Cil_Base.Service = cil_packet.Cil_Base.Service;
+	tcs_reply_packet.Cil_Base.Seq_Num = cil_packet.Cil_Base.Seq_Num;
+	clock_gettime(CLOCK_REALTIME,&current_time);
+	tcs_reply_packet.Cil_Base.Timestamp_Seconds = current_time.tv_sec;
+	tcs_reply_packet.Cil_Base.Timestamp_Nanoseconds = current_time.tv_nsec;
+	tcs_reply_packet.Command = cil_packet.Command;
+	tcs_reply_packet.Status = status;
+	tcs_reply_packet.Param1 = cil_packet.Param1;
+	tcs_reply_packet.Param2 = cil_packet.Param2;
+	NGATCil_UDP_Raw_To_Network_Byte_Order((void*)&tcs_reply_packet,
+					      sizeof(struct NGATCil_Ags_Packet_Struct));
+	if(!NGATCil_UDP_Raw_Send_To(CIL_UDP_Socket_Fd,TCC_Hostname,CIL_TCS_UDP_Port,
+				    (void*)&tcs_reply_packet,sizeof(struct NGATCil_Ags_Packet_Struct)))
+	{
+		Autoguider_General_Error_Number = 1119;
+		sprintf(Autoguider_General_Error_String,
+			"CIL_Command_End_Session_Reply_Send:NGATCil_UDP_Raw_Send_To failed.");
+		return FALSE;
+	}
+	return TRUE;
+}
+
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.8  2006/07/20 15:11:48  cjm
+** Added some CIL SDB submission software.
+**
 ** Revision 1.7  2006/07/14 14:01:48  cjm
 ** Fixed duplicate error code.
 **
