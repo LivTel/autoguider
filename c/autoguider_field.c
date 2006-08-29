@@ -1,11 +1,11 @@
 /* autoguider_field.c
 ** Autoguider field routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_field.c,v 1.6 2006-07-20 16:08:33 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_field.c,v 1.7 2006-08-29 13:55:42 cjm Exp $
 */
 /**
  * Field routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.6 $
+ * @version $Revision: 1.7 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -87,7 +87,7 @@ struct Field_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_field.c,v 1.6 2006-07-20 16:08:33 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_field.c,v 1.7 2006-08-29 13:55:42 cjm Exp $";
 /**
  * Instance of field data.
  * @see #Field_Struct
@@ -215,6 +215,8 @@ int Autoguider_Field_Exposure_Length_Set(int exposure_length,int lock)
  * @see autoguider_buffer.html#Autoguider_Buffer_Raw_Field_Unlock
  * @see autoguider_buffer.html#Autoguider_Buffer_Get_Field_Pixel_Count
  * @see autoguider_buffer.html#Autoguider_Buffer_Raw_To_Reduced_Field
+ * @see autoguider_cil.html#Autoguider_CIL_SDB_Packet_State_Set
+ * @see autoguider_cil.html#Autoguider_CIL_SDB_Packet_Send
  * @see autoguider_dark.html#Autoguider_Dark_Set
  * @see autoguider_dark.html#Autoguider_Dark_Get_Exposure_Length_Nearest
  * @see autoguider_flat.html#Autoguider_Flat_Set
@@ -254,7 +256,7 @@ int Autoguider_Field(void)
 	}
 	Field_Data.Is_Fielding = TRUE;
 	/* update SDB */
-	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_WORKING))
+	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_WORKING))
 		Autoguider_General_Error(); /* no need to fail */
 	if(!Autoguider_CIL_SDB_Packet_Send())
 		Autoguider_General_Error(); /* no need to fail */
@@ -266,7 +268,7 @@ int Autoguider_Field(void)
 	if(!Field_Set_Dimensions())
 	{
 		/* update SDB */
-		Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE);
+		Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE);
 		/* reset fielding flag */
 		Field_Data.Is_Fielding = FALSE;
 		return FALSE;
@@ -282,7 +284,7 @@ int Autoguider_Field(void)
 	if(retval == FALSE)
 	{
 		/* update SDB */
-		Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE);
+		Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE);
 		/* reset fielding flag */
 		Field_Data.Is_Fielding = FALSE;
 		Autoguider_General_Error_Number = 504;
@@ -299,7 +301,7 @@ int Autoguider_Field(void)
 		if(retval == FALSE)
 		{
 			/* update SDB */
-			Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE);
+			Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE);
 			/* reset fielding flag */
 			Field_Data.Is_Fielding = FALSE;
 			Autoguider_General_Error_Number = 505;
@@ -326,7 +328,7 @@ int Autoguider_Field(void)
 	if(!Autoguider_Dark_Get_Exposure_Length_Nearest(&Field_Data.Exposure_Length,&dark_exposure_length_index))
 	{
 		/* update SDB */
-		Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE);
+		Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE);
 		/* reset fielding flag */
 		Field_Data.Is_Fielding = FALSE;
 		return FALSE;
@@ -341,7 +343,7 @@ int Autoguider_Field(void)
 	if(retval == FALSE)
 	{
 		/* update SDB */
-		Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE);
+		Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE);
 		/* reset fielding flag */
 		Field_Data.Is_Fielding = FALSE;
 		return FALSE;
@@ -364,7 +366,7 @@ int Autoguider_Field(void)
 		if(retval == FALSE)
 		{
 			/* update SDB */
-			Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE);
+			Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE);
 			/* reset fielding flag */
 			Field_Data.Is_Fielding = FALSE;
 			return FALSE;
@@ -381,7 +383,7 @@ int Autoguider_Field(void)
 		if(retval == FALSE)
 		{
 			/* update SDB */
-			Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE);
+			Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE);
 			/* reset fielding flag */
 			Field_Data.Is_Fielding = FALSE;
 			/* reset in use buffer index */
@@ -406,7 +408,7 @@ int Autoguider_Field(void)
 		if(retval == FALSE)
 		{
 			/* update SDB */
-			Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE);
+			Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE);
 			/* reset fielding flag */
 			Field_Data.Is_Fielding = FALSE;
 			/* attempt buffer unlock, and reset in use index */
@@ -430,7 +432,7 @@ int Autoguider_Field(void)
 		if(retval == FALSE)
 		{
 			/* update SDB */
-			Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE);
+			Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE);
 			/* reset fielding flag */
 			Field_Data.Is_Fielding = FALSE;
 			Autoguider_General_Error_Number = 508;
@@ -448,7 +450,7 @@ int Autoguider_Field(void)
 		if(retval == FALSE)
 		{
 			/* update SDB */
-			Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE);
+			Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE);
 			/* reset fielding flag */
 			Field_Data.Is_Fielding = FALSE;
 			/* reset in use buffer index */
@@ -466,7 +468,7 @@ int Autoguider_Field(void)
 		if(!Field_Check_Done(&done,&dark_exposure_length_index))
 		{
 			/* update SDB */
-			Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE);
+			Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE);
 			/* reset fielding flag */
 			Field_Data.Is_Fielding = FALSE;
 			return FALSE;
@@ -474,11 +476,14 @@ int Autoguider_Field(void)
 	}/* end while */
 	/* reset fielding flag */
 	Field_Data.Is_Fielding = FALSE;
-	/* update SDB */
-	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE))
-		Autoguider_General_Error(); /* no need to fail */
-	if(!Autoguider_CIL_SDB_Packet_Send())
-		Autoguider_General_Error(); /* no need to fail */
+	/* do NOT update SDB back to idle here,
+	** so guiding goes straight from working to guiding
+	** must manually reset to IDLE all placed Autoguider_Field is called on it's own
+	** if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
+	** 	Autoguider_General_Error(); 
+	** if(!Autoguider_CIL_SDB_Packet_Send())
+	** 	Autoguider_General_Error(); 
+	*/
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field:finished.");
 #endif
@@ -535,7 +540,7 @@ int Autoguider_Field_Expose(void)
 	}
 	Field_Data.Is_Fielding = TRUE;
 	/* update SDB */
-	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_WORKING))
+	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_WORKING))
 		Autoguider_General_Error(); /* no need to fail */
 	if(!Autoguider_CIL_SDB_Packet_Send())
 		Autoguider_General_Error(); /* no need to fail */
@@ -546,7 +551,7 @@ int Autoguider_Field_Expose(void)
 	** if we are going to allow dynamic reloading of the config file. */
 	if(!Field_Set_Dimensions())
 	{
-		Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE);
+		Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE);
 		/* reset fielding flag */
 		Field_Data.Is_Fielding = FALSE;		
 		return FALSE;
@@ -562,7 +567,7 @@ int Autoguider_Field_Expose(void)
 				      Field_Data.Bin_X,Field_Data.Bin_Y,FALSE,window);
 	if(retval == FALSE)
 	{
-		Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE);
+		Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE);
 		/* reset fielding flag */
 		Field_Data.Is_Fielding = FALSE;
 		Autoguider_General_Error_Number = 517;
@@ -572,7 +577,7 @@ int Autoguider_Field_Expose(void)
 	/* exposure length */
 	if(Field_Data.Exposure_Length < 0)
 	{
-		Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE);
+		Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE);
 		/* reset fielding flag */
 		Field_Data.Is_Fielding = FALSE;
 		Autoguider_General_Error_Number = 518;
@@ -594,7 +599,7 @@ int Autoguider_Field_Expose(void)
 		retval = Autoguider_Dark_Set(Field_Data.Bin_X,Field_Data.Bin_Y,Field_Data.Exposure_Length);
 		if(retval == FALSE)
 		{
-			Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE);
+			Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE);
 			/* reset fielding flag */
 			Field_Data.Is_Fielding = FALSE;
 			return FALSE;
@@ -607,7 +612,7 @@ int Autoguider_Field_Expose(void)
 		if(retval == FALSE)
 		{
 			/* reset fielding flag */
-			Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE);
+			Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE);
 			Field_Data.Is_Fielding = FALSE;
 			return FALSE;
 		}
@@ -628,7 +633,7 @@ int Autoguider_Field_Expose(void)
 	retval = Autoguider_Buffer_Raw_Field_Lock(Field_Data.In_Use_Buffer_Index,&buffer_ptr);
 	if(retval == FALSE)
 	{
-		Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE);
+		Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE);
 		/* reset fielding flag */
 		Field_Data.Is_Fielding = FALSE;
 		/* reset in use buffer index */
@@ -653,7 +658,7 @@ int Autoguider_Field_Expose(void)
 				     Autoguider_Buffer_Get_Field_Pixel_Count());
 	if(retval == FALSE)
 	{
-		Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE);
+		Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE);
 		/* reset fielding flag */
 		Field_Data.Is_Fielding = FALSE;
 		/* attempt buffer unlock, and reset in use index */
@@ -676,7 +681,7 @@ int Autoguider_Field_Expose(void)
 	retval = Autoguider_Buffer_Raw_Field_Unlock(Field_Data.In_Use_Buffer_Index);
 	if(retval == FALSE)
 	{
-		Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE);
+		Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE);
 		/* reset fielding flag */
 		Field_Data.Is_Fielding = FALSE;
 		Autoguider_General_Error_Number = 521;
@@ -694,7 +699,7 @@ int Autoguider_Field_Expose(void)
 	retval = Field_Reduce(Field_Data.In_Use_Buffer_Index);
 	if(retval == FALSE)
 	{
-		Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE);
+		Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE);
 		/* reset fielding flag */
 		Field_Data.Is_Fielding = FALSE;
 		/* reset in use buffer index */
@@ -711,7 +716,7 @@ int Autoguider_Field_Expose(void)
 	/* reset fielding flag */
 	Field_Data.Is_Fielding = FALSE;
 	/* update SDB */
-	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGS_IDLE))
+	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
 		Autoguider_General_Error(); /* no need to fail */
 	if(!Autoguider_CIL_SDB_Packet_Send())
 		Autoguider_General_Error(); /* no need to fail */
@@ -1367,6 +1372,9 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.6  2006/07/20 16:08:33  cjm
+** Fixed missing ';'.
+**
 ** Revision 1.5  2006/07/20 16:07:40  cjm
 ** Changed SDB call on failure.
 ** Added exposure SDB calls.
