@@ -1,5 +1,5 @@
 /* autoguider_cil.h
-** $Header: /home/cjm/cvs/autoguider/include/autoguider_cil.h,v 1.3 2006-07-20 15:12:02 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/include/autoguider_cil.h,v 1.4 2006-08-29 14:07:04 cjm Exp $
 */
 #ifndef AUTOGUIDER_CIL_H
 #define AUTOGUIDER_CIL_H
@@ -17,17 +17,19 @@ extern int Autoguider_CIL_Guide_Packet_Close(void);
 extern int Autoguider_CIL_Guide_Packet_Send_Set(int on);
 extern int Autoguider_CIL_Guide_Packet_Send_Get(void);
 
-extern int Autoguider_CIL_SDB_Packet_Open(void);
-extern int Autoguider_CIL_SDB_Packet_State_Set(eAgsState_t state);
+extern int Autoguider_CIL_SDB_Packet_State_Set(eAggState_t state);
 extern int Autoguider_CIL_SDB_Packet_Exp_Time_Set(int ms);
 extern int Autoguider_CIL_SDB_Packet_Centroid_Set(float cx,float cy,float fwhm,float mag);
+extern int Autoguider_CIL_SDB_Packet_Window_Set(int tlx,int tly,int brx,int bry);
 extern int Autoguider_CIL_SDB_Packet_Send(void);
-extern int Autoguider_CIL_SDB_Packet_Close(void);
 extern int Autoguider_CIL_SDB_Packet_Send_Set(int on);
 extern int Autoguider_CIL_SDB_Packet_Send_Get(void);
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.3  2006/07/20 15:12:02  cjm
+** Added CIL submission software.
+**
 ** Revision 1.2  2006/06/20 13:10:38  cjm
 ** Added Autoguider_CIL_Guide_Packet_Send_Set/Get.
 **
