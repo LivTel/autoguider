@@ -1,5 +1,5 @@
 /* ccd_exposure.h
-** $Header: /home/cjm/cvs/autoguider/ccd/include/ccd_exposure.h,v 1.1 2006-04-28 14:26:43 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/include/ccd_exposure.h,v 1.2 2006-09-07 15:36:12 cjm Exp $
 */
 #ifndef CCD_EXPOSURE_H
 #define CCD_EXPOSURE_H
@@ -59,9 +59,13 @@ extern int CCD_Exposure_Expose(int open_shutter,struct timespec start_time,int e
 extern int CCD_Exposure_Bias(void *buffer,size_t buffer_length);
 extern int CCD_Exposure_Abort(void);
 extern int CCD_Exposure_Get_Exposure_Start_Time(struct timespec *timespec);
+extern int CCD_Exposure_Loop_Pause_Length_Set(int ms);
 extern int CCD_Exposure_Save(char *filename,void *buffer,size_t buffer_length,int ncols,int nrows);
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2006/04/28 14:26:43  cjm
+** Initial revision
+**
 */
 #endif

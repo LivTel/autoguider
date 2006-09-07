@@ -1,11 +1,11 @@
 /* ccd_exposure.c
 ** Autoguider CCD Library exposure routines
-** $Header: /home/cjm/cvs/autoguider/ccd/c/ccd_exposure.c,v 1.3 2006-04-28 14:26:40 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/c/ccd_exposure.c,v 1.4 2006-09-07 15:36:26 cjm Exp $
 */
 /**
  * Exposure routines for the autoguider CCD library.
  * @author Chris Mottram
- * @version $Revision: 1.3 $
+ * @version $Revision: 1.4 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -31,7 +31,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: ccd_exposure.c,v 1.3 2006-04-28 14:26:40 cjm Exp $";
+static char rcsid[] = "$Id: ccd_exposure.c,v 1.4 2006-09-07 15:36:26 cjm Exp $";
 
 /* internal function declarations */
 static int fexist(char *filename);
@@ -232,6 +232,48 @@ int CCD_Exposure_Get_Exposure_Start_Time(struct timespec *timespec)
 }
 
 /**
+ * Set how long to pause in the loop waiting for an exposure to complete in Andor_Exposure_Expose.
+ * @param ms The length of time to sleep for, in milliseconds (between 1 and 999).
+ * @return Returns TRUE if the routine succeeds and FALSE if an error occurs.
+ * @see ccd_driver.html#CCD_Driver_Get_Functions
+ * @see ccd_driver.html#CCD_Driver_Function_Struct
+ * @see ccd_general.html#CCD_General_Log_Format
+ * @see ccd_general.html#CCD_General_Log
+ * @see ccd_general.html#CCD_GENERAL_LOG_BIT_EXPOSURE
+ * @see ccd_general.html#CCD_CCD_General_Error_Number
+ * @see ccd_general.html#CCD_CCD_General_Error_String
+ */
+int CCD_Exposure_Loop_Pause_Length_Set(int ms)
+{
+	struct CCD_Driver_Function_Struct functions;
+	int retval;
+
+#ifdef CCD_DEBUG
+	CCD_General_Log(CCD_GENERAL_LOG_BIT_EXPOSURE,"CCD_Exposure_Loop_Pause_Length_Set() started.");
+#endif
+	/* get driver functions */
+	retval = CCD_Driver_Get_Functions(&functions);
+	if(retval == FALSE)
+		return FALSE;
+	/* is there a function implementing this operation? */
+	if(functions.Exposure_Loop_Pause_Length_Set == NULL)
+	{
+		CCD_General_Error_Number = 410;
+		sprintf(CCD_General_Error_String,"CCD_Exposure_Loop_Pause_Length_Set:"
+			"Exposure_Loop_Pause_Length_Set function was NULL.");
+		return FALSE;
+	}
+	/* call driver function */
+	retval = (*(functions.Exposure_Loop_Pause_Length_Set))(ms);
+	if(retval == FALSE)
+		return FALSE;
+#ifdef CCD_DEBUG
+	CCD_General_Log(CCD_GENERAL_LOG_BIT_EXPOSURE,"CCD_Exposure_Loop_Pause_Length_Set() finished.");
+#endif
+	return TRUE;
+}
+
+/**
  * Save the exposure to disk.
  * @param filename The name of the file to save the image into. If it does not exist, it is created.
  * @param buffer Pointer to a previously allocated array of unsigned shorts containing the image pixel values.
@@ -351,6 +393,9 @@ static int fexist(char *filename)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.3  2006/04/28 14:26:40  cjm
+** Added CCD_Exposure_Get_Exposure_Start_Time.
+**
 ** Revision 1.2  2006/04/10 15:53:25  cjm
 ** Comment fix.
 **
