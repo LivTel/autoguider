@@ -1,11 +1,11 @@
 /* andor_driver.c
 ** Autoguder Andor CCD Library driver interface routines
-** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_driver.c,v 1.2 2006-04-28 14:28:02 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_driver.c,v 1.3 2006-09-07 14:57:48 cjm Exp $
 */
 /**
  * Driver interface routines for the Andor autoguider CCD library.
  * @author Chris Mottram
- * @version $Revision: 1.2 $
+ * @version $Revision: 1.3 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -30,7 +30,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: andor_driver.c,v 1.2 2006-04-28 14:28:02 cjm Exp $";
+static char rcsid[] = "$Id: andor_driver.c,v 1.3 2006-09-07 14:57:48 cjm Exp $";
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -76,6 +76,7 @@ int Andor_Driver_Register(struct CCD_Driver_Function_Struct *functions)
 	functions->Exposure_Bias = Andor_Exposure_Bias;
 	functions->Exposure_Abort = Andor_Exposure_Abort;
 	functions->Exposure_Get_Exposure_Start_Time = Andor_Exposure_Get_Exposure_Start_Time;
+	functions->Exposure_Loop_Pause_Length_Set = Andor_Exposure_Loop_Pause_Length_Set;
 	/* temperature */
 	functions->Temperature_Get = Andor_Temperature_Get;
 	functions->Temperature_Set = Andor_Temperature_Set;
@@ -88,4 +89,7 @@ int Andor_Driver_Register(struct CCD_Driver_Function_Struct *functions)
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.2  2006/04/28 14:28:02  cjm
+** Added Log comment.
+**
 */
