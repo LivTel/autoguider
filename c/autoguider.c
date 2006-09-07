@@ -1,10 +1,10 @@
 /* autoguider.c
-** $Header: /home/cjm/cvs/autoguider/c/autoguider.c,v 1.5 2006-08-29 13:55:42 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider.c,v 1.6 2006-09-07 15:37:25 cjm Exp $
 */
 /**
  * Autoguider main program.
  * @author $Author: cjm $
- * @version $Revision: 1.5 $
+ * @version $Revision: 1.6 $
  */
 #include <signal.h> /* signal handling */
 #include <stdio.h>
@@ -47,7 +47,7 @@
 /**
  * Revision control system identifier.
  */
-static char rcsid[] = "$Id: autoguider.c,v 1.5 2006-08-29 13:55:42 cjm Exp $";
+static char rcsid[] = "$Id: autoguider.c,v 1.6 2006-09-07 15:37:25 cjm Exp $";
 
 /* internal routines */
 static int Autoguider_Initialise_Signal(void);
@@ -423,10 +423,13 @@ static int Autoguider_Initialise_Logging(void)
  * Initialise the CCD conenction, initialise the CCD and set the temperature.
  * Retrieves the shared library from "ccd.driver.shared_library".
  * Retrieves the registration function from "ccd.driver.registration_function".
+ * Configures the CCD library based on "ccd.temperature.target", 
+ * "ccd.temperature.cooler.on" and "ccd.exposure.loop.pause.length".
  * @return The routine returns TRUE on success and FALSE on failure.
  * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_String
  * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Double
  * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Boolean
+ * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Integer
  * @see ../ccd/cdocs/ccd_driver.html#CCD_Driver_Register
  * @see ../ccd/cdocs/ccd_general.html#CCD_General_Error
  * @see ../ccd/cdocs/ccd_setup.html#CCD_Setup_Initialise
@@ -434,13 +437,14 @@ static int Autoguider_Initialise_Logging(void)
  * @see ../ccd/cdocs/ccd_temperature.html#CCD_Temperature_Set
  * @see ../ccd/cdocs/ccd_temperature.html#CCD_Temperature_Cooler_On
  * @see ../ccd/cdocs/ccd_temperature.html#CCD_Temperature_Cooler_Off
+ * @see ../ccd/cdocs/ccd_exposure.html#CCD_Exposure_Loop_Pause_Length_Set
  */
 static int Autoguider_Startup_CCD(void)
 {
 	char *shared_library_name = NULL;
 	char *registration_function = NULL;
 	double target_temperature;
-	int retval,cooler_on;
+	int retval,cooler_on,ms;
 
 	/* driver registration */
 #if AUTOGUIDER_DEBUG > 1
@@ -489,7 +493,7 @@ static int Autoguider_Startup_CCD(void)
 #endif
 	CCD_Setup_Initialise();
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"CCD_Setup_Startup\n");
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"CCD_Setup_Startup.");
 #endif
 	retval = CCD_Setup_Startup();
 	if(retval == FALSE)
@@ -547,6 +551,26 @@ static int Autoguider_Startup_CCD(void)
 #if AUTOGUIDER_DEBUG > 1
 		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"NOT turning cooler on");
 #endif
+	}
+	/* setup pause length in exposure loop */
+	retval = CCD_Config_Get_Integer("ccd.exposure.loop.pause.length",&ms);
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 18;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Startup_CCD:"
+			"Failed to get exposure loop pause length.");
+		return FALSE;
+	}
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"CCD_Exposure_Loop_Pause_Length_Set(%d).",ms);
+#endif
+	retval = CCD_Exposure_Loop_Pause_Length_Set(ms);
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 19;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Startup_CCD:"
+			"CCD_Exposure_Loop_Pause_Length_Set failed.");
+		return FALSE;
 	}
 	return TRUE;
 }
@@ -848,6 +872,9 @@ static int Parse_Arguments(int argc, char *argv[])
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.5  2006/08/29 13:55:42  cjm
+** Added calls to set SDB AG_STATE.
+**
 ** Revision 1.4  2006/07/20 15:14:31  cjm
 ** Added SDB Open/Close initial Status setting.
 **
