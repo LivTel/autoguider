@@ -1,11 +1,11 @@
 /* andor_exposure.c
 ** Autoguider Andor CCD Library exposure routines
-** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_exposure.c,v 1.5 2006-06-29 20:14:41 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_exposure.c,v 1.6 2006-09-07 14:58:34 cjm Exp $
 */
 /**
  * Exposure routines for the Andor autoguider CCD library.
  * @author Chris Mottram
- * @version $Revision: 1.5 $
+ * @version $Revision: 1.6 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -43,6 +43,8 @@
  * <dt>Exposure_Length</dt> <dd>The last exposure length to be set (ms).</dd>
  * <dt>Abort</dt> <dd>Whether to abort an exposure.</dd>
  * <dt>Exposure_Start_Time</dt> <dd>The time stamp when an exposure was started.</dd>
+ * <dt>Exposure_Loop_Pause_Length</dt> <dd>An amount of time to pause/sleep, in milliseconds, each time
+ *     round the loop whilst waiting for an exposure to be done (DRV_ACQUIRING -> DRV_IDLE).
  * </dl>
  * @see ccd_exposure.html#CCD_EXPOSURE_STATUS
  */
@@ -52,13 +54,14 @@ struct Exposure_Struct
 	int Exposure_Length;
 	int Abort;
 	struct timespec Exposure_Start_Time;
+	int Exposure_Loop_Pause_Length;
 };
 
 /* internal data */
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: andor_exposure.c,v 1.5 2006-06-29 20:14:41 cjm Exp $";
+static char rcsid[] = "$Id: andor_exposure.c,v 1.6 2006-09-07 14:58:34 cjm Exp $";
 /**
  * Data holding the current status of ccd_exposure.
  * @see #Exposure_Struct
@@ -69,6 +72,7 @@ static struct Exposure_Struct Exposure_Data =
 	CCD_EXPOSURE_STATUS_NONE,
 	0,FALSE,
 	{0L,0L},
+	1
 };
 
 /* internal function declarations */
@@ -238,9 +242,9 @@ int Andor_Exposure_Expose(int open_shutter,struct timespec start_time,int exposu
 	acquisition_counter = 0;
 	do
 	{
-		/* sleep a (very small) bit */
+		/* sleep a (very small (configurable)) bit */
 		sleep_time.tv_sec = 0;
-		sleep_time.tv_nsec = CCD_GENERAL_ONE_MILLISECOND_NS;
+		sleep_time.tv_nsec = Exposure_Data.Exposure_Loop_Pause_Length*CCD_GENERAL_ONE_MILLISECOND_NS;
 		nanosleep(&sleep_time,NULL);
 		/* get the status */
 		andor_retval = GetStatus(&exposure_status);
@@ -382,12 +386,36 @@ struct timespec Andor_Exposure_Get_Exposure_Start_Time(void)
 	return Exposure_Data.Exposure_Start_Time;
 }
 
+/**
+ * Set how long to pause in the loop waiting for an exposure to complete in Andor_Exposure_Expose.
+ * This also determines the length of time between calls to GetStatus in that loop.
+ * @param ms The length of time to sleep for, in milliseconds (between 1 and 999).
+ * @return Returns TRUE on success, and FALSE if an error occurs.
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
+ */
+int Andor_Exposure_Loop_Pause_Length_Set(int ms)
+{
+	if((ms < 1) || (ms > 1000))
+	{
+		CCD_General_Error_Number = 1111;
+		sprintf(CCD_General_Error_String,"Andor_Exposure_Loop_Pause_Length_Set: Milliseconds %d out of range.",
+			ms);
+		return FALSE;
+	}
+	Exposure_Data.Exposure_Loop_Pause_Length = ms;
+	return TRUE;
+}
+
 /* ----------------------------------------------------------------------------
 ** 		internal functions 
 ** ---------------------------------------------------------------------------- */
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.5  2006/06/29 20:14:41  cjm
+** Added some timeout code.
+**
 ** Revision 1.4  2006/04/28 14:11:49  cjm
 ** Added Andor_Exposure_Get_Exposure_Start_Time and Andor_Exposure_Expose sets Exposure_Data.Exposure_Start_Time.
 **
