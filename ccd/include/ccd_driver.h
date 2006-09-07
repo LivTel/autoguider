@@ -1,5 +1,5 @@
 /* ccd_driver.h
-** $Header: /home/cjm/cvs/autoguider/ccd/include/ccd_driver.h,v 1.1 2006-04-28 14:28:14 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/include/ccd_driver.h,v 1.2 2006-09-07 15:36:52 cjm Exp $
 */
 #ifndef CCD_DRIVER_H
 #define CCD_DRIVER_H
@@ -25,6 +25,7 @@
  * <li>Exposure_Bias
  * <li>Exposure_Abort
  * <li>Exposure_Get_Exposure_Start_Time
+ * <li>Exposure_Loop_Pause_Length_Set
  * <li>Temperature_Get
  * <li>Temperature_Set
  * <li>Temperature_Cooler_On
@@ -45,6 +46,7 @@ struct CCD_Driver_Function_Struct
 	int (*Exposure_Bias)(void *buffer,size_t buffer_length);
 	int (*Exposure_Abort)(void);
 	struct timespec (*Exposure_Get_Exposure_Start_Time)(void);
+	int (*Exposure_Loop_Pause_Length_Set)(int ms);
 	int (*Temperature_Get)(double *temperature,enum CCD_TEMPERATURE_STATUS *temperature_status);
 	int (*Temperature_Set)(double target_temperature);
 	int (*Temperature_Cooler_On)(void);
@@ -58,6 +60,9 @@ extern int CCD_Driver_Close(void);
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2006/04/28 14:28:14  cjm
+** Initial revision
+**
 */
 
 #endif
