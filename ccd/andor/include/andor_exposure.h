@@ -1,5 +1,5 @@
 /* andor_exposure.h
-** $Header: /home/cjm/cvs/autoguider/ccd/andor/include/andor_exposure.h,v 1.3 2006-04-28 14:11:24 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/andor/include/andor_exposure.h,v 1.4 2006-09-07 14:58:03 cjm Exp $
 */
 #ifndef ANDOR_EXPOSURE_H
 #define ANDOR_EXPOSURE_H
@@ -22,9 +22,13 @@ extern int Andor_Exposure_Expose(int open_shutter,struct timespec start_time,int
 extern int Andor_Exposure_Bias(void *buffer,size_t buffer_length);
 extern int Andor_Exposure_Abort(void);
 extern struct timespec Andor_Exposure_Get_Exposure_Start_Time(void);
+extern int Andor_Exposure_Loop_Pause_Length_Set(int ms);
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.3  2006/04/28 14:11:24  cjm
+** Added Andor_Exposure_Get_Exposure_Start_Time.
+**
 ** Revision 1.2  2006/03/28 15:12:56  cjm
 ** Moved Andor_Exposure_Save to ccd_general library, CCD_Exposure_Save.
 **
