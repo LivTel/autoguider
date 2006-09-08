@@ -1,11 +1,11 @@
 /* autoguider_flat.c
 ** Autoguider flat routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_flat.c,v 1.1 2006-06-01 15:18:38 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_flat.c,v 1.2 2006-09-08 13:33:39 cjm Exp $
 */
 /**
  * Flat routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.1 $
+ * @version $Revision: 1.2 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -70,7 +70,7 @@ struct Flat_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_flat.c,v 1.1 2006-06-01 15:18:38 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_flat.c,v 1.2 2006-09-08 13:33:39 cjm Exp $";
 /**
  * Instance of flat data.
  * @see #Flat_Struct
@@ -345,19 +345,19 @@ int Autoguider_Flat_Field(float *buffer_ptr,int pixel_count,int ncols,int nrows,
 				window.X_End,window.X_Start,window.Y_End,window.Y_Start,pixel_count);
 			return FALSE;
 		}
-		if((window.X_End+1) >= Flat_Data.Binned_NCols)
+		if(window.X_End >= Flat_Data.Binned_NCols)
 		{
 			Autoguider_General_Error_Number = 910;
 			sprintf(Autoguider_General_Error_String,"Autoguider_Flat_Field:"
-			"Windowed buffer dimension mismatch: Window X end (%d+1) >= Flat binned ncols (%d).",
+			"Windowed buffer dimension mismatch: Window X end (%d) >= Flat binned ncols (%d).",
 				window.X_End,Flat_Data.Binned_NCols);
 			return FALSE;
 		}
-		if((window.Y_End+1) >= Flat_Data.Binned_NRows)
+		if(window.Y_End >= Flat_Data.Binned_NRows)
 		{
 			Autoguider_General_Error_Number = 911;
 			sprintf(Autoguider_General_Error_String,"Autoguider_Flat_Field:"
-			"Windowed buffer dimension mismatch: Window Y end (%d+1) >= Flat binned nrows (%d).",
+			"Windowed buffer dimension mismatch: Window Y end (%d) >= Flat binned nrows (%d).",
 				window.Y_End,Flat_Data.Binned_NRows);
 			return FALSE;
 		}
@@ -704,4 +704,7 @@ static int Flat_Load_Reduced(char *filename,int bin_x,int bin_y)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2006/06/01 15:18:38  cjm
+** Initial revision
+**
 */
