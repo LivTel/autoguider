@@ -1,12 +1,12 @@
 /* ccd_config.c
 ** Autoguider CCD Library config routines
-** $Header: /home/cjm/cvs/autoguider/ccd/c/ccd_config.c,v 1.1 2006-06-01 15:27:37 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/c/ccd_config.c,v 1.2 2006-09-12 11:06:32 cjm Exp $
 */
 /**
  * Config routines for the autoguider CCD library.
  * Just a a wrapper  for the eSTAR_Config routines at the moment.
  * @author SDSU, Chris Mottram
- * @version $Revision: 1.1 $
+ * @version $Revision: 1.2 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -29,7 +29,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: ccd_config.c,v 1.1 2006-06-01 15:27:37 cjm Exp $";
+static char rcsid[] = "$Id: ccd_config.c,v 1.2 2006-09-12 11:06:32 cjm Exp $";
 /**
  * eSTAR config properties.
  * @see ../../../estar/config/estar_config.html#eSTAR_Config_Properties_t
@@ -285,6 +285,40 @@ int CCD_Config_Get_Double(char *key, double *d)
 }
 
 /**
+ * Get a float value from the configuration file. Calls eSTAR_Config_Get_Float.
+ * @param key The config keyword.
+ * @param value The address of a float to hold the returned value. 
+ * @return The routine returns TRUE on sucess, FALSE on failure.
+ * @see ../../../estar/config/estar_config.html#eSTAR_Config_Get_Float
+ * @see #Config_Properties
+ * @see ccd_general.html#CCD_General_Log_Format
+ * @see ccd_general.html#CCD_General_Log
+ * @see ccd_general.html#CCD_GENERAL_LOG_BIT_CONFIG
+ * @see ccd_general.html#CCD_CCD_General_Error_Number
+ * @see ccd_general.html#CCD_CCD_General_Error_String
+ */
+int CCD_Config_Get_Float(char *key,float *f)
+{
+	int retval;
+
+#ifdef CCD_DEBUG
+	CCD_General_Log_Format(CCD_GENERAL_LOG_BIT_CONFIG,"CCD_Config_Get_Float(%s,%p).",key,f);
+#endif
+	retval = eSTAR_Config_Get_Float(&Config_Properties,key,f);
+	if(retval == FALSE)
+	{
+		CCD_General_Error_Number = 108;
+		sprintf(CCD_General_Error_String,"CCD_Config_Get_Float(%s) failed:",key);
+		eSTAR_Config_Error_To_String(CCD_General_Error_String+strlen(CCD_General_Error_String));
+		return FALSE;
+	}
+#ifdef CCD_DEBUG
+	CCD_General_Log_Format(CCD_GENERAL_LOG_BIT_CONFIG,"CCD_Config_Get_Float(%s) returned %.2f.",key,*f);
+#endif
+	return retval;
+}
+
+/**
  * Get a boolean value from the configuration file. Calls eSTAR_Config_Get_Boolean.
  * @param key The config keyword.
  * @param value The address of an integer to hold the returned boolean value. 
@@ -321,5 +355,8 @@ int CCD_Config_Get_Boolean(char *key, int *boolean)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2006/06/01 15:27:37  cjm
+** Initial revision
+**
 */
 
