@@ -1,11 +1,11 @@
 /* autoguider_guide.c
 ** Autoguider guide routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.19 2006-08-29 14:39:13 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.20 2006-09-12 11:12:59 cjm Exp $
 */
 /**
  * Guide routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.19 $
+ * @version $Revision: 1.20 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -97,7 +97,7 @@ struct Guide_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_guide.c,v 1.19 2006-08-29 14:39:13 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_guide.c,v 1.20 2006-09-12 11:12:59 cjm Exp $";
 /**
  * Instance of guide data.
  * @see #Guide_Struct
@@ -1282,8 +1282,10 @@ static int Guide_Reduce(void)
  * @see autoguider_general.html#Autoguider_General_Log_Format
  * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_GUIDE
  * @see autoguider_object.html#Autoguider_Object_List_Get_Count
- * @see ../ngatcil/cdocs/ngatcil_cil.html#NGATCIL_TCS_GUIDE_PACKET_STATUS_WINDOW
- * @see ../ngatcil/cdocs/ngatcil_cil.html#NGATCIL_TCS_GUIDE_PACKET_STATUS_FAILED
+ * @see ../ngatcil/cdocs/ngatcil_tcs_guide_packet.html#NGATCIL_TCS_GUIDE_PACKET_STATUS_WINDOW
+ * @see ../ngatcil/cdocs/ngatcil_tcs_guide_packet.html#NGATCIL_TCS_GUIDE_PACKET_STATUS_FAILED
+ * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Integer
+ * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Float
  */
 static int Guide_Packet_Send(int terminating,float timecode_secs)
 {
@@ -1358,7 +1360,7 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 				"Failed to load config:'guide.counts.max.peak'.");
 			return FALSE;
 		}
-		retval = CCD_Config_Get_Integer("guide.ellipticity",&guide_ellipticity);
+		retval = CCD_Config_Get_Float("guide.ellipticity",&guide_ellipticity);
 		if(retval == FALSE)
 		{
 			Autoguider_General_Error_Number = 733;
@@ -1519,6 +1521,9 @@ static int Guide_Dimension_Config_Load(void)
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.19  2006/08/29 14:39:13  cjm
+** Changed setting of guide window, so end x/y are always less than Binned_NCols/NRows (Autoguider_Guide_Set_Guide_Object).
+**
 ** Revision 1.18  2006/08/29 13:55:31  cjm
 ** Added Autoguider_CIL_SDB_Packet_Send so that reseting SDB AG_STATE to idle
 ** is sent to the SDB on errors in the Guide_Thread.
