@@ -1,12 +1,19 @@
 #!/bin/csh
 # autoguider_get_guide_packets <filename>
-# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_get_guide_packets,v 1.1 2006-09-12 13:13:03 cjm Exp $
-if ( $#argv != 1 ) then
-	echo "autoguider_get_guide_packets <filename>"
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_get_guide_packets,v 1.2 2006-09-20 10:17:57 cjm Exp $
+if ( $#argv < 1 ) then
+	echo "autoguider_get_guide_packets <filename> [<filename>...]"
 	exit 1
 endif
-set filename = $1
-grep 'NGATCil_TCS_Guide_Packet_Send:packet_buff (with checksum) =' ${filename} | sed "s/NGATCil_TCS_Guide_Packet_Send:packet_buff (with checksum) = '\(.*\) ' (length .*)./\1/"
+shift
+foreach arg ( $argv )
+    set filename = $arg
+    echo "filename : $arg"
+    grep 'NGATCil_TCS_Guide_Packet_Send:packet_buff (with checksum) =' ${filename} | sed "s/NGATCil_TCS_Guide_Packet_Send:packet_buff (with checksum) = '\(.*\) ' (length .*)./\1/"
+end
 #
 # $Log: not supported by cvs2svn $
+# Revision 1.1  2006/09/12 13:13:03  cjm
+# Initial revision
+#
 #
