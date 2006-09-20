@@ -1,0 +1,22 @@
+#!/bin/csh
+# autoguider_get_guide_packets <filename>
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_get_object_list,v 1.1 2006-09-20 10:28:27 cjm Exp $
+if ( $#argv < 1 ) then
+	echo "autoguider_get_guide_packets <filename> [<filename>...]"
+	exit 1
+endif
+shift
+foreach arg ( $argv )
+    set filename = $arg
+    echo "filename : $arg"
+    grep 'Object_Create_Object_List' ${filename} | grep -v "Object_Create_Object_List:Object detection finished" | grep -v "Object_Create_Object_List:Counting number of detected objects" | grep -v "Object_Create_Object_List:We detected" | grep -v "Object_Create_Object_List:Copying Objects to Object_List" | grep -v "Object_Create_Object_List:started" | grep -v "Object_Create_Object_List:finished" | grep -v "Object_Create_Object_List:Getting statistics" | grep -v "Object_Create_Object_List:Using standard deviation" | grep -v "Object_Create_Object_List:Starting object detection" | grep -v "Object_Create_Object_List:Freeing object library objects" | sed "s/Object_Create_Object_List:\(.*\)/\1/"
+end
+#
+# $Log: not supported by cvs2svn $
+# Revision 1.2  2006/09/20 10:17:57  cjm
+# Added multiple file capabilities.
+#
+# Revision 1.1  2006/09/12 13:13:03  cjm
+# Initial revision
+#
+#
