@@ -1,13 +1,13 @@
 /* autoguider_object.c
 ** Autoguider object detection routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_object.c,v 1.6 2006-07-14 09:35:12 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_object.c,v 1.7 2006-09-26 15:12:35 cjm Exp $
 */
 /**
  * Object detection routines for the autoguider program.
  * Uses libdprt_object.
  * Has it's own buffer, as Object_List_Get destroys the data within it's buffer argument.
  * @author Chris Mottram
- * @version $Revision: 1.6 $
+ * @version $Revision: 1.7 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -85,7 +85,7 @@ struct Object_Internal_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_object.c,v 1.6 2006-07-14 09:35:12 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_object.c,v 1.7 2006-09-26 15:12:35 cjm Exp $";
 /**
  * Instance of object data.
  * @see #Object_Internal_Struct
@@ -110,7 +110,15 @@ static int Object_Sort_Object_List_By_Total_Counts(const void *p1, const void *p
 ** 		external functions 
 ** ---------------------------------------------------------------------------- */
 /**
- * Detect objects on the passed in list.
+ * Detect objects on the passed in image data.
+ * <ul>
+ * <li>Calls Object_Buffer_Set to ensure the Object_Data's Image_Data buffer is allocated correctly.
+ * <li>Calls Object_Buffer_Copy to copy the input buffer to the Object_Data's Image_Data (object detection
+ *     is destructive to the input buffer).
+ * <li>Sets the internal Id and Frame numbers.
+ * <li>Calls Object_Create_Object_List to detect the objects from the object buffer and populate the Object_Data
+ *     Object_List.
+ * </ul>
  * @param buffer A float array containing the buffer with reduced data in it.
  * @param naxis1 The number of columns in the buffer.
  * @param naxis2 The number of rows in the buffer.
@@ -121,6 +129,7 @@ static int Object_Sort_Object_List_By_Total_Counts(const void *p1, const void *p
  * @param id An identifier for the buffer/exposure that is about to be object detected. 
  * @param frame_number The guide/field frame number that generated these objects.
  * @return The routine returns TRUE on success, and FALSE on failure.
+ * @see #Object_Data
  * @see #Object_Buffer_Set
  * @see #Object_Buffer_Copy
  * @see #Object_Create_Object_List
@@ -147,10 +156,10 @@ int Autoguider_Object_Detect(float *buffer,int naxis1,int naxis2,int start_x,int
 		return FALSE;
 	if(!Object_Buffer_Copy(buffer,naxis1,naxis2))
 		return FALSE;
-	if(!Object_Create_Object_List(use_standard_deviation,start_x,start_y))
-		return FALSE;
 	Object_Data.Id = id;
 	Object_Data.Frame_Number = frame_number;
+	if(!Object_Create_Object_List(use_standard_deviation,start_x,start_y))
+		return FALSE;
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Autoguider_Object_Detect:finished.");
 #endif
@@ -821,9 +830,17 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
 #if AUTOGUIDER_DEBUG > 5
 		if(index < 1000) /* try to speed up situations where too many objects are being detected */
 		{
-			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Create_Object_List:"
-			  "%d %6.2f %6.2f %6.2f %6.2f %6.2f %6d %6.2f %s %6.2f %6.2f",
-						      Object_Data.Object_List[index].Index,
+			if(index == 0)
+			{
+				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,
+						              "Object_Create_Object_List:Id,Frame Number,Index,CCD X,"
+							      "CCD Y,Buffer X,Buffer Y,Total Counts,No of Pixels,"
+							      "Peak Counts,Is Stellar,FWHM X,FWHM Y");
+			}
+			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,
+						      "Object_Create_Object_List:List "
+			  "%d,%d,%d,%6.2f,%6.2f,%6.2f,%6.2f,%6.2f,%6d,%6.2f,%s,%6.2f,%6.2f",
+			  Object_Data.Id,Object_Data.Frame_Number,Object_Data.Object_List[index].Index,
 			  Object_Data.Object_List[index].CCD_X_Position,Object_Data.Object_List[index].CCD_Y_Position,
  			  Object_Data.Object_List[index].Buffer_X_Position,
 						      Object_Data.Object_List[index].Buffer_Y_Position,
@@ -971,6 +988,10 @@ static int Object_Sort_Object_List_By_Total_Counts(const void *p1, const void *p
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.6  2006/07/14 09:35:12  cjm
+** Recalculated distance measure so finding object near a pixel actually works.
+** FWHMX/Y always set from libdprt_object value - now always calulated even when not stellar.
+**
 ** Revision 1.5  2006/06/29 17:04:34  cjm
 ** More logging
 **
