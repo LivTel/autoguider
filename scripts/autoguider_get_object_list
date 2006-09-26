@@ -1,18 +1,24 @@
 #!/bin/csh
 # autoguider_get_guide_packets <filename>
-# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_get_object_list,v 1.1 2006-09-20 10:28:27 cjm Exp $
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_get_object_list,v 1.2 2006-09-26 15:13:14 cjm Exp $
 if ( $#argv < 1 ) then
 	echo "autoguider_get_guide_packets <filename> [<filename>...]"
 	exit 1
 endif
+# remove script name from arguments
 shift
+# Based on log string in autoguider_object.c:Object_Create_Object_List
+echo "Id,Frame Number,Index,CCD X,CCD Y,Buffer X,Buffer Y,Total Counts,No of Pixels,Peak Counts,Is Stellar,FWHM X,FWHM Y"
 foreach arg ( $argv )
     set filename = $arg
     echo "filename : $arg"
-    grep 'Object_Create_Object_List' ${filename} | grep -v "Object_Create_Object_List:Object detection finished" | grep -v "Object_Create_Object_List:Counting number of detected objects" | grep -v "Object_Create_Object_List:We detected" | grep -v "Object_Create_Object_List:Copying Objects to Object_List" | grep -v "Object_Create_Object_List:started" | grep -v "Object_Create_Object_List:finished" | grep -v "Object_Create_Object_List:Getting statistics" | grep -v "Object_Create_Object_List:Using standard deviation" | grep -v "Object_Create_Object_List:Starting object detection" | grep -v "Object_Create_Object_List:Freeing object library objects" | sed "s/Object_Create_Object_List:\(.*\)/\1/"
+    grep 'Object_Create_Object_List:List' ${filename} | sed "s/Object_Create_Object_List:List \(.*\)/\1/"
 end
 #
 # $Log: not supported by cvs2svn $
+# Revision 1.1  2006/09/20 10:28:27  cjm
+# Initial revision
+#
 # Revision 1.2  2006/09/20 10:17:57  cjm
 # Added multiple file capabilities.
 #
