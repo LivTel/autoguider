@@ -1,13 +1,13 @@
 /* autoguider_object.c
 ** Autoguider object detection routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_object.c,v 1.7 2006-09-26 15:12:35 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_object.c,v 1.8 2006-09-28 10:09:12 cjm Exp $
 */
 /**
  * Object detection routines for the autoguider program.
  * Uses libdprt_object.
  * Has it's own buffer, as Object_List_Get destroys the data within it's buffer argument.
  * @author Chris Mottram
- * @version $Revision: 1.7 $
+ * @version $Revision: 1.8 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -85,7 +85,7 @@ struct Object_Internal_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_object.c,v 1.7 2006-09-26 15:12:35 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_object.c,v 1.8 2006-09-28 10:09:12 cjm Exp $";
 /**
  * Instance of object data.
  * @see #Object_Internal_Struct
@@ -727,21 +727,10 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
 	/*clock_gettime(CLOCK_REALTIME,&stop_time);*/
 	if(retval == FALSE)
 	{
-		/* this can fail for a variety of reasons - some of which
-		** are not really 'errors'. */
-		/* i.e. Error 7: All objects were too small. */
-		if(Object_Get_Error_Number() == 7)
-		{
-			/* Note object_list WILL be set to NULL here, so it is OK to continue */
-			Object_Warning();
-		}
-		else
-		{
-			Autoguider_General_Mutex_Unlock(&(Object_Data.Image_Data_Mutex));
-			Autoguider_General_Error_Number = 1003;
-			sprintf(Autoguider_General_Error_String,"Object_Create_Object_List:Object_List_Get failed.");
-			return FALSE;
-		}
+		Autoguider_General_Mutex_Unlock(&(Object_Data.Image_Data_Mutex));
+		Autoguider_General_Error_Number = 1003;
+		sprintf(Autoguider_General_Error_String,"Object_Create_Object_List:Object_List_Get failed.");
+		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 5
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Create_Object_List:"
@@ -988,6 +977,9 @@ static int Object_Sort_Object_List_By_Total_Counts(const void *p1, const void *p
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.7  2006/09/26 15:12:35  cjm
+** Reformatted object logging.
+**
 ** Revision 1.6  2006/07/14 09:35:12  cjm
 ** Recalculated distance measure so finding object near a pixel actually works.
 ** FWHMX/Y always set from libdprt_object value - now always calulated even when not stellar.
