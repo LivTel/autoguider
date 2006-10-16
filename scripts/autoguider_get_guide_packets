@@ -1,11 +1,11 @@
 #!/bin/csh
 # autoguider_get_guide_packets <filename>
-# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_get_guide_packets,v 1.2 2006-09-20 10:17:57 cjm Exp $
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_get_guide_packets,v 1.3 2006-10-16 14:24:04 cjm Exp $
 if ( $#argv < 1 ) then
 	echo "autoguider_get_guide_packets <filename> [<filename>...]"
 	exit 1
 endif
-shift
+#shift
 foreach arg ( $argv )
     set filename = $arg
     echo "filename : $arg"
@@ -13,6 +13,9 @@ foreach arg ( $argv )
 end
 #
 # $Log: not supported by cvs2svn $
+# Revision 1.2  2006/09/20 10:17:57  cjm
+# Added multiple file capabilities.
+#
 # Revision 1.1  2006/09/12 13:13:03  cjm
 # Initial revision
 #

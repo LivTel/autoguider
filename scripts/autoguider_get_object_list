@@ -1,12 +1,12 @@
 #!/bin/csh
 # autoguider_get_guide_packets <filename>
-# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_get_object_list,v 1.2 2006-09-26 15:13:14 cjm Exp $
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_get_object_list,v 1.3 2006-10-16 14:24:03 cjm Exp $
 if ( $#argv < 1 ) then
 	echo "autoguider_get_guide_packets <filename> [<filename>...]"
 	exit 1
 endif
 # remove script name from arguments
-shift
+#shift
 # Based on log string in autoguider_object.c:Object_Create_Object_List
 echo "Id,Frame Number,Index,CCD X,CCD Y,Buffer X,Buffer Y,Total Counts,No of Pixels,Peak Counts,Is Stellar,FWHM X,FWHM Y"
 foreach arg ( $argv )
@@ -16,6 +16,9 @@ foreach arg ( $argv )
 end
 #
 # $Log: not supported by cvs2svn $
+# Revision 1.2  2006/09/26 15:13:14  cjm
+# Rewritten to take account of new autoguider_object log format.
+#
 # Revision 1.1  2006/09/20 10:28:27  cjm
 # Initial revision
 #
