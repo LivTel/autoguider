@@ -1,11 +1,13 @@
 #!/bin/csh
-# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_get_guide_frames,v 1.6 2006-06-02 16:36:39 cjm Exp $
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_get_guide_frames,v 1.7 2006-10-18 13:46:14 cjm Exp $
 set gaiadisp = 0
 set ds9disp = 0
 set ds9objects = 0
 set delete_frames = 0
 set frame_type_string = "raw"
+set sleep_time = 2
 if ( $#argv > 0 ) then
+    set next_arg = ""
     foreach arg ( $argv )
 	if( "$arg" == "-delete" ) then
 		set delete_frames = 1
@@ -19,12 +21,19 @@ if ( $#argv > 0 ) then
 		set frame_type_string = "raw"
 	else if( "$arg" == "-reduced" ) then
 		set frame_type_string = "reduced"
+	else if( "$arg" == "-sleep_time" ) then
+		set next_arg = "sleep_time"
 	else if( "$arg" == "-help" ) then
-		echo "autoguider_get_guide_frames [-gaiadisp][-ds9disp][-raw|-reduced][-delete]"
+		echo "autoguider_get_guide_frames [-gaiadisp][-ds9disp [-ds9objects]][-raw|-reduced][-delete][-sleep_time <secs>]"
 		exit 1
 	else 
-		echo "Unknown argument: $1"
-		exit 1
+		if( "${next_arg}" == "sleep_time" ) then
+		    set sleep_time = "${arg}"
+		    set next_arg = ""
+		else
+		    echo "Unknown argument: $1"
+		    exit 1
+		endif
         endif
     end
 endif
@@ -41,7 +50,7 @@ if ( -r /home/dev/bin/autoguider/commandserver/test/i386-linux/send_command ) th
 else if ( -r /icc/bin/autoguider/commandserver/test/i386-linux/send_command ) then
     alias send_command "/icc/bin/autoguider/commandserver/test/i386-linux/send_command"
 else
-    echo "Could not find test_getfits_command."
+    echo "Could not find send_command."
     exit 2
 endif
 if ( -r /home/dev/bin/autoguider/scripts/print_line.awk ) then
@@ -139,11 +148,36 @@ while ( "${done}" == 0 )
 	if( "${delete_frames}" == "1" ) then
 	    /bin/rm ${filename}
 	endif
-	# sleep before getting next frame
-	sleep 1
+	#
+	# Are we still guiding?
+	#
+	#
+	# get status guide active
+	#
+	set guide_active_output = `send_command -h ${hostname} -p ${port} -c "status guide active"`
+	echo "guide active returned : ${guide_active_output}"
+	set guide_active_output = `echo "${guide_active_output}" | sed "s/.*client: reply:\(.*\)/\1/"`
+	echo "guide active output now ${guide_active_output}."
+	set retval = `echo "${guide_active_output}" | /usr/bin/awk ' { print $1}'`
+	if( "${retval}" != "0" ) then
+	    echo "guide active failed (${retval})."
+	    exit 1
+	endif
+	set guide_active = `echo "${guide_active_output}" | /usr/bin/awk ' { print $2}'`
+	if( "${guide_active}" == "false" ) then
+	    echo "guide active returned false:we have stopped autoguiding:stopping."
+	    set done = 1
+	endif
+	if ( ${done} == 0 ) then
+	    # sleep before getting next frame
+	    sleep ${sleep_time}
+	endif
 end
 #
 # $Log: not supported by cvs2svn $
+# Revision 1.6  2006/06/02 16:36:39  cjm
+# Changed for different object list format.
+#
 # Revision 1.5  2006/06/01 10:07:39  cjm
 # Added endif.
 #
