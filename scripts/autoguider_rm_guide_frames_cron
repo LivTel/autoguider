@@ -1,0 +1,48 @@
+#!/bin/csh
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_rm_guide_frames_cron,v 1.1 2006-10-18 13:45:22 cjm Exp $
+# cron task to delete "old" autoguider guide frames
+# age limit is days - files older than this are deleted.
+set age_limit = "7"
+set date_string = `/bin/date +"%Y-%m-%dT%H:%M:%S"`
+set tmp_dir = "/icc/tmp"
+set log_dir = "/icc/log"
+set todays_date = `/bin/date +"%Y%j"`
+set log_filename = "${log_dir}/autoguider_rm_guide_frames_cron_`/bin/date +'%j'`.txt"
+if ( -r /home/dev/bin/autoguider/scripts/print_line.awk ) then
+    alias print_line "/home/dev/bin/autoguider/scripts/print_line.awk"
+else if ( -r /icc/bin/autoguider/scripts/print_line.awk ) then
+    alias print_line "/icc/bin/autoguider/scripts/print_line.awk"
+else
+    echo "${date_string} : Could not find print_line.awk." >>! ${log_filename}
+    exit 3
+endif
+set ls_filename = "${tmp_dir}/autoguider_rm_guide_frames_cron_file_list.txt"
+/bin/ls ${tmp_dir}/guide_*.fits >>! ${ls_filename}
+set file_count = `/usr/bin/wc -l ${ls_filename}`
+echo "${date_string} : Found ${file_count} FITS files." >>! ${log_filename}
+set file_index = 0
+while ( "${file_index}" < "${file_count}" )
+	set fits_filename = `print_line -v LINE=${file_index} ${ls_filename}`
+	if( -r "${fits_filename}" ) then
+		set fits_filename_date = `/bin/date -r ${fits_filename} +"%Y%j"`
+		echo "${date_string} : FITS file ${fits_filename} has date ${fits_filename_date}." >>! ${log_filename}
+		@ day_count = ${todays_date} - ${fits_filename_date}
+		echo "${date_string} : FITS file ${fits_filename} is ${day_count} days old." >>! ${log_filename}
+		if( "${day_count}" > "${age_limit}" ) then
+			echo "${date_string} : removing ${fits_filename}." >>! ${log_filename}
+			/bin/rm ${fits_filename}
+			set rm_status = $status
+			if( "${rm_status}" == 0 ) then
+				echo "${date_string} : ${fits_filename} deleted." >>! ${log_filename}
+			else
+				echo "${date_string} : Failed to delete ${fits_filename} (error ${rm_status})." >>! ${log_filename}
+			endif
+		endif
+	else
+		echo "${date_string} : FITS file ${fits_filename} not readable." >>! ${log_filename}
+	endif
+	@ file_index ++
+end
+#
+# $Log: not supported by cvs2svn $
+#

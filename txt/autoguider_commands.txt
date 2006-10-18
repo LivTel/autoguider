@@ -1,0 +1,37 @@
+Command Set
+-----------
+$Header: /home/cjm/cvs/autoguider/txt/autoguider_commands.txt,v 1.1 2006-10-18 13:49:09 cjm Exp $
+$Revision: 1.1 $
+
+abort
+agstate <n>
+autoguide on <brightest|pixel <x> <y>|rank <n>>
+autoguide off
+configload
+expose <ms>        raw data put into field raw buffer, reduced data (if a dark exists etc) put in field reduced buffer.
+field [ms [lock]]
+field <dark|flat|object> <on|off>
+getfits [field|guide] [raw|reduced]   (returns binary data!)
+guide on
+guide off
+guide window <sx> <sy> <ex> <ey>
+guide exposure_length <ms> [lock]
+guide <dark|flat|object|packet> <on|off>
+guide <object> <index>
+help
+log_level <autoguider|ccd|command_server|object|ngatcil> <n>
+shutdown
+status temperature get
+status temperature status
+status field <active|dark|flat|object>     (returns "0 true" or "0 false")
+status guide <active|dark|flat|object|packet>     (returns "0 true" or "0 false")
+status guide cadence     (return no. of seconds e.g. "0 2.31")
+status guide exposure_length     (return no. of milliseconds e.g. "0 1000")
+status object <list|count>
+temperature set <C>
+temperature cooler on
+temperature cooler off
+
+Log
+---
+$Log: not supported by cvs2svn $
