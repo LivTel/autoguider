@@ -1,5 +1,5 @@
 #!/bin/csh
-# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_rm_guide_frames_cron,v 1.1 2006-10-18 13:45:22 cjm Exp $
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_rm_guide_frames_cron,v 1.2 2006-10-18 14:27:31 cjm Exp $
 # cron task to delete "old" autoguider guide frames
 # age limit is days - files older than this are deleted.
 set age_limit = "7"
@@ -18,7 +18,7 @@ else
 endif
 set ls_filename = "${tmp_dir}/autoguider_rm_guide_frames_cron_file_list.txt"
 /bin/ls ${tmp_dir}/guide_*.fits >>! ${ls_filename}
-set file_count = `/usr/bin/wc -l ${ls_filename}`
+set file_count = `/usr/bin/wc -l ${ls_filename} | awk ' {print $1}'`
 echo "${date_string} : Found ${file_count} FITS files." >>! ${log_filename}
 set file_index = 0
 while ( "${file_index}" < "${file_count}" )
@@ -43,6 +43,10 @@ while ( "${file_index}" < "${file_count}" )
 	endif
 	@ file_index ++
 end
+/bin/rm "${ls_filename}"
 #
 # $Log: not supported by cvs2svn $
+# Revision 1.1  2006/10/18 13:45:22  cjm
+# Initial revision
+#
 #
