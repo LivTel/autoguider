@@ -1,0 +1,42 @@
+# <autoguider_install:start>
+# $Header: /home/cjm/cvs/autoguider/scripts/icc_cshrc,v 1.1 2006-10-23 15:49:10 cjm Exp $
+# $Revision: 1.1 $
+# Do not delete the above comment, it delimits the cshrc updated by the autoguider_install script.
+# part of lt_environment, so we can call scripts
+setenv LT_HOME /icc
+setenv LT_BIN_HOME ${LT_HOME}/bin
+#if ( $?CLASSPATH == 0 ) then
+#    setenv CLASSPATH "."
+#endif
+#foreach file ( ${LT_BIN_HOME}/javalib/*.jar ${LT_BIN_HOME}/autoguider/java )
+#    echo ${CLASSPATH} | grep -q ${file} > /dev/null
+#    if( ${status} != 0 ) then
+#	setenv CLASSPATH "${CLASSPATH}:${file}"
+#    endif
+#end
+if ( $?LD_LIBRARY_PATH == 0 ) then
+    setenv LD_LIBRARY_PATH "."
+endif
+foreach dir ( ${LT_BIN_HOME}/lib/${HOSTTYPE} )
+    echo $LD_LIBRARY_PATH | grep $dir > /dev/null
+    if ( $status != 0 ) then
+	setenv LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:${dir}
+    endif
+end
+
+# Useful command aliass
+#alias delete_log_files 		'/icc/bin/scripts/delete_log_files.csh'
+#alias autoguider_reboot       		'/icc/bin/scripts/autoguider_reboot'
+#alias autoguider_engineering_mode   	'/icc/bin/scripts/autoguider_engineering_mode'
+#alias icsgui           		'/icc/bin/ccs_gui/java/icsgui'
+alias myps             			'ps -e -o pid,pcpu,vsz,ruser,args'
+alias send_command			'/icc/bin/autoguider/commandserver/test/i386-linux/send_command'
+alias test_getfits_command		'/icc/bin/autoguider/commandserver/test/i386-linux/test_getfits_command'
+alias autoguider_field			'/icc/bin/autoguider/scripts/autoguider_field'
+alias autoguider_guide			'/icc/bin/autoguider/scripts/autoguider_guide'
+alias autoguider_get_guide_frames 	'/icc/bin/autoguider/scripts/autoguider_get_guide_frames'
+alias autoguider_make_dark 		'/icc/bin/autoguider/scripts/autoguider_make_dark'
+alias autoguider_make_flat 		'/icc/bin/autoguider/scripts/autoguider_make_flat'
+alias autoguider_temperature_get	'/icc/bin/autoguider/commandserver/test/i386-linux/send_command -h autoguider1 -p 6571 -c "status temperature get"'
+# Do not delete the next comment, it delimits the cshrc updated by the autoguider_install script.
+# <autoguider_install:end>
