@@ -1,11 +1,11 @@
 /* autoguider_guide.c
 ** Autoguider guide routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.21 2006-09-12 13:24:02 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.22 2006-11-06 12:19:00 cjm Exp $
 */
 /**
  * Guide routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.21 $
+ * @version $Revision: 1.22 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -40,7 +40,51 @@
 #include "autoguider_guide.h"
 #include "autoguider_object.h"
 
+/* enums */
+/**
+ * Object count scale type enumeration.
+ * <ul>
+ * <li>GUIDE_SCALE_TYPE_PEAK
+ * <li>GUIDE_SCALE_TYPE_INTEGRATED
+ * </ul>
+ */
+enum GUIDE_SCALE_TYPE
+{
+	GUIDE_SCALE_TYPE_PEAK=0,GUIDE_SCALE_TYPE_INTEGRATED=1
+};
+
 /* data types */
+/**
+ * Structure holding data pertaining to guide exposure length scaling.
+ * <dl>
+ * <dt>Type</dt> <dd>Whether to scale guide exposure lengths by peak or integrated counts.</dd>
+ * <dt>Autoscale</dt> <dd>A boolean, used to determine from a config whether exposure length scaling should occur.</dd>
+ * <dt>Target_Counts</dt> <dd>Target counts.</dd>
+ * <dt>Min_Peak_Counts</dt> <dd>Minimum peak counts in the guide object.</dd>
+ * <dt>Max_Peak_Counts</dt> <dd>Maximum peak counts in the guide object.</dd>
+ * <dt>Min_Integrated_Counts</dt> <dd>Minimum integrated counts in the guide object.</dd>
+ * <dt>Max_Integrated_Counts</dt> <dd>Maximum integrated counts in the guide object.</dd>
+ * <dt>Scale_Index</dt> <dd>How many guide loops has the centroid been sub-optimal/non-existant/
+ *     ready for resacaling.</dd>
+ * <dt>Scale_Count</dt> <dd>How many guide loops to wait before rescaling.</dd>
+ * <dt>Scale_Up</dt> <dd>Boolean, if TRUE scale direction is up (increased exp length), otherwise down.</dd>
+ * </dl>
+ * @see #GUIDE_SCALE_TYPE
+ */
+struct Guide_Exposure_Length_Scaling_Struct
+{
+	enum GUIDE_SCALE_TYPE Type;
+	int Autoscale;
+	int Target_Counts;
+	int Min_Peak_Counts;
+	int Max_Peak_Counts;
+	int Min_Integrated_Counts;
+	int Max_Integrated_Counts;
+	int Scale_Index;
+	int Scale_Count;
+	int Scale_Up;
+};
+
 /**
  * Data type holding local data to autoguider_guide for one buffer. This consists of the following:
  * <dl>
@@ -54,6 +98,8 @@
  * <dt>Exposure_Length</dt> <dd>The exposure length in milliseconds.</dd>
  * <dt>Exposure_Length_Lock</dt> <dd>Boolean determining whether the exposure length can be dynamically changed
  *                                or is 'locked' to a specified length.</dd>
+ * <dt>Exposure_Length_Autoscale</dt> <dd>Boolean determining whether the exposure length can be dynamically changed -
+ *                                read from config file rather than changed per invocation.</dd>
  * <dt>In_Use_Buffer_Index</dt> <dd>The buffer index currently being read out to by an ongoing guide operation, or -1.</dd>
  * <dt>Last_Buffer_Index</dt> <dd>The buffer index of the last completed guide readout.</dd>
  * <dt>Quit_Guiding</dt> <dd>Boolean to be set to tell the guide thread to stop.</dd>
@@ -67,7 +113,10 @@
  *       Reset at the start of each guide on.</dd>
  * <dt>Loop_Cadence</dt> <dd>The time taken to complete one whole guide loop (the last one!), 
  *                        in decimal seconds.</dd>
+ * <dt>Exposure_Length_Scaling</dt> <dd>A structure of type Guide_Exposure_Length_Scaling_Struct
+ *                                  holding data/config about scaling the exposure length of guide exposures.</dd>
  * </dl>
+ * @see #Guide_Exposure_Length_Scaling_Struct
  * @see ../ccd/cdocs/ccd_setup.html#CCD_Setup_Window_Struct 
  */
 struct Guide_Struct
@@ -81,6 +130,7 @@ struct Guide_Struct
 	struct CCD_Setup_Window_Struct Window;
 	int Exposure_Length;
 	int Exposure_Length_Lock;
+	int Exposure_Length_Autoscale;
 	int In_Use_Buffer_Index;
 	int Last_Buffer_Index;
 	int Quit_Guiding;
@@ -91,31 +141,36 @@ struct Guide_Struct
 	int Guide_Id;
 	int Frame_Number;
 	double Loop_Cadence;
+	struct Guide_Exposure_Length_Scaling_Struct Exposure_Length_Scaling;
 };
 
 /* internal data */
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_guide.c,v 1.21 2006-09-12 13:24:02 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_guide.c,v 1.22 2006-11-06 12:19:00 cjm Exp $";
 /**
  * Instance of guide data.
  * @see #Guide_Struct
+ * @see #Guide_Exposure_Length_Scaling_Struct
+ * @see ../ccd/cdocs/ccd_setup.html#CCD_Setup_Window_Struct 
  */
 static struct Guide_Struct Guide_Data = 
 {
 	0,0,1,1,0,0,
 	{0,0,0,0},
-	-1,FALSE,
+	-1,FALSE,FALSE,
 	-1,1,FALSE,FALSE,
 	TRUE,TRUE,TRUE,
 	0,0,
-	0.0
+	0.0,
+	{GUIDE_SCALE_TYPE_PEAK,FALSE,0,0,0,0,0,0,0,TRUE},
 };
 
 /* internal routines */
 static void *Guide_Thread(void *user_arg);
 static int Guide_Reduce(void);
+static int Guide_Exposure_Length_Scale(void);
 static int Guide_Packet_Send(int terminating,float timecode_secs);
 static int Guide_Scaling_Config_Load(void);
 static int Guide_Dimension_Config_Load(void);
@@ -360,8 +415,8 @@ int Autoguider_Guide_On(void)
 	/* initialise Guide ID */
 	time_secs = time(NULL);
 	time_tm = gmtime(&time_secs);
-	Guide_Data.Guide_Id = /*diddly (time_tm->tm_year*1000000000)+*/(time_tm->tm_yday*1000000)+
-		(time_tm->tm_hour*10000)+(time_tm->tm_min*100)+time_tm->tm_sec;
+	Guide_Data.Guide_Id = (time_tm->tm_yday*1000000)+(time_tm->tm_hour*10000)+(time_tm->tm_min*100)+
+		time_tm->tm_sec;
 	/* spawn guide thread */
 	pthread_attr_init(&attr);
 	pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_DETACHED);
@@ -656,6 +711,7 @@ int Autoguider_Guide_Set_Guide_Object(int index)
 			return FALSE;
 		}
 		/* get min/max exposure length */
+		/* diddly this makes no sense given exp length scaled to nearest available dark ? */
 		retval = CCD_Config_Get_Integer("ccd.exposure.minimum",&min_exposure_length);
 		if(retval == FALSE)
 		{
@@ -768,7 +824,9 @@ int Autoguider_Guide_Exposure_Length_Get(void)
  *     <li>Call Autoguider_Buffer_Raw_To_Reduced_Guide on the Guide_Data.In_Use_Buffer_Index to copy the new raw data
  *         into the equivalent reduced guide buffer. This (internally) (re)locks/unclocks the Raw guide mutex and
  *         the reduced guide mutex.
- *     <li>Call Guide_Reduce to dark subtract and flat-field the reduced data, if required.
+ *     <li>Call Guide_Reduce to dark subtract and flat-field the reduced data, and detect objects, if required.
+ *     <li>Call Guide_Exposure_Length_Scale to change the exposure length, if necessary.
+ *     <li>Get the time taken to complete the guide loop (Guide_Data.Loop_Cadence), for the guide packet/stats etc.
  *     <li>Call Guide_Packet_Send to send a guide packet back to the TCS, if required.
  *     <li>Set Guide_Data.Last_Buffer_Index to the in use buffer index.
  *     <li>Set the in use buffer index to -1.
@@ -779,6 +837,7 @@ int Autoguider_Guide_Exposure_Length_Get(void)
  * </ul>
  * @see #Guide_Data
  * @see #Guide_Reduce
+ * @see #Guide_Exposure_Length_Scale
  * @see #Guide_Packet_Send
  * @see autoguider_buffer.html#Autoguider_Buffer_Get_Guide_Pixel_Count
  * @see autoguider_buffer.html#Autoguider_Buffer_Set_Guide_Dimension
@@ -921,7 +980,8 @@ static void *Guide_Thread(void *user_arg)
 			sprintf(Autoguider_General_Error_String,"Guide_Thread:"
 				"Autoguider_Buffer_Raw_Guide_Lock failed.");
 			Autoguider_General_Error();
-			/* diddly send tcs guide packet termination packet. */
+			/* send tcs guide packet termination packet. */
+			Guide_Packet_Send(TRUE,Guide_Data.Loop_Cadence*2.0f);
 			/* close tcs guide packet socket */
 			Autoguider_CIL_Guide_Packet_Close();
 			/* update SDB */
@@ -1016,6 +1076,30 @@ static void *Guide_Thread(void *user_arg)
 #if AUTOGUIDER_DEBUG > 1
 			Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:"
 					       "Failed on Guide_Reduce.");
+#endif
+			/* reset guiding flag */
+			Guide_Data.Is_Guiding = FALSE;
+			/* reset in use buffer index */
+			Guide_Data.In_Use_Buffer_Index = -1;
+			Autoguider_General_Error();
+			/* send tcs guide packet termination packet. */
+			Guide_Packet_Send(TRUE,Guide_Data.Loop_Cadence*2.0f);
+			/* close tcs guide packet socket */
+			Autoguider_CIL_Guide_Packet_Close();
+			/* update SDB */
+			if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
+				Autoguider_General_Error(); /* no need to fail */
+			if(!Autoguider_CIL_SDB_Packet_Send())
+				Autoguider_General_Error(); /* no need to fail */
+			return NULL;
+		}
+		/* Do any necessary exposure length scaling */
+		retval = Guide_Exposure_Length_Scale();
+		if(retval == FALSE)
+		{
+#if AUTOGUIDER_DEBUG > 1
+			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:"
+					       "Failed on Guide_Exposure_Length_Scale.");
 #endif
 			/* reset guiding flag */
 			Guide_Data.Is_Guiding = FALSE;
@@ -1249,6 +1333,295 @@ static int Guide_Reduce(void)
 }
 
 /**
+ * Check and change the exposure length for the next guide exposure, if necessary.
+ * <ul>
+ * <li>The "Guide_Data.Exposure_Length_Lock" is checked - if TRUE, we return TRUE without change.
+ * <li>The "Guide_Data.Exposure_Length_Scaling.Autoscale" is checked - if FALSE, we return TRUE without change.
+ * <li>The "Guide_Data.Do_Object_Detect" is checked - if FALSE, we return TRUE without change.
+ * <li>Autoguider_Object_List_Get_Count is called to get the number of detected objects.
+ * <li>If there are more than one object, we return TRUE without change.
+ * <li>If there is less than one object, we increment "Guide_Data.Exposure_Length_Scaling.Scale_Index".
+ * <li>If there is one object:
+ *     <ul>
+ *     <li>If "Guide_Data.Exposure_Length_Scaling.Type" is scale type peak:
+ *         <ul>
+ *         <li>If the object's Peak Counts are less than "Guide_Data.Exposure_Length_Scaling.Min_Peak_Counts",
+ *             increment "Guide_Data.Exposure_Length_Scaling.Scale_Index".
+ *         <li>If the object's Peak Counts are greater than "Guide_Data.Exposure_Length_Scaling.Max_Peak_Counts",
+ *             increment "Guide_Data.Exposure_Length_Scaling.Scale_Index".
+ *         <li>Otherwise, reset "Guide_Data.Exposure_Length_Scaling.Scale_Index" to zero.
+ *         </ul>
+ *     <li>else If "Guide_Data.Exposure_Length_Scaling.Type" is scale type integrated:
+ *         <ul>
+ *         <li>If the object's Total Counts (integrated counts) are less than 
+ *             "Guide_Data.Exposure_Length_Scaling.Min_Integrated_Counts" increment 
+ *             "Guide_Data.Exposure_Length_Scaling.Scale_Index".
+ *         <li>If the object's Total Counts (integrated counts) are greater than 
+ *             "Guide_Data.Exposure_Length_Scaling.Max_Integrated_Counts" increment 
+ *             "Guide_Data.Exposure_Length_Scaling.Scale_Index".
+ *         <li>Otherwise, reset "Guide_Data.Exposure_Length_Scaling.Scale_Index" to zero.
+ *         </ul>
+ *     </ul>
+ * <li>
+ * </ul>
+ * @return The routine returns TRUE on success and FALSE on failure.
+ * @see #Guide_Data
+ * @see #Guide_Scaling_Config_Load
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#Autoguider_General_Log_Format
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_GUIDE
+ * @see autoguider_object.html#Autoguider_Object_List_Get_Count
+ * @see autoguider_object.html#Autoguider_Object_List_Get_Object
+ */
+static int Guide_Exposure_Length_Scale(void)
+{
+	struct Autoguider_Object_Struct object;
+	int retval,object_count,guide_exposure_length,guide_exposure_index;
+
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Exposure_Length_Scale:started.");
+#endif
+	/* The exposure length is locked - we cannot change it! */
+	if(Guide_Data.Exposure_Length_Lock == TRUE)
+	{
+#if AUTOGUIDER_DEBUG > 9
+		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
+				       "Guide_Exposure_Length_Scale:Exposure Length is locked.");
+#endif
+		return TRUE;
+	}
+	/* if exposure length autoscale is false we cannot change it */
+	if(Guide_Data.Exposure_Length_Scaling.Autoscale == FALSE)
+	{
+#if AUTOGUIDER_DEBUG > 9
+		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
+				       "Guide_Exposure_Length_Scale:Exposure Length autoscale is false.");
+#endif
+		return TRUE;
+	}
+	/* if we are not object detecting, we have no data to scale exposure length on */
+	if(Guide_Data.Do_Object_Detect == FALSE)
+	{
+#if AUTOGUIDER_DEBUG > 9
+		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
+				       "Guide_Exposure_Length_Scale:Guide object detection is OFF.");
+#endif
+		return TRUE;
+	}
+	/* how many objects found in guide frame */
+	if(!Autoguider_Object_List_Get_Count(&object_count))
+	{
+		Autoguider_General_Error();
+#if AUTOGUIDER_DEBUG > 9
+		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
+				       "Guide_Exposure_Length_Scale:Failed to get object count.");
+#endif
+		return TRUE;/* don't stop guiding */
+	}
+	/* check number of detected objects */
+	if(object_count > 1)
+	{
+		/* too many objects - what do we do here! */
+#if AUTOGUIDER_DEBUG > 9
+		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
+				       "Guide_Exposure_Length_Scale:More than one guide object (%d).",object_count);
+#endif
+		return TRUE;/* don't stop guiding */
+	}
+	else if(object_count < 1)
+	{
+		/* start counting how long we have lost object */
+		Guide_Data.Exposure_Length_Scaling.Scale_Index++;
+	}
+	else /* object_count == 1 */
+	{
+		/* get first object */
+		if(!Autoguider_Object_List_Get_Object(0,&object))
+		{
+			Autoguider_General_Error();
+#if AUTOGUIDER_DEBUG > 9
+			Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
+					       "Guide_Exposure_Length_Scale:Failed to get object 0.");
+#endif
+			return TRUE; /* don't stop guiding */
+		}
+		/* check stats of object */
+		if(Guide_Data.Exposure_Length_Scaling.Type == GUIDE_SCALE_TYPE_PEAK)
+		{
+			if(object.Peak_Counts < Guide_Data.Exposure_Length_Scaling.Min_Peak_Counts)
+			{
+#if AUTOGUIDER_DEBUG > 9
+				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
+				"Guide_Exposure_Length_Scale:Peak Counts %d < Min Peak Counts %d: "
+							      "Increasing scale index.",object.Peak_Counts,
+							      Guide_Data.Exposure_Length_Scaling.Min_Peak_Counts);
+#endif
+				Guide_Data.Exposure_Length_Scaling.Scale_Index++;
+			}
+			else if(object.Peak_Counts > Guide_Data.Exposure_Length_Scaling.Max_Peak_Counts)
+			{
+#if AUTOGUIDER_DEBUG > 9
+				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
+				"Guide_Exposure_Length_Scale:Peak Counts %d > Max Peak Counts %d: "
+							      "Decreasing scale index.",object.Peak_Counts,
+							      Guide_Data.Exposure_Length_Scaling.Max_Peak_Counts);
+#endif
+				Guide_Data.Exposure_Length_Scaling.Scale_Index++;
+			}
+			else
+			{
+#if AUTOGUIDER_DEBUG > 9
+				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
+				"Guide_Exposure_Length_Scale:Peak Counts %d within range: "
+							      "Reseting scale index.",object.Peak_Counts);
+#endif
+				Guide_Data.Exposure_Length_Scaling.Scale_Index = 0;
+			}
+		}
+		else if(Guide_Data.Exposure_Length_Scaling.Type == GUIDE_SCALE_TYPE_INTEGRATED)
+		{
+			if(object.Total_Counts < Guide_Data.Exposure_Length_Scaling.Min_Integrated_Counts)
+			{
+#if AUTOGUIDER_DEBUG > 9
+				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
+				"Guide_Exposure_Length_Scale:Total Counts %d < Min Total Counts %d: "
+							      "Increasing scale index.",object.Total_Counts,
+							      Guide_Data.Exposure_Length_Scaling.Min_Integrated_Counts);
+#endif
+				Guide_Data.Exposure_Length_Scaling.Scale_Index++;
+			}
+			else if(object.Total_Counts > Guide_Data.Exposure_Length_Scaling.Max_Integrated_Counts)
+			{
+#if AUTOGUIDER_DEBUG > 9
+				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
+				"Guide_Exposure_Length_Scale:Total Counts %d > Max Total Counts %d: "
+							      "Increasing scale index.",object.Total_Counts,
+							      Guide_Data.Exposure_Length_Scaling.Max_Integrated_Counts);
+#endif
+				Guide_Data.Exposure_Length_Scaling.Scale_Index++;
+			}
+			else
+			{
+#if AUTOGUIDER_DEBUG > 9
+				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
+				"Guide_Exposure_Length_Scale:Total Counts %d in range: "
+							      "Reseting scale index.",object.Total_Counts);
+#endif
+				Guide_Data.Exposure_Length_Scaling.Scale_Index = 0;
+			}
+		}
+	}/* end if on object_count */
+	/* is it time to rescale? */
+	if(Guide_Data.Exposure_Length_Scaling.Scale_Index >= Guide_Data.Exposure_Length_Scaling.Scale_Count)
+	{
+#if AUTOGUIDER_DEBUG > 9
+		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
+					      "Guide_Exposure_Length_Scale:Scale Index %d > Scale Count %d.",
+					      Guide_Data.Exposure_Length_Scaling.Scale_Index,
+					      Guide_Data.Exposure_Length_Scaling.Scale_Count);
+#endif
+		/* reset rescaling index */
+		Guide_Data.Exposure_Length_Scaling.Scale_Index = 0;
+		/* recompute exposure length */
+		guide_exposure_length = Guide_Data.Exposure_Length;
+#if AUTOGUIDER_DEBUG > 9
+		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
+					      "Guide_Exposure_Length_Scale:Current guide exposure length %d.",
+					      guide_exposure_length);
+#endif
+		if(object_count == 1)
+		{
+			/* compute based on current counts */
+			/* Guide_Data.Exposure_Length_Scaling.Target_Counts set to target peak/integrated
+			** counts by Guide_Scaling_Config_Load as appropriate. */
+			if(Guide_Data.Exposure_Length_Scaling.Type == GUIDE_SCALE_TYPE_PEAK)
+			{
+				guide_exposure_length = (int)((float)guide_exposure_length * 
+				       (((float)Guide_Data.Exposure_Length_Scaling.Target_Counts)/object.Peak_Counts));
+#if AUTOGUIDER_DEBUG > 9
+				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
+					      "Guide_Exposure_Length_Scale:Recomputed guide exposure length %d:"
+					      "scaled by %d/%.2f.",guide_exposure_length,
+					      Guide_Data.Exposure_Length_Scaling.Target_Counts,object.Peak_Counts);
+#endif
+			}
+			else if(Guide_Data.Exposure_Length_Scaling.Type == GUIDE_SCALE_TYPE_INTEGRATED)
+			{
+				guide_exposure_length = (int)((float)guide_exposure_length * 
+				      (((float)Guide_Data.Exposure_Length_Scaling.Target_Counts)/object.Total_Counts));
+#if AUTOGUIDER_DEBUG > 9
+				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
+					      "Guide_Exposure_Length_Scale:Recomputed guide exposure length %d:"
+					      "scaled by %d/%.2f.",guide_exposure_length,
+					      Guide_Data.Exposure_Length_Scaling.Target_Counts,object.Total_Counts);
+#endif
+			}
+		}
+		else /* no objects found */
+		{
+			/* get current exposure dark index */
+			if(!Autoguider_Dark_Get_Exposure_Length_Nearest(&guide_exposure_length,&guide_exposure_index))
+			{
+				return FALSE;
+			}
+#if AUTOGUIDER_DEBUG > 9
+			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
+				      "Guide_Exposure_Length_Scale:Current guide exposure length %d has index %d.",
+						      guide_exposure_length,guide_exposure_index);
+#endif
+			guide_exposure_index++;
+			/* check we can expose for longer.
+			** If not return FALSE - stop the guide loop - we've lost the guide star. */
+			if(guide_exposure_index >= Autoguider_Dark_Get_Exposure_Length_Count())
+			{
+#if AUTOGUIDER_DEBUG > 4
+				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
+				    "Guide_Exposure_Length_Scale:guide exposure index %d greater than dark count %d: "
+				     "Autoguiding failed as no objects detected at longest exposure length.",
+					guide_exposure_index,Autoguider_Dark_Get_Exposure_Length_Count());
+#endif
+				Autoguider_General_Error_Number = 738;
+				sprintf(Autoguider_General_Error_String,"Guide_Exposure_Length_Scale:"
+					"guide exposure index %d greater than dark count %d: "
+					"Autoguiding failed as no objects detected at longest exposure length.",
+					guide_exposure_index,Autoguider_Dark_Get_Exposure_Length_Count());
+				return FALSE;
+			}
+			/* get the exposure length for this new index */
+			if(!Autoguider_Dark_Get_Exposure_Length_Index(guide_exposure_index,&guide_exposure_length))
+				return FALSE;
+#if AUTOGUIDER_DEBUG > 9
+			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
+				      "Guide_Exposure_Length_Scale:New guide exposure length %d has index %d.",
+						      guide_exposure_length,guide_exposure_index);
+#endif
+		}
+		/* round guide exposure length to nearest available dark */
+		if(!Autoguider_Dark_Get_Exposure_Length_Nearest(&guide_exposure_length,&guide_exposure_index))
+			return FALSE;
+#if AUTOGUIDER_DEBUG > 9
+		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
+				      "Guide_Exposure_Length_Scale:New guide exposure length %d has index %d.",
+						      guide_exposure_length,guide_exposure_index);
+#endif
+		/* set */
+		if(!Autoguider_Guide_Exposure_Length_Set(guide_exposure_length,FALSE))
+			return FALSE;
+		/* ensure the correct dark is loaded */
+		retval = Autoguider_Dark_Set(Guide_Data.Bin_X,Guide_Data.Bin_Y,Guide_Data.Exposure_Length);
+		if(retval == FALSE)
+			return FALSE;
+		/* update SDB */
+		if(!Autoguider_CIL_SDB_Packet_Exp_Time_Set(Guide_Data.Exposure_Length))
+			Autoguider_General_Error(); /* no need to fail */
+	}/* end if scale index >= scale count */
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Exposure_Length_Scale:finished.");
+#endif
+	return TRUE;
+}
+
+/**
  * Routine to send a guide packet to the TCS. Autoguider_CIL_Guide_Packet_Send is called to send the guide packet
  * (assumes Autoguider_CIL_Guide_Packet_Open has been called). The data in autoguider_object is used to get
  * the centroid.
@@ -1365,10 +1738,9 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 		{
 			Autoguider_General_Error_Number = 733;
 			sprintf(Autoguider_General_Error_String,"Guide_Packet_Send:"
-				"Failed to load config:'guide.counts.max.peak'.");
+				"Failed to load config:'guide.ellipticity'.");
 			return FALSE;
 		}
-		/*diddly*/
 		/*
 		** 0 means confident
 		** Bit 0 set means FWHM approaching limit
@@ -1448,15 +1820,125 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 }
 
 /**
- * Load guide scaling configuration.
+ * Load guide scaling configuration. Gets the following configuration:
+ * <ul>
+ * <li>"guide.counts.scale_type" string - "integrated" or "peak".
+ * <li>"guide.counts.target.peak/integrated" - integer.
+ * <li>"guide.exposure_length.autoscale" - boolean.
+ * <li>"guide.counts.min.peak" - integer.
+ * <li>"guide.counts.max.peak" - integer.
+ * <li>"guide.counts.min.integrated" - integer.
+ * <li>"guide.counts.max.integrated" - integer.
+ * <li>"guide.exposure_length.scale_count" - integer.
+ * </ul>
+ * The data is used to populate Guide_Data.Exposure_Length_Scaling
  * @return The routine returns TRUE on success and FALSE on failure.
+ * @see #Guide_Data
+ * @see #GUIDE_SCALE_TYPE
+ * @see #Guide_Exposure_Length_Scaling_Struct
+ * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_String
+ * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Integer
+ * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Boolean
  */
 static int Guide_Scaling_Config_Load(void)
 {
+	char keyword_string[32];
+	char *scale_type_string = NULL;
+	int retval;
+
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Scaling_Config_Load:starteed.");
 #endif
-
+	retval = CCD_Config_Get_String("guide.counts.scale_type",&scale_type_string);
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 739;
+		sprintf(Autoguider_General_Error_String,"Guide_Scaling_Config_Load:"
+			"Getting guide counts scale type failed.");
+		return FALSE;
+	}
+	if(strcmp(scale_type_string,"integrated") ==0)
+		Guide_Data.Exposure_Length_Scaling.Type = GUIDE_SCALE_TYPE_INTEGRATED;
+	else if(strcmp(scale_type_string,"peak") ==0)
+		Guide_Data.Exposure_Length_Scaling.Type = GUIDE_SCALE_TYPE_PEAK;
+	else
+	{
+		Autoguider_General_Error_Number = 740;
+		sprintf(Autoguider_General_Error_String,"Guide_Scaling_Config_Load:"
+			"guide.counts.scale_type has illegal scale type '%s'.",scale_type_string);
+		if(scale_type_string != NULL)
+			free(scale_type_string);
+		return FALSE;
+	}
+	/* get target guide counts */
+	sprintf(keyword_string,"guide.counts.target.%s",scale_type_string);
+	retval = CCD_Config_Get_Integer(keyword_string,&(Guide_Data.Exposure_Length_Scaling.Target_Counts));
+	if(retval == FALSE)
+	{
+		if(scale_type_string != NULL)
+			free(scale_type_string);
+		Autoguider_General_Error_Number = 741;
+		sprintf(Autoguider_General_Error_String,"Guide_Scaling_Config_Load:"
+				"Getting target guide counts failed(%s).",keyword_string);
+		return FALSE;
+	}
+	/* free scale type string */
+	if(scale_type_string != NULL)
+		free(scale_type_string);
+	/* get autoscale boolean */
+	retval = CCD_Config_Get_Boolean("guide.exposure_length.autoscale",
+					&(Guide_Data.Exposure_Length_Scaling.Autoscale));
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 742;
+		sprintf(Autoguider_General_Error_String,"Guide_Scaling_Config_Load:"
+				"Getting guide exposure length autoscaling failed.");
+		return FALSE;
+	}
+	/* get counts limits */
+	retval = CCD_Config_Get_Integer("guide.counts.min.peak",&(Guide_Data.Exposure_Length_Scaling.Min_Peak_Counts));
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 743;
+		sprintf(Autoguider_General_Error_String,"Guide_Scaling_Config_Load:"
+			"Failed to load config:'guide.counts.min.peak'.");
+		return FALSE;
+	}
+	retval = CCD_Config_Get_Integer("guide.counts.max.peak",&(Guide_Data.Exposure_Length_Scaling.Max_Peak_Counts));
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 744;
+		sprintf(Autoguider_General_Error_String,"Guide_Scaling_Config_Load:"
+			"Failed to load config:'guide.counts.max.peak'.");
+		return FALSE;
+	}
+	retval = CCD_Config_Get_Integer("guide.counts.min.integrated",
+					&(Guide_Data.Exposure_Length_Scaling.Min_Integrated_Counts));
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 745;
+		sprintf(Autoguider_General_Error_String,"Guide_Scaling_Config_Load:"
+			"Failed to load config:'guide.counts.min.integrated'.");
+		return FALSE;
+	}
+	retval = CCD_Config_Get_Integer("guide.counts.max.integrated",
+					&(Guide_Data.Exposure_Length_Scaling.Max_Integrated_Counts));
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 746;
+		sprintf(Autoguider_General_Error_String,"Guide_Scaling_Config_Load:"
+			"Failed to load config:'guide.counts.max.integrated'.");
+		return FALSE;
+	}
+	retval = CCD_Config_Get_Integer("guide.exposure_length.scale_count",
+					&(Guide_Data.Exposure_Length_Scaling.Scale_Count));
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 747;
+		sprintf(Autoguider_General_Error_String,"Guide_Scaling_Config_Load:"
+			"Failed to load config:'guide.exposure_length.scale_count'.");
+		return FALSE;
+	}
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Scaling_Config_Load:finished.");
 #endif
@@ -1522,6 +2004,9 @@ static int Guide_Dimension_Config_Load(void)
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.21  2006/09/12 13:24:02  cjm
+** Changed "Detected FWHM limit" log.
+**
 ** Revision 1.20  2006/09/12 11:12:59  cjm
 ** Changed guide.ellipticity config retrieval to use CCD_Config_Get_Float rather than
 ** CCD_Config_Get_Integer. Hopefully will stop guide ellipticity test always thinking
