@@ -1,11 +1,11 @@
 /* autoguider_guide.c
 ** Autoguider guide routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.22 2006-11-06 12:19:00 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.23 2006-11-06 14:49:02 cjm Exp $
 */
 /**
  * Guide routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.22 $
+ * @version $Revision: 1.23 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -148,7 +148,7 @@ struct Guide_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_guide.c,v 1.22 2006-11-06 12:19:00 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_guide.c,v 1.23 2006-11-06 14:49:02 cjm Exp $";
 /**
  * Instance of guide data.
  * @see #Guide_Struct
@@ -1452,7 +1452,7 @@ static int Guide_Exposure_Length_Scale(void)
 			{
 #if AUTOGUIDER_DEBUG > 9
 				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-				"Guide_Exposure_Length_Scale:Peak Counts %d < Min Peak Counts %d: "
+				"Guide_Exposure_Length_Scale:Peak Counts %.2f < Min Peak Counts %d: "
 							      "Increasing scale index.",object.Peak_Counts,
 							      Guide_Data.Exposure_Length_Scaling.Min_Peak_Counts);
 #endif
@@ -1462,7 +1462,7 @@ static int Guide_Exposure_Length_Scale(void)
 			{
 #if AUTOGUIDER_DEBUG > 9
 				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-				"Guide_Exposure_Length_Scale:Peak Counts %d > Max Peak Counts %d: "
+				"Guide_Exposure_Length_Scale:Peak Counts %.2f > Max Peak Counts %d: "
 							      "Decreasing scale index.",object.Peak_Counts,
 							      Guide_Data.Exposure_Length_Scaling.Max_Peak_Counts);
 #endif
@@ -1472,7 +1472,7 @@ static int Guide_Exposure_Length_Scale(void)
 			{
 #if AUTOGUIDER_DEBUG > 9
 				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-				"Guide_Exposure_Length_Scale:Peak Counts %d within range: "
+				"Guide_Exposure_Length_Scale:Peak Counts %.2f within range: "
 							      "Reseting scale index.",object.Peak_Counts);
 #endif
 				Guide_Data.Exposure_Length_Scaling.Scale_Index = 0;
@@ -1484,7 +1484,7 @@ static int Guide_Exposure_Length_Scale(void)
 			{
 #if AUTOGUIDER_DEBUG > 9
 				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-				"Guide_Exposure_Length_Scale:Total Counts %d < Min Total Counts %d: "
+				"Guide_Exposure_Length_Scale:Total Counts %.2f < Min Total Counts %d: "
 							      "Increasing scale index.",object.Total_Counts,
 							      Guide_Data.Exposure_Length_Scaling.Min_Integrated_Counts);
 #endif
@@ -1494,7 +1494,7 @@ static int Guide_Exposure_Length_Scale(void)
 			{
 #if AUTOGUIDER_DEBUG > 9
 				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-				"Guide_Exposure_Length_Scale:Total Counts %d > Max Total Counts %d: "
+				"Guide_Exposure_Length_Scale:Total Counts %.2f > Max Total Counts %d: "
 							      "Increasing scale index.",object.Total_Counts,
 							      Guide_Data.Exposure_Length_Scaling.Max_Integrated_Counts);
 #endif
@@ -1504,7 +1504,7 @@ static int Guide_Exposure_Length_Scale(void)
 			{
 #if AUTOGUIDER_DEBUG > 9
 				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-				"Guide_Exposure_Length_Scale:Total Counts %d in range: "
+				"Guide_Exposure_Length_Scale:Total Counts %.2f in range: "
 							      "Reseting scale index.",object.Total_Counts);
 #endif
 				Guide_Data.Exposure_Length_Scaling.Scale_Index = 0;
@@ -2004,6 +2004,9 @@ static int Guide_Dimension_Config_Load(void)
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.22  2006/11/06 12:19:00  cjm
+** Initial guide exposure length implementation.
+**
 ** Revision 1.21  2006/09/12 13:24:02  cjm
 ** Changed "Detected FWHM limit" log.
 **
