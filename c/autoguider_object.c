@@ -1,13 +1,13 @@
 /* autoguider_object.c
 ** Autoguider object detection routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_object.c,v 1.8 2006-09-28 10:09:12 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_object.c,v 1.9 2006-11-14 18:08:54 cjm Exp $
 */
 /**
  * Object detection routines for the autoguider program.
  * Uses libdprt_object.
  * Has it's own buffer, as Object_List_Get destroys the data within it's buffer argument.
  * @author Chris Mottram
- * @version $Revision: 1.8 $
+ * @version $Revision: 1.9 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -28,6 +28,7 @@
 
 #include "object.h"
 
+#include "autoguider_field.h"
 #include "autoguider_general.h"
 #include "autoguider_object.h"
 
@@ -85,7 +86,7 @@ struct Object_Internal_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_object.c,v 1.8 2006-09-28 10:09:12 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_object.c,v 1.9 2006-11-14 18:08:54 cjm Exp $";
 /**
  * Instance of object data.
  * @see #Object_Internal_Struct
@@ -297,11 +298,13 @@ int Autoguider_Object_List_Get_Object(int index,struct Autoguider_Object_Struct 
  * @param on_type How to select the AG guide object.
  * @param pixel_x If on_type is COMMAND_AG_ON_TYPE_PIXEL, the x pixel position.
  * @param pixel_y If on_type is COMMAND_AG_ON_TYPE_PIXEL, the y pixel position.
- * @param rank If on_type is COMMAND_AG_ON_TYPE_RANK, the rank (ordered index pf brightness).
+ * @param rank If on_type is COMMAND_AG_ON_TYPE_RANK, the rank (ordered index of brightness).
+ *        According to the TCS user interface, should be in the range 1..10 (i.e. 1 based).
  * @param selected_object_index The address of an integer to store the selected object index.
  * @return The routine returns TRUE on success, and FALSE on failure.
  * @see #Object_Data
  * @see autoguider_command.html#COMMAND_AG_ON_TYPE
+ * @see autoguider_field.html#Autoguider_Field_In_Object_Bounds
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  * @see autoguider_general.html#Autoguider_General_Log
@@ -310,7 +313,7 @@ int Autoguider_Object_List_Get_Object(int index,struct Autoguider_Object_Struct 
 int Autoguider_Object_Guide_Object_Get(enum COMMAND_AG_ON_TYPE on_type,float pixel_x,float pixel_y,
 				       int rank,int *selected_object_index)
 {
-	int index,retval;
+	int index,retval,in_bounds_count;
 	float max_total_counts,distance,closest_distance,xsq,ysq,xdiff,ydiff;
 
 	if(selected_object_index == NULL)
@@ -343,7 +346,9 @@ int Autoguider_Object_Guide_Object_Get(enum COMMAND_AG_ON_TYPE on_type,float pix
 			max_total_counts = 0.0f;
 			while(index < Object_Data.Object_Count)
 			{
-				if(Object_Data.Object_List[index].Total_Counts > max_total_counts)
+				if(Autoguider_Field_In_Object_Bounds(Object_Data.Object_List[index].CCD_X_Position,
+								     Object_Data.Object_List[index].CCD_Y_Position)&&
+				   (Object_Data.Object_List[index].Total_Counts > max_total_counts))
 				{
 					max_total_counts = Object_Data.Object_List[index].Total_Counts;
 					(*selected_object_index) = index;
@@ -372,6 +377,8 @@ int Autoguider_Object_Guide_Object_Get(enum COMMAND_AG_ON_TYPE on_type,float pix
 			closest_distance = 999999.9f;
 			while(index < Object_Data.Object_Count)
 			{
+				/* NB no test against field object bounds
+				** Probably not needed in this case - unless specified pixel is in a silly place */
 				xdiff = Object_Data.Object_List[index].CCD_X_Position-pixel_x;
 				ydiff = Object_Data.Object_List[index].CCD_Y_Position-pixel_y;
 				xsq = xdiff*xdiff;
@@ -403,7 +410,19 @@ int Autoguider_Object_Guide_Object_Get(enum COMMAND_AG_ON_TYPE on_type,float pix
 			break;
 		case COMMAND_AG_ON_TYPE_RANK:
 			/* assumes object list sorted by total counts (Object_Sort_Object_List_By_Total_Counts) */
-			if(rank >= Object_Data.Object_Count)
+			/* assumes "first" rank is "1", not "0", as documented in the TCS manual */
+			index = 0;
+			in_bounds_count = 0;
+			while((index < Object_Data.Object_Count)&&(in_bounds_count < rank))
+			{
+				if(Autoguider_Field_In_Object_Bounds(Object_Data.Object_List[index].CCD_X_Position,
+								     Object_Data.Object_List[index].CCD_Y_Position))
+				{
+					in_bounds_count++;
+				}
+				index++;
+			}/* end while */
+			if(in_bounds_count < rank)
 			{
 				Autoguider_General_Mutex_Unlock(&(Object_Data.Object_List_Mutex));
 				Autoguider_General_Error_Number = 1016;
@@ -411,7 +430,7 @@ int Autoguider_Object_Guide_Object_Get(enum COMMAND_AG_ON_TYPE on_type,float pix
 					"Rank %d out of range 0..%d.",rank,Object_Data.Object_Count);
 				return FALSE;
 			}
-			(*selected_object_index) = rank;
+			(*selected_object_index) = index;
 			break;
 		default:
 			/* unlock mutex */
@@ -977,6 +996,10 @@ static int Object_Sort_Object_List_By_Total_Counts(const void *p1, const void *p
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.8  2006/09/28 10:09:12  cjm
+** Removed test for Object_Get_Error_Number() == 7, as
+** this error should now return true (+warning) in libdprt_object.
+**
 ** Revision 1.7  2006/09/26 15:12:35  cjm
 ** Reformatted object logging.
 **
