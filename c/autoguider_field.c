@@ -1,11 +1,11 @@
 /* autoguider_field.c
 ** Autoguider field routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_field.c,v 1.7 2006-08-29 13:55:42 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_field.c,v 1.8 2006-11-14 18:10:29 cjm Exp $
 */
 /**
  * Field routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.7 $
+ * @version $Revision: 1.8 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -40,7 +40,34 @@
 
 /* data types */
 /**
- * Data type holding local data to autoguider_field for one buffer. This consists of the following:
+ * Data type holding a bounding box point. This consists of the following:
+ * <dl>
+ * <dt>X</dt> <dd>Integer of X CCD pixel.</dd>
+ * <dt>Y</dt> <dd>Integer of X CCD pixel.</dd>
+ * </dl>
+ */
+struct Field_Point_Struct
+{
+	int X;
+	int Y;
+};
+
+/**
+ * Data type holding a bounding box. This consists of the following:
+ * <dl>
+ * <dt>Min</dt> <dd>Point (of struct Field_Point_Struct) specifying the min point of the bounds rectangle.</dd>
+ * <dt>Max</dt> <dd>Point (of struct Field_Point_Struct) specifying the max point of the bounds rectangle.</dd>
+ * </dl>
+ * @see #Field_Point_Struct
+ */
+struct Field_Bounds_Struct
+{
+	struct Field_Point_Struct Min;
+	struct Field_Point_Struct Max;
+};
+
+/**
+ * Data type holding local data to autoguider_field. This consists of the following:
  * <dl>
  * <dt>Unbinned_NCols</dt> <dd>Number of unbinned columns in field images.</dd>
  * <dt>Unbinned_NRows</dt> <dd>Number of unbinned rows in field images.</dd>
@@ -61,7 +88,10 @@
  *       Changed at the start of each field.</dd>
  * <dt>Frame_Number</dt> <dd>The number of each frame took within a field acquisition session. 
  *       Reset at the start of each field.</dd>
+ * <dt>Bounds</dt> <dd>The area of the CCD considered auitable for obtaining guide stars.
+ *           Ensures guide stars are not too near the edge of the CCD. Of type struct Field_Bounds_Struct.</dd>
  * </dl>
+ * @see #Field_Bounds_Struct
  */
 struct Field_Struct
 {
@@ -81,13 +111,14 @@ struct Field_Struct
 	int Do_Object_Detect;
 	int Field_Id;
 	int Frame_Number;
+	struct Field_Bounds_Struct Bounds;
 };
 
 /* internal data */
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_field.c,v 1.7 2006-08-29 13:55:42 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_field.c,v 1.8 2006-11-14 18:10:29 cjm Exp $";
 /**
  * Instance of field data.
  * @see #Field_Struct
@@ -144,6 +175,39 @@ int Autoguider_Field_Initialise(void)
 		Autoguider_General_Error_Number = 515;
 		sprintf(Autoguider_General_Error_String,"Autoguider_Field_Initialise:"
 			"Getting object detect boolean failed.");
+		return FALSE;
+	}
+	/* get bounds of guide star on CCD */
+	retval = CCD_Config_Get_Integer("field.object_bounds.min.x",&(Field_Data.Bounds.Min.X));
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 532;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Field_Initialise:"
+			"Getting field object bounds (X Min) failed.");
+		return FALSE;
+	}
+	retval = CCD_Config_Get_Integer("field.object_bounds.min.y",&(Field_Data.Bounds.Min.Y));
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 533;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Field_Initialise:"
+			"Getting field object bounds (Y Min) failed.");
+		return FALSE;
+	}
+	retval = CCD_Config_Get_Integer("field.object_bounds.max.x",&(Field_Data.Bounds.Max.X));
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 534;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Field_Initialise:"
+			"Getting field object bounds (X Max) failed.");
+		return FALSE;
+	}
+	retval = CCD_Config_Get_Integer("field.object_bounds.max.y",&(Field_Data.Bounds.Max.Y));
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 535;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Field_Initialise:"
+			"Getting field object bounds (Y Max) failed.");
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 1
@@ -849,6 +913,23 @@ int Autoguider_Field_Get_Exposure_Length(void)
 	return Field_Data.Exposure_Length;
 }
 
+/**
+ * Determine whether the specified position on the CCD is inside the field object bounds; i.e.
+ * the centroid is far enough away from the edge to be determined a good centroid.
+ * See "field.object_bounds.min/max.x/y" in the config file, this test is needed as the TCS
+ * rejects centroids outside it's bounds (TCSINITGUI.DAT CONF->GUI, X/YMIN/MAX).
+ * @param ccd_x The X position on the CCD.
+ * @param ccd_y The Y position on the CCD.
+ * @return The routine returnd TRUE if the specified point is inside the bounds, and FALSE if it is outside the bounds.
+ * @see #Field_Data
+ * @see #Field_Bounds_Struct
+ */
+int Autoguider_Field_In_Object_Bounds(float ccd_x,float ccd_y)
+{
+	return ((((int)ccd_x) >= Field_Data.Bounds.Min.X)&&(((int)ccd_x) <= Field_Data.Bounds.Max.X)&&
+		(((int)ccd_y) >= Field_Data.Bounds.Min.Y)&&(((int)ccd_y) <= Field_Data.Bounds.Max.Y));
+}
+
 /* ----------------------------------------------------------------------------
 ** 		internal functions 
 ** ---------------------------------------------------------------------------- */
@@ -1061,7 +1142,8 @@ static int Field_Reduce(int buffer_index)
  *             <ul>
  *             <li>If the object has peak counts less than 40000:
  *                 <ul>
- *                 <li>If the object is more than 1 FWHM inside the CCD (it is not near the edge): 
+ *                 <li>If the object is more than 1 FWHM inside the CCD (it is not near the edge), and
+ *                     is inside the object bounds (Autoguider_Field_In_Object_Bounds): 
  *                     This is a good object to use.
  *                 </ul>
  *             <li>else the object is too bright. If it is the only detected object:
@@ -1094,6 +1176,7 @@ static int Field_Reduce(int buffer_index)
  *       of the last exposure we did. On exit this should be set to the index in the dark exposure list of the 
  *       next field operation to do.
  * @return The routine returns TRUE on success and FALSE on failure.
+ * @see #Autoguider_Field_In_Object_Bounds
  * @see #Field_Data
  * @see autoguider_dark.html#Autoguider_Dark_Get_Exposure_Length_Nearest
  * @see autoguider_general.html#Autoguider_General_Log
@@ -1213,6 +1296,7 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 			(*done) = TRUE;
 			return FALSE;
 		}
+		/* diddly object selection now more relaxed than this in Autoguider_Object_Guide_Object_Get? */
 		if(object.Is_Stellar)
 		{
 			if(object.Peak_Counts > 100)
@@ -1220,7 +1304,9 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 				if(object.Peak_Counts < 40000)
 				{
 					fwhm = (object.FWHM_X+object.FWHM_Y)/2.0f;
-					if((object.CCD_X_Position > fwhm)&&
+					if(Autoguider_Field_In_Object_Bounds(object.CCD_X_Position,
+									     object.CCD_Y_Position)&&
+					   (object.CCD_X_Position > fwhm)&&
 					   (object.CCD_X_Position < (Field_Data.Binned_NCols-fwhm))&&
 					   (object.CCD_Y_Position > fwhm)&&
 					   (object.CCD_Y_Position < (Field_Data.Binned_NRows-fwhm)))
@@ -1372,6 +1458,11 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.7  2006/08/29 13:55:42  cjm
+** Replaced AGS states with AGG states.
+** Commented out setting AG_STATE to idle at end of field - calling
+** routines must do this or guide calls must set new state.
+**
 ** Revision 1.6  2006/07/20 16:08:33  cjm
 ** Fixed missing ';'.
 **
