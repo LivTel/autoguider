@@ -1,0 +1,87 @@
+$Header: /home/cjm/cvs/autoguider/txt/autoguider_procedures.txt,v 1.1 2006-11-28 11:28:58 cjm Exp $
+$Id: autoguider_procedures.txt,v 1.1 2006-11-28 11:28:58 cjm Exp $
+
+Commands
+--------
+
+Commands are in:
+/icc/bin/autoguider/commandserver/test/i386-linux/
+but should be aliased in the cshrc.
+
+Scripts are in:
+/icc/bin/autoguider/scripts
+
+Guiding
+-------
+To do long guided observations:
+i) with the AG guiding normally
+
+Best done by commanding the autoguider from the TCS TUI i.e.:
+autoguide on brightest
+autoguide on rank <n>
+autoguide on pixel <x> <y>
+
+Only "brightest" has been extensively tested, but pixel <x> <y> might be useful for using the same guide star
+for consecutive guides etc...
+
+ii) with the AG observing, centroiding and logging, but not sending the guide packets to the TCS.
+
+This can be done by commanding the autoguider internally e.g.:
+send_command -h autoguider1 -p 6571 -c "autoguide on brightest"
+send_command -h autoguider1 -p 6571 -c "autoguide on pixel <x> <y>"
+
+This will still send the guide packets to the TCS (TCS TUI screen 2), but they should not be acted on
+(no corrections on TCS screen 1). If you want to be sure:
+
+send_command -h autoguider1 -p 6571 -c "guide packet off"
+should stop sending guide packets to the TCS, remember to issue:
+send_command -h autoguider1 -p 6571 -c "guide packet on"
+before using the autoguider normally.
+
+send_command -h autoguider1 -p 6571 -c "status guide packet"
+should give the current state (returns "0 true" or "0 false")
+
+Starting the autoguider can also be done at a lower level :- i.e. manually;
+- fielding
+- selecting a guide object or:
+  - selecting a guide window
+  - selecting a guide exposure length
+- switching the guide loop on/off
+
+Let me know if you need to go to that level.
+
+Saving the guide images
+-----------------------
+
+test_getfits_command -h autoguider1 -p 6571 -c "getfits field raw" -f test.fits
+save the last raw field
+test_getfits_command -h autoguider1 -p 6571 -c "getfits field reduced" -f test.fits
+save the last reduced field
+test_getfits_command -h autoguider1 -p 6571 -c "getfits guide raw" -f test.fits
+save the last raw guide window
+test_getfits_command -h autoguider1 -p 6571 -c "getfits guide reduced" -f test.fits
+save the last reduced guide window
+
+See the "autoguider_get_guide_frames" script, which allows you to save runs of guide frames and display them...
+
+Be aware of the cron scripts "autoguider_get_guide_frames_cron" and "autoguider_rm_guide_frames_cron", which try
+and save a guide frame once a minute whilst guiding, and delete them a week later. I don't think they work at the moment, it'd be nice to figure out why ;-), but if you fix them you may want to comment them out of the crontab whilst doing
+manual stuff...
+
+Logs
+----
+
+Are in the /icc/log directory.
+
+You might want to look at the:
+autoguider_get_guide_packets script, which extracts guide packets from a log file, and
+autoguider_guide_packets_to_csv script, which converts a useful subset of autoguider_get_guide_packets output to csv format.
+
+Also
+autoguider_get_object_list, extracts detected object lists from a log file, and
+autoguider_object_list_to_csv which converts the output of autoguider_get_object_list to csv format.
+
+ChangeLog
+---------
+
+$Log: not supported by cvs2svn $
