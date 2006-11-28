@@ -1,11 +1,11 @@
 /* andor_exposure.c
 ** Autoguider Andor CCD Library exposure routines
-** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_exposure.c,v 1.6 2006-09-07 14:58:34 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_exposure.c,v 1.7 2006-11-28 15:01:09 cjm Exp $
 */
 /**
  * Exposure routines for the Andor autoguider CCD library.
  * @author Chris Mottram
- * @version $Revision: 1.6 $
+ * @version $Revision: 1.7 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -33,7 +33,7 @@
 /**
  * Number of seconds to wait after an exposure is meant to have finished, before we abort with a timeout signal.
  */
-#define EXPOSURE_TIMEOUT_SECS     (30)
+#define EXPOSURE_TIMEOUT_SECS     (30.0)
 
 /* data types */
 /**
@@ -61,7 +61,7 @@ struct Exposure_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: andor_exposure.c,v 1.6 2006-09-07 14:58:34 cjm Exp $";
+static char rcsid[] = "$Id: andor_exposure.c,v 1.7 2006-11-28 15:01:09 cjm Exp $";
 /**
  * Data holding the current status of ccd_exposure.
  * @see #Exposure_Struct
@@ -413,6 +413,10 @@ int Andor_Exposure_Loop_Pause_Length_Set(int ms)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.6  2006/09/07 14:58:34  cjm
+** Added Andor_Exposure_Loop_Pause_Length_Set / Exposure_Data.Exposure_Loop_Pause_Length.
+** Trying to reduce CHB losses during an exposure.
+**
 ** Revision 1.5  2006/06/29 20:14:41  cjm
 ** Added some timeout code.
 **
