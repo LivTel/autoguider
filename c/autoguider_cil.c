@@ -1,11 +1,11 @@
 /* autoguider_cil.c
 ** Autoguider CIL server routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_cil.c,v 1.9 2006-08-29 13:55:42 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_cil.c,v 1.10 2006-12-19 17:50:20 cjm Exp $
 */
 /**
  * Autoguider CIL Server routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.9 $
+ * @version $Revision: 1.10 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -37,7 +37,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_cil.c,v 1.9 2006-08-29 13:55:42 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_cil.c,v 1.10 2006-12-19 17:50:20 cjm Exp $";
 /**
  * UDP CIL port to wait for TCS commands on.
  * @see ../cdocs/ngatcil_cil.html#NGATCIL_CIL_AGS_PORT_DEFAULT
@@ -1328,6 +1328,16 @@ static int CIL_Command_TCS_Process(struct NGATCil_Cil_Packet_Struct cil_packet,v
 			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,
 					"CIL_Command_TCS_Process:Command is start session.");
 #endif
+			/* write INIT to SDB. */
+			if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_INIT))
+				Autoguider_General_Error(); /* no need to fail */
+			if(!Autoguider_CIL_SDB_Packet_Send())
+				Autoguider_General_Error(); /* no need to fail */
+			/* write IDLE (ready) to SDB. */
+			if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
+				Autoguider_General_Error(); /* no need to fail */
+			if(!Autoguider_CIL_SDB_Packet_Send())
+				Autoguider_General_Error(); /* no need to fail */
 			/* send reply OK */
 			if(!CIL_Command_Start_Session_Reply_Send(ags_cil_packet,SYS_NOMINAL))
 				Autoguider_General_Error();
@@ -1620,6 +1630,13 @@ static int CIL_Command_End_Session_Reply_Send(struct NGATCil_Ags_Packet_Struct c
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.9  2006/08/29 13:55:42  cjm
+** Swapped socket FD used to send CIL UDP packets to server socket FD - as receiving end checks source port number.
+** Added Session start/end handling.
+** Added MCP command processing.
+** Added CHB processing.
+** Added SDB handling.
+**
 ** Revision 1.8  2006/07/20 15:11:48  cjm
 ** Added some CIL SDB submission software.
 **
