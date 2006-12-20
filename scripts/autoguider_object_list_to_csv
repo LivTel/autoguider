@@ -1,0 +1,21 @@
+#!/bin/csh
+# autoguider_object_list_to_csv <filename> [<filename> ...]
+# Convert files containing object list data to CSV files.
+# Fields: Time,Object index,CCD X,CCD Y,Buffer X,Buffer Y,Integrated Counts,Num Of Pixels,Peak Counts,Is Stellar,FWHM X,FWHM Y
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_object_list_to_csv,v 1.1 2006-12-20 20:32:20 cjm Exp $
+if( $#argv < 1 ) then
+    echo "autoguider_object_list_to_csv <filename> [<filename> ...]"
+    echo "Convert files containing object list data to CSV files."
+    echo "Fields: Time,Object index,CCD X,CCD Y,Buffer X,Buffer Y,Integrated Counts,Num Of Pixels,Peak Counts,Is Stellar,FWHM X,FWHM Y"
+    exit 1
+endif
+foreach object_list_file ( $argv )
+    set object_list_csv_file = "${object_list_file:r}.csv"
+    echo "Converting ${object_list_file} to ${object_list_csv_file}..."
+    echo "Time,Id,Frame index,Object index,CCD X,CCD Y,Buffer X,Buffer Y,Integrated Counts,Num Of Pixels,Peak Counts,Is Stellar,FWHM X,FWHM Y" > ${object_list_csv_file}
+    cat "${object_list_file}" | grep -v "filename" | grep -v "Reallocating" | grep -v "Id" | awk -F '[, ]*' ' { print $1","$4","$5","$6","$7","$8","$9","$10","$11","$12","$13","$14","$15","$16 }' >> ${object_list_csv_file}
+end
+
+#
+# $Log: not supported by cvs2svn $
+#
