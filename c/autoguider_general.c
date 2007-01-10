@@ -1,11 +1,11 @@
 /* autoguider_general.c
 ** Autoguider general routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_general.c,v 1.2 2006-06-12 19:22:13 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_general.c,v 1.3 2007-01-10 11:27:21 cjm Exp $
 */
 /**
  * General routines (logging, errror etc) for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.2 $
+ * @version $Revision: 1.3 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -95,7 +95,7 @@ struct General_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_general.c,v 1.2 2006-06-12 19:22:13 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_general.c,v 1.3 2007-01-10 11:27:21 cjm Exp $";
 /**
  * The instance of General_Struct that contains local data for this module.
  * This is statically initialised to the following:
@@ -673,7 +673,7 @@ static void General_Log_Handler_Get_Hourly_Filename(char *directory,char *basena
 		strcpy(filename,basename);
 		return;
 	}
-	doy = now_tm->tm_yday;
+	doy = now_tm->tm_yday+1; /* tm_yday starts at zero, RJS wants Jan 1st to be day 1 */
 	hod = now_tm->tm_hour;
 	if(directory != NULL)
 	{
@@ -708,6 +708,9 @@ static void General_Log_Handler_Filename_To_Fp(char *log_filename,FILE **log_fp)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.2  2006/06/12 19:22:13  cjm
+** Added NGATCil error handling.
+**
 ** Revision 1.1  2006/06/01 15:18:38  cjm
 ** Initial revision
 **
