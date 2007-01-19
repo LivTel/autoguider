@@ -1,11 +1,11 @@
 /* autoguider_command.c
 ** Autoguider command routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_command.c,v 1.9 2006-08-29 13:55:42 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_command.c,v 1.10 2007-01-19 14:26:34 cjm Exp $
 */
 /**
  * Command routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.9 $
+ * @version $Revision: 1.10 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -44,7 +44,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_command.c,v 1.9 2006-08-29 13:55:42 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_command.c,v 1.10 2007-01-19 14:26:34 cjm Exp $";
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -1230,7 +1230,7 @@ int Autoguider_Command_Expose(char *command_string,char **reply_string)
  * <li>guide [on|off]
  * <li>guide window <sx> <sy> <ex> <ey>
  * <li>guide exposure_length <ms> [lock]
- * <li>guide <dark|flat|object|packet> <on|off>
+ * <li>guide <dark|flat|object|packet|window_track> <on|off>
  * <li>guide <object> <index>
  * </ul>
  * @param command_string The command. This is not changed during this routine.
@@ -1250,6 +1250,7 @@ int Autoguider_Command_Expose(char *command_string,char **reply_string)
  * @see autoguider_guide.html#Autoguider_Guide_Set_Do_Flat_Field
  * @see autoguider_guide.html#Autoguider_Guide_Set_Do_Object_Detect
  * @see autoguider_guide.html#Autoguider_Guide_Set_Guide_Object
+ * @see autoguider_guide.html#Autoguider_Guide_Set_Guide_Window_Tracking
  */
 int Autoguider_Command_Guide(char *command_string,char **reply_string)
 {
@@ -1373,7 +1374,7 @@ int Autoguider_Command_Guide(char *command_string,char **reply_string)
 			return FALSE;
 	}
 	else if((strncmp(parameter_string1,"dark",4) == 0)||(strncmp(parameter_string1,"flat",4) == 0)||
-		(strncmp(parameter_string1,"packet",6) == 0))
+		(strncmp(parameter_string1,"packet",6) == 0)||(strncmp(parameter_string1,"window_track",12) == 0))
 	{
 		if(parameter_count != 2)
 		{
@@ -1441,6 +1442,20 @@ int Autoguider_Command_Guide(char *command_string,char **reply_string)
 				return TRUE;
 			}
 			if(!Autoguider_General_Add_String(reply_string,"0 Guide Packet Send set."))
+				return FALSE;
+		}
+		else if(strcmp(parameter_string1,"window_track") == 0)
+		{
+			retval = Autoguider_Guide_Set_Guide_Window_Tracking(doit);
+			if(retval == FALSE)
+			{
+				Autoguider_General_Error();
+				if(!Autoguider_General_Add_String(reply_string,
+								  "1 Setting guide window tracking failed."))
+					return FALSE;
+				return TRUE;
+			}
+			if(!Autoguider_General_Add_String(reply_string,"0 Guide Window Tracking set."))
 				return FALSE;
 		}
 	}
@@ -1676,6 +1691,10 @@ int Autoguider_Command_Log_Level(char *command_string,char **reply_string)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.9  2006/08/29 13:55:42  cjm
+** Added text agstate command.
+** Added some SDB calls to set AG_STATE to idle on error.
+**
 ** Revision 1.8  2006/06/29 17:04:34  cjm
 ** Moved silly is-use check from AG on command.
 ** More logging

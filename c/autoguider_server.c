@@ -1,11 +1,11 @@
 /* autoguider_server.c
 ** Autoguider server routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_server.c,v 1.9 2006-08-29 13:55:42 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_server.c,v 1.10 2007-01-19 14:26:34 cjm Exp $
 */
 /**
  * Command Server routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.9 $
+ * @version $Revision: 1.10 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -31,7 +31,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_server.c,v 1.9 2006-08-29 13:55:42 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_server.c,v 1.10 2007-01-19 14:26:34 cjm Exp $";
 /**
  * The server context to use for this server.
  * @see ../command_server/cdocs/command_server.html#Command_Server_Server_Context_T
@@ -419,7 +419,7 @@ static void Autoguider_Server_Connection_Callback(Command_Server_Handle_T connec
 			   "\tguide [on|off]\n"
 			   "\tguide window <sx> <sy> <ex> <ey>\n"
 			   "\tguide exposure_length <ms> [lock]\n"
-			   "\tguide <dark|flat|object|packet> <on|off>\n"
+			   "\tguide <dark|flat|object|packet|window_track> <on|off>\n"
 			   "\tguide <object> <index>\n"
 			   "\thelp\n"
 			   "\tlog_level <autoguider|ccd|command_server|object|ngatcil> <n>\n"
@@ -615,6 +615,9 @@ static int Send_Binary_Reply_Error(Command_Server_Handle_T connection_handle)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.9  2006/08/29 13:55:42  cjm
+** Added agstate command call.
+**
 ** Revision 1.8  2006/07/16 20:13:54  cjm
 ** Fixed help.
 **
