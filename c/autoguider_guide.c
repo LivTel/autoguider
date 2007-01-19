@@ -1,11 +1,11 @@
 /* autoguider_guide.c
 ** Autoguider guide routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.24 2006-11-28 19:07:53 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.25 2007-01-19 14:23:44 cjm Exp $
 */
 /**
  * Guide routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.24 $
+ * @version $Revision: 1.25 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -86,6 +86,23 @@ struct Guide_Exposure_Length_Scaling_Struct
 };
 
 /**
+ * Structure holding data pertaining to guide window tracking.
+ * <dl>
+ * <dt>Guide_Window_Tracking</dt> <dd>A boolean, if TRUE move the guide window if the centroid approaches an edge.</dd>
+ * <dt>Guide_Window_Edge_Pixel_Count</dt> <dd>In pixels, if guide centroid is closer than this number of pixels to 
+ *     the edge of the guide window, set the guide packet "near window edge" flag.</dd>
+ * <dt>Guide_Window_Track_Pixel_Count</dt> <dd>In pixels, if guide centroid is closer than this number of pixels to 
+ *     the edge of the guide window, recentre the guide window on the guide centroid.</dd>
+ * </dl>
+ */
+struct Guide_Window_Tracking_Struct
+{
+	int Guide_Window_Tracking;
+	int Guide_Window_Edge_Pixel_Count;
+	int Guide_Window_Track_Pixel_Count;
+};
+
+/**
  * Data type holding local data to autoguider_guide for one buffer. This consists of the following:
  * <dl>
  * <dt>Unbinned_NCols</dt> <dd>Number of unbinned columns in the <b>full frame</b>.</dd>
@@ -115,8 +132,11 @@ struct Guide_Exposure_Length_Scaling_Struct
  *                        in decimal seconds.</dd>
  * <dt>Exposure_Length_Scaling</dt> <dd>A structure of type Guide_Exposure_Length_Scaling_Struct
  *                                  holding data/config about scaling the exposure length of guide exposures.</dd>
+ * <dt>Guide_Window_Tracking</dt> <dd>Structure of type Guide_Window_Tracking_Struct 
+ *            holding guide window tracking data.</dd>
  * </dl>
  * @see #Guide_Exposure_Length_Scaling_Struct
+ * @see #Guide_Window_Tracking_Struct
  * @see ../ccd/cdocs/ccd_setup.html#CCD_Setup_Window_Struct 
  */
 struct Guide_Struct
@@ -142,13 +162,14 @@ struct Guide_Struct
 	int Frame_Number;
 	double Loop_Cadence;
 	struct Guide_Exposure_Length_Scaling_Struct Exposure_Length_Scaling;
+	struct Guide_Window_Tracking_Struct Guide_Window_Tracking;
 };
 
 /* internal data */
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_guide.c,v 1.24 2006-11-28 19:07:53 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_guide.c,v 1.25 2007-01-19 14:23:44 cjm Exp $";
 /**
  * Instance of guide data.
  * @see #Guide_Struct
@@ -165,12 +186,14 @@ static struct Guide_Struct Guide_Data =
 	0,0,
 	0.0,
 	{GUIDE_SCALE_TYPE_PEAK,FALSE,0,0,0,0,0,0,0,TRUE},
+	FALSE
 };
 
 /* internal routines */
 static void *Guide_Thread(void *user_arg);
 static int Guide_Reduce(void);
 static int Guide_Exposure_Length_Scale(void);
+static int Guide_Window_Track(void);
 static int Guide_Packet_Send(int terminating,float timecode_secs);
 static int Guide_Scaling_Config_Load(void);
 static int Guide_Dimension_Config_Load(void);
@@ -183,6 +206,7 @@ static int Guide_Dimension_Config_Load(void);
  * @return The routine returns TRUE on success and FALSE on failure.
  * @see #Guide_Data
  * @see #Guide_Dimension_Config_Load
+ * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Boolean
  */
 int Autoguider_Guide_Initialise(void)
 {
@@ -220,6 +244,34 @@ int Autoguider_Guide_Initialise(void)
 	** reloaded by Autoguider_Guide_On, but needed initially for guide window checking */
 	if(!Guide_Dimension_Config_Load())
 		return FALSE;
+	/* guide window tracking */
+	retval = CCD_Config_Get_Boolean("guide.window.tracking",
+					&(Guide_Data.Guide_Window_Tracking.Guide_Window_Tracking));
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 748;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Guide_Initialise:"
+			"Getting guide window tracking boolean failed.");
+		return FALSE;
+	}
+	retval = CCD_Config_Get_Integer("guide.window.edge.pixels",
+					&(Guide_Data.Guide_Window_Tracking.Guide_Window_Edge_Pixel_Count));
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 751;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Guide_Initialise:"
+			"Getting guide window edge pixels failed.");
+		return FALSE;
+	}
+	retval = CCD_Config_Get_Integer("guide.window.track.pixels",
+					&(Guide_Data.Guide_Window_Tracking.Guide_Window_Track_Pixel_Count));
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 752;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Guide_Initialise:"
+			"Getting guide window track pixels failed.");
+		return FALSE;
+	}
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Autoguider_Guide_Initialise:finished.");
 #endif
@@ -575,13 +627,41 @@ int Autoguider_Guide_Get_Do_Object_Detect(void)
 }
 
 /**
+ * Routine to set whether to move the guide window when the centroid approaches the window edge.
+ * @param doit If TRUE, move the guide window, otherwise don't.
+ * @return The routine returns TRUE on success, and FALSE on failure.
+ * @see #Guide_Data
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_IS_BOOLEAN
+ */
+int Autoguider_Guide_Set_Guide_Window_Tracking(int doit)
+{
+	if(!AUTOGUIDER_GENERAL_IS_BOOLEAN(doit))
+	{
+		Autoguider_General_Error_Number = 749;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Guide_Set_Guide_Window_Tracking:"
+			"Illegal argument %d.",doit);
+		return FALSE;
+	}
+	Guide_Data.Guide_Window_Tracking.Guide_Window_Tracking = doit;
+	return TRUE;
+}
+
+/**
+ * Routine to get whether to move the guide window when the centroid approaches the window edge.
+ * @return The routine returns TRUE if we can track the guide window when guiding, and FALSE if we don't.
+ * @see #Guide_Data
+ */
+int Autoguider_Guide_Get_Guide_Window_Tracking(void)
+{
+	return Guide_Data.Guide_Window_Tracking.Guide_Window_Tracking;
+}
+
+/**
  * Routine to set which field object to guide on.
  * <ul>
  * <li>If we are already fielding or guiding, returns error.
  * <li>Uses Autoguider_Object_List_Get_Object to get the specified object index.
- * <li>Gets "guide.ncols.default" and "guide.nrows.default" config.
- * <li>Computes start and end coordinates of guide window from config and selected object.
- * <li>Calls Autoguider_Guide_Window_Set to set the computed window.
+ * <li>Uses Autoguider_Guide_Window_Set_From_XY to set the guide window from the objects postion on the CCD.
  * <li>If the exposure length is NOT locked:
  *     <ul>
  *     <li>Use Autoguider_Field_Get_Exposure_Length to get the last field exposure length.
@@ -599,7 +679,7 @@ int Autoguider_Guide_Get_Do_Object_Detect(void)
  * @return The routine returns TRUE on success, and FALSE if a failure occurs.
  * @see #Guide_Data
  * @see #Autoguider_Guide_Is_Guiding
- * @see #Autoguider_Guide_Window_Set
+ * @see #Autoguider_Guide_Window_Set_From_XY
  * @see #Autoguider_Guide_Exposure_Length_Set
  * @see autoguider_dark.html#Autoguider_Dark_Get_Exposure_Length_Nearest
  * @see autoguider_field.html#Autoguider_Field_Is_Fielding
@@ -615,7 +695,7 @@ int Autoguider_Guide_Set_Guide_Object(int index)
 	struct Autoguider_Object_Struct object;
 	char keyword_string[32];
 	char *scale_type_string = NULL;
-	int default_window_width,default_window_height,sx,sy,ex,ey,target_counts;/*min_counts,max_counts,*/
+	int target_counts;/*min_counts,max_counts,*/
 	int field_exposure_length,guide_exposure_index,guide_exposure_length;
 	int min_exposure_length,max_exposure_length,retval;
 
@@ -639,39 +719,8 @@ int Autoguider_Guide_Set_Guide_Object(int index)
 	/* get the object at index */
 	if(!Autoguider_Object_List_Get_Object(index,&object))
 		return FALSE;
-	/* get default guide window size */
-	retval = CCD_Config_Get_Integer("guide.ncols.default",&default_window_width);
-	if(retval == FALSE)
-	{
-		Autoguider_General_Error_Number = 724;
-		sprintf(Autoguider_General_Error_String,"Autoguider_Guide_Set_Guide_Object:"
-			"Getting guide NCols failed.");
-		return FALSE;
-	}
-	retval = CCD_Config_Get_Integer("guide.nrows.default",&default_window_height);
-	if(retval == FALSE)
-	{
-		Autoguider_General_Error_Number = 725;
-		sprintf(Autoguider_General_Error_String,"Autoguider_Guide_Set_Guide_Object:"
-			"Getting guide NRows failed.");
-		return FALSE;
-	}
-	/* compute window position */
-	sx = object.CCD_X_Position-(default_window_width/2);
-	if(sx < 1)
-		sx = 1;
-	sy = object.CCD_Y_Position-(default_window_height/2);
-	if(sy < 1)
-		sy = 1; 
-	ex = sx + default_window_width;
-	/* guide windows are inclusive i.e. pixel 0..1023 - 1023 is the last pixel where npixels is 1024 */
-	if(ex >= Guide_Data.Binned_NCols)
-		ex = Guide_Data.Binned_NCols - 1;
-	ey = sy + default_window_height;
-	if(ey >= Guide_Data.Binned_NRows)
-		ey = Guide_Data.Binned_NRows - 1;
 	/* set guide window data */
-	if(!Autoguider_Guide_Window_Set(sx,sy,ex,ey))
+	if(!Autoguider_Guide_Window_Set_From_XY(object.CCD_X_Position,object.CCD_Y_Position))
 		return FALSE;
 	/* only change exposure length if it is not locked */
 	if(Guide_Data.Exposure_Length_Lock == FALSE)
@@ -785,6 +834,72 @@ int Autoguider_Guide_Set_Guide_Object(int index)
 }
 
 /**
+ * This routine sets the guide window from the specified x and y position on the CCD.
+ * <ul>
+ * <li>Gets "guide.ncols.default" and "guide.nrows.default" config.
+ * <li>Computes start and end coordinates of guide window from config and specified position.
+ * <li>Calls Autoguider_Guide_Window_Set to set the computed window.
+ * </ul>
+ * @param ccd_x_position The X position of the centre of the window, in pixels from the edge of the CCD.
+ * @param ccd_y_position The Y position of the centre of the window, in pixels from the edge of the CCD.
+ * @return The routine returns TRUE on success, and FALSE if a failure occurs.
+ * @see #Guide_Data
+ * @see #Autoguider_Guide_Window_Set
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#Autoguider_General_Log_Format
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_GUIDE
+ * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Integer
+ */
+int Autoguider_Guide_Window_Set_From_XY(int ccd_x_position,int ccd_y_position)
+{
+	int retval,default_window_width,default_window_height,sx,sy,ex,ey;
+
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
+				      "Autoguider_Guide_Window_Set_From_XY(%d,%d):starteded.",
+				      ccd_x_position,ccd_y_position);
+#endif
+	/* get default guide window size */
+	retval = CCD_Config_Get_Integer("guide.ncols.default",&default_window_width);
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 724;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Guide_Window_Set_From_XY:"
+			"Getting guide NCols failed.");
+		return FALSE;
+	}
+	retval = CCD_Config_Get_Integer("guide.nrows.default",&default_window_height);
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 725;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Guide_Window_Set_From_XY:"
+			"Getting guide NRows failed.");
+		return FALSE;
+	}
+	/* compute window position */
+	sx = ccd_x_position-(default_window_width/2);
+	if(sx < 1)
+		sx = 1;
+	sy = ccd_y_position-(default_window_height/2);
+	if(sy < 1)
+		sy = 1; 
+	ex = sx + default_window_width;
+	/* guide windows are inclusive i.e. pixel 0..1023 - 1023 is the last pixel where npixels is 1024 */
+	if(ex >= Guide_Data.Binned_NCols)
+		ex = Guide_Data.Binned_NCols - 1;
+	ey = sy + default_window_height;
+	if(ey >= Guide_Data.Binned_NRows)
+		ey = Guide_Data.Binned_NRows - 1;
+	/* set guide window data */
+	if(!Autoguider_Guide_Window_Set(sx,sy,ex,ey))
+		return FALSE;
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Autoguider_Guide_Window_Set_From_XY:finished.");
+#endif
+	return TRUE;
+}
+		
+/**
  * Routine to get the loop cadence. This is the time taken to complete the 
  * whole guide loop, in seconds.
  * @return The time taken to complete a guide loop, in seconds.
@@ -828,6 +943,8 @@ int Autoguider_Guide_Exposure_Length_Get(void)
  *     <li>Call Guide_Exposure_Length_Scale to change the exposure length, if necessary.
  *     <li>Get the time taken to complete the guide loop (Guide_Data.Loop_Cadence), for the guide packet/stats etc.
  *     <li>Call Guide_Packet_Send to send a guide packet back to the TCS, if required.
+ *     <li>Call Guide_Window_Track to check and change the guide window, if necessary. This must be done after
+ *         the guide packet has been sent for the Window guide packet flag to be set correctly.
  *     <li>Set Guide_Data.Last_Buffer_Index to the in use buffer index.
  *     <li>Set the in use buffer index to -1.
  *     </ul>
@@ -839,6 +956,7 @@ int Autoguider_Guide_Exposure_Length_Get(void)
  * @see #Guide_Reduce
  * @see #Guide_Exposure_Length_Scale
  * @see #Guide_Packet_Send
+ * @see #Guide_Window_Track
  * @see autoguider_buffer.html#Autoguider_Buffer_Get_Guide_Pixel_Count
  * @see autoguider_buffer.html#Autoguider_Buffer_Set_Guide_Dimension
  * @see autoguider_buffer.html#Autoguider_Buffer_Raw_Guide_Lock
@@ -875,7 +993,7 @@ static void *Guide_Thread(void *user_arg)
 	Guide_Data.Frame_Number = 0;
 	/* get loop start time for stats/guide packet */
 	clock_gettime(CLOCK_REALTIME,&loop_start_time);
-	/* setup dimensions once at start of loop */
+	/* setup dimensions at start of loop - can be changed if guide window tracking */
 #if AUTOGUIDER_DEBUG > 5
 	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:"
 	   "Calling CCD_Setup_Dimensions(ncols=%d,nrows=%d,binx=%d,biny=%d,window={xs=%d,ys=%d,xe=%d,ye=%d}).",
@@ -1149,6 +1267,30 @@ static void *Guide_Thread(void *user_arg)
 				Autoguider_General_Error(); /* no need to fail */
 			return NULL;
 		}
+		/* Do any necessary guide window tracking */
+		retval = Guide_Window_Track();
+		if(retval == FALSE)
+		{
+#if AUTOGUIDER_DEBUG > 1
+			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:"
+					       "Failed on Guide_Window_Track.");
+#endif
+			/* reset guiding flag */
+			Guide_Data.Is_Guiding = FALSE;
+			/* reset in use buffer index */
+			Guide_Data.In_Use_Buffer_Index = -1;
+			Autoguider_General_Error();
+			/* send tcs guide packet termination packet. */
+			Guide_Packet_Send(TRUE,Guide_Data.Loop_Cadence*2.0f);
+			/* close tcs guide packet socket */
+			Autoguider_CIL_Guide_Packet_Close();
+			/* update SDB */
+			if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
+				Autoguider_General_Error(); /* no need to fail */
+			if(!Autoguider_CIL_SDB_Packet_Send())
+				Autoguider_General_Error(); /* no need to fail */
+			return NULL;
+		}
 		/* reset buffer indexs */
 		Guide_Data.Last_Buffer_Index = Guide_Data.In_Use_Buffer_Index;
 		Guide_Data.In_Use_Buffer_Index = -1;
@@ -1362,7 +1504,6 @@ static int Guide_Reduce(void)
  *         <li>Otherwise, reset "Guide_Data.Exposure_Length_Scaling.Scale_Index" to zero.
  *         </ul>
  *     </ul>
- * <li>
  * </ul>
  * @return The routine returns TRUE on success and FALSE on failure.
  * @see #Guide_Data
@@ -1622,6 +1763,167 @@ static int Guide_Exposure_Length_Scale(void)
 }
 
 /**
+ * Determine whether to do guide window tracking, and if needed, move the guide window to
+ * surround the centroid position.
+ * <ul>
+ * <li>If Do_Object_Detect is FALSE we return TRUE - no window tracking can be done if no object detection is running.
+ * <li>If Guide_Window_Tracking is FALSE we return TRUE - window tracking is not enabled.
+ * <li>We retrieve the number of objects with Autoguider_Object_List_Get_Count.
+ * <li>If the number of objects is less than or greater than 1 we return TRUE - we need 1 object only.
+ * <li>We use Autoguider_Object_List_Get_Object to retrieve the object data.
+ * <li>If the object's position is close to the edge of the Window:
+ *     <ul>
+ *     <li>We call Autoguider_Guide_Window_Set_From_XY to reset the window centre to the objects CCD position.
+ *     <li>We call CCD_Setup_Dimensions to tell the camera electronics the new window position.
+ *     <li>We call Autoguider_Buffer_Set_Guide_Dimension to set the guide buffer dimensions - this may have 
+ *         been changed by the new window centre being near to the physical edge of the CCD.
+ *     </ul>
+ * </ul>
+ * @return The routine returns TRUE on success and FALSE on failure.
+ * @see #Guide_Data
+ * @see #Autoguider_Guide_Window_Set_From_XY
+ * @see autoguider_buffer.html#Autoguider_Buffer_Set_Guide_Dimension
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#Autoguider_General_Log_Format
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_GUIDE
+ * @see autoguider_object.html#Autoguider_Object_List_Get_Count
+ * @see autoguider_object.html#Autoguider_Object_List_Get_Object
+ * @see ../ccd/cdocs/ccd_setup.html#CCD_Setup_Dimensions
+ */
+static int Guide_Window_Track(void)
+{
+	struct Autoguider_Object_Struct object;
+	int retval,object_count;
+
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Window_Track:started.");
+#endif
+	/* if we are not object detecting, we have no objects to decide whether the object is near the edge */
+	if(Guide_Data.Do_Object_Detect == FALSE)
+	{
+#if AUTOGUIDER_DEBUG > 9
+		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
+				       "Guide_Window_Track:Guide object detection is OFF.");
+#endif
+		return TRUE;/* don't stop guiding */
+	}
+	/* if we are not guide window tracking, stop */
+	if(Guide_Data.Guide_Window_Tracking.Guide_Window_Tracking == FALSE)
+	{
+#if AUTOGUIDER_DEBUG > 9
+		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
+				       "Guide_Window_Track:Guide window tracking is OFF.");
+#endif
+		return TRUE;/* don't stop guiding */
+	}
+	/* how many objects found in guide frame */
+	if(!Autoguider_Object_List_Get_Count(&object_count))
+	{
+		Autoguider_General_Error();
+#if AUTOGUIDER_DEBUG > 9
+		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
+				       "Guide_Window_Track:Failed to get object count.");
+#endif
+		return TRUE;/* don't stop guiding */
+	}
+	/* check number of detected objects */
+	if(object_count > 1)
+	{
+		/* too many objects - what do we do here! */
+#if AUTOGUIDER_DEBUG > 9
+		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
+				       "Guide_Window_Track:More than one guide object (%d).",object_count);
+#endif
+		return TRUE;/* don't stop guiding */
+	}
+	else if(object_count < 1)
+	{
+		/* no objects - what do we do here! */
+#if AUTOGUIDER_DEBUG > 9
+		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
+				       "Guide_Window_Track:No guide object (%d).",object_count);
+#endif
+		return TRUE;/* don't stop guiding */
+	}
+	else /* object_count == 1 */
+	{
+		/* get first object */
+		if(!Autoguider_Object_List_Get_Object(0,&object))
+		{
+			Autoguider_General_Error();
+#if AUTOGUIDER_DEBUG > 9
+			Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
+					       "Guide_Window_Track:Failed to get object 0.");
+#endif
+			return TRUE; /* don't stop guiding */
+		}
+		/* check nearness to window edge */
+		/*
+		**fwhm = ((object.FWHM_X + object.FWHM_Y)/2.0f);
+		**if(((object.CCD_X_Position-Guide_Data.Window.X_Start) < (fwhm*2.0f))||
+		**   ((Guide_Data.Window.X_End-object.CCD_X_Position) < (fwhm*2.0f))||
+		**   ((object.CCD_Y_Position-Guide_Data.Window.Y_Start) < (fwhm*2.0f))||
+		**   ((Guide_Data.Window.Y_End-object.CCD_Y_Position) < (fwhm*2.0f)))
+		*/
+		if(((object.CCD_X_Position-Guide_Data.Window.X_Start) < 
+		    Guide_Data.Guide_Window_Tracking.Guide_Window_Track_Pixel_Count)||
+		   ((Guide_Data.Window.X_End-object.CCD_X_Position) < 
+		    Guide_Data.Guide_Window_Tracking.Guide_Window_Track_Pixel_Count)||
+		   ((object.CCD_Y_Position-Guide_Data.Window.Y_Start) < 
+		    Guide_Data.Guide_Window_Tracking.Guide_Window_Track_Pixel_Count)||
+		   ((Guide_Data.Window.Y_End-object.CCD_Y_Position) < 
+		    Guide_Data.Guide_Window_Tracking.Guide_Window_Track_Pixel_Count))
+		{
+			/* object too near guide window edge - re-position it */
+			/* set guide window data */
+			if(!Autoguider_Guide_Window_Set_From_XY(object.CCD_X_Position,object.CCD_Y_Position))
+				return FALSE;
+			/* setup new CCD window dimensions */
+#if AUTOGUIDER_DEBUG > 5
+			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Window_Track:"
+				      "Calling CCD_Setup_Dimensions(ncols=%d,nrows=%d,binx=%d,biny=%d,"
+						      "window={xs=%d,ys=%d,xe=%d,ye=%d}).",
+						      Guide_Data.Unbinned_NCols,Guide_Data.Unbinned_NRows,
+						      Guide_Data.Bin_X,Guide_Data.Bin_Y,
+						      Guide_Data.Window.X_Start,Guide_Data.Window.Y_Start,
+						      Guide_Data.Window.X_End,Guide_Data.Window.Y_End);
+#endif
+			retval = CCD_Setup_Dimensions(Guide_Data.Unbinned_NCols,Guide_Data.Unbinned_NRows,
+						      Guide_Data.Bin_X,Guide_Data.Bin_Y,TRUE,Guide_Data.Window);
+			if(retval == FALSE)
+			{
+				Autoguider_General_Error_Number = 750;
+				sprintf(Autoguider_General_Error_String,
+					"Guide_Window_Track:CCD_Setup_Dimensions failed.");
+				return FALSE;
+			}
+			/* ensure the buffer is the right size */
+#if AUTOGUIDER_DEBUG > 5
+			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Window_Track:"
+				  "Calling Autoguider_Buffer_Set_Guide_Dimension(ncols=%d(%d-%d),nrows=%d(%d-%d),"
+						      "binx=%d,biny=%d).",
+						      Guide_Data.Window.X_End-Guide_Data.Window.X_Start,
+						      Guide_Data.Window.X_End,Guide_Data.Window.X_Start,
+						      Guide_Data.Window.Y_End-Guide_Data.Window.Y_Start,
+						      Guide_Data.Window.Y_End,Guide_Data.Window.Y_Start,
+						      Guide_Data.Bin_X,Guide_Data.Bin_Y);
+#endif
+			retval = Autoguider_Buffer_Set_Guide_Dimension((Guide_Data.Window.X_End-
+									Guide_Data.Window.X_Start)+1,
+			     (Guide_Data.Window.Y_End-Guide_Data.Window.Y_Start)+1,Guide_Data.Bin_X,Guide_Data.Bin_Y);
+			if(retval == FALSE)
+			{
+				return FALSE;
+			}
+		}/* end if guide star too near window edge.*/
+	}/* end if one guide object detected */
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Window_Track:finished.");
+#endif
+	return TRUE;
+}
+
+/**
  * Routine to send a guide packet to the TCS. Autoguider_CIL_Guide_Packet_Send is called to send the guide packet
  * (assumes Autoguider_CIL_Guide_Packet_Open has been called). The data in autoguider_object is used to get
  * the centroid.
@@ -1774,13 +2076,22 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
 					      "Guide_Packet_Send:Object has status char %c.",status_char);
 #endif
-
+		/* calculate fwhm */
+		fwhm = ((object.FWHM_X + object.FWHM_Y)/2.0f);
 		/* check nearness to window edge */
-		fwhm = ((object.FWHM_X + object.FWHM_Y)/2.0f);/* in pixels */
-		if(((object.CCD_X_Position-Guide_Data.Window.X_Start) < (fwhm*2.0f))||
-		   ((Guide_Data.Window.X_End-object.CCD_X_Position) < (fwhm*2.0f))||
-		   ((object.CCD_Y_Position-Guide_Data.Window.Y_Start) < (fwhm*2.0f))||
-		   ((Guide_Data.Window.Y_End-object.CCD_Y_Position) < (fwhm*2.0f)))
+		/* if(((object.CCD_X_Position-Guide_Data.Window.X_Start) < (fwhm*2.0f))||
+		**   ((Guide_Data.Window.X_End-object.CCD_X_Position) < (fwhm*2.0f))||
+		**   ((object.CCD_Y_Position-Guide_Data.Window.Y_Start) < (fwhm*2.0f))||
+		**   ((Guide_Data.Window.Y_End-object.CCD_Y_Position) < (fwhm*2.0f)))
+		*/
+		if(((object.CCD_X_Position-Guide_Data.Window.X_Start) < 
+		    Guide_Data.Guide_Window_Tracking.Guide_Window_Edge_Pixel_Count)||
+		   ((Guide_Data.Window.X_End-object.CCD_X_Position) < 
+		    Guide_Data.Guide_Window_Tracking.Guide_Window_Edge_Pixel_Count)||
+		   ((object.CCD_Y_Position-Guide_Data.Window.Y_Start) < 
+		    Guide_Data.Guide_Window_Tracking.Guide_Window_Edge_Pixel_Count)||
+		   ((Guide_Data.Window.Y_End-object.CCD_Y_Position) < 
+		    Guide_Data.Guide_Window_Tracking.Guide_Window_Edge_Pixel_Count))
 		{
 			status_char = NGATCIL_TCS_GUIDE_PACKET_STATUS_WINDOW;
 #if AUTOGUIDER_DEBUG > 5
@@ -2004,6 +2315,9 @@ static int Guide_Dimension_Config_Load(void)
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.24  2006/11/28 19:07:53  cjm
+** Changed log message.
+**
 ** Revision 1.23  2006/11/06 14:49:02  cjm
 ** Trying to fix Guide_Exposure_Length_Scale comments.
 **
