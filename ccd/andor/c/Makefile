@@ -1,4 +1,4 @@
-# $Header: /home/cjm/cvs/autoguider/ccd/andor/c/Makefile,v 1.3 2006-05-26 10:24:50 cjm Exp $
+# $Header: /home/cjm/cvs/autoguider/ccd/andor/c/Makefile,v 1.4 2007-01-19 14:27:44 cjm Exp $
 
 include ../../../../Makefile.common
 include ../../../Makefile.common
@@ -19,8 +19,12 @@ CCD_LDFLAGS 		= -lautoguider_ccd_general
 # andor library
 # need to link to standard c++ library as autoguider_ccd_andor links against andor-gcc3
 # which links against stdc++
-ANDOR_CFLAGS 		= -I$(AUTOGUIDER_SRC_HOME)/andor/andor/examples/common/
-ANDOR_LDFLAGS 		= -L$(AUTOGUIDER_SRC_HOME)/andor/andor/examples/common/ -landor-gcc3 -lstdc++ -lpthread -ldl
+# Old andor 2.12 links
+#ANDOR_CFLAGS 		= -I$(AUTOGUIDER_SRC_HOME)/andor/andor/examples/common/
+#ANDOR_LDFLAGS 		= -L$(AUTOGUIDER_SRC_HOME)/andor/andor/examples/common/ -landor-gcc3 -lstdc++ -lpthread -ldl
+# New Andor 2.15
+ANDOR_CFLAGS 		= -I$(AUTOGUIDER_SRC_HOME)/andor/andor/include/
+ANDOR_LDFLAGS 		= -L$(AUTOGUIDER_SRC_HOME)/andor/andor/lib/ -landor -lstdc++ -lpthread -ldl
 
 CFLAGS 			= -g -I$(INCDIR) $(DEBUG_CFLAGS) $(ANDOR_CFLAGS) $(CCD_CFLAGS)
 DOCFLAGS 		= -static
@@ -105,7 +109,7 @@ checkout:
 /home/dev/bin/autoguider/ccd/andor/c/i386-linux/andor_general.o: /usr/include/bits/posix_opt.h
 /home/dev/bin/autoguider/ccd/andor/c/i386-linux/andor_general.o: /usr/include/bits/confname.h
 /home/dev/bin/autoguider/ccd/andor/c/i386-linux/andor_general.o: /usr/include/getopt.h
-/home/dev/bin/autoguider/ccd/andor/c/i386-linux/andor_general.o: /home/dev/src/autoguider/andor/andor/examples/common/atmcdLXd.h
+/home/dev/bin/autoguider/ccd/andor/c/i386-linux/andor_general.o: /home/dev/src/autoguider/andor/andor/include/atmcdLXd.h
 /home/dev/bin/autoguider/ccd/andor/c/i386-linux/andor_general.o: /home/dev/src/autoguider/ccd/include/ccd_general.h
 /home/dev/bin/autoguider/ccd/andor/c/i386-linux/andor_general.o: /home/dev/src/autoguider/ccd/andor/include/andor_general.h
 /home/dev/bin/autoguider/ccd/andor/c/i386-linux/andor_general.o: /home/dev/src/autoguider/ccd/include/ccd_config.h
@@ -136,7 +140,7 @@ checkout:
 /home/dev/bin/autoguider/ccd/andor/c/i386-linux/andor_setup.o: /usr/include/bits/posix_opt.h
 /home/dev/bin/autoguider/ccd/andor/c/i386-linux/andor_setup.o: /usr/include/bits/confname.h
 /home/dev/bin/autoguider/ccd/andor/c/i386-linux/andor_setup.o: /usr/include/getopt.h
-/home/dev/bin/autoguider/ccd/andor/c/i386-linux/andor_setup.o: /home/dev/src/autoguider/andor/andor/examples/common/atmcdLXd.h
+/home/dev/bin/autoguider/ccd/andor/c/i386-linux/andor_setup.o: /home/dev/src/autoguider/andor/andor/include/atmcdLXd.h
 /home/dev/bin/autoguider/ccd/andor/c/i386-linux/andor_setup.o: /home/dev/src/autoguider/ccd/include/ccd_general.h
 /home/dev/bin/autoguider/ccd/andor/c/i386-linux/andor_setup.o: /home/dev/src/autoguider/ccd/andor/include/andor_setup.h
 /home/dev/bin/autoguider/ccd/andor/c/i386-linux/andor_setup.o: /home/dev/src/autoguider/ccd/include/ccd_setup.h
@@ -169,7 +173,7 @@ checkout:
 /home/dev/bin/autoguider/ccd/andor/c/i386-linux/andor_exposure.o: /usr/include/bits/posix_opt.h
 /home/dev/bin/autoguider/ccd/andor/c/i386-linux/andor_exposure.o: /usr/include/bits/confname.h
 /home/dev/bin/autoguider/ccd/andor/c/i386-linux/andor_exposure.o: /usr/include/getopt.h
-/home/dev/bin/autoguider/ccd/andor/c/i386-linux/andor_exposure.o: /home/dev/src/autoguider/andor/andor/examples/common/atmcdLXd.h
+/home/dev/bin/autoguider/ccd/andor/c/i386-linux/andor_exposure.o: /home/dev/src/autoguider/andor/andor/include/atmcdLXd.h
 /home/dev/bin/autoguider/ccd/andor/c/i386-linux/andor_exposure.o: /home/dev/src/autoguider/ccd/include/ccd_exposure.h
 /home/dev/bin/autoguider/ccd/andor/c/i386-linux/andor_exposure.o: /home/dev/src/autoguider/ccd/include/ccd_general.h
 /home/dev/bin/autoguider/ccd/andor/c/i386-linux/andor_exposure.o: /home/dev/src/autoguider/ccd/andor/include/andor_setup.h
@@ -198,7 +202,7 @@ checkout:
 /home/dev/bin/autoguider/ccd/andor/c/i386-linux/andor_temperature.o: /usr/include/bits/stdio_lim.h
 /home/dev/bin/autoguider/ccd/andor/c/i386-linux/andor_temperature.o: /usr/include/bits/sys_errlist.h
 /home/dev/bin/autoguider/ccd/andor/c/i386-linux/andor_temperature.o: /usr/include/string.h
-/home/dev/bin/autoguider/ccd/andor/c/i386-linux/andor_temperature.o: /home/dev/src/autoguider/andor/andor/examples/common/atmcdLXd.h
+/home/dev/bin/autoguider/ccd/andor/c/i386-linux/andor_temperature.o: /home/dev/src/autoguider/andor/andor/include/atmcdLXd.h
 /home/dev/bin/autoguider/ccd/andor/c/i386-linux/andor_temperature.o: /home/dev/src/autoguider/ccd/include/ccd_general.h
 /home/dev/bin/autoguider/ccd/andor/c/i386-linux/andor_temperature.o: /home/dev/src/autoguider/ccd/include/ccd_temperature.h
 /home/dev/bin/autoguider/ccd/andor/c/i386-linux/andor_temperature.o: /home/dev/src/autoguider/ccd/andor/include/andor_general.h
