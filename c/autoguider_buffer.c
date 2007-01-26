@@ -1,11 +1,11 @@
 /* autoguider_buffer.c
 ** Autoguider buffer routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_buffer.c,v 1.1 2006-06-01 15:18:38 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_buffer.c,v 1.2 2007-01-26 15:29:42 cjm Exp $
 */
 /**
  * Buffer routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.1 $
+ * @version $Revision: 1.2 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -47,13 +47,17 @@
  * <dt>Binned_NCols</dt> <dd>Number of binned columns in field images.</dd>
  * <dt>Binned_NRows</dt> <dd>Number of binned rows in field images.</dd>
  * <dt>Raw_Buffer_List</dt> <dd>Array of AUTOGUIDER_BUFFER_COUNT pointer to allocated arrays of unsigned shorts,
- *     the actual raw field image buffers.
+ *     the actual raw field image buffers.</dd>
  * <dt>Raw_Mutex_List</dt> <dd>Array of AUTOGUIDER_BUFFER_COUNT mutexs to protect the raw buffers 
- *     from multiple access.
+ *     from multiple access.</dd>
  * <dt>Reduced_Buffer_List</dt> <dd>Array of AUTOGUIDER_BUFFER_COUNT pointer to allocated arrays of unsigned shorts,
- *     the actual reduced field image buffers.
+ *     the actual reduced field image buffers.</dd>
  * <dt>Reduced_Mutex_List</dt> <dd>Array of AUTOGUIDER_BUFFER_COUNT mutexs to protect the reduced buffers 
- *     from multiple access.
+ *     from multiple access.</dd>
+ * <dt>Exposure_Start_Time_List</dt> <dd>Array of AUTOGUIDER_BUFFER_COUNT timespecs to hold the time the exposure
+ *     started that generated the data in the buffer.</dd>
+ * <dt>Exposure_Start_Time_List</dt> <dd>Array of AUTOGUIDER_BUFFER_COUNT timespecs to hold the exposure length
+ *     (in milliseconds) that generated the data in the buffer.</dd>
  * </dl>
  * @see #AUTOGUIDER_BUFFER_COUNT
  */
@@ -69,7 +73,8 @@ struct Buffer_One_Struct
 	pthread_mutex_t Raw_Mutex_List[AUTOGUIDER_BUFFER_COUNT];
 	float *Reduced_Buffer_List[AUTOGUIDER_BUFFER_COUNT];
 	pthread_mutex_t Reduced_Mutex_List[AUTOGUIDER_BUFFER_COUNT];
-	/* diddly timestamps? */
+	struct timespec Exposure_Start_Time_List[AUTOGUIDER_BUFFER_COUNT];
+	int Exposure_Length_List[AUTOGUIDER_BUFFER_COUNT];
 };
 
 /**
@@ -91,7 +96,7 @@ struct Buffer_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_buffer.c,v 1.1 2006-06-01 15:18:38 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_buffer.c,v 1.2 2007-01-26 15:29:42 cjm Exp $";
 /**
  * Instance of buffer data.
  * @see #Buffer_Struct
@@ -99,18 +104,20 @@ static char rcsid[] = "$Id: autoguider_buffer.c,v 1.1 2006-06-01 15:18:38 cjm Ex
 static struct Buffer_Struct Buffer_Data = 
 {
 	{
-		0,0,1,1,0,0,
-		{NULL,NULL},
-		{PTHREAD_MUTEX_INITIALIZER,PTHREAD_MUTEX_INITIALIZER},
-		{NULL,NULL},
-		{PTHREAD_MUTEX_INITIALIZER,PTHREAD_MUTEX_INITIALIZER}
+		0,0,1,1,0,0, /* dimensions */
+		{NULL,NULL}, /* Raw_Buffer_List */
+		{PTHREAD_MUTEX_INITIALIZER,PTHREAD_MUTEX_INITIALIZER}, /* Raw_Mutex_List */
+		{NULL,NULL}, /* Reduced_Buffer_List */
+		{PTHREAD_MUTEX_INITIALIZER,PTHREAD_MUTEX_INITIALIZER}, /* Reduced_Mutex_List */
+		{{0,0},{0,0}},{0,0} /* Exposure_Start_Time_List/Exposure_Length_List */
 	},
 	{
-		0,0,1,1,0,0,
-		{NULL,NULL},
-		{PTHREAD_MUTEX_INITIALIZER,PTHREAD_MUTEX_INITIALIZER},
-		{NULL,NULL},
-		{PTHREAD_MUTEX_INITIALIZER,PTHREAD_MUTEX_INITIALIZER}
+		0,0,1,1,0,0, /* dimensions */
+		{NULL,NULL}, /* Raw_Buffer_List */
+		{PTHREAD_MUTEX_INITIALIZER,PTHREAD_MUTEX_INITIALIZER}, /* Raw_Mutex_List */
+		{NULL,NULL}, /* Reduced_Buffer_List */
+		{PTHREAD_MUTEX_INITIALIZER,PTHREAD_MUTEX_INITIALIZER}, /* Reduced_Mutex_List */
+		{{0,0},{0,0}},{0,0}/* Exposure_Start_Time_List/Exposure_Length_List */
 	}
 };
 
@@ -759,6 +766,298 @@ int Autoguider_Buffer_Raw_To_Reduced_Guide(int index)
 }
 
 /**
+ * Routine to set the exposure start time for the specified field buffer.
+ * @param index Which buffer (0..AUTOGUIDER_BUFFER_COUNT).
+ * @param start_time The start time, of type struct timespec.
+ * @return The routine returns TRUE on success and FALSE on failure.
+ * @see #Buffer_Data
+ * @see #AUTOGUIDER_BUFFER_COUNT
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_BUFFER
+ * @see autoguider_general.html#Autoguider_General_Error_Number
+ * @see autoguider_general.html#Autoguider_General_Error_String
+ */
+int Autoguider_Buffer_Field_Exposure_Start_Time_Set(int index,struct timespec start_time)
+{
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
+			       "Autoguider_Buffer_Field_Exposure_Start_Time_Set:started.");
+#endif
+	if((index < 0)||(index >= AUTOGUIDER_BUFFER_COUNT))
+	{
+		Autoguider_General_Error_Number = 422;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Buffer_Field_Exposure_Start_Time_Set:"
+			"Index %d out of range (%d,%d).",index,0,AUTOGUIDER_BUFFER_COUNT);
+		return FALSE;
+	}
+	Buffer_Data.Field.Exposure_Start_Time_List[index] = start_time;
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
+			       "Autoguider_Buffer_Field_Exposure_Start_Time_Set:finished.");
+#endif
+	return TRUE;
+}
+
+/**
+ * Routine to get the exposure start time for the specified field buffer.
+ * @param index Which buffer (0..AUTOGUIDER_BUFFER_COUNT).
+ * @param start_time The address of a struct timespec to store the start time.
+ * @return The routine returns TRUE on success and FALSE on failure.
+ * @see #Buffer_Data
+ * @see #AUTOGUIDER_BUFFER_COUNT
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_BUFFER
+ * @see autoguider_general.html#Autoguider_General_Error_Number
+ * @see autoguider_general.html#Autoguider_General_Error_String
+ */
+int Autoguider_Buffer_Field_Exposure_Start_Time_Get(int index,struct timespec *start_time)
+{
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
+			       "Autoguider_Buffer_Field_Exposure_Start_Time_Get:started.");
+#endif
+	if((index < 0)||(index >= AUTOGUIDER_BUFFER_COUNT))
+	{
+		Autoguider_General_Error_Number = 423;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Buffer_Field_Exposure_Start_Time_Get:"
+			"Index %d out of range (%d,%d).",index,0,AUTOGUIDER_BUFFER_COUNT);
+		return FALSE;
+	}
+	if(start_time == NULL)
+	{
+		Autoguider_General_Error_Number = 424;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Buffer_Field_Exposure_Start_Time_Get:"
+			"start_time was NULL.");
+		return FALSE;
+	}
+	(*start_time) = Buffer_Data.Field.Exposure_Start_Time_List[index];
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
+			       "Autoguider_Buffer_Field_Exposure_Start_Time_Get:finished.");
+#endif
+	return TRUE;
+}
+
+/**
+ * Routine to set the exposure length for the specified field buffer.
+ * @param index Which buffer (0..AUTOGUIDER_BUFFER_COUNT).
+ * @param exposure_length_ms The exposure length, in milliseconds.
+ * @return The routine returns TRUE on success and FALSE on failure.
+ * @see #Buffer_Data
+ * @see #AUTOGUIDER_BUFFER_COUNT
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_BUFFER
+ * @see autoguider_general.html#Autoguider_General_Error_Number
+ * @see autoguider_general.html#Autoguider_General_Error_String
+ */
+int Autoguider_Buffer_Field_Exposure_Length_Set(int index,int exposure_length_ms)
+{
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
+			       "Autoguider_Buffer_Field_Exposure_Length_Set:started.");
+#endif
+	if((index < 0)||(index >= AUTOGUIDER_BUFFER_COUNT))
+	{
+		Autoguider_General_Error_Number = 425;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Buffer_Field_Exposure_Length_Set:"
+			"Index %d out of range (%d,%d).",index,0,AUTOGUIDER_BUFFER_COUNT);
+		return FALSE;
+	}
+	Buffer_Data.Field.Exposure_Length_List[index] = exposure_length_ms;
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
+			       "Autoguider_Buffer_Field_Exposure_Length_Set:finished.");
+#endif
+	return TRUE;
+}
+
+/**
+ * Routine to get the exposure length for the specified field buffer.
+ * @param index Which buffer (0..AUTOGUIDER_BUFFER_COUNT).
+ * @param exposure_length_ms The address of an integer to store the exposure length, in milliseconds.
+ * @return The routine returns TRUE on success and FALSE on failure.
+ * @see #Buffer_Data
+ * @see #AUTOGUIDER_BUFFER_COUNT
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_BUFFER
+ * @see autoguider_general.html#Autoguider_General_Error_Number
+ * @see autoguider_general.html#Autoguider_General_Error_String
+ */
+int Autoguider_Buffer_Field_Exposure_Length_Get(int index,int *exposure_length_ms)
+{
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
+			       "Autoguider_Buffer_Field_Exposure_Length_Get:started.");
+#endif
+	if((index < 0)||(index >= AUTOGUIDER_BUFFER_COUNT))
+	{
+		Autoguider_General_Error_Number = 426;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Buffer_Field_Exposure_Length_Get:"
+			"Index %d out of range (%d,%d).",index,0,AUTOGUIDER_BUFFER_COUNT);
+		return FALSE;
+	}
+	if(exposure_length_ms == NULL)
+	{
+		Autoguider_General_Error_Number = 427;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Buffer_Field_Exposure_Length_Get:"
+			"exposure_length_ms was NULL.");
+		return FALSE;
+	}
+	(*exposure_length_ms) = Buffer_Data.Field.Exposure_Length_List[index];
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
+			       "Autoguider_Buffer_Field_Exposure_Length_Get:finished.");
+#endif
+	return TRUE;
+}
+
+/**
+ * Routine to set the exposure start time for the specified guide buffer.
+ * @param index Which buffer (0..AUTOGUIDER_BUFFER_COUNT).
+ * @param start_time The start time, of type struct timespec.
+ * @return The routine returns TRUE on success and FALSE on failure.
+ * @see #Buffer_Data
+ * @see #AUTOGUIDER_BUFFER_COUNT
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_BUFFER
+ * @see autoguider_general.html#Autoguider_General_Error_Number
+ * @see autoguider_general.html#Autoguider_General_Error_String
+ */
+int Autoguider_Buffer_Guide_Exposure_Start_Time_Set(int index,struct timespec start_time)
+{
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
+			       "Autoguider_Buffer_Guide_Exposure_Start_Time_Set:started.");
+#endif
+	if((index < 0)||(index >= AUTOGUIDER_BUFFER_COUNT))
+	{
+		Autoguider_General_Error_Number = 428;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Buffer_Guide_Exposure_Start_Time_Set:"
+			"Index %d out of range (%d,%d).",index,0,AUTOGUIDER_BUFFER_COUNT);
+		return FALSE;
+	}
+	Buffer_Data.Guide.Exposure_Start_Time_List[index] = start_time;
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
+			       "Autoguider_Buffer_Guide_Exposure_Start_Time_Set:finished.");
+#endif
+	return TRUE;
+}
+
+/**
+ * Routine to get the exposure start time for the specified guide buffer.
+ * @param index Which buffer (0..AUTOGUIDER_BUFFER_COUNT).
+ * @param start_time The address of a struct timespec to store the start time.
+ * @return The routine returns TRUE on success and FALSE on failure.
+ * @see #Buffer_Data
+ * @see #AUTOGUIDER_BUFFER_COUNT
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_BUFFER
+ * @see autoguider_general.html#Autoguider_General_Error_Number
+ * @see autoguider_general.html#Autoguider_General_Error_String
+ */
+int Autoguider_Buffer_Guide_Exposure_Start_Time_Get(int index,struct timespec *start_time)
+{
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
+			       "Autoguider_Buffer_Guide_Exposure_Start_Time_Get:started.");
+#endif
+	if((index < 0)||(index >= AUTOGUIDER_BUFFER_COUNT))
+	{
+		Autoguider_General_Error_Number = 429;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Buffer_Guide_Exposure_Start_Time_Get:"
+			"Index %d out of range (%d,%d).",index,0,AUTOGUIDER_BUFFER_COUNT);
+		return FALSE;
+	}
+	if(start_time == NULL)
+	{
+		Autoguider_General_Error_Number = 430;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Buffer_Guide_Exposure_Start_Time_Get:"
+			"start_time was NULL.");
+		return FALSE;
+	}
+	(*start_time) = Buffer_Data.Guide.Exposure_Start_Time_List[index];
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
+			       "Autoguider_Buffer_Guide_Exposure_Start_Time_Get:finished.");
+#endif
+	return TRUE;
+}
+
+/**
+ * Routine to set the exposure length for the specified guide buffer.
+ * @param index Which buffer (0..AUTOGUIDER_BUFFER_COUNT).
+ * @param exposure_length_ms The exposure length, in milliseconds.
+ * @return The routine returns TRUE on success and FALSE on failure.
+ * @see #Buffer_Data
+ * @see #AUTOGUIDER_BUFFER_COUNT
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_BUFFER
+ * @see autoguider_general.html#Autoguider_General_Error_Number
+ * @see autoguider_general.html#Autoguider_General_Error_String
+ */
+int Autoguider_Buffer_Guide_Exposure_Length_Set(int index,int exposure_length_ms)
+{
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
+			       "Autoguider_Buffer_Guide_Exposure_Length_Set:started.");
+#endif
+	if((index < 0)||(index >= AUTOGUIDER_BUFFER_COUNT))
+	{
+		Autoguider_General_Error_Number = 431;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Buffer_Guide_Exposure_Length_Set:"
+			"Index %d out of range (%d,%d).",index,0,AUTOGUIDER_BUFFER_COUNT);
+		return FALSE;
+	}
+	Buffer_Data.Guide.Exposure_Length_List[index] = exposure_length_ms;
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
+			       "Autoguider_Buffer_Guide_Exposure_Length_Set:finished.");
+#endif
+	return TRUE;
+}
+
+/**
+ * Routine to get the exposure length for the specified guide buffer.
+ * @param index Which buffer (0..AUTOGUIDER_BUFFER_COUNT).
+ * @param exposure_length_ms The address on an integer to store the exposure length, in milliseconds.
+ * @return The routine returns TRUE on success and FALSE on failure.
+ * @see #Buffer_Data
+ * @see #AUTOGUIDER_BUFFER_COUNT
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_BUFFER
+ * @see autoguider_general.html#Autoguider_General_Error_Number
+ * @see autoguider_general.html#Autoguider_General_Error_String
+ */
+int Autoguider_Buffer_Guide_Exposure_Length_Get(int index,int *exposure_length_ms)
+{
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
+			       "Autoguider_Buffer_Guide_Exposure_Length_Get:started.");
+#endif
+	if((index < 0)||(index >= AUTOGUIDER_BUFFER_COUNT))
+	{
+		Autoguider_General_Error_Number = 432;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Buffer_Guide_Exposure_Length_Get:"
+			"Index %d out of range (%d,%d).",index,0,AUTOGUIDER_BUFFER_COUNT);
+		return FALSE;
+	}
+	if(exposure_length_ms == NULL)
+	{
+		Autoguider_General_Error_Number = 433;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Buffer_Guide_Exposure_Length_Get:"
+			"exposure_length_ms was NULL.");
+		return FALSE;
+	}
+	(*exposure_length_ms) = Buffer_Data.Guide.Exposure_Length_List[index];
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
+			       "Autoguider_Buffer_Guide_Exposure_Length_Get:finished.");
+#endif
+	return TRUE;
+}
+
+/**
  * Free the allocated buffers.
  * Locks/unlocks the associated mutex.
  * @see #Buffer_Data
@@ -1171,4 +1470,7 @@ static int Buffer_One_Reduced_Copy(struct Buffer_One_Struct *data,int index,floa
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2006/06/01 15:18:38  cjm
+** Initial revision
+**
 */
