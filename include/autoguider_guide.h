@@ -1,8 +1,11 @@
 /* autoguider_guide.h
-** $Header: /home/cjm/cvs/autoguider/include/autoguider_guide.h,v 1.3 2007-01-19 14:23:46 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/include/autoguider_guide.h,v 1.4 2007-01-26 18:03:46 cjm Exp $
 */
 #ifndef AUTOGUIDER_GUIDE_H
 #define AUTOGUIDER_GUIDE_H
+
+/* for CCD_Setup_Window_Struct */
+#include "ccd_setup.h"
 
 extern int Autoguider_Guide_Initialise(void);
 extern int Autoguider_Guide_Window_Set(int sx,int sy,int ex,int ey);
@@ -23,9 +26,22 @@ extern int Autoguider_Guide_Set_Guide_Object(int index);
 extern int Autoguider_Guide_Window_Set_From_XY(int ccd_x_position,int ccd_y_position);
 extern double Autoguider_Guide_Loop_Cadence_Get(void);
 extern int Autoguider_Guide_Exposure_Length_Get(void);
+extern int Autoguider_Guide_Unbinned_NCols_Get(void);
+extern int Autoguider_Guide_Unbinned_NRows_Get(void);
+extern int Autoguider_Guide_Bin_X_Get(void);
+extern int Autoguider_Guide_Bin_Y_Get(void);
+extern int Autoguider_Guide_Binned_NCols_Get(void);
+extern int Autoguider_Guide_Binned_NRows_Get(void);
+extern struct CCD_Setup_Window_Struct Autoguider_Guide_Window_Get(void);
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.3  2007/01/19 14:23:46  cjm
+** Added autoguider guide window tracking:
+** Autoguider_Guide_Set_Guide_Window_Tracking
+** Autoguider_Guide_Get_Guide_Window_Tracking
+** Autoguider_Guide_Window_Set_From_XY
+**
 ** Revision 1.2  2006/06/22 15:53:05  cjm
 ** Added Autoguider_Guide_Set_Guide_Object/Autoguider_Guide_Loop_Cadence_Get/Autoguider_Guide_Exposure_Length_Get.
 **
