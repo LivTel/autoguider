@@ -1,4 +1,4 @@
-# $Header: /home/cjm/cvs/autoguider/c/Makefile,v 1.5 2006-07-16 20:15:19 cjm Exp $
+# $Header: /home/cjm/cvs/autoguider/c/Makefile,v 1.6 2007-01-26 18:17:44 cjm Exp $
 
 include ../../Makefile.common
 include ../commandserver/Makefile.common
@@ -30,11 +30,18 @@ CFITSIO_CFLAGS		= -I$(CFITSIOINCDIR)
 CFITSIO_LDFLAGS		= -lcfitsio
 
 # libdprt_object
-OBJECT_CFLAGS		= -I/home/dev/src/libdprt/object/include
+OBJECT_CFLAGS		= -I${LT_SRC_HOME}/libdprt/object/include
 OBJECT_LDFLAGS		= -ldprt_object
 
+# SLALIB link information - used only for calculating MJD in get_fits at the moment
+#MJD_CFLAGS 		= -DSLALIB=1 -I${LT_SRC_HOME}/astrometry/include
+#MJD_LDFLAGS		= -lsla
+# NGAT Astro MJD link informatiom
+MJD_CFLAGS 		= -DNGATASTRO=1 -I${LT_SRC_HOME}/ngatastro/include
+MJD_LDFLAGS		= -lngatastro
+
 CFLAGS 			= -g -I$(INCDIR) $(DEBUG_CFLAGS) $(CCD_CFLAGS) $(COMMAND_SERVER_CFLAGS) $(NGATCIL_CFLAGS) \
-				$(CFITSIO_CFLAGS) $(OBJECT_CFLAGS)
+				$(CFITSIO_CFLAGS) $(OBJECT_CFLAGS) $(MJD_CFLAGS)
 DOCFLAGS 		= -static
 
 EXE_SRCS		= autoguider.c
@@ -55,7 +62,7 @@ top: $(EXES) $(CONFIG_BINS) docs
 
 $(BINDIR)/autoguider: $(OBJS)
 	$(CC) $^ -o $@  -L$(LT_LIB_HOME) $(COMMAND_SERVER_LDFLAGS) $(NGATCIL_LDFLAGS) $(CCD_LDFLAGS) \
-		$(CFITSIO_LDFLAGS) $(OBJECT_LDFLAGS) $(TIMELIB) $(SOCKETLIB) -lm -lc
+		$(CFITSIO_LDFLAGS) $(OBJECT_LDFLAGS) $(MJD_LDFLAGS) $(TIMELIB) $(SOCKETLIB) -lm -lc
 
 #$(BINDIR)/%: %.o
 #	$(CC) $< -o $@  -L$(LT_LIB_HOME) $(COMMAND_SERVER_LDFLAGS) $(CCD_LDFLAGS) $(TIMELIB) $(SOCKETLIB) -lm -lc
@@ -118,6 +125,7 @@ checkout:
 /home/dev/bin/autoguider/c/i386-linux/autoguider.o: /usr/include/time.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider.o: /usr/include/bits/time.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider.o: /home/dev/src/autoguider/commandserver/include/command_server.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider.o: /home/dev/src/autoguider/ngatcil/include/ngatcil_ags_sdb.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider.o: /home/dev/src/autoguider/ngatcil/include/ngatcil_general.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider.o: /home/dev/src/libdprt/object/include/object.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider.o: /home/dev/src/autoguider/ccd/include/ccd_driver.h
@@ -206,8 +214,10 @@ checkout:
 /home/dev/bin/autoguider/c/i386-linux/autoguider_cil.o: /usr/include/unistd.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider_cil.o: /usr/include/bits/posix_opt.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider_cil.o: /usr/include/bits/confname.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_cil.o: /home/dev/src/autoguider/ngatcil/include/ngatcil_ags_sdb.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider_cil.o: /home/dev/src/autoguider/ngatcil/include/ngatcil_general.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider_cil.o: /home/dev/src/autoguider/ngatcil/include/ngatcil_cil.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_cil.o: /usr/include/stdint.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider_cil.o: /home/dev/src/autoguider/ngatcil/include/ngatcil_tcs_guide_packet.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider_cil.o: /home/dev/src/autoguider/ngatcil/include/ngatcil_udp_raw.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider_cil.o: /home/dev/src/autoguider/include/autoguider_command.h
@@ -255,6 +265,7 @@ checkout:
 /home/dev/bin/autoguider/c/i386-linux/autoguider_command.o: /home/dev/src/autoguider/commandserver/include/command_server.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider_command.o: /home/dev/src/autoguider/ngatcil/include/ngatcil_general.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider_command.o: /home/dev/src/autoguider/include/autoguider_cil.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_command.o: /home/dev/src/autoguider/ngatcil/include/ngatcil_ags_sdb.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider_command.o: /home/dev/src/autoguider/include/autoguider_general.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider_command.o: /usr/include/pthread.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider_command.o: /usr/include/sched.h
@@ -348,6 +359,8 @@ checkout:
 /home/dev/bin/autoguider/c/i386-linux/autoguider_field.o: /home/dev/src/autoguider/ccd/include/ccd_general.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider_field.o: /home/dev/src/autoguider/ccd/include/ccd_setup.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider_field.o: /home/dev/src/autoguider/ccd/include/ccd_temperature.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_field.o: /home/dev/src/autoguider/ngatcil/include/ngatcil_ags_sdb.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_field.o: /home/dev/src/autoguider/include/autoguider_cil.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider_field.o: /home/dev/src/autoguider/include/autoguider_dark.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider_field.o: /home/dev/src/autoguider/include/autoguider_field.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider_field.o: /home/dev/src/autoguider/include/autoguider_flat.h
@@ -364,6 +377,48 @@ checkout:
 /home/dev/bin/autoguider/c/i386-linux/autoguider_field.o: /home/dev/src/autoguider/include/autoguider_guide.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider_field.o: /home/dev/src/autoguider/include/autoguider_object.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider_field.o: /home/dev/src/autoguider/include/autoguider_command.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /usr/include/errno.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /usr/include/features.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /usr/include/sys/cdefs.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /usr/include/gnu/stubs.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /usr/include/bits/errno.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /usr/include/linux/errno.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /usr/include/asm/errno.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /usr/include/stdio.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stddef.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /usr/include/bits/types.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /usr/include/bits/wordsize.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /usr/include/bits/typesizes.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /usr/include/libio.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /usr/include/_G_config.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /usr/include/wchar.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /usr/include/bits/wchar.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /usr/include/gconv.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stdarg.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /usr/include/bits/stdio_lim.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /usr/include/bits/sys_errlist.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /usr/include/stdlib.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /usr/include/string.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /usr/include/time.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /usr/include/bits/time.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /usr/include/unistd.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /usr/include/bits/posix_opt.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /usr/include/bits/confname.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /home/dev/src/cfitsio3.006/include/fitsio.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /usr/include/limits.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/limits.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /home/dev/src/cfitsio3.006/include/longnam.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /home/dev/src/autoguider/include/autoguider_fits_header.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /home/dev/src/autoguider/include/autoguider_general.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /usr/include/pthread.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /usr/include/sched.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /usr/include/bits/sched.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /usr/include/signal.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /usr/include/bits/sigset.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /usr/include/bits/signum.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /usr/include/bits/pthreadtypes.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /usr/include/bits/initspin.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_fits_header.o: /usr/include/bits/sigthread.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider_flat.o: /usr/include/errno.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider_flat.o: /usr/include/features.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider_flat.o: /usr/include/sys/cdefs.h
@@ -535,6 +590,7 @@ checkout:
 /home/dev/bin/autoguider/c/i386-linux/autoguider_guide.o: /home/dev/src/autoguider/ccd/include/ccd_general.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider_guide.o: /home/dev/src/autoguider/ccd/include/ccd_setup.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider_guide.o: /home/dev/src/autoguider/ccd/include/ccd_temperature.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_guide.o: /home/dev/src/autoguider/ngatcil/include/ngatcil_ags_sdb.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider_guide.o: /home/dev/src/autoguider/ngatcil/include/ngatcil_tcs_guide_packet.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider_guide.o: /home/dev/src/autoguider/include/autoguider_cil.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider_guide.o: /home/dev/src/autoguider/include/autoguider_dark.h
@@ -551,6 +607,10 @@ checkout:
 /home/dev/bin/autoguider/c/i386-linux/autoguider_object.o: /usr/include/bits/errno.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider_object.o: /usr/include/linux/errno.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider_object.o: /usr/include/asm/errno.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_object.o: /usr/include/math.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_object.o: /usr/include/bits/huge_val.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_object.o: /usr/include/bits/mathdef.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_object.o: /usr/include/bits/mathcalls.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider_object.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stdarg.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider_object.o: /usr/include/stdio.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider_object.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stddef.h
@@ -571,6 +631,7 @@ checkout:
 /home/dev/bin/autoguider/c/i386-linux/autoguider_object.o: /usr/include/bits/posix_opt.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider_object.o: /usr/include/bits/confname.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider_object.o: /home/dev/src/libdprt/object/include/object.h
+/home/dev/bin/autoguider/c/i386-linux/autoguider_object.o: /home/dev/src/autoguider/include/autoguider_field.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider_object.o: /home/dev/src/autoguider/include/autoguider_general.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider_object.o: /usr/include/pthread.h
 /home/dev/bin/autoguider/c/i386-linux/autoguider_object.o: /usr/include/sched.h
