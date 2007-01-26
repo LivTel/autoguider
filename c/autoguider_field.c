@@ -1,11 +1,11 @@
 /* autoguider_field.c
 ** Autoguider field routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_field.c,v 1.9 2007-01-26 15:29:42 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_field.c,v 1.10 2007-01-26 19:00:23 cjm Exp $
 */
 /**
  * Field routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.9 $
+ * @version $Revision: 1.10 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -118,7 +118,7 @@ struct Field_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_field.c,v 1.9 2007-01-26 15:29:42 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_field.c,v 1.10 2007-01-26 19:00:23 cjm Exp $";
 /**
  * Instance of field data.
  * @see #Field_Struct
@@ -342,7 +342,6 @@ int Autoguider_Field(void)
 	}
 	/* setup CCD */
 	/* diddly Consider some sort of mutex around CCD calls? */
-	/* also state checking, are we already fielding/guiding ? */
 #if AUTOGUIDER_DEBUG > 5
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field:Calling CCD_Setup_Dimensions.");
 #endif
@@ -362,7 +361,8 @@ int Autoguider_Field(void)
 	/* we have to do something more complicated here */
 	/* depending on whether we have moved on sky, we should start with the default and increase (loop!)
 	** until we get objects on the CCD, or we should re-use the last value? */
-	if(Field_Data.Exposure_Length < 0)
+	/* RJS suggests starting each time from a configured value as follows: */
+	if((Field_Data.Exposure_Length_Lock == FALSE)||(Field_Data.Exposure_Length < 0))
 	{
 		retval = CCD_Config_Get_Integer("ccd.exposure.field.default",&(Field_Data.Exposure_Length));
 		if(retval == FALSE)
@@ -1521,6 +1521,10 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.9  2007/01/26 15:29:42  cjm
+** Set buffers start time/exposure length data.
+** Added getters for field dimension data.
+**
 ** Revision 1.8  2006/11/14 18:10:29  cjm
 ** Added the concept of field objects bounds.
 ** Selected objcets on the CCD for guiding on should be within a configured set of bounds.
