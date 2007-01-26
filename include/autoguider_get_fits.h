@@ -1,8 +1,11 @@
 /* autoguider_get_fits.h
-** $Header: /home/cjm/cvs/autoguider/include/autoguider_get_fits.h,v 1.1 2006-06-01 15:19:05 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/include/autoguider_get_fits.h,v 1.2 2007-01-26 18:03:46 cjm Exp $
 */
 #ifndef AUTOGUIDER_GET_FITS_H
 #define AUTOGUIDER_GET_FITS_H
+
+/* need struct Fits_Header_Struct */
+#include "autoguider_fits_header.h"
 
 /**
  * Which buffer to get the fits image for.
@@ -24,9 +27,13 @@
 
 extern int Autoguider_Get_Fits(int buffer_type,int buffer_state,void **buffer_ptr,size_t *buffer_length);
 extern int Autoguider_Get_Fits_From_Buffer(void **buffer_ptr,size_t *buffer_length,int buffer_state,
-				    void *buffer_data_ptr,size_t buffer_data_length,int ncols,int nrows);
+					   void *buffer_data_ptr,size_t buffer_data_length,int ncols,int nrows,
+					   struct Fits_Header_Struct *fits_header);
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2006/06/01 15:19:05  cjm
+** Initial revision
+**
 */
 #endif
