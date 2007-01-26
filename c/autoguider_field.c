@@ -1,11 +1,11 @@
 /* autoguider_field.c
 ** Autoguider field routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_field.c,v 1.8 2006-11-14 18:10:29 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_field.c,v 1.9 2007-01-26 15:29:42 cjm Exp $
 */
 /**
  * Field routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.8 $
+ * @version $Revision: 1.9 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -118,7 +118,7 @@ struct Field_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_field.c,v 1.8 2006-11-14 18:10:29 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_field.c,v 1.9 2007-01-26 15:29:42 cjm Exp $";
 /**
  * Instance of field data.
  * @see #Field_Struct
@@ -279,6 +279,8 @@ int Autoguider_Field_Exposure_Length_Set(int exposure_length,int lock)
  * @see autoguider_buffer.html#Autoguider_Buffer_Raw_Field_Unlock
  * @see autoguider_buffer.html#Autoguider_Buffer_Get_Field_Pixel_Count
  * @see autoguider_buffer.html#Autoguider_Buffer_Raw_To_Reduced_Field
+ * @see autoguider_buffer.html#Autoguider_Buffer_Field_Exposure_Length_Set
+ * @see autoguider_buffer.html#Autoguider_Buffer_Field_Exposure_Start_Time_Set
  * @see autoguider_cil.html#Autoguider_CIL_SDB_Packet_State_Set
  * @see autoguider_cil.html#Autoguider_CIL_SDB_Packet_Send
  * @see autoguider_dark.html#Autoguider_Dark_Set
@@ -292,6 +294,7 @@ int Autoguider_Field_Exposure_Length_Set(int exposure_length,int lock)
  * @see autoguider_guide.html#Autoguider_Guide_Is_Guiding
  * @see ../ccd/cdocs/ccd_setup.html#CCD_Setup_Dimensions
  * @see ../ccd/cdocs/ccd_exposure.html#CCD_Exposure_Expose
+ * @see ../ccd/cdocs/ccd_exposure.html#CCD_Exposure_Get_Exposure_Start_Time
  */
 int Autoguider_Field(void)
 {
@@ -483,6 +486,16 @@ int Autoguider_Field(void)
 			sprintf(Autoguider_General_Error_String,"Autoguider_Field:CCD_Exposure_Expose failed.");
 			return FALSE;
 		}
+		/* save the exposure length and start time for this buffer for future reference (FITS headers) */
+		if(!Autoguider_Buffer_Field_Exposure_Length_Set(Field_Data.In_Use_Buffer_Index,
+								Field_Data.Exposure_Length))
+			Autoguider_General_Error();
+		retval = CCD_Exposure_Get_Exposure_Start_Time(&start_time);
+		if(retval == TRUE)
+		{
+			if(!Autoguider_Buffer_Field_Exposure_Start_Time_Set(Field_Data.In_Use_Buffer_Index,start_time))
+				Autoguider_General_Error();
+		}
 #if AUTOGUIDER_DEBUG > 7
 		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field:exposure completed.");
 #endif
@@ -542,7 +555,7 @@ int Autoguider_Field(void)
 	Field_Data.Is_Fielding = FALSE;
 	/* do NOT update SDB back to idle here,
 	** so guiding goes straight from working to guiding
-	** must manually reset to IDLE all placed Autoguider_Field is called on it's own
+	** must manually reset to IDLE all places Autoguider_Field is called on it's own
 	** if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
 	** 	Autoguider_General_Error(); 
 	** if(!Autoguider_CIL_SDB_Packet_Send())
@@ -732,6 +745,16 @@ int Autoguider_Field_Expose(void)
 		Autoguider_General_Error_Number = 520;
 		sprintf(Autoguider_General_Error_String,"Autoguider_Field_Expose:CCD_Exposure_Expose failed.");
 		return FALSE;
+	}
+	/* save the exposure length and start time for this buffer for future reference (FITS headers) */
+	if(!Autoguider_Buffer_Field_Exposure_Length_Set(Field_Data.In_Use_Buffer_Index,
+							Field_Data.Exposure_Length))
+		Autoguider_General_Error();
+	retval = CCD_Exposure_Get_Exposure_Start_Time(&start_time);
+	if(retval == TRUE)
+	{
+		if(!Autoguider_Buffer_Field_Exposure_Start_Time_Set(Field_Data.In_Use_Buffer_Index,start_time))
+			Autoguider_General_Error();
 	}
 #if AUTOGUIDER_DEBUG > 7
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field:exposure completed.");
@@ -928,6 +951,46 @@ int Autoguider_Field_In_Object_Bounds(float ccd_x,float ccd_y)
 {
 	return ((((int)ccd_x) >= Field_Data.Bounds.Min.X)&&(((int)ccd_x) <= Field_Data.Bounds.Max.X)&&
 		(((int)ccd_y) >= Field_Data.Bounds.Min.Y)&&(((int)ccd_y) <= Field_Data.Bounds.Max.Y));
+}
+
+/**
+ * Get the number of unbinned field columns (Field_Data.Unbinned_NCols).
+ * @return The number of columns.
+ * @see #Field_Data
+ */
+int Autoguider_Field_Get_Unbinned_NCols(void)
+{
+	return Field_Data.Unbinned_NCols;
+}
+
+/**
+ * Get the number of unbinned field rows (Field_Data.Unbinned_NRows).
+ * @return The number of rows.
+ * @see #Field_Data
+ */
+int Autoguider_Field_Get_Unbinned_NRows(void)
+{
+	return Field_Data.Unbinned_NRows;
+}
+
+/**
+ * Get the field column binning (Field_Data.Bin_X).
+ * @return The X (column) binning.
+ * @see #Field_Data
+ */
+int Autoguider_Field_Get_Bin_X(void)
+{
+	return Field_Data.Bin_X;
+}
+
+/**
+ * Get the field row binning (Field_Data.Bin_Y).
+ * @return The Y (row) binning.
+ * @see #Field_Data
+ */
+int Autoguider_Field_Get_Bin_Y(void)
+{
+	return Field_Data.Bin_Y;
 }
 
 /* ----------------------------------------------------------------------------
@@ -1458,6 +1521,11 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.8  2006/11/14 18:10:29  cjm
+** Added the concept of field objects bounds.
+** Selected objcets on the CCD for guiding on should be within a configured set of bounds.
+** Added Autoguider_Field_In_Object_Bounds to query these bounds externally to autoguider_field.
+**
 ** Revision 1.7  2006/08/29 13:55:42  cjm
 ** Replaced AGS states with AGG states.
 ** Commented out setting AG_STATE to idle at end of field - calling
