@@ -1,11 +1,11 @@
 /* autoguider_guide.c
 ** Autoguider guide routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.25 2007-01-19 14:23:44 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.26 2007-01-26 15:29:42 cjm Exp $
 */
 /**
  * Guide routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.25 $
+ * @version $Revision: 1.26 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -169,7 +169,7 @@ struct Guide_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_guide.c,v 1.25 2007-01-19 14:23:44 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_guide.c,v 1.26 2007-01-26 15:29:42 cjm Exp $";
 /**
  * Instance of guide data.
  * @see #Guide_Struct
@@ -289,6 +289,7 @@ int Autoguider_Guide_Initialise(void)
  * @return The routine returns TRUE on success and FALSE on failure.
  * @see #Guide_Data
  * @see autoguider_cil.html#Autoguider_CIL_SDB_Packet_Window_Set
+ * @see ../ccd/cdocs/ccd_setup.html#CCD_Setup_Window_Struct
  */
 int Autoguider_Guide_Window_Set(int sx,int sy,int ex,int ey)
 {
@@ -911,13 +912,84 @@ double Autoguider_Guide_Loop_Cadence_Get(void)
 }
 
 /**
- * Routine to set whether we are object detecting when guiding.
- * @return The routine returns TRUE if we are object detecting when guiding, and FALSE if we are not.
+ * Routine to get the guide exposure length.
+ * @return The routine returns the exposure length in milliseconds.
  * @see #Guide_Data
  */
 int Autoguider_Guide_Exposure_Length_Get(void)
 {
 	return Guide_Data.Exposure_Length;
+}
+
+/**
+ * Routine to get the number of unbinned columns in the <b>full frame</b>.
+ * @return The number of unbinned columns in the <b>full frame</b>.
+ * @see #Guide_Data
+ */
+int Autoguider_Guide_Unbinned_NCols_Get(void)
+{
+	return Guide_Data.Unbinned_NCols;
+}
+
+/**
+ * Routine to get the number of unbinned rows in the <b>full frame</b>.
+ * @return The number of unbinned rows in the <b>full frame</b>.
+ * @see #Guide_Data
+ */
+int Autoguider_Guide_Unbinned_NRows_Get(void)
+{
+	return Guide_Data.Unbinned_NRows;
+}
+
+/**
+ * Routine to get the column/X binning.
+ * @return The binning.
+ * @see #Guide_Data
+ */
+int Autoguider_Guide_Bin_X_Get(void)
+{
+	return Guide_Data.Bin_X;
+}
+
+/**
+ * Routine to get the row/Y binning.
+ * @return The binning.
+ * @see #Guide_Data
+ */
+int Autoguider_Guide_Bin_Y_Get(void)
+{
+	return Guide_Data.Bin_Y;
+}
+
+/**
+ * Routine to get the number of binned columns in the <b>full frame</b>.
+ * @return The number of binned columns in the <b>full frame</b>.
+ * @see #Guide_Data
+ */
+int Autoguider_Guide_Binned_NCols_Get(void)
+{
+	return Guide_Data.Binned_NCols;
+}
+
+/**
+ * Routine to get the number of binned rows in the <b>full frame</b>.
+ * @return The number of binned rows in the <b>full frame</b>.
+ * @see #Guide_Data
+ */
+int Autoguider_Guide_Binned_NRows_Get(void)
+{
+	return Guide_Data.Binned_NRows;
+}
+
+/**
+ * Routine to get the current guide window position.
+ * @return A struct of type CCD_Setup_Window_Struct, containing the guide window.
+ * @see #Guide_Data
+ * @see ../ccd/cdocs/ccd_setup.html#CCD_Setup_Window_Struct
+ */
+struct CCD_Setup_Window_Struct Autoguider_Guide_Window_Get(void)
+{
+	return Guide_Data.Window;
 }
 
 /* ----------------------------------------------------------------------------
@@ -1147,6 +1219,16 @@ static void *Guide_Thread(void *user_arg)
 			if(!Autoguider_CIL_SDB_Packet_Send())
 				Autoguider_General_Error(); /* no need to fail */
 			return NULL;
+		}
+		/* save the exposure length and start time for this buffer for future reference (FITS headers) */
+		if(!Autoguider_Buffer_Guide_Exposure_Length_Set(Guide_Data.In_Use_Buffer_Index,
+								Guide_Data.Exposure_Length))
+			Autoguider_General_Error();
+		retval = CCD_Exposure_Get_Exposure_Start_Time(&start_time);
+		if(retval == TRUE)
+		{
+			if(!Autoguider_Buffer_Guide_Exposure_Start_Time_Set(Guide_Data.In_Use_Buffer_Index,start_time))
+				Autoguider_General_Error();
 		}
 #if AUTOGUIDER_DEBUG > 9
 		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:exposure completed.");
@@ -2315,6 +2397,14 @@ static int Guide_Dimension_Config_Load(void)
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.25  2007/01/19 14:23:44  cjm
+** Added autoguider guide window tracking:
+** Guide_Window_Tracking_Struct
+** Guide_Window_Tracking routine
+** Autoguider_Guide_Set_Guide_Window_Tracking
+** Autoguider_Guide_Get_Guide_Window_Tracking
+** Autoguider_Guide_Window_Set_From_XY
+**
 ** Revision 1.24  2006/11/28 19:07:53  cjm
 ** Changed log message.
 **
