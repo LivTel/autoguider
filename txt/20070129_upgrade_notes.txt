@@ -1,0 +1,44 @@
+- Window Tracking
+- Primitive FITS headers
+- Initial Field exposure length
+
+Initial Field exposure length
+-----------------------------
+
+Now reset at the start of each exposure to:
+ccd.exposure.field.default		=2000
+
+
+Primitive FITS headers
+----------------------
+
+In field and guide FITS retrieved using the get fits commands.
+
+DATE-OBS,UTSTART,MJD,DATE
+EXPTIME
+CCDXIMSI,CCDYIMSI,CCDXBIN,CCDYBIN
+
+CCDWMODE,CCDWXOFF,CCDWYOFF,CCDWXSIZ,CCDWYSIZ set to guide window dimensions for guide FITS
+
+OBSTYPE, REDTYPE (RAW/REDUCED)
+
+CCDATEMP, CCDSTEMP
+
+- No headers loadable from a config file yet
+- No interactive command set yet.
+
+Window Tracking
+---------------
+Off by default, see config:
+guide.window.tracking			=false
+
+Interactive control, use command:
+guide window_track <on|off>
+to enable/disable
+
+Configured using:
+# How close to the guide window edge before we set the guide packet "close to edge" flag
+guide.window.edge.pixels		=10
+# How close to the guide window edge before we re-centre guide window if tracking is enabled
+guide.window.track.pixels		=10
+
