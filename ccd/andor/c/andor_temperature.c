@@ -1,11 +1,11 @@
 /* andor_temperature.c
 ** Autoguder Andor CCD Library temperature routines
-** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_temperature.c,v 1.2 2006-06-01 15:20:20 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_temperature.c,v 1.3 2007-01-29 14:43:07 cjm Exp $
 */
 /**
  * Temperature routines for the Andor autoguider CCD library.
  * @author Chris Mottram
- * @version $Revision: 1.2 $
+ * @version $Revision: 1.3 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -31,7 +31,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: andor_temperature.c,v 1.2 2006-06-01 15:20:20 cjm Exp $";
+static char rcsid[] = "$Id: andor_temperature.c,v 1.3 2007-01-29 14:43:07 cjm Exp $";
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -96,6 +96,8 @@ int Andor_Temperature_Get(double *temperature,enum CCD_TEMPERATURE_STATUS *tempe
 			return FALSE;
 	}
 #ifdef ANDOR_DEBUG
+	CCD_General_Log_Format(ANDOR_GENERAL_LOG_BIT_EXPOSURE,"Andor_Temperature_Get returned (%.2f,%d).",
+			       (*temperature),(*temperature_status));
 	CCD_General_Log(ANDOR_GENERAL_LOG_BIT_EXPOSURE,"Andor_Temperature_Get finished.");
 #endif
 	return TRUE;
@@ -182,6 +184,9 @@ int Andor_Temperature_Cooler_Off(void)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.2  2006/06/01 15:20:20  cjm
+** Changed temperature status enum to CCD_TEMPERATURE_STATUS.
+**
 ** Revision 1.1  2006/03/27 14:02:36  cjm
 ** Initial revision
 **
