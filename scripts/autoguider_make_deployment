@@ -1,6 +1,6 @@
 #!/bin/csh
-# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_make_deployment,v 1.5 2006-10-18 10:30:51 cjm Exp $
-# Version: $Revision: 1.5 $
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_make_deployment,v 1.6 2007-01-29 12:52:41 cjm Exp $
+# Version: $Revision: 1.6 $
 # By $Author: cjm $
 # Make a deployment tar file.
 # This contains:
@@ -70,7 +70,8 @@ endif
 #
 echo "Creating directory structure..."
 set dir_count = 0
-set dir_list = "${deployment_dir} ${deployment_dir}/${init_d_dir} ${deployment_icc_dir} ${deployment_bin_dir} ${deployment_dir}/icc/tmp ${deployment_dir}/icc/tmp/log_archive ${deployment_dir}/icc/log ${deployment_icc_dir}/config ${deployment_icc_dir}/dprt/dark ${deployment_icc_dir}/dprt/flat ${deployment_bin_dir}/scripts ${deployment_bin_dir}/autoguider/scripts ${deployment_bin_dir}/autoguider/c/${HOSTTYPE} ${deployment_bin_dir}/autoguider/commandserver/test/${HOSTTYPE} ${deployment_bin_dir}/autoguider/ccd/andor/test/${HOSTTYPE} ${deployment_bin_dir}/autoguider/ngatcil/test/${HOSTTYPE} ${deployment_bin_dir}/autoguider/andor/examples/common ${deployment_bin_dir}/autoguider/andor/examples/console/cooling ${deployment_bin_dir}/autoguider/andor/examples/console/image ${deployment_bin_dir}/ics_util/c/${HOSTTYPE} ${deployment_bin_dir}/ccd/misc/${HOSTTYPE} ${deployment_bin_dir}/javalib ${deployment_bin_dir}/lib/${HOSTTYPE} ${deployment_bin_dir}/autoguider/test ${deployment_bin_dir}/libdprt/object/test/${HOSTTYPE} ${deployment_bin_dir}/autobooter/java "
+set dir_list = "${deployment_dir} ${deployment_dir}/${init_d_dir} ${deployment_icc_dir} ${deployment_bin_dir} ${deployment_dir}/icc/tmp ${deployment_dir}/icc/tmp/log_archive ${deployment_dir}/icc/log ${deployment_icc_dir}/config ${deployment_icc_dir}/dprt/dark ${deployment_icc_dir}/dprt/flat ${deployment_bin_dir}/scripts ${deployment_bin_dir}/autoguider/scripts ${deployment_bin_dir}/autoguider/c/${HOSTTYPE} ${deployment_bin_dir}/autoguider/commandserver/test/${HOSTTYPE} ${deployment_bin_dir}/autoguider/ccd/andor/test/${HOSTTYPE} ${deployment_bin_dir}/autoguider/andor/examples/console/cooling ${deployment_bin_dir}/autoguider/andor/examples/console/image ${deployment_bin_dir}/autoguider/ngatcil/test/${HOSTTYPE} ${deployment_bin_dir}/ics_util/c/${HOSTTYPE} ${deployment_bin_dir}/ccd/misc/${HOSTTYPE} ${deployment_bin_dir}/javalib ${deployment_bin_dir}/lib/${HOSTTYPE} ${deployment_bin_dir}/autoguider/test ${deployment_bin_dir}/libdprt/object/test/${HOSTTYPE} ${deployment_bin_dir}/autobooter/java "
+# ${deployment_bin_dir}/autoguider/andor/examples/common  
 foreach dir ( ${dir_list} )
 	mkdir -p ${dir}
 	if ($status != 0) then
@@ -83,15 +84,15 @@ echo "${dir_count} directories created."
 #
 # kernel module
 #
-if ( "${HOSTTYPE}" == "i386-linux" ) then
-    set dir = "${deployment_dir}/lib/modules/${kernel_release}/misc"
-    echo "Making kernel driver dir for ${kernel_release}."
-    mkdir -p ${deployment_dir}/lib/modules/${kernel_release}/misc
-    if ($status != 0) then
-       echo "Failed to make directory ${dir}"
-       exit 2
-    endif
-endif
+#if ( "${HOSTTYPE}" == "i386-linux" ) then
+#    set dir = "${deployment_dir}/lib/modules/${kernel_release}/misc"
+#    echo "Making kernel driver dir for ${kernel_release}."
+#    mkdir -p ${deployment_dir}/lib/modules/${kernel_release}/misc
+#    if ($status != 0) then
+#       echo "Failed to make directory ${dir}"
+#       exit 2
+#    endif
+#endif
 #
 # Copy jars
 #
@@ -290,36 +291,21 @@ foreach file ( ${file_list} )
     @ file_count ++
 end
 echo "${file_count} configuration files copied."
-# in config directory.
-#set file_list = "config/${machine_name}.day_calibrate_state.properties config/${machine_name}.twilight_calibrate_state.properties"
+#echo "Copying camera configuration files..."
+#set file_list = "autoguider/andor/examples/common/detector.ini autoguider/andor/examples/common/pcii29k_sldma.cof autoguider/andor/examples/common/pciifpga.rbf"
+#set file_count = 0
 #cd ${dev_dir}
 #foreach file ( ${file_list} )
-#    set new_file = `echo ${file} | sed "s#${machine_name}.livjm.ac.uk.##" | sed "s#${machine_name}.##"`
-#    cp ${dev_bin_dir}/${file} ${deployment_icc_dir}/${new_file}
+#    set new_file = ${file}
+#    cp ${dev_bin_dir}/${file} ${deployment_bin_dir}/${new_file}
 #    set cp_status = $status
 #    if( ${cp_status} != 0 ) then
-#	echo "Copy failed: ${dev_bin_dir}/${file} to ${deployment_icc_dir}/${new_file}"
+#	echo "Copy failed: ${dev_bin_dir}/${file} to ${deployment_bin_dir}/${new_file}"
 #	exit 5
 #    endif
 #    @ file_count ++
 #end
-#echo "${file_count} machine configuration files copied."
-echo "Copying camera configuration files..."
-set file_list = "autoguider/andor/examples/common/detector.ini autoguider/andor/examples/common/pcii29k_sldma.cof autoguider/andor/examples/common/pciifpga.rbf"
-set file_count = 0
-cd ${dev_dir}
-foreach file ( ${file_list} )
-#    set new_file = `echo ${file} | sed "s#${camera_name}.##"`
-    set new_file = ${file}
-    cp ${dev_bin_dir}/${file} ${deployment_bin_dir}/${new_file}
-    set cp_status = $status
-    if( ${cp_status} != 0 ) then
-	echo "Copy failed: ${dev_bin_dir}/${file} to ${deployment_bin_dir}/${new_file}"
-	exit 5
-    endif
-    @ file_count ++
-end
-echo "${file_count} camera configuration files copied."
+#echo "${file_count} camera configuration files copied."
 #
 # /etc init scripts
 #
@@ -336,15 +322,15 @@ endif
 # Kernel modules
 #
 # Maybe have per-machine local dir's of compiled astropci.o modules eventually
-if ( "${HOSTTYPE}" == "i386-linux" ) then
-    set src_dir = "${dev_bin_dir}/autoguider/andor/"
-    set dest_dir = "${deployment_dir}/lib/modules/${kernel_release}/misc"
-    cp ${src_dir}/andordrvlx.o ${dest_dir}
-    set cp_status = $status
-    if( ${cp_status} != 0 ) then
-	echo "Copy failed: ${src_dir}/andordrvlx.o to ${dest_dir}"
-	exit 3
-    endif
+#if ( "${HOSTTYPE}" == "i386-linux" ) then
+#    set src_dir = "${dev_bin_dir}/autoguider/andor/"
+#    set dest_dir = "${deployment_dir}/lib/modules/${kernel_release}/misc"
+#    cp ${src_dir}/andordrvlx.o ${dest_dir}
+#    set cp_status = $status
+#    if( ${cp_status} != 0 ) then
+#	echo "Copy failed: ${src_dir}/andordrvlx.o to ${dest_dir}"
+#	exit 3
+#    endif
 #endif
 #
 # serialized Java message classes : .obj
@@ -404,6 +390,9 @@ echo "Download ${deployment_tar}.gz autoguider_tar_install icc_cshrc icc_cshrc_e
 echo "Deployment ready."
 #
 # $Log: not supported by cvs2svn $
+# Revision 1.5  2006/10/18 10:30:51  cjm
+# Added autoguider_get_guide_frames_cron / autoguider_rm_guide_frames_cron.
+#
 # Revision 1.4  2006/09/20 10:41:03  cjm
 # Added autoguider_get_object_list.
 #
