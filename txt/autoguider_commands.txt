@@ -1,7 +1,7 @@
 Command Set
 -----------
-$Header: /home/cjm/cvs/autoguider/txt/autoguider_commands.txt,v 1.1 2006-10-18 13:49:09 cjm Exp $
-$Revision: 1.1 $
+$Header: /home/cjm/cvs/autoguider/txt/autoguider_commands.txt,v 1.2 2007-01-29 11:57:35 cjm Exp $
+$Revision: 1.2 $
 
 abort
 agstate <n>
@@ -16,7 +16,7 @@ guide on
 guide off
 guide window <sx> <sy> <ex> <ey>
 guide exposure_length <ms> [lock]
-guide <dark|flat|object|packet> <on|off>
+guide <dark|flat|object|packet|window_track> <on|off>
 guide <object> <index>
 help
 log_level <autoguider|ccd|command_server|object|ngatcil> <n>
@@ -35,3 +35,6 @@ temperature cooler off
 Log
 ---
 $Log: not supported by cvs2svn $
+Revision 1.1  2006/10/18 13:49:09  cjm
+Initial revision
+
