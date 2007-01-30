@@ -1,11 +1,11 @@
 /* autoguider_field.c
 ** Autoguider field routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_field.c,v 1.10 2007-01-26 19:00:23 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_field.c,v 1.11 2007-01-30 17:35:24 cjm Exp $
 */
 /**
  * Field routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.10 $
+ * @version $Revision: 1.11 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -30,6 +30,7 @@
 
 #include "ngatcil_ags_sdb.h"
 
+#include "autoguider_buffer.h"
 #include "autoguider_cil.h"
 #include "autoguider_dark.h"
 #include "autoguider_field.h"
@@ -118,7 +119,7 @@ struct Field_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_field.c,v 1.10 2007-01-26 19:00:23 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_field.c,v 1.11 2007-01-30 17:35:24 cjm Exp $";
 /**
  * Instance of field data.
  * @see #Field_Struct
@@ -281,6 +282,7 @@ int Autoguider_Field_Exposure_Length_Set(int exposure_length,int lock)
  * @see autoguider_buffer.html#Autoguider_Buffer_Raw_To_Reduced_Field
  * @see autoguider_buffer.html#Autoguider_Buffer_Field_Exposure_Length_Set
  * @see autoguider_buffer.html#Autoguider_Buffer_Field_Exposure_Start_Time_Set
+ * @see autoguider_buffer.html#Autoguider_Buffer_Field_CCD_Temperature_Set
  * @see autoguider_cil.html#Autoguider_CIL_SDB_Packet_State_Set
  * @see autoguider_cil.html#Autoguider_CIL_SDB_Packet_Send
  * @see autoguider_dark.html#Autoguider_Dark_Set
@@ -295,10 +297,14 @@ int Autoguider_Field_Exposure_Length_Set(int exposure_length,int lock)
  * @see ../ccd/cdocs/ccd_setup.html#CCD_Setup_Dimensions
  * @see ../ccd/cdocs/ccd_exposure.html#CCD_Exposure_Expose
  * @see ../ccd/cdocs/ccd_exposure.html#CCD_Exposure_Get_Exposure_Start_Time
+ * @see ../ccd/cdocs/ccd_temperature.html#CCD_Temperature_Get
+ * @see ../ccd/cdocs/ccd_temperature.html#CCD_TEMPERATURE_STATUS
  */
 int Autoguider_Field(void)
 {
 	struct CCD_Setup_Window_Struct window;
+	enum CCD_TEMPERATURE_STATUS temperature_status;
+	double current_temperature;
 	struct timespec start_time;
 	time_t time_secs;
 	struct tm *time_tm = NULL;
@@ -486,7 +492,8 @@ int Autoguider_Field(void)
 			sprintf(Autoguider_General_Error_String,"Autoguider_Field:CCD_Exposure_Expose failed.");
 			return FALSE;
 		}
-		/* save the exposure length and start time for this buffer for future reference (FITS headers) */
+		/* save the exposure length, start time, CCD temperature for this buffer 
+		** for future reference (FITS headers) */
 		if(!Autoguider_Buffer_Field_Exposure_Length_Set(Field_Data.In_Use_Buffer_Index,
 								Field_Data.Exposure_Length))
 			Autoguider_General_Error();
@@ -494,6 +501,17 @@ int Autoguider_Field(void)
 		if(retval == TRUE)
 		{
 			if(!Autoguider_Buffer_Field_Exposure_Start_Time_Set(Field_Data.In_Use_Buffer_Index,start_time))
+				Autoguider_General_Error();
+		}
+		retval = CCD_Temperature_Get(&current_temperature,&temperature_status);
+		if(retval)
+		{
+#if AUTOGUIDER_DEBUG > 9
+			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Autoguider_Field:"
+					      "current temperature is %.2f C.",current_temperature);
+#endif
+			if(!Autoguider_Buffer_Field_CCD_Temperature_Set(Field_Data.In_Use_Buffer_Index,
+									current_temperature))
 				Autoguider_General_Error();
 		}
 #if AUTOGUIDER_DEBUG > 7
@@ -578,6 +596,7 @@ int Autoguider_Field(void)
  * @see autoguider_buffer.html#Autoguider_Buffer_Raw_Field_Unlock
  * @see autoguider_buffer.html#Autoguider_Buffer_Get_Field_Pixel_Count
  * @see autoguider_buffer.html#Autoguider_Buffer_Raw_To_Reduced_Field
+ * @see autoguider_buffer.html#Autoguider_Buffer_Field_CCD_Temperature_Set
  * @see autoguider_dark.html#Autoguider_Dark_Set
  * @see autoguider_flat.html#Autoguider_Flat_Set
  * @see autoguider_general.html#Autoguider_General_Log
@@ -589,10 +608,15 @@ int Autoguider_Field(void)
  * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Integer
  * @see ../ccd/cdocs/ccd_setup.html#CCD_Setup_Dimensions
  * @see ../ccd/cdocs/ccd_exposure.html#CCD_Exposure_Expose
+ * @see ../ccd/cdocs/ccd_exposure.html#CCD_Exposure_Get_Exposure_Start_Time
+ * @see ../ccd/cdocs/ccd_temperature.html#CCD_Temperature_Get
+ * @see ../ccd/cdocs/ccd_temperature.html#CCD_TEMPERATURE_STATUS
  */
 int Autoguider_Field_Expose(void)
 {
 	struct CCD_Setup_Window_Struct window;
+	enum CCD_TEMPERATURE_STATUS temperature_status;
+	double current_temperature;
 	struct timespec start_time;
 	time_t time_secs;
 	struct tm *time_tm = NULL;
@@ -754,6 +778,17 @@ int Autoguider_Field_Expose(void)
 	if(retval == TRUE)
 	{
 		if(!Autoguider_Buffer_Field_Exposure_Start_Time_Set(Field_Data.In_Use_Buffer_Index,start_time))
+			Autoguider_General_Error();
+	}
+	retval = CCD_Temperature_Get(&current_temperature,&temperature_status);
+	if(retval)
+	{
+#if AUTOGUIDER_DEBUG > 9
+		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Autoguider_Field_Expose:"
+					      "current temperature is %.2f C.",current_temperature);
+#endif
+		if(!Autoguider_Buffer_Field_CCD_Temperature_Set(Field_Data.In_Use_Buffer_Index,
+								current_temperature))
 			Autoguider_General_Error();
 	}
 #if AUTOGUIDER_DEBUG > 7
@@ -1521,6 +1556,10 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.10  2007/01/26 19:00:23  cjm
+** Changed field exposure length, such that it is always reset to "ccd.exposure.field.default",
+** if the exposure length lock is off or the exposure length is < 0 (uninitialised).
+**
 ** Revision 1.9  2007/01/26 15:29:42  cjm
 ** Set buffers start time/exposure length data.
 ** Added getters for field dimension data.

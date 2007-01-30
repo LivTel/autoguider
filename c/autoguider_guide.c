@@ -1,11 +1,11 @@
 /* autoguider_guide.c
 ** Autoguider guide routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.26 2007-01-26 15:29:42 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.27 2007-01-30 17:35:24 cjm Exp $
 */
 /**
  * Guide routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.26 $
+ * @version $Revision: 1.27 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -32,6 +32,7 @@
 #include "ngatcil_ags_sdb.h"
 #include "ngatcil_tcs_guide_packet.h"
 
+#include "autoguider_buffer.h"
 #include "autoguider_cil.h"
 #include "autoguider_dark.h"
 #include "autoguider_field.h"
@@ -169,7 +170,7 @@ struct Guide_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_guide.c,v 1.26 2007-01-26 15:29:42 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_guide.c,v 1.27 2007-01-30 17:35:24 cjm Exp $";
 /**
  * Instance of guide data.
  * @see #Guide_Struct
@@ -1033,6 +1034,9 @@ struct CCD_Setup_Window_Struct Autoguider_Guide_Window_Get(void)
  * @see autoguider_buffer.html#Autoguider_Buffer_Set_Guide_Dimension
  * @see autoguider_buffer.html#Autoguider_Buffer_Raw_Guide_Lock
  * @see autoguider_buffer.html#Autoguider_Buffer_Raw_Guide_Unlock
+ * @see autoguider_buffer.html#Autoguider_Buffer_Guide_CCD_Temperature_Set
+ * @see autoguider_buffer.html#Autoguider_Buffer_Guide_Exposure_Length_Set
+ * @see autoguider_buffer.html#Autoguider_Buffer_Guide_Exposure_Start_Time_Set
  * @see autoguider_cil.html#Autoguider_CIL_Guide_Packet_Open
  * @see autoguider_cil.html#Autoguider_CIL_Guide_Packet_Close
  * @see autoguider_cil.html#Autoguider_CIL_SDB_Packet_State_Set
@@ -1042,13 +1046,18 @@ struct CCD_Setup_Window_Struct Autoguider_Guide_Window_Get(void)
  * @see autoguider_general.html#Autoguider_General_Log_Format
  * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_GUIDE
  * @see ../ccd/cdocs/ccd_exposure.html#CCD_Exposure_Expose
+ * @see ../ccd/cdocs/ccd_exposure.html#CCD_Exposure_Get_Exposure_Start_Time
  * @see ../ccd/cdocs/ccd_setup.html#CCD_Setup_Dimensions
+ * @see ../ccd/cdocs/ccd_temperature.html#CCD_Temperature_Get
+ * @see ../ccd/cdocs/ccd_temperature.html#CCD_TEMPERATURE_STATUS
  * @see ../ngatcil/cdocs/ngatcil_ags_sdb.html#eAggState_e
  */
 static void *Guide_Thread(void *user_arg)
 {
+	enum CCD_TEMPERATURE_STATUS temperature_status;
 	struct timespec start_time,loop_start_time,current_time;
 	unsigned short *buffer_ptr = NULL;
+	double current_temperature;
 	int retval;
 
 #if AUTOGUIDER_DEBUG > 1
@@ -1220,7 +1229,8 @@ static void *Guide_Thread(void *user_arg)
 				Autoguider_General_Error(); /* no need to fail */
 			return NULL;
 		}
-		/* save the exposure length and start time for this buffer for future reference (FITS headers) */
+		/* save the exposure length,start time and CCD temperature for this buffer 
+		** for future reference (FITS headers) */
 		if(!Autoguider_Buffer_Guide_Exposure_Length_Set(Guide_Data.In_Use_Buffer_Index,
 								Guide_Data.Exposure_Length))
 			Autoguider_General_Error();
@@ -1228,6 +1238,17 @@ static void *Guide_Thread(void *user_arg)
 		if(retval == TRUE)
 		{
 			if(!Autoguider_Buffer_Guide_Exposure_Start_Time_Set(Guide_Data.In_Use_Buffer_Index,start_time))
+				Autoguider_General_Error();
+		}
+		retval = CCD_Temperature_Get(&current_temperature,&temperature_status);
+		if(retval)
+		{
+#if AUTOGUIDER_DEBUG > 9
+			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:"
+					      "current temperature is %.2f C.",current_temperature);
+#endif
+			if(!Autoguider_Buffer_Guide_CCD_Temperature_Set(Guide_Data.In_Use_Buffer_Index,
+									current_temperature))
 				Autoguider_General_Error();
 		}
 #if AUTOGUIDER_DEBUG > 9
@@ -2397,6 +2418,10 @@ static int Guide_Dimension_Config_Load(void)
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.26  2007/01/26 15:29:42  cjm
+** Set buffers start time/exposure length data.
+** Added getters for guide dimension data.
+**
 ** Revision 1.25  2007/01/19 14:23:44  cjm
 ** Added autoguider guide window tracking:
 ** Guide_Window_Tracking_Struct
