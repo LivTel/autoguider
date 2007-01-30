@@ -1,5 +1,5 @@
 /* autoguider_fits_header.h
-** $Header: /home/cjm/cvs/autoguider/include/autoguider_fits_header.h,v 1.1 2006-07-16 20:15:06 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/include/autoguider_fits_header.h,v 1.2 2007-01-30 17:41:43 cjm Exp $
 */
 #ifndef AUTOGUIDER_FITS_HEADER_H
 #define AUTOGUIDER_FITS_HEADER_H
@@ -25,6 +25,7 @@ struct Fits_Header_Struct
 	int Allocated_Card_Count;
 };
 
+extern int Autoguider_Fits_Header_Initialise(struct Fits_Header_Struct *header);
 extern int Autoguider_Fits_Header_Clear(struct Fits_Header_Struct *header);
 extern int Autoguider_Fits_Header_Delete(struct Fits_Header_Struct *header,char *keyword);
 extern int Autoguider_Fits_Header_Add_String(struct Fits_Header_Struct *header,char *keyword,char *value,
@@ -39,5 +40,8 @@ extern int Autoguider_Fits_Header_Write_To_Fits(struct Fits_Header_Struct header
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2006/07/16 20:15:06  cjm
+** Initial revision
+**
 */
 #endif
