@@ -1,11 +1,11 @@
 /* autoguider_general.c
 ** Autoguider general routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_general.c,v 1.3 2007-01-10 11:27:21 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_general.c,v 1.4 2007-01-30 17:35:24 cjm Exp $
 */
 /**
  * General routines (logging, errror etc) for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.3 $
+ * @version $Revision: 1.4 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -95,7 +95,7 @@ struct General_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_general.c,v 1.3 2007-01-10 11:27:21 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_general.c,v 1.4 2007-01-30 17:35:24 cjm Exp $";
 /**
  * The instance of General_Struct that contains local data for this module.
  * This is statically initialised to the following:
@@ -104,10 +104,11 @@ static char rcsid[] = "$Id: autoguider_general.c,v 1.3 2007-01-10 11:27:21 cjm E
  * <dt>Log_Filter</dt> <dd>NULL</dd>
  * <dt>Log_Filter_Level</dt> <dd>0</dd>
  * <dt>Log_Directory</dt> <dd>NULL</dd>
- * <dt>Log_Filename</dt> <dd>log.txt</dd>
+ * <dt>Log_Filename</dt> <dd>autoguider_log.txt</dd>
  * <dt>Log_FP</dt> <dd>NULL</dd>
- * <dt>Log_Filename</dt> <dd>error.txt</dd>
+ * <dt>Log_Filename</dt> <dd>autoguider_error.txt</dd>
  * <dt>Error_FP</dt> <dd>NULL</dd>
+ * <dt>Config_Filename</dt> <dd>NULL</dd>
  * </dl>
  * @see #General_Struct
  */
@@ -693,6 +694,8 @@ static void General_Log_Handler_Get_Hourly_Filename(char *directory,char *basena
  */
 static void General_Log_Handler_Filename_To_Fp(char *log_filename,FILE **log_fp)
 {
+	int fopen_errno;
+
 	if(log_fp == NULL)
 	{
 		return;
@@ -704,10 +707,19 @@ static void General_Log_Handler_Filename_To_Fp(char *log_filename,FILE **log_fp)
 	}
 	(*log_fp) = fopen(log_filename,"a");
 	/* (*log_fp) can still be NULL here on failure */
+	if((*log_fp) == NULL)
+	{
+		fopen_errno = errno;
+		fprintf(stderr,"General_Log_Handler_Filename_To_Fp:fopen '%s' failed %d.\n",log_filename,
+			fopen_errno);
+	}
 }
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.3  2007/01/10 11:27:21  cjm
+** Added 1 to doy to 1st Jan is day 1.
+**
 ** Revision 1.2  2006/06/12 19:22:13  cjm
 ** Added NGATCil error handling.
 **
