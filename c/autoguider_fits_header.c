@@ -1,11 +1,11 @@
 /* autoguider_fits_header.c
 ** Autoguider fits header list handling routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_fits_header.c,v 1.3 2006-08-29 13:55:42 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_fits_header.c,v 1.4 2007-01-30 17:35:24 cjm Exp $
 */
 /**
  * Routines to look after lists of FITS headers to go into images.
  * @author Chris Mottram
- * @version $Revision: 1.3 $
+ * @version $Revision: 1.4 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -97,7 +97,7 @@ struct Fits_Header_Card_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_fits_header.c,v 1.3 2006-08-29 13:55:42 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_fits_header.c,v 1.4 2007-01-30 17:35:24 cjm Exp $";
 
 /* internal functions */
 static int Fits_Header_Add_Card(struct Fits_Header_Struct *header,struct Fits_Header_Card_Struct card);
@@ -105,6 +105,37 @@ static int Fits_Header_Add_Card(struct Fits_Header_Struct *header,struct Fits_He
 /* ----------------------------------------------------------------------------
 ** 		external functions 
 ** ---------------------------------------------------------------------------- */
+/**
+ * Routine to initialise the fits header of cards. This does <b>not</b> free the card list memory.
+ * @param header The address of a Fits_Header_Struct structure to modify.
+ * @return The routine returns TRUE on success, and FALSE on failure. On failure, Autoguider_General_Error_Number
+ *         and Autoguider_General_Error_String should be filled in with suitable values.
+ * @see autoguider.general.html#Autoguider_General_Log
+ * @see autoguider.general.html#Autoguider_General_Log_Format
+ * @see autoguider.general.html#AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER
+ * @see autoguider.general.html#Autoguider_General_Error_Number
+ * @see autoguider.general.html#Autoguider_General_Error_String
+ */
+int Autoguider_Fits_Header_Initialise(struct Fits_Header_Struct *header)
+{
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER,"Autoguider_Fits_Header_Initialise:started.");
+#endif
+	if(header == NULL)
+	{
+		Autoguider_General_Error_Number = 1219;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Fits_Header_Initialise:Header was NULL.");
+		return FALSE;
+	}
+	header->Card_List = NULL;
+	header->Allocated_Card_Count = 0;
+	header->Card_Count = 0;
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER,"Autoguider_Fits_Header_Initialise:finished.");
+#endif
+	return TRUE;
+}
+
 /**
  * Routine to clear the fits header of cards. This does <b>not</b> free the card list memory.
  * @param header The address of a Fits_Header_Struct structure to modify.
@@ -530,20 +561,40 @@ int Autoguider_Fits_Header_Write_To_Fits(struct Fits_Header_Struct header,fitsfi
 		switch(header.Card_List[i].Type)
 		{
 			case FITS_HEADER_TYPE_STRING:
+#if AUTOGUIDER_DEBUG > 9
+				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER,
+							      "Autoguider_Fits_Header_Write_To_Fits:%d: %s = %s.",i,
+						       header.Card_List[i].Keyword,header.Card_List[i].Value.String);
+#endif
 				retval = fits_update_key(fits_fp,TSTRING,header.Card_List[i].Keyword,
 							 header.Card_List[i].Value.String,NULL,&status);
 				break;
 			case FITS_HEADER_TYPE_INTEGER:
+#if AUTOGUIDER_DEBUG > 9
+				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER,
+							      "Autoguider_Fits_Header_Write_To_Fits:%d: %s = %d.",i,
+						       header.Card_List[i].Keyword,header.Card_List[i].Value.Int);
+#endif
 				retval = fits_update_key(fits_fp,TINT,header.Card_List[i].Keyword,
 							 &(header.Card_List[i].Value.Int),NULL,&status);
 				break;
 			case FITS_HEADER_TYPE_FLOAT:
+#if AUTOGUIDER_DEBUG > 9
+				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER,
+							      "Autoguider_Fits_Header_Write_To_Fits:%d: %s = %.2f.",i,
+						       header.Card_List[i].Keyword,header.Card_List[i].Value.Float);
+#endif
 				retval = fits_update_key_fixdbl(fits_fp,header.Card_List[i].Keyword,
 								header.Card_List[i].Value.Float,6,NULL,&status);
 				/*retval = fits_update_key(fits_fp,TDOUBLE,header.Keyword,header.Value.Float,
 				**NULL,&status);*/
 				break;
 			case FITS_HEADER_TYPE_LOGICAL:
+#if AUTOGUIDER_DEBUG > 9
+				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER,
+							      "Autoguider_Fits_Header_Write_To_Fits:%d: %s = %d.",i,
+						       header.Card_List[i].Keyword,header.Card_List[i].Value.Boolean);
+#endif
 				retval = fits_update_key(fits_fp,TLOGICAL,header.Card_List[i].Keyword,
 							 &(header.Card_List[i].Value.Boolean),NULL,&status);
 				break;
@@ -662,6 +713,9 @@ static int Fits_Header_Add_Card(struct Fits_Header_Struct *header,struct Fits_He
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.3  2006/08/29 13:55:42  cjm
+** More implementation - not finished yet!
+**
 ** Revision 1.2  2006/07/17 13:45:30  cjm
 ** Fixed comment.
 **
