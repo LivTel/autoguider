@@ -1,11 +1,11 @@
 /* andor_temperature.c
 ** Autoguder Andor CCD Library temperature routines
-** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_temperature.c,v 1.3 2007-01-29 14:43:07 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_temperature.c,v 1.4 2007-01-30 16:28:24 cjm Exp $
 */
 /**
  * Temperature routines for the Andor autoguider CCD library.
  * @author Chris Mottram
- * @version $Revision: 1.3 $
+ * @version $Revision: 1.4 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -31,7 +31,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: andor_temperature.c,v 1.3 2007-01-29 14:43:07 cjm Exp $";
+static char rcsid[] = "$Id: andor_temperature.c,v 1.4 2007-01-30 16:28:24 cjm Exp $";
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -66,6 +66,10 @@ int Andor_Temperature_Get(double *temperature,enum CCD_TEMPERATURE_STATUS *tempe
 	}
 	andor_retval = GetTemperatureF(&temperature_f);
 	(*temperature) = (double)temperature_f;
+#ifdef ANDOR_DEBUG
+	CCD_General_Log_Format(ANDOR_GENERAL_LOG_BIT_EXPOSURE,"Andor_Temperature_Get:"
+			       "GetTemperatureF returned (%.2f,%d).",(*temperature),andor_retval);
+#endif
 	switch(andor_retval)
 	{
 		case DRV_NOT_INITIALIZED:
@@ -73,8 +77,13 @@ int Andor_Temperature_Get(double *temperature,enum CCD_TEMPERATURE_STATUS *tempe
 			break;
 		case DRV_ACQUIRING:
 			(*temperature_status) = CCD_TEMPERATURE_STATUS_UNKNOWN;
-			break;
+			CCD_General_Error_Number = 1207;
+			sprintf(CCD_General_Error_String,"Andor_Temperature_Get: "
+				"GetTemperatureF returned DRV_ACQUIRING %s(%u,%.2f).",
+				Andor_General_ErrorCode_To_String(andor_retval),andor_retval,(*temperature));
+			return FALSE;
 		case DRV_ERROR_ACK:
+			(*temperature_status) = CCD_TEMPERATURE_STATUS_UNKNOWN;
 			CCD_General_Error_Number = 1202;
 			sprintf(CCD_General_Error_String,"Andor_Temperature_Get: GetTemperatureF failed %s(%u).",
 				Andor_General_ErrorCode_To_String(andor_retval),andor_retval);
@@ -184,6 +193,9 @@ int Andor_Temperature_Cooler_Off(void)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.3  2007/01/29 14:43:07  cjm
+** Added more Andor_Temperature_Get logging.
+**
 ** Revision 1.2  2006/06/01 15:20:20  cjm
 ** Changed temperature status enum to CCD_TEMPERATURE_STATUS.
 **
