@@ -1,11 +1,11 @@
 /* autoguider_get_fits.c
 ** Autoguider get fits routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_get_fits.c,v 1.2 2007-01-26 15:29:42 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_get_fits.c,v 1.3 2007-01-30 17:35:24 cjm Exp $
 */
 /**
  * Routines to return an in-memory FITS image for the field or guide buffer.
  * @author Chris Mottram
- * @version $Revision: 1.2 $
+ * @version $Revision: 1.3 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -45,7 +45,7 @@
 
 /* internal hash defines */
 /**
- * Offset between swgrees centigrade and degress Kelvin.
+ * Offset between degrees centigrade and degress Kelvin.
  */
 #define CENTIGRADE_TO_KELVIN (273.15)
 
@@ -53,7 +53,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_get_fits.c,v 1.2 2007-01-26 15:29:42 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_get_fits.c,v 1.3 2007-01-30 17:35:24 cjm Exp $";
 
 /* internal functions */
 static void Get_Fits_TimeSpec_To_Date_String(struct timespec time,char *time_string);
@@ -80,6 +80,7 @@ static int Get_Fits_TimeSpec_To_Mjd(struct timespec time,int leap_second_correct
  * @see autoguider_buffer.html#Autoguider_Buffer_Get_Field_Binned_NCols
  * @see autoguider_buffer.html#Autoguider_Buffer_Get_Field_Binned_NRows
  * @see autoguider_field.html#Autoguider_Field_Get_Last_Buffer_Index
+ * @see autoguider_fits_header.html#Autoguider_Fits_Header_Initialise
  * @see autoguider_buffer.html#Autoguider_Buffer_Get_Guide_Pixel_Count
  * @see autoguider_buffer.html#Autoguider_Buffer_Raw_Guide_Copy
  * @see autoguider_buffer.html#Autoguider_Buffer_Get_Guide_Binned_NCols
@@ -130,8 +131,10 @@ int Autoguider_Get_Fits(int buffer_type,int buffer_state,void **buffer_ptr,size_
 		return FALSE;
 	}
 	/* initialise fits header */
-	Autoguider_Fits_Header_Clear(&fits_header);
-	Autoguider_Get_Fits_Get_Header(buffer_type,buffer_state,&fits_header);
+	if(!Autoguider_Fits_Header_Initialise(&fits_header))
+		Autoguider_General_Error();
+	if(!Autoguider_Get_Fits_Get_Header(buffer_type,buffer_state,&fits_header))
+		Autoguider_General_Error();
 	/* pixel_length based on whether raw or reduced: raw is unsigned short, reduced is float */
 	if(buffer_state == AUTOGUIDER_GET_FITS_BUFFER_STATE_RAW)
 		pixel_length = sizeof(unsigned short);
@@ -449,8 +452,10 @@ int Autoguider_Get_Fits_From_Buffer(void **buffer_ptr,size_t *buffer_length,int 
  * @see #CENTIGRADE_TO_KELVIN
  * @see autoguider_buffer.html#Autoguider_Buffer_Field_Exposure_Start_Time_Get
  * @see autoguider_buffer.html#Autoguider_Buffer_Field_Exposure_Length_Get
+ * @see autoguider_buffer.html#Autoguider_Buffer_Field_CCD_Temperature_Get
  * @see autoguider_buffer.html#Autoguider_Buffer_Guide_Exposure_Start_Time_Get
  * @see autoguider_buffer.html#Autoguider_Buffer_Guide_Exposure_Length_Get
+ * @see autoguider_buffer.html#Autoguider_Buffer_Guide_CCD_Temperature_Get
  * @see autoguider_field.html#Autoguider_Field_Get_Bin_X
  * @see autoguider_field.html#Autoguider_Field_Get_Bin_Y
  * @see autoguider_field.html#Autoguider_Field_Get_Unbinned_NCols
@@ -466,12 +471,10 @@ int Autoguider_Get_Fits_From_Buffer(void **buffer_ptr,size_t *buffer_length,int 
  * @see autoguider_guide.html#Autoguider_Guide_Window_Get
  * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Double
  * @see ../ccd/cdocs/ccd_setup.html#CCD_Setup_Window_Struct
- * @see ../ccd/cdocs/ccd_temperature.html#CCD_Temperature_Get
  */
 int Autoguider_Get_Fits_Get_Header(int buffer_type,int buffer_state,struct Fits_Header_Struct *fits_header)
 {
 	struct CCD_Setup_Window_Struct window;
-	enum CCD_TEMPERATURE_STATUS temperature_status;
 	struct timespec start_time;
 	char date_string[32];
 	double current_temperature,target_temperature,exptime,mjd;
@@ -512,8 +515,14 @@ int Autoguider_Get_Fits_Get_Header(int buffer_type,int buffer_state,struct Fits_
 						  "Was this a field or guide observation");
 		ccdxbin = Autoguider_Field_Get_Bin_X();
 		ccdybin = Autoguider_Field_Get_Bin_Y();
-		ccdximsi = Autoguider_Field_Get_Unbinned_NCols()/ccdxbin;
-		ccdyimsi = Autoguider_Field_Get_Unbinned_NRows()/ccdybin;
+		if(ccdxbin != 0)
+			ccdximsi = Autoguider_Field_Get_Unbinned_NCols()/ccdxbin;
+		else
+			ccdximsi = 0;
+		if(ccdybin != 0)
+			ccdyimsi = Autoguider_Field_Get_Unbinned_NRows()/ccdybin;
+		else
+			ccdyimsi = 0;
 		ccdwmode = FALSE;
 		ccdwxoff = 0;
 		ccdwyoff = 0;
@@ -531,6 +540,9 @@ int Autoguider_Get_Fits_Get_Header(int buffer_type,int buffer_state,struct Fits_
 		if(!Autoguider_Buffer_Field_Exposure_Start_Time_Get(buffer_index,&start_time))
 			Autoguider_General_Error();
 		if(!Autoguider_Buffer_Field_Exposure_Length_Get(buffer_index,&exposure_length_ms))
+			Autoguider_General_Error();
+		/* temperature */
+		if(!Autoguider_Buffer_Field_CCD_Temperature_Get(buffer_index,&current_temperature))
 			Autoguider_General_Error();
 	}
 	else if(buffer_type == AUTOGUIDER_GET_FITS_BUFFER_TYPE_GUIDE)
@@ -559,6 +571,9 @@ int Autoguider_Get_Fits_Get_Header(int buffer_type,int buffer_state,struct Fits_
 		if(!Autoguider_Buffer_Guide_Exposure_Start_Time_Get(buffer_index,&start_time))
 			Autoguider_General_Error();
 		if(!Autoguider_Buffer_Guide_Exposure_Length_Get(buffer_index,&exposure_length_ms))
+			Autoguider_General_Error();
+		/* temperature */
+		if(!Autoguider_Buffer_Guide_CCD_Temperature_Get(buffer_index,&current_temperature))
 			Autoguider_General_Error();
 	}/* end if buffer_type */
 	Autoguider_Fits_Header_Add_Int(fits_header,"CCDXIMSI",ccdximsi,
@@ -602,14 +617,15 @@ diddly modifiable programmable stuff TAGID/USERID/PROPID
 		Autoguider_Fits_Header_Add_String(fits_header,"REDTYPE","REDUCED",
 						  "Is this raw data or has it been reduced");
 	}
-	/* temperature */
-	retval = CCD_Temperature_Get(&current_temperature,&temperature_status);
-	if(retval)
-	{
-		ccdatemp = (int)(current_temperature+CENTIGRADE_TO_KELVIN);
-		Autoguider_Fits_Header_Add_Int(fits_header,"CCDATEMP",ccdatemp,
+	/* CCDATEMP */
+	ccdatemp = (int)(current_temperature+CENTIGRADE_TO_KELVIN);
+#if AUTOGUIDER_DEBUG > 9
+	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GET_FITS,"Autoguider_Get_Fits_Get_Header:"
+				      "ccdatemp is %.d K.",ccdatemp);
+#endif
+	Autoguider_Fits_Header_Add_Int(fits_header,"CCDATEMP",ccdatemp,
 					       "CCD Temperature at time of writing FITS header (Kelvin)");
-	}
+	/* target temperature */
 	retval = CCD_Config_Get_Double("ccd.temperature.target",&target_temperature);
 	if(retval)
 	{
@@ -761,6 +777,10 @@ static int Get_Fits_TimeSpec_To_Mjd(struct timespec time,int leap_second_correct
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.2  2007/01/26 15:29:42  cjm
+** Added Autoguider_Get_Fits_Get_Header and associated routines to populate
+** FITS headers.
+**
 ** Revision 1.1  2006/06/01 15:18:38  cjm
 ** Initial revision
 **
