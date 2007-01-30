@@ -1,11 +1,11 @@
 /* autoguider_buffer.c
 ** Autoguider buffer routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_buffer.c,v 1.2 2007-01-26 15:29:42 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_buffer.c,v 1.3 2007-01-30 17:35:24 cjm Exp $
 */
 /**
  * Buffer routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.2 $
+ * @version $Revision: 1.3 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -58,6 +58,8 @@
  *     started that generated the data in the buffer.</dd>
  * <dt>Exposure_Start_Time_List</dt> <dd>Array of AUTOGUIDER_BUFFER_COUNT timespecs to hold the exposure length
  *     (in milliseconds) that generated the data in the buffer.</dd>
+ * <dt>CCD_Temperature_List</dt> <dd>Array of AUTOGUIDER_BUFFER_COUNT doubles to hold the CCD temperature
+ *     (in degrees centigrade) at the time the data was read out.</dd>
  * </dl>
  * @see #AUTOGUIDER_BUFFER_COUNT
  */
@@ -75,6 +77,7 @@ struct Buffer_One_Struct
 	pthread_mutex_t Reduced_Mutex_List[AUTOGUIDER_BUFFER_COUNT];
 	struct timespec Exposure_Start_Time_List[AUTOGUIDER_BUFFER_COUNT];
 	int Exposure_Length_List[AUTOGUIDER_BUFFER_COUNT];
+	double CCD_Temperature_List[AUTOGUIDER_BUFFER_COUNT];
 };
 
 /**
@@ -96,7 +99,7 @@ struct Buffer_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_buffer.c,v 1.2 2007-01-26 15:29:42 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_buffer.c,v 1.3 2007-01-30 17:35:24 cjm Exp $";
 /**
  * Instance of buffer data.
  * @see #Buffer_Struct
@@ -109,7 +112,8 @@ static struct Buffer_Struct Buffer_Data =
 		{PTHREAD_MUTEX_INITIALIZER,PTHREAD_MUTEX_INITIALIZER}, /* Raw_Mutex_List */
 		{NULL,NULL}, /* Reduced_Buffer_List */
 		{PTHREAD_MUTEX_INITIALIZER,PTHREAD_MUTEX_INITIALIZER}, /* Reduced_Mutex_List */
-		{{0,0},{0,0}},{0,0} /* Exposure_Start_Time_List/Exposure_Length_List */
+		{{0,0},{0,0}},{0,0}, /* Exposure_Start_Time_List/Exposure_Length_List */
+		{0,0} /* CCD_TemperatureList */
 	},
 	{
 		0,0,1,1,0,0, /* dimensions */
@@ -117,7 +121,8 @@ static struct Buffer_Struct Buffer_Data =
 		{PTHREAD_MUTEX_INITIALIZER,PTHREAD_MUTEX_INITIALIZER}, /* Raw_Mutex_List */
 		{NULL,NULL}, /* Reduced_Buffer_List */
 		{PTHREAD_MUTEX_INITIALIZER,PTHREAD_MUTEX_INITIALIZER}, /* Reduced_Mutex_List */
-		{{0,0},{0,0}},{0,0}/* Exposure_Start_Time_List/Exposure_Length_List */
+		{{0,0},{0,0}},{0,0}, /* Exposure_Start_Time_List/Exposure_Length_List */
+		{0,0} /* CCD_TemperatureList */
 	}
 };
 
@@ -912,6 +917,79 @@ int Autoguider_Buffer_Field_Exposure_Length_Get(int index,int *exposure_length_m
 }
 
 /**
+ * Routine to set the ccd temperature for the specified field buffer.
+ * @param index Which buffer (0..AUTOGUIDER_BUFFER_COUNT).
+ * @param current_ccd_temperature The CCD temperature, in degrees centigrade.
+ * @return The routine returns TRUE on success and FALSE on failure.
+ * @see #Buffer_Data
+ * @see #AUTOGUIDER_BUFFER_COUNT
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_BUFFER
+ * @see autoguider_general.html#Autoguider_General_Error_Number
+ * @see autoguider_general.html#Autoguider_General_Error_String
+ */
+int Autoguider_Buffer_Field_CCD_Temperature_Set(int index,double current_ccd_temperature)
+{
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
+		  "Autoguider_Buffer_Field_CCD_Temperature_Set(%d,%.2f):started.",index,current_ccd_temperature);
+#endif
+	if((index < 0)||(index >= AUTOGUIDER_BUFFER_COUNT))
+	{
+		Autoguider_General_Error_Number = 434;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Buffer_Field_CCD_Temperature_Set:"
+			"Index %d out of range (%d,%d).",index,0,AUTOGUIDER_BUFFER_COUNT);
+		return FALSE;
+	}
+	Buffer_Data.Field.CCD_Temperature_List[index] = current_ccd_temperature;
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
+			       "Autoguider_Buffer_Field_CCD_Temperature_Set:finished.");
+#endif
+	return TRUE;
+}
+
+/**
+ * Routine to get the CCD temperature for the specified field buffer.
+ * @param index Which buffer (0..AUTOGUIDER_BUFFER_COUNT).
+ * @param current_ccd_temperature The address of a double to store the CCD temperature, in degrees centigrade.
+ * @return The routine returns TRUE on success and FALSE on failure.
+ * @see #Buffer_Data
+ * @see #AUTOGUIDER_BUFFER_COUNT
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_BUFFER
+ * @see autoguider_general.html#Autoguider_General_Error_Number
+ * @see autoguider_general.html#Autoguider_General_Error_String
+ */
+int Autoguider_Buffer_Field_CCD_Temperature_Get(int index,double *current_ccd_temperature)
+{
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
+			       "Autoguider_Buffer_Field_CCD_Temperature_Get:started.");
+#endif
+	if((index < 0)||(index >= AUTOGUIDER_BUFFER_COUNT))
+	{
+		Autoguider_General_Error_Number = 435;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Buffer_Field_CCD_Temperature_Get:"
+			"Index %d out of range (%d,%d).",index,0,AUTOGUIDER_BUFFER_COUNT);
+		return FALSE;
+	}
+	if(current_ccd_temperature == NULL)
+	{
+		Autoguider_General_Error_Number = 436;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Buffer_Field_CCD_Temperature_Get:"
+			"current_ccd_temperature was NULL.");
+		return FALSE;
+	}
+	(*current_ccd_temperature) = Buffer_Data.Field.CCD_Temperature_List[index];
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
+		 "Autoguider_Buffer_Field_CCD_Temperature_Get(%d,%.2f):finished.",index,(*current_ccd_temperature));
+#endif
+	return TRUE;
+}
+
+/**
  * Routine to set the exposure start time for the specified guide buffer.
  * @param index Which buffer (0..AUTOGUIDER_BUFFER_COUNT).
  * @param start_time The start time, of type struct timespec.
@@ -1053,6 +1131,79 @@ int Autoguider_Buffer_Guide_Exposure_Length_Get(int index,int *exposure_length_m
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
 			       "Autoguider_Buffer_Guide_Exposure_Length_Get:finished.");
+#endif
+	return TRUE;
+}
+
+/**
+ * Routine to set the ccd temperature for the specified guide buffer.
+ * @param index Which buffer (0..AUTOGUIDER_BUFFER_COUNT).
+ * @param current_ccd_temperature The CCD temperature, in degrees centigrade.
+ * @return The routine returns TRUE on success and FALSE on failure.
+ * @see #Buffer_Data
+ * @see #AUTOGUIDER_BUFFER_COUNT
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_BUFFER
+ * @see autoguider_general.html#Autoguider_General_Error_Number
+ * @see autoguider_general.html#Autoguider_General_Error_String
+ */
+int Autoguider_Buffer_Guide_CCD_Temperature_Set(int index,double current_ccd_temperature)
+{
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
+		  "Autoguider_Buffer_Guide_CCD_Temperature_Set(%d,%.2f):started.",index,current_ccd_temperature);
+#endif
+	if((index < 0)||(index >= AUTOGUIDER_BUFFER_COUNT))
+	{
+		Autoguider_General_Error_Number = 437;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Buffer_Guide_CCD_Temperature_Set:"
+			"Index %d out of range (%d,%d).",index,0,AUTOGUIDER_BUFFER_COUNT);
+		return FALSE;
+	}
+	Buffer_Data.Guide.CCD_Temperature_List[index] = current_ccd_temperature;
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
+			       "Autoguider_Buffer_Guide_CCD_Temperature_Set:finished.");
+#endif
+	return TRUE;
+}
+
+/**
+ * Routine to get the CCD temperature for the specified guide buffer.
+ * @param index Which buffer (0..AUTOGUIDER_BUFFER_COUNT).
+ * @param current_ccd_temperature The address of a double to store the CCD temperature, in degrees centigrade.
+ * @return The routine returns TRUE on success and FALSE on failure.
+ * @see #Buffer_Data
+ * @see #AUTOGUIDER_BUFFER_COUNT
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_BUFFER
+ * @see autoguider_general.html#Autoguider_General_Error_Number
+ * @see autoguider_general.html#Autoguider_General_Error_String
+ */
+int Autoguider_Buffer_Guide_CCD_Temperature_Get(int index,double *current_ccd_temperature)
+{
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
+			       "Autoguider_Buffer_Guide_CCD_Temperature_Get:started.");
+#endif
+	if((index < 0)||(index >= AUTOGUIDER_BUFFER_COUNT))
+	{
+		Autoguider_General_Error_Number = 438;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Buffer_Guide_CCD_Temperature_Get:"
+			"Index %d out of range (%d,%d).",index,0,AUTOGUIDER_BUFFER_COUNT);
+		return FALSE;
+	}
+	if(current_ccd_temperature == NULL)
+	{
+		Autoguider_General_Error_Number = 439;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Buffer_Guide_CCD_Temperature_Get:"
+			"current_ccd_temperature was NULL.");
+		return FALSE;
+	}
+	(*current_ccd_temperature) = Buffer_Data.Guide.CCD_Temperature_List[index];
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
+		 "Autoguider_Buffer_Guide_CCD_Temperature_Get(%d,%.2f):finished.",index,(*current_ccd_temperature));
 #endif
 	return TRUE;
 }
@@ -1470,6 +1621,9 @@ static int Buffer_One_Reduced_Copy(struct Buffer_One_Struct *data,int index,floa
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.2  2007/01/26 15:29:42  cjm
+** Added routines to store and retrieve exposure start times and exposure lengths for the buffers.
+**
 ** Revision 1.1  2006/06/01 15:18:38  cjm
 ** Initial revision
 **
