@@ -1,13 +1,13 @@
 /* autoguider_object.c
 ** Autoguider object detection routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_object.c,v 1.9 2006-11-14 18:08:54 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_object.c,v 1.10 2007-02-08 17:56:17 cjm Exp $
 */
 /**
  * Object detection routines for the autoguider program.
  * Uses libdprt_object.
  * Has it's own buffer, as Object_List_Get destroys the data within it's buffer argument.
  * @author Chris Mottram
- * @version $Revision: 1.9 $
+ * @version $Revision: 1.10 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -86,7 +86,7 @@ struct Object_Internal_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_object.c,v 1.9 2006-11-14 18:08:54 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_object.c,v 1.10 2007-02-08 17:56:17 cjm Exp $";
 /**
  * Instance of object data.
  * @see #Object_Internal_Struct
@@ -462,9 +462,10 @@ int Autoguider_Object_Guide_Object_Get(enum COMMAND_AG_ON_TYPE on_type,float pix
 /**
  * Get the object list formatted as a string, in the form:
  * <pre>
- * Id Frame Number Index CCD X Pos  CCD Y Pos Buffer X Pos  Buffer Y Pos  Total Counts Number of Pixels Peak Counts
+ * Id Frame Number Index CCD X Pos  CCD Y Pos Buffer X Pos  Buffer Y Pos  Total Counts Number of Pixels Peak Counts Is_Stellar FWHM_X FWHM_Y
  * </pre>
  * The relevant Object_List mutex is locked and un-locked.
+ * See ngat.autoguider.command.StatusObjectList.java, parseReplyString for GUI software that decodes this string.
  * @param object_list_string The address of a character pointer to malloc and store a string.
  * @return The routine returns TRUE on success, and FALSE on failure.
  * @see #Object_Data
@@ -474,6 +475,7 @@ int Autoguider_Object_Guide_Object_Get(enum COMMAND_AG_ON_TYPE on_type,float pix
  * @see autoguider_general.html#Autoguider_General_Mutex_Lock
  * @see autoguider_general.html#Autoguider_General_Mutex_Unlock
  * @see autoguider_general.html#Autoguider_General_Add_String
+ * @see ../javadocs/ngat/autoguider/command/StatusObjectList.html#parseReplyString
  */
 int Autoguider_Object_List_Get_Object_List_String(char **object_list_string)
 {
@@ -996,6 +998,10 @@ static int Object_Sort_Object_List_By_Total_Counts(const void *p1, const void *p
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.9  2006/11/14 18:08:54  cjm
+** Changed Autoguider_Object_Guide_Object_Get so it uses Autoguider_Field_In_Object_Bounds
+** to ensure selected guide objects are inside a nominal field object bounds on the CCD.
+**
 ** Revision 1.8  2006/09/28 10:09:12  cjm
 ** Removed test for Object_Get_Error_Number() == 7, as
 ** this error should now return true (+warning) in libdprt_object.
