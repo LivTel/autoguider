@@ -1,5 +1,5 @@
 /* autoguider_guide.h
-** $Header: /home/cjm/cvs/autoguider/include/autoguider_guide.h,v 1.4 2007-01-26 18:03:46 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/include/autoguider_guide.h,v 1.5 2007-02-09 14:35:04 cjm Exp $
 */
 #ifndef AUTOGUIDER_GUIDE_H
 #define AUTOGUIDER_GUIDE_H
@@ -33,9 +33,13 @@ extern int Autoguider_Guide_Bin_Y_Get(void);
 extern int Autoguider_Guide_Binned_NCols_Get(void);
 extern int Autoguider_Guide_Binned_NRows_Get(void);
 extern struct CCD_Setup_Window_Struct Autoguider_Guide_Window_Get(void);
-
+extern int Autoguider_Guide_Timecode_Scaling_Set(float value);
+extern float Autoguider_Guide_Timecode_Scaling_Get(void);
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.4  2007/01/26 18:03:46  cjm
+** Added dimension getters.
+**
 ** Revision 1.3  2007/01/19 14:23:46  cjm
 ** Added autoguider guide window tracking:
 ** Autoguider_Guide_Set_Guide_Window_Tracking
