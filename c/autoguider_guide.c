@@ -1,11 +1,11 @@
 /* autoguider_guide.c
 ** Autoguider guide routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.27 2007-01-30 17:35:24 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.28 2007-02-09 14:37:23 cjm Exp $
 */
 /**
  * Guide routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.27 $
+ * @version $Revision: 1.28 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -135,6 +135,8 @@ struct Guide_Window_Tracking_Struct
  *                                  holding data/config about scaling the exposure length of guide exposures.</dd>
  * <dt>Guide_Window_Tracking</dt> <dd>Structure of type Guide_Window_Tracking_Struct 
  *            holding guide window tracking data.</dd>
+ * <dt>Timecode_Scaling_Factor</dt> <dd>A float, used to scale the Loop_Cadence by when constructing the
+ *     timecode so send in the TCS UDP guide packet.</dd>
  * </dl>
  * @see #Guide_Exposure_Length_Scaling_Struct
  * @see #Guide_Window_Tracking_Struct
@@ -164,13 +166,14 @@ struct Guide_Struct
 	double Loop_Cadence;
 	struct Guide_Exposure_Length_Scaling_Struct Exposure_Length_Scaling;
 	struct Guide_Window_Tracking_Struct Guide_Window_Tracking;
+	float Timecode_Scaling_Factor;
 };
 
 /* internal data */
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_guide.c,v 1.27 2007-01-30 17:35:24 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_guide.c,v 1.28 2007-02-09 14:37:23 cjm Exp $";
 /**
  * Instance of guide data.
  * @see #Guide_Struct
@@ -187,7 +190,8 @@ static struct Guide_Struct Guide_Data =
 	0,0,
 	0.0,
 	{GUIDE_SCALE_TYPE_PEAK,FALSE,0,0,0,0,0,0,0,TRUE},
-	FALSE
+	{FALSE,10,10},
+	2.0f
 };
 
 /* internal routines */
@@ -204,10 +208,22 @@ static int Guide_Dimension_Config_Load(void);
 ** ---------------------------------------------------------------------------- */
 /**
  * Guide initialisation routine. Loads default values from properties file.
+ * Loaded config includes the following:
+ * <ul>
+ * <li>"guide.dark_subtract"
+ * <li>"guide.flat_field"
+ * <li>"guide.object_detect"
+ * <li>"guide.window.tracking"
+ * <li>"guide.window.edge.pixels"
+ * <li>"guide.window.track.pixels"
+ * <li>"guide.timecode.scale"
+ * </ul>
  * @return The routine returns TRUE on success and FALSE on failure.
  * @see #Guide_Data
  * @see #Guide_Dimension_Config_Load
  * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Boolean
+ * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Float
+ * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Integer
  */
 int Autoguider_Guide_Initialise(void)
 {
@@ -271,6 +287,14 @@ int Autoguider_Guide_Initialise(void)
 		Autoguider_General_Error_Number = 752;
 		sprintf(Autoguider_General_Error_String,"Autoguider_Guide_Initialise:"
 			"Getting guide window track pixels failed.");
+		return FALSE;
+	}
+	retval = CCD_Config_Get_Float("guide.timecode.scale",&(Guide_Data.Timecode_Scaling_Factor));
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 753;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Guide_Initialise:"
+			"Getting guide timecode scaling factor failed.");
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 1
@@ -993,6 +1017,39 @@ struct CCD_Setup_Window_Struct Autoguider_Guide_Window_Get(void)
 	return Guide_Data.Window;
 }
 
+/**
+ * Set the autoguider timecode scaling factor. This is used to multiply by the loop cadence when
+ * calculating the timecode value to send to the TCS in the UDP guide packet.
+ * @param value The timecode scaling factor. This <b>must</b> be positive, and <i>should</i> be greater than
+ *        0.5 to stop the TCS thinking the autoguider has timed out.
+ * @return The routine returns TRUE on success and FALSE on failure.
+ * @see #Guide_Data
+ */
+int Autoguider_Guide_Timecode_Scaling_Set(float value)
+{
+	if(value < 0.0)
+	{
+		Autoguider_General_Error_Number = 754;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Guide_Timecode_Scaling_Set:"
+			"Timecode scaling %f out of range.",value);
+		return FALSE;
+	}
+	Guide_Data.Timecode_Scaling_Factor = value;
+	return TRUE;
+}
+
+/**
+ * Routine to get the timecode scaling factor. This is used to multiply by the loop cadence when
+ * calculating the timecode value to send to the TCS in the UDP guide packet.
+ * @return A float. The timecode scaling factor.
+ * @see #Guide_Data
+ */
+float Autoguider_Guide_Timecode_Scaling_Get(void)
+{
+	return Guide_Data.Timecode_Scaling_Factor;
+}
+
+
 /* ----------------------------------------------------------------------------
 ** 		internal functions 
 ** ---------------------------------------------------------------------------- */
@@ -1180,7 +1237,7 @@ static void *Guide_Thread(void *user_arg)
 				"Autoguider_Buffer_Raw_Guide_Lock failed.");
 			Autoguider_General_Error();
 			/* send tcs guide packet termination packet. */
-			Guide_Packet_Send(TRUE,Guide_Data.Loop_Cadence*2.0f);
+			Guide_Packet_Send(TRUE,Guide_Data.Loop_Cadence*Guide_Data.Timecode_Scaling_Factor);
 			/* close tcs guide packet socket */
 			Autoguider_CIL_Guide_Packet_Close();
 			/* update SDB */
@@ -1219,7 +1276,7 @@ static void *Guide_Thread(void *user_arg)
 			sprintf(Autoguider_General_Error_String,"Guide_Thread:CCD_Exposure_Expose failed.");
 			Autoguider_General_Error();
 			/* send tcs guide packet termination packet. */
-			Guide_Packet_Send(TRUE,Guide_Data.Loop_Cadence*2.0f);
+			Guide_Packet_Send(TRUE,Guide_Data.Loop_Cadence*Guide_Data.Timecode_Scaling_Factor);
 			/* close tcs guide packet socket */
 			Autoguider_CIL_Guide_Packet_Close();
 			/* update SDB */
@@ -1276,7 +1333,7 @@ static void *Guide_Thread(void *user_arg)
 			Guide_Data.In_Use_Buffer_Index = -1;
 			Autoguider_General_Error();
 			/* send tcs guide packet termination packet. */
-			Guide_Packet_Send(TRUE,Guide_Data.Loop_Cadence*2.0f);
+			Guide_Packet_Send(TRUE,Guide_Data.Loop_Cadence*Guide_Data.Timecode_Scaling_Factor);
 			/* close tcs guide packet socket */
 			Autoguider_CIL_Guide_Packet_Close();
 			/* update SDB */
@@ -1304,7 +1361,7 @@ static void *Guide_Thread(void *user_arg)
 			Guide_Data.In_Use_Buffer_Index = -1;
 			Autoguider_General_Error();
 			/* send tcs guide packet termination packet. */
-			Guide_Packet_Send(TRUE,Guide_Data.Loop_Cadence*2.0f);
+			Guide_Packet_Send(TRUE,Guide_Data.Loop_Cadence*Guide_Data.Timecode_Scaling_Factor);
 			/* close tcs guide packet socket */
 			Autoguider_CIL_Guide_Packet_Close();
 			/* update SDB */
@@ -1328,7 +1385,7 @@ static void *Guide_Thread(void *user_arg)
 			Guide_Data.In_Use_Buffer_Index = -1;
 			Autoguider_General_Error();
 			/* send tcs guide packet termination packet. */
-			Guide_Packet_Send(TRUE,Guide_Data.Loop_Cadence*2.0f);
+			Guide_Packet_Send(TRUE,Guide_Data.Loop_Cadence*Guide_Data.Timecode_Scaling_Factor);
 			/* close tcs guide packet socket */
 			Autoguider_CIL_Guide_Packet_Close();
 			/* update SDB */
@@ -1347,7 +1404,7 @@ static void *Guide_Thread(void *user_arg)
 #endif
 		clock_gettime(CLOCK_REALTIME,&loop_start_time);
 		/* send position update to TCS */
-		retval = Guide_Packet_Send(FALSE,Guide_Data.Loop_Cadence*2.0f);
+		retval = Guide_Packet_Send(FALSE,Guide_Data.Loop_Cadence*Guide_Data.Timecode_Scaling_Factor);
 		if(retval == FALSE)
 		{
 #if AUTOGUIDER_DEBUG > 1
@@ -1360,7 +1417,7 @@ static void *Guide_Thread(void *user_arg)
 			Guide_Data.In_Use_Buffer_Index = -1;
 			Autoguider_General_Error();
 			/* send tcs guide packet termination packet. */
-			Guide_Packet_Send(TRUE,Guide_Data.Loop_Cadence*2.0f);
+			Guide_Packet_Send(TRUE,Guide_Data.Loop_Cadence*Guide_Data.Timecode_Scaling_Factor);
 			/* close tcs guide packet socket */
 			Autoguider_CIL_Guide_Packet_Close();
 			/* update SDB */
@@ -1384,7 +1441,7 @@ static void *Guide_Thread(void *user_arg)
 			Guide_Data.In_Use_Buffer_Index = -1;
 			Autoguider_General_Error();
 			/* send tcs guide packet termination packet. */
-			Guide_Packet_Send(TRUE,Guide_Data.Loop_Cadence*2.0f);
+			Guide_Packet_Send(TRUE,Guide_Data.Loop_Cadence*Guide_Data.Timecode_Scaling_Factor);
 			/* close tcs guide packet socket */
 			Autoguider_CIL_Guide_Packet_Close();
 			/* update SDB */
@@ -1406,7 +1463,7 @@ static void *Guide_Thread(void *user_arg)
 	}/* end while guiding */
 	Guide_Data.Is_Guiding = FALSE;
 	/* send termination packet to TCS */
-	retval = Guide_Packet_Send(TRUE,Guide_Data.Loop_Cadence*2.0f);
+	retval = Guide_Packet_Send(TRUE,Guide_Data.Loop_Cadence*Guide_Data.Timecode_Scaling_Factor);
 	if(retval == FALSE)
 	{
 #if AUTOGUIDER_DEBUG > 1
@@ -2418,6 +2475,10 @@ static int Guide_Dimension_Config_Load(void)
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.27  2007/01/30 17:35:24  cjm
+** Added CCD_Temperature_Get/Autoguider_Buffer_Field_CCD_Temperature_Set calls
+** to save CCD temperature per buffer, for later FITS header inclusion.
+**
 ** Revision 1.26  2007/01/26 15:29:42  cjm
 ** Set buffers start time/exposure length data.
 ** Added getters for guide dimension data.
