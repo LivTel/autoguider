@@ -1,7 +1,7 @@
 Command Set
 -----------
-$Header: /home/cjm/cvs/autoguider/txt/autoguider_commands.txt,v 1.2 2007-01-29 11:57:35 cjm Exp $
-$Revision: 1.2 $
+$Header: /home/cjm/cvs/autoguider/txt/autoguider_commands.txt,v 1.3 2007-02-09 14:35:44 cjm Exp $
+$Revision: 1.3 $
 
 abort
 agstate <n>
@@ -18,15 +18,18 @@ guide window <sx> <sy> <ex> <ey>
 guide exposure_length <ms> [lock]
 guide <dark|flat|object|packet|window_track> <on|off>
 guide <object> <index>
+guide timecode_scaling <float value>
 help
 log_level <autoguider|ccd|command_server|object|ngatcil> <n>
 shutdown
 status temperature get
 status temperature status
-status field <active|dark|flat|object>     (returns "0 true" or "0 false")
-status guide <active|dark|flat|object|packet>     (returns "0 true" or "0 false")
-status guide cadence     (return no. of seconds e.g. "0 2.31")
-status guide exposure_length     (return no. of milliseconds e.g. "0 1000")
+status field <active|dark|flat|object>        (returns "0 true" or "0 false")
+status guide <active|dark|flat|object|packet> (returns "0 true" or "0 false")
+status guide cadence                          (return no. of seconds e.g. "0 2.31")
+status guide timecode_scaling                 (return float scaling factor)
+status guide exposure_length                  (return no. of milliseconds e.g. "0 1000")
+status guide window      (return 4 integer's i.e. "0 100 100 200 200", corresponding to Start X, Start Y, End X, End Y)
 status object <list|count>
 temperature set <C>
 temperature cooler on
@@ -35,6 +38,9 @@ temperature cooler off
 Log
 ---
 $Log: not supported by cvs2svn $
+Revision 1.2  2007/01/29 11:57:35  cjm
+Added guide window_track commands.
+
 Revision 1.1  2006/10/18 13:49:09  cjm
 Initial revision
 
