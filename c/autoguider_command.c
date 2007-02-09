@@ -1,11 +1,11 @@
 /* autoguider_command.c
 ** Autoguider command routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_command.c,v 1.10 2007-01-19 14:26:34 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_command.c,v 1.11 2007-02-09 14:41:05 cjm Exp $
 */
 /**
  * Command routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.10 $
+ * @version $Revision: 1.11 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -44,7 +44,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_command.c,v 1.10 2007-01-19 14:26:34 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_command.c,v 1.11 2007-02-09 14:41:05 cjm Exp $";
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -463,7 +463,7 @@ int Autoguider_Command_Config_Load(char *command_string,char **reply_string)
  * <li>status temperature get
  * <li>status temperature status
  * <li>status field &lt;active|dark|flat|object&gt;
- * <li>status guide &lt;active|dark|flat|object|packet&gt;
+ * <li>status guide &lt;active|dark|flat|object|packet|exposure_length|cadence|timecode_scaling|window&gt;
  * <li>status object &lt;list|count&gt;
  * </ul>
  * @param command_string The status command. This is not changed during this routine.
@@ -485,15 +485,19 @@ int Autoguider_Command_Config_Load(char *command_string,char **reply_string)
  * @see autoguider_guide.html#Autoguider_Guide_Get_Do_Object_Detect
  * @see autoguider_guide.html#Autoguider_Guide_Loop_Cadence_Get
  * @see autoguider_guide.html#Autoguider_Guide_Exposure_Length_Get
+ * @see autoguider_guide.html#Autoguider_Guide_Window_Get
+ * @see autoguider_guide.html#Autoguider_Guide_Timecode_Scaling_Get
  * @see autoguider_object.html#Autoguider_Object_List_Get_Count
  * @see autoguider_object.html#Autoguider_Object_List_Get_Object_List_String
  * @see ../ccd/cdocs/ccd_general.html#CCD_General_Error
+ * @see ../ccd/cdocs/ccd_setup.html#CCD_Setup_Window_Struct
  * @see ../ccd/cdocs/ccd_temperature.html#CCD_Temperature_Get
  */
 int Autoguider_Command_Status(char *command_string,char **reply_string)
 {
 	double current_temperature;
 	enum CCD_TEMPERATURE_STATUS temperature_status;
+	struct CCD_Setup_Window_Struct window;
 	char type_string[65];
 	char element_string[65];
 	char buff[256];
@@ -730,10 +734,26 @@ int Autoguider_Command_Status(char *command_string,char **reply_string)
 				return FALSE;
 			return TRUE;
 		}
+		else if(strcmp(element_string,"timecode_scaling") == 0)
+		{
+			dvalue = Autoguider_Guide_Timecode_Scaling_Get();
+			sprintf(buff,"0 %.2f",dvalue);
+			if(!Autoguider_General_Add_String(reply_string,buff))
+				return FALSE;
+			return TRUE;
+		}
 		else if(strcmp(element_string,"exposure_length") == 0)
 		{
 			ivalue = Autoguider_Guide_Exposure_Length_Get();
 			sprintf(buff,"0 %d",ivalue);
+			if(!Autoguider_General_Add_String(reply_string,buff))
+				return FALSE;
+			return TRUE;
+		}
+		else if(strcmp(element_string,"window") == 0)
+		{
+			window = Autoguider_Guide_Window_Get();
+			sprintf(buff,"0 %d %d %d %d",window.X_Start,window.Y_Start,window.X_End,window.Y_End);
 			if(!Autoguider_General_Add_String(reply_string,buff))
 				return FALSE;
 			return TRUE;
@@ -1232,6 +1252,7 @@ int Autoguider_Command_Expose(char *command_string,char **reply_string)
  * <li>guide exposure_length <ms> [lock]
  * <li>guide <dark|flat|object|packet|window_track> <on|off>
  * <li>guide <object> <index>
+ * <li>guide timecode_scaling <float value>
  * </ul>
  * @param command_string The command. This is not changed during this routine.
  * @param reply_string The address of a pointer to allocate and set the reply string.
@@ -1251,6 +1272,7 @@ int Autoguider_Command_Expose(char *command_string,char **reply_string)
  * @see autoguider_guide.html#Autoguider_Guide_Set_Do_Object_Detect
  * @see autoguider_guide.html#Autoguider_Guide_Set_Guide_Object
  * @see autoguider_guide.html#Autoguider_Guide_Set_Guide_Window_Tracking
+ * @see autoguider_guide.html#Autoguider_Guide_Timecode_Scaling_Set
  */
 int Autoguider_Command_Guide(char *command_string,char **reply_string)
 {
@@ -1260,6 +1282,7 @@ int Autoguider_Command_Guide(char *command_string,char **reply_string)
 	char parameter_string4[64];
 	char parameter_string5[64];
 	int parameter_count,retval,sx,sy,ex,ey,exposure_length,doit,object_index;
+	float float_value;
 
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Guide:started.");
@@ -1523,6 +1546,31 @@ int Autoguider_Command_Guide(char *command_string,char **reply_string)
 				return FALSE;
 		}
 	}
+	else if(strncmp(parameter_string1,"timecode_scaling",16) == 0)
+	{
+		retval = sscanf(command_string,"guide timecode_scaling %f",&float_value);
+		if(retval < 1)
+		{
+			Autoguider_General_Error_Number = 330;
+			sprintf(Autoguider_General_Error_String,"Autoguider_Command_Guide:"
+				"Failed to parse command %s (%d).",command_string,retval);
+#if AUTOGUIDER_DEBUG > 1
+			Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,
+					       "Autoguider_Command_Guide:finished (command parse failed).");
+#endif
+			return FALSE;
+		}
+		retval = Autoguider_Guide_Timecode_Scaling_Set(float_value);
+		if(retval == FALSE)
+		{
+			Autoguider_General_Error();
+			if(!Autoguider_General_Add_String(reply_string,"1 Setting guide timecode scaling failed."))
+				return FALSE;
+			return TRUE;
+		}
+		if(!Autoguider_General_Add_String(reply_string,"0 Setting guide timecode scaling suceeded."))
+			return FALSE;
+	}
 	else
 	{
 		if(!Autoguider_General_Add_String(reply_string,"1 Guide command failed:Unknown parameter:"))
@@ -1691,6 +1739,10 @@ int Autoguider_Command_Log_Level(char *command_string,char **reply_string)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.10  2007/01/19 14:26:34  cjm
+** Added guide window_track <on|off> command for guide window tracking
+** control.
+**
 ** Revision 1.9  2006/08/29 13:55:42  cjm
 ** Added text agstate command.
 ** Added some SDB calls to set AG_STATE to idle on error.
