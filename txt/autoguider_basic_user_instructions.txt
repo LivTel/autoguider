@@ -1,7 +1,7 @@
 Basic User Instructions
 -----------------------
-$Header: /home/cjm/cvs/autoguider/txt/autoguider_basic_user_instructions.txt,v 1.2 2007-02-13 10:53:53 cjm Exp $
-$Revision: 1.2 $
+$Header: /home/cjm/cvs/autoguider/txt/autoguider_basic_user_instructions.txt,v 1.3 2007-02-13 11:19:26 cjm Exp $
+$Revision: 1.3 $
 
 Autoguider control system startup:
 ----------------------------------
@@ -142,10 +142,9 @@ timestamped FITS images will be left after this is run.
 Temperature control
 -------------------
 
-Note the AG is currenly set to run at 0 deg C, see 
+Note the AG is currenly set to run at -40 deg C, see 
 'ccd.temperature.target' in 'autoguider.properties'.
-You should warm the CCD to at least 0C before turning it off (which is why 
-it runs at 0C atm). The 'shutdown' command warms up the CCD automatically 
+You should warm the CCD to at least 0C before turning it off . The 'shutdown' command warms up the CCD automatically 
 so long as the 'ccd.temperature.ramp_to_ambient' configuration is true.
 
 Also controlable by sending:
@@ -163,6 +162,9 @@ Change Log
 ----------
 
 $Log: not supported by cvs2svn $
+Revision 1.2  2007/02/13 10:53:53  cjm
+Some changes.
+
 Revision 1.1  2006/06/14 18:16:36  cjm
 Initial revision
 
