@@ -1,12 +1,13 @@
 Basic User Instructions
 -----------------------
-$Header: /home/cjm/cvs/autoguider/txt/autoguider_basic_user_instructions.txt,v 1.1 2006-06-14 18:16:36 cjm Exp $
-$Revision: 1.1 $
+$Header: /home/cjm/cvs/autoguider/txt/autoguider_basic_user_instructions.txt,v 1.2 2007-02-13 10:53:53 cjm Exp $
+$Revision: 1.2 $
 
 Autoguider control system startup:
 ----------------------------------
 cd /icc/bin/autoguider/c/i386-linux
-./autoguider -co autoguider.properties -autoguider_log_level 2047 -ccd_log_level 3871 -command_server_log_level 3 -object_log_level 196608 -ngatcil_log_level 15
+./autoguider -co autoguider.properties -autoguider_log_level 2047 -ccd_log_level 3871 -command_server_log_level 3 -object_log_level 196608 -ngatcil_log_level 29
+#-ngatcil_log_level 31
 
 Commands:
 ---------
@@ -101,8 +102,8 @@ fits_normalise frames
 See '/icc/bin/autoguider/c/i386-linux/autoguider.properties', keywords:
 'flat.filename.1.1' for location of flat library (usually /icc/dprt/flat/).
 
-I want to make a move:
----------------------
+I want to make a movie:
+----------------------
 
 Start by taking a full frame:
 cd /icc/bin/autoguider/commandserver/test/i386-linux/
@@ -162,3 +163,6 @@ Change Log
 ----------
 
 $Log: not supported by cvs2svn $
+Revision 1.1  2006/06/14 18:16:36  cjm
+Initial revision
+
