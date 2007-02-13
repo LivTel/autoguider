@@ -1,11 +1,11 @@
 /* autoguider_guide.c
 ** Autoguider guide routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.28 2007-02-09 14:37:23 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.29 2007-02-13 13:51:18 cjm Exp $
 */
 /**
  * Guide routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.28 $
+ * @version $Revision: 1.29 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -137,6 +137,9 @@ struct Guide_Window_Tracking_Struct
  *            holding guide window tracking data.</dd>
  * <dt>Timecode_Scaling_Factor</dt> <dd>A float, used to scale the Loop_Cadence by when constructing the
  *     timecode so send in the TCS UDP guide packet.</dd>
+ * <dt>Use_Cadence_For_SDB_Exp_Time</dt> <dd>A boolean, if TRUE the guide loop sends the loop cadence (total loop
+ *     execution time) to the SDB each time round the loop as if it were the exposure length. This is meant to
+ *     help the TCS apply the right guide corrections, which uses the SDB exposure length.
  * </dl>
  * @see #Guide_Exposure_Length_Scaling_Struct
  * @see #Guide_Window_Tracking_Struct
@@ -167,13 +170,14 @@ struct Guide_Struct
 	struct Guide_Exposure_Length_Scaling_Struct Exposure_Length_Scaling;
 	struct Guide_Window_Tracking_Struct Guide_Window_Tracking;
 	float Timecode_Scaling_Factor;
+	int Use_Cadence_For_SDB_Exp_Time;
 };
 
 /* internal data */
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_guide.c,v 1.28 2007-02-09 14:37:23 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_guide.c,v 1.29 2007-02-13 13:51:18 cjm Exp $";
 /**
  * Instance of guide data.
  * @see #Guide_Struct
@@ -191,7 +195,7 @@ static struct Guide_Struct Guide_Data =
 	0.0,
 	{GUIDE_SCALE_TYPE_PEAK,FALSE,0,0,0,0,0,0,0,TRUE},
 	{FALSE,10,10},
-	2.0f
+	2.0f, FALSE
 };
 
 /* internal routines */
@@ -217,6 +221,7 @@ static int Guide_Dimension_Config_Load(void);
  * <li>"guide.window.edge.pixels"
  * <li>"guide.window.track.pixels"
  * <li>"guide.timecode.scale"
+ * <li>"guide.sdb.exposure_length.use_cadence"
  * </ul>
  * @return The routine returns TRUE on success and FALSE on failure.
  * @see #Guide_Data
@@ -289,12 +294,23 @@ int Autoguider_Guide_Initialise(void)
 			"Getting guide window track pixels failed.");
 		return FALSE;
 	}
+	/* timecode scaling */
 	retval = CCD_Config_Get_Float("guide.timecode.scale",&(Guide_Data.Timecode_Scaling_Factor));
 	if(retval == FALSE)
 	{
 		Autoguider_General_Error_Number = 753;
 		sprintf(Autoguider_General_Error_String,"Autoguider_Guide_Initialise:"
 			"Getting guide timecode scaling factor failed.");
+		return FALSE;
+	}
+	/* set SDB exposure length from guide cadence? */
+	retval = CCD_Config_Get_Boolean("guide.sdb.exposure_length.use_cadence",
+					&(Guide_Data.Use_Cadence_For_SDB_Exp_Time));
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = ;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Guide_Initialise:"
+			"Getting whether to use guide cadence for SDB exposure length boolean failed.");
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 1
@@ -1427,6 +1443,17 @@ static void *Guide_Thread(void *user_arg)
 				Autoguider_General_Error(); /* no need to fail */
 			return NULL;
 		}
+		/* Update SDB Guide Exposure time
+		** We used to only update this when the exposure length changes.
+		** However, the TCS seems to use this when scaling the guide corrections,
+		** but does not take into account overheads (readout/objectdetection/flat fielding/dark subtraction).
+		** We now therefore send the Cadence (in s) as the Exposure time (in ms) 
+		* to try and compensate for this. */
+		if(Guide_Data.Use_Cadence_For_SDB_Exp_Time)
+		{
+			if(!Autoguider_CIL_SDB_Packet_Exp_Time_Set((int)(Guide_Data.Loop_Cadence*1000.0)))
+				Autoguider_General_Error(); /* no need to fail */
+		}
 		/* Do any necessary guide window tracking */
 		retval = Guide_Window_Track();
 		if(retval == FALSE)
@@ -2475,6 +2502,11 @@ static int Guide_Dimension_Config_Load(void)
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.28  2007/02/09 14:37:23  cjm
+** Added Timecode_Scaling_Factor data.
+** Initialised from "guide.timecode.scale",
+** can be set and get, and used to scale the TCS UDP guide packet timecode.
+**
 ** Revision 1.27  2007/01/30 17:35:24  cjm
 ** Added CCD_Temperature_Get/Autoguider_Buffer_Field_CCD_Temperature_Set calls
 ** to save CCD temperature per buffer, for later FITS header inclusion.
