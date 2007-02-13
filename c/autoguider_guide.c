@@ -1,11 +1,11 @@
 /* autoguider_guide.c
 ** Autoguider guide routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.30 2007-02-13 13:52:04 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.31 2007-02-13 14:37:08 cjm Exp $
 */
 /**
  * Guide routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.30 $
+ * @version $Revision: 1.31 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -177,7 +177,7 @@ struct Guide_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_guide.c,v 1.30 2007-02-13 13:52:04 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_guide.c,v 1.31 2007-02-13 14:37:08 cjm Exp $";
 /**
  * Instance of guide data.
  * @see #Guide_Struct
@@ -1453,6 +1453,8 @@ static void *Guide_Thread(void *user_arg)
 		{
 			if(!Autoguider_CIL_SDB_Packet_Exp_Time_Set((int)(Guide_Data.Loop_Cadence*1000.0)))
 				Autoguider_General_Error(); /* no need to fail */
+			if(!Autoguider_CIL_SDB_Packet_Send())
+				Autoguider_General_Error(); /* no need to fail */
 		}
 		/* Do any necessary guide window tracking */
 		retval = Guide_Window_Track();
@@ -2502,6 +2504,9 @@ static int Guide_Dimension_Config_Load(void)
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.30  2007/02/13 13:52:04  cjm
+** Filled in error code.
+**
 ** Revision 1.29  2007/02/13 13:51:18  cjm
 ** Added Use_Cadence_For_SDB_Exp_Time implementation.
 ** The SDB Exposure Length can now be updated every loop with the loop cadence (total guide loop time),
