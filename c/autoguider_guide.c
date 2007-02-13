@@ -1,11 +1,11 @@
 /* autoguider_guide.c
 ** Autoguider guide routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.29 2007-02-13 13:51:18 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.30 2007-02-13 13:52:04 cjm Exp $
 */
 /**
  * Guide routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.29 $
+ * @version $Revision: 1.30 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -177,7 +177,7 @@ struct Guide_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_guide.c,v 1.29 2007-02-13 13:51:18 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_guide.c,v 1.30 2007-02-13 13:52:04 cjm Exp $";
 /**
  * Instance of guide data.
  * @see #Guide_Struct
@@ -308,7 +308,7 @@ int Autoguider_Guide_Initialise(void)
 					&(Guide_Data.Use_Cadence_For_SDB_Exp_Time));
 	if(retval == FALSE)
 	{
-		Autoguider_General_Error_Number = ;
+		Autoguider_General_Error_Number = 755;
 		sprintf(Autoguider_General_Error_String,"Autoguider_Guide_Initialise:"
 			"Getting whether to use guide cadence for SDB exposure length boolean failed.");
 		return FALSE;
@@ -2502,6 +2502,11 @@ static int Guide_Dimension_Config_Load(void)
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.29  2007/02/13 13:51:18  cjm
+** Added Use_Cadence_For_SDB_Exp_Time implementation.
+** The SDB Exposure Length can now be updated every loop with the loop cadence (total guide loop time),
+** should may help the TCS to scale corrections better.
+**
 ** Revision 1.28  2007/02/09 14:37:23  cjm
 ** Added Timecode_Scaling_Factor data.
 ** Initialised from "guide.timecode.scale",
