@@ -1,0 +1,40 @@
+autoguider log notes
+--------------------
+$Header: /home/cjm/cvs/autoguider/txt/autoguider_log_notes.txt,v 1.1 2007-02-13 11:44:29 cjm Exp $
+$Revision: 1.1 $
+
+autoguider_get_guide_packets
+----------------------------
+
+e.g.:
+14-10-2006T04:31:10.513 +0000 : 00050.36 00821.54 00013.94 0 1373
+
+DD-MM-YYYYTHH:MM:SS.sss TZ : <X pos>     <Y pos> <timecode> <status char> <checksum>
+
+X pos : centroid position on the CCD (not guide window)
+Y pos : centroid position on the CCD (not guide window)
+timecode : '00000.00' guide loop is terminating
+           < 0.0      centroid is "unreliable" in some way, fabs(timecode) is time to next packet (actually x 2)
+           > 0.0 timecode is time to next packet (actually x 2)
+status char : 0 - all is well
+              F - failed to find guide object
+              W - guide object near edge of window
+checksum : 
+
+autoguider_get_object_list
+--------------------------
+
+e.g.:
+14-10-2006T04:30:42.632 +0000 : 0  51.14 822.20  49.14  52.20 2730.67     25 143.63 FALSE   5.11   2.57
+
+DD-MM-YYYYTHH:MM:SS.sss TZ : <index> <CCDx> <CCDY> <windowX> <windowY> <total counts> <number of pixels> <peak counts> <is stellar> <FWHM X> <FWHM Y>
+
+NB soon to be :
+
+DD-MM-YYYYTHH:MM:SS.sss TZ : <guide id> <index> <CCDx> <CCDY> <windowX> <windowY> <total counts> <number of pixels> <peak counts> <is stellar> <FWHM X> <FWHM Y>
+
+
+Log
+---
+
+$Log: not supported by cvs2svn $
