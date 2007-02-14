@@ -1,6 +1,6 @@
 #!/bin/csh
-# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_make_deployment,v 1.6 2007-01-29 12:52:41 cjm Exp $
-# Version: $Revision: 1.6 $
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_make_deployment,v 1.7 2007-02-14 19:53:31 cjm Exp $
+# Version: $Revision: 1.7 $
 # By $Author: cjm $
 # Make a deployment tar file.
 # This contains:
@@ -257,7 +257,7 @@ echo "${dir_count} C test program directories copied, containg ${file_count} C t
 # Scripts
 #
 echo "Copying scripts..."
-set file_list = "bin/scripts/configure_tai_data.csh bin/scripts/delete_log_files.csh bin/scripts/killhup.csh bin/scripts/fuser_check bin/autoguider/scripts/autoguider_get_guide_frames bin/autoguider/scripts/autoguider_get_guide_frames_cron bin/autoguider/scripts/autoguider_rm_guide_frames_cron bin/autoguider/scripts/autoguider_get_guide_packets bin/autoguider/scripts/autoguider_get_object_list bin/autoguider/scripts/autoguider_make_dark bin/autoguider/scripts/autoguider_make_dark_list bin/autoguider/scripts/autoguider_make_flat bin/autoguider/scripts/autoguider_field bin/autoguider/scripts/autoguider_guide bin/autoguider/scripts/print_line.awk"
+set file_list = "bin/scripts/configure_tai_data.csh bin/scripts/delete_log_files.csh bin/scripts/killhup.csh bin/scripts/fuser_check bin/autoguider/scripts/autoguider_field bin/autoguider/scripts/autoguider_get_exposure_lengths bin/autoguider/scripts/autoguider_get_guide_frames bin/autoguider/scripts/autoguider_get_guide_frames_cron bin/autoguider/scripts/autoguider_get_guide_packets bin/autoguider/scripts/autoguider_get_guide_packets_with_time bin/autoguider/scripts/autoguider_get_object_list bin/autoguider/scripts/autoguider_guide bin/autoguider/scripts/autoguider_guide_packets_graph bin/autoguider/scripts/autoguider_guide_packets_to_csv bin/autoguider/scripts/autoguider_make_dark bin/autoguider/scripts/autoguider_make_dark_list bin/autoguider/scripts/autoguider_make_flat bin/autoguider/scripts/autoguider_object_list_graph bin/autoguider/scripts/autoguider_object_list_to_csv bin/autoguider/scripts/autoguider_rm_guide_frames_cron bin/autoguider/scripts/csv2gnuplot.sh bin/autoguider/scripts/print_line.awk"
 #bin/scripts/autoguider_reboot bin/scripts/autoguider_engineering_mode bin/scripts/${HOSTTYPE}.random.awk bin/ccs_gui/java/icsgui bin/scripts/dprt_reduce_data
 set file_count = 0
 cd ${dev_dir}
@@ -390,6 +390,10 @@ echo "Download ${deployment_tar}.gz autoguider_tar_install icc_cshrc icc_cshrc_e
 echo "Deployment ready."
 #
 # $Log: not supported by cvs2svn $
+# Revision 1.6  2007/01/29 12:52:41  cjm
+# No longer deploys andor kernel module.
+# No longer deploys andor installed files detector.ini,pcii29k_sldma.cof,pciifpga.rbf.
+#
 # Revision 1.5  2006/10/18 10:30:51  cjm
 # Added autoguider_get_guide_frames_cron / autoguider_rm_guide_frames_cron.
 #
