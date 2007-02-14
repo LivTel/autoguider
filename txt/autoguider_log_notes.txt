@@ -1,7 +1,10 @@
 autoguider log notes
 --------------------
-$Header: /home/cjm/cvs/autoguider/txt/autoguider_log_notes.txt,v 1.1 2007-02-13 11:44:29 cjm Exp $
-$Revision: 1.1 $
+$Header: /home/cjm/cvs/autoguider/txt/autoguider_log_notes.txt,v 1.2 2007-02-14 19:55:06 cjm Exp $
+$Revision: 1.2 $
+
+On ltdevsrv: scripts are in: ~dev/src/autoguider/scripts
+
 
 autoguider_get_guide_packets
 ----------------------------
@@ -9,7 +12,7 @@ autoguider_get_guide_packets
 e.g.:
 14-10-2006T04:31:10.513 +0000 : 00050.36 00821.54 00013.94 0 1373
 
-DD-MM-YYYYTHH:MM:SS.sss TZ : <X pos>     <Y pos> <timecode> <status char> <checksum>
+DD-MM-YYYYTHH:MM:SS.sss TZ : <X pos> <Y pos> <timecode> <status char> <checksum>
 
 X pos : centroid position on the CCD (not guide window)
 Y pos : centroid position on the CCD (not guide window)
@@ -21,20 +24,63 @@ status char : 0 - all is well
               W - guide object near edge of window
 checksum : 
 
+autoguider_get_guide_packets_with_time
+--------------------------------------
+
+13-02-2007T23:30:04.147 +0000 : 00676.21 00762.27 00024.12 0 1377 23.5012
+13-02-2007T23:30:16.119 +0000 : 00000.00 00000.00 -0023.94 F 1359 23.5045
+13-02-2007T23:30:28.092 +0000 : 00677.82 00764.77 00023.95 0 1402 23.5078
+
+DD-MM-YYYYTHH:MM:SS.sss TZ : <X pos> <Y pos> <timecode> <status char> <checksum> <timecode>
+
 autoguider_get_object_list
 --------------------------
 
 e.g.:
-14-10-2006T04:30:42.632 +0000 : 0  51.14 822.20  49.14  52.20 2730.67     25 143.63 FALSE   5.11   2.57
+Id,Frame Number,Index,CCD X,CCD Y,Buffer X,Buffer Y,Total Counts,No of Pixels,Peak Counts,Is Stellar,FWHM X,FWHM Y
+13-02-2007T23:29:23.894 +0000 : 43232840,0,0,535.09,580.38,535.09,580.38,1940.48,    50, 47.67,TRUE,  7.48,  4.05
+13-02-2007T23:29:23.894 +0000 : 43232840,0,1,673.33,756.61,673.33,756.61,3152.06,    77, 55.07,TRUE,  7.72,  7.03
+13-02-2007T23:29:52.082 +0000 : 43232840,0,0,533.20,581.76,533.20,581.76,12681.37,   163,128.78,TRUE,  9.12,  7.73
+13-02-2007T23:29:52.082 +0000 : 43232840,0,1,672.08,757.28,672.08,757.28,15044.92,   184,144.36,TRUE,  9.43,  8.28
+13-02-2007T23:30:04.146 +0000 : 43232952,0,0,676.21,762.27, 54.21, 55.27,2462.56,    15,180.83,TRUE,  3.43,  3.30
+13-02-2007T23:30:28.091 +0000 : 43232952,2,0,677.82,764.77, 55.82, 57.77,2944.17,    18,195.53,TRUE,  3.26,  3.25
+13-02-2007T23:30:40.063 +0000 : 43232952,3,0,677.46,761.27, 55.46, 54.27,2339.98,    15,187.38,TRUE,  3.25,  1.94
 
-DD-MM-YYYYTHH:MM:SS.sss TZ : <index> <CCDx> <CCDY> <windowX> <windowY> <total counts> <number of pixels> <peak counts> <is stellar> <FWHM X> <FWHM Y>
+DD-MM-YYYYTHH:MM:SS.sss TZ : <guide id> <frame number> <index> <CCDx> <CCDY> <windowX> <windowY> <total counts> <number of pixels> <peak counts> <is stellar> <FWHM X> <FWHM Y>
 
-NB soon to be :
+Graphing Guide centroids
+------------------------
 
-DD-MM-YYYYTHH:MM:SS.sss TZ : <guide id> <index> <CCDx> <CCDY> <windowX> <windowY> <total counts> <number of pixels> <peak counts> <is stellar> <FWHM X> <FWHM Y>
+~dev/src/autoguider/scripts/autoguider_get_guide_packets autoguider_log_44_23.txt > autoguider_guide_packets_44_23.txt
+Extract subset of packets into c_e_20070213_71_1_1_1_guide_packets.txt.
+~dev/src/autoguider/scripts/autoguider_guide_packets_to_csv c_e_20070213_71_1_1_1_guide_packets.txt
+~dev/src/autoguider/scripts/autoguider_guide_packets_graph c_e_20070213_71_1_1_1_guide_packets.csv
+
+See graphs:
+
+c_e_20070213_71_1_1_1_guide_packets_x.png
+c_e_20070213_71_1_1_1_guide_packets_xy.png
+c_e_20070213_71_1_1_1_guide_packets_y.png
+
+Guide Exposure Lengths
+----------------------
+
+autoguider_get_exposure_lengths autoguider_log_44_23.txt
+
+Returns information as follows:
+
+13-02-2007T23:46:10.956,Field,2000
+13-02-2007T23:46:31.019,Field,5000
+13-02-2007T23:46:54.015,Field,10000
+13-02-2007T23:47:22.001,Guide,10000
+13-02-2007T23:47:34.058,Guide,10000
+...
 
 
 Log
 ---
 
 $Log: not supported by cvs2svn $
+Revision 1.1  2007/02/13 11:44:29  cjm
+Initial revision
+
