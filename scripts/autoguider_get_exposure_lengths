@@ -1,0 +1,15 @@
+#!/bin/csh
+# autoguider_get_exposure_lengths <filename> [<filename>...]
+#$ Header$
+if ( $#argv < 1 ) then
+	echo "autoguider_get_exposure_lengths <filename> [<filename>...]"
+	exit 1
+endif
+foreach arg ( $argv )
+    set filename = $arg
+    echo "filename : $arg"
+    grep 'Calling CCD_Exposure_Expose with exposure length' ${filename} | sed "s/\(.*\) +.... : \(.*\):Calling CCD_Exposure_Expose with exposure length \(.*\) ms./\1,\2,\3/" | sed "s/Guide_Thread/Guide/" | sed "s/Autoguider_Field/Field/"
+end
+#
+# $Log: not supported by cvs2svn $
+#

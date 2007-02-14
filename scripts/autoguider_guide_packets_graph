@@ -1,0 +1,63 @@
+#!/bin/csh
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_guide_packets_graph,v 1.1 2007-02-14 19:31:54 cjm Exp $
+# $Id: autoguider_guide_packets_graph,v 1.1 2007-02-14 19:31:54 cjm Exp $
+if ( $#argv != 1 ) then
+	echo "autoguider_guide_packets_graph <csv filename>"
+	exit 1
+endif
+set csv_filename = "$1"
+#alias git "/home/cjm/cjm/c/misc/git"
+alias csv2gnuplot `dirname $0`"/csv2gnuplot.sh"
+set output_image_format = "png"
+set output_x_filename = "${csv_filename:r}_x.${output_image_format}"
+set output_y_filename = "${csv_filename:r}_y.${output_image_format}"
+set output_xy_filename = "${csv_filename:r}_xy.${output_image_format}"
+# ~dev/src/autoguider/scripts/autoguider_guide_packets_to_csv <filename>.txt
+set csv_x_filename = "${csv_filename:r}_x.csv"
+set csv_y_filename = "${csv_filename:r}_y.csv"
+set csv_xy_filename = "${csv_filename:r}_xy.csv"
+# create csv file for x vs time and y vs time. 
+# Time in seconds since start of day.
+# remove filenames from csv file
+#echo "Time(SoD),X Pos" > ${csv_x_filename}
+cat ${csv_filename} | grep -v "filename," | awk -F',' ' { size_of_array = split($1,date,"[ T:]") ; print ((date[2]*3600)+(date[3]*60)+date[4])","$2 }' >  ${csv_x_filename}
+#echo "Time(SoD),Y Pos" > ${csv_y_filename}
+cat ${csv_filename} | grep -v "filename," | awk -F',' ' { size_of_array = split($1,date,"[ T:]") ; print ((date[2]*3600)+(date[3]*60)+date[4])","$3 }' >  ${csv_y_filename}
+cat ${csv_filename} | grep -v "filename," | awk -F',' ' { size_of_array = split($1,date,"[ T:]") ; print ((date[2]*3600)+(date[3]*60)+date[4])","$2","$3 }' >  ${csv_xy_filename}
+# Find sensible y ranges, by ignoring zero values
+set xmin = `cat ${csv_x_filename} | awk -F',' ' BEGIN { ymin=2000 } { if ( ( $2 != 0 ) && ( $2 < ymin )) ymin = $2 ; } END { print ymin }'`
+set xmin = `echo "( ${xmin} - 1 )" | bc`
+set xmax = `cat ${csv_x_filename} | awk -F',' ' BEGIN { ymax=0; } { if ( ( $2 != 0 ) && ( $2 > ymax )) ymax = $2 } END { print ymax }'`
+set ymin = `cat ${csv_y_filename} | awk -F',' ' BEGIN { ymin=2000 } { if ( ( $2 != 0 ) && ( $2 < ymin )) ymin = $2 ; } END { print ymin }'`
+set ymin = `echo "( ${ymin} - 1 )" | bc`
+set ymax = `cat ${csv_y_filename} | awk -F',' ' BEGIN { ymax=0; } { if ( ( $2 != 0 ) && ( $2 > ymax )) ymax = $2 } END { print ymax }'`
+set x_gnuplot_options_filename = "${csv_x_filename:r}_gnuplot_options.dat"
+echo "set yrange [${xmin}:${xmax}]" > ${x_gnuplot_options_filename}
+set y_gnuplot_options_filename = "${csv_y_filename:r}_gnuplot_options.dat"
+echo "set yrange [${ymin}:${ymax}]" > ${y_gnuplot_options_filename}
+set xymin = `echo "${xmin} ${ymin}" | awk ' { if ( $1 < $2 ) print $1 ; else print $2 }'`
+set xymax = `echo "${xmax} ${ymax}" | awk ' { if ( $1 > $2 ) print $1 ; else print $2 }'`
+set xy_gnuplot_options_filename = "${csv_xy_filename:r}_gnuplot_options.dat"
+echo "set yrange [${xymin}:${xymax}]" > ${xy_gnuplot_options_filename}
+# Any zero values, set to one less then min so they are marked on the graph
+#set x_zero_val = `echo "( ${xmin} -1 )" | bc`
+#set y_zero_val = `echo "( ${ymin} -1 )" | bc`
+#set xy_zero_val = `echo "( ${xymin} -1 )" | bc`
+set x_zero_val = ${xmin}
+set y_zero_val = ${ymin}
+set xy_zero_val = ${xymin}
+set csv_x_filename1 = "${csv_x_filename:r}_1.csv"
+set csv_y_filename1 = "${csv_y_filename:r}_1.csv"
+set csv_xy_filename1 = "${csv_xy_filename:r}_1.csv"
+cat ${csv_x_filename} | awk -vZERO_VAL=${x_zero_val} -F',' ' { if ( $2 == 0 ) yval = ZERO_VAL ; else yval = $2 ; print $1","yval }' >  ${csv_x_filename1}
+cat ${csv_y_filename} | awk -vZERO_VAL=${y_zero_val} -F',' ' { if ( $2 == 0 ) yval = ZERO_VAL ; else yval = $2 ; print $1","yval }' >  ${csv_y_filename1}
+cat ${csv_xy_filename} | awk -vZERO_VAL=${xy_zero_val} -F',' ' { if ( $2 == 0 ) xval = ZERO_VAL ; else xval = $2 ; if ( $3 == 0 ) yval = ZERO_VAL ; else yval = $3 ; print $1","xval","yval }' >  ${csv_xy_filename1}
+# CReate graphs
+#git "${csv_x_filename}" "${output_x_filename}" 512 512
+#git "${csv_y_filename}" "${output_y_filename}" 512 512
+csv2gnuplot -i ${csv_x_filename1} -G ${x_gnuplot_options_filename} -o ${csv_x_filename:r}_gnuplot.dat -g ${csv_x_filename:r}_gnuplot.scr -W 800 -H 600 -F ${output_image_format} -O ${output_x_filename} -e
+csv2gnuplot -i ${csv_y_filename1} -G ${y_gnuplot_options_filename} -o ${csv_y_filename:r}_gnuplot.dat -g ${csv_y_filename:r}_gnuplot.scr -W 800 -H 600 -F ${output_image_format} -O ${output_y_filename} -e
+csv2gnuplot -i ${csv_xy_filename1} -G ${xy_gnuplot_options_filename} -o ${csv_xy_filename:r}_gnuplot.dat -g ${csv_xy_filename:r}_gnuplot.scr -W 800 -H 600 -F ${output_image_format} -O ${output_xy_filename} -e
+#
+# $Log: not supported by cvs2svn $
+#
