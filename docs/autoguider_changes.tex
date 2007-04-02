@@ -23,6 +23,8 @@
 \hline
 0.3 & S.N. Fraser & 26/01/07 & Generally updated and more typos.\\
 \hline
+0.4 & C.J.Mottram & 02/04/07 & More typos, first go at TOCA implementation.\\
+\hline
 \end{tabular}
 \end{center}
 \newpage
@@ -41,7 +43,7 @@ commands to/from the autoguider with different
 associated logic.
  
 This is confusing from an operations point of view, and causes
-problems such as the need to re-aquire the guide
+problems such as the need to re-acquire the guide
 star after each MULTRUN (e.g. when a filter change
 occurs).
 
@@ -63,9 +65,9 @@ start of a MULTRUN.
 
 The RCS configures the ISS whether or not to forward autoguider control requests. 
 If acquisition fails for an ALWAYS observation, 
-the obervation fails and a veto is sent back to the OSS to disable this group for a period 
+the observation fails and a veto is sent back to the OSS to disable this group for a period 
 (the autoguider may be working later) and a {\em different} {\rm Observation}
-is picked from the OSS. For a MAYBE obervation the exposure is re-attempted with 
+is picked from the OSS. For a MAYBE observation the exposure is re-attempted with 
 autoguider control forwarding disabled.
 
 Autoguide OFF is always issued by the Instrument at the
@@ -125,13 +127,13 @@ send back a RESUMED notification.  If it fails to resume (timeout?)
 it should send back a FAILED notification.  FAILED can also be
 sent back at any time during guiding if a problem occurs.
  
->From the point of view of the current JMS protocol the RCS (or GUI) issuing the
+From the point of view of the current JMS protocol the RCS (or GUI) issuing the
 START\_AUTOGUIDING command would expect a DONE message to confirm that autoguiding has started
 or a FAILED message to indicate failure to acquire, the additional INTERRUPTED and RESUMED
 messages would arrive after this - which is not permitted by the protocol, I would therefore
 expect to implement an asynchronous callback from the ISS to the RCS/GUI - for information only
 as the RCS has nothing to do in this instance anyway though a manual user might be interested
-to know that the ISS has stopped and restarted autoguiding. In the case of a FAIl during autoguiding,
+to know that the ISS has stopped and restarted autoguiding. In the case of a FAIL during autoguiding,
 i.e. after successful acquire this would also have to go via asynchronous callback and in this case the
 RCS would want to know.
 
@@ -141,7 +143,7 @@ For each Agent then we have:
 \subsection{SCA}
 
 Assuming autoguider is required for an {\rm Observation} the RCS will need to issue the START\_AUTOGUIDING at start of the {\rm Observation}.  If the {\rm Group} contains multiple targets the RCS will need to issue the appropriate START\_AUTOGUIDING and STOP\_AUTOGUIDING associated with slews, rotator changes and mosaic offsets.  
-Where observations are consequitive of the same target (without rotator or mosaic offsets), the autoguider should not stop and start in between.  Behavior for MAYBE as before in terms of the reaction to FAILED. Fig.~\ref{fig:case1} shows a typical use scenario with the SupIRCam making dither offsets while guiding on 2 consecutive targets.
+Where observations are consecutive of the same target (without rotator or mosaic offsets), the autoguider should not stop and start in between.  Behaviour for MAYBE as before in terms of the reaction to FAILED. Fig.~\ref{fig:case1} shows a typical use scenario with the SupIRCam making dither offsets while guiding on 2 consecutive targets.
 
 \subsection{BGCA}
 
@@ -172,7 +174,7 @@ to indicate if the autoguider is to be used definitely/maybe/not.
 The PCA should only take notice of it if the PCA is
 requesting a SLEW (identified by a negative exposure time)
 so that if the autoguider is requested as part of a slew,
-it is left running without re-acqusitions through
+it is left running without re-acquisitions through
 different colour images.
 
 e.g. CCDFIXED target ra dec ... [MAND\_AUTO $|$ NO\_AUTO $|$ OPT\_AUTO ] 
@@ -183,15 +185,21 @@ of observations will not be taking place.
 
 \subsection{TOCA}
 
-The TOCA will need to be changed somehow...
+The TOCA commands {\bf AUTO ON} and {\bf AUTO OFF} will now send
+{\bf START\_AUTOGUIDING} and {\bf STOP\_AUTOGUIDING} commands to the ISS.
+On receipt of an {\bf OFFSET} TOCA command the ISS will automatically {\bf Ag\_off} and 
+{\bf Ag\_on} around the Offby as the SCA mode does. 
+The TOCA client agent is responsible for issuing {\bf AUTO OFF} before any {\bf SLEW} TOCA command.
 
-Need to consider in conjunction with new Acquisition
-proposal?
+The TOCA agent will register a callback for INTERRUPTED/RESUMED/FAILED messages from the ISS. This will
+update some internal status query-able by the {\bf STATUS} command. Therefore, a TOCA client agent can monitor
+whether autoguiding has failed during an {\bf EXPOSE} command, or in the simplest non multi-threaded case test
+the status at the end of the {\bf EXPOSE} to see whether autoguiding failed during that exposure.
 
 \subsection{Manual Observing}
 
 A button on the RCSGui to issue START\_AUTOGUIDING
-and STOP\_AUTOGUIDNG is required.  If START\_AUTOGUIDING
+and STOP\_AUTOGUIDING is required.  If START\_AUTOGUIDING
 is used, this allows an \emph{integrated} approach to the
 use of the autoguider with instruments.  If not,
 then the observer can control the autoguider with the
@@ -205,7 +213,7 @@ TCS.
    \end{center}
    \label{fig:case1} 
    \caption[SupIRCam Use case.] 
-   {An example of using the autoguider with SupIRcam applied offsets.}
+   {An example of using the autoguider with SupIRCam applied offsets.}
    \end{figure} 
 
 
