@@ -1,0 +1,17 @@
+#!/bin/csh
+# autoguider_temperature_to_csv <logfile> [<log file>...]
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_temperature_to_csv,v 1.1 2007-05-15 18:19:51 cjm Exp $
+if( $#argv < 1 ) then
+    echo "autoguider_temperature_to_csv <logfile> [<log file>...]"
+    echo "Extract temperature data from autoguider log files and write to CSV files."
+    exit 1
+endif
+foreach log_file ( $argv )
+    set csv_file = "${log_file:r}_temperature.csv"
+    echo "Converting ${log_file} to ${csv_file}..."
+    cat "${log_file}" | grep "Andor_Temperature_Get:GetTemperatureF returned" | sed "s/\(.*\) : Andor_Temperature_Get:GetTemperatureF returned (\(.*\),\(.*\))./\1,\2,\3/" > ${csv_file}
+end
+echo "Returned file in format date,temp(C),errorcode"
+#
+# $Log: not supported by cvs2svn $
+#
