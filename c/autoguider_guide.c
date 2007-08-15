@@ -1,11 +1,11 @@
 /* autoguider_guide.c
 ** Autoguider guide routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.32 2007-08-15 16:18:48 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.33 2007-08-15 16:45:26 cjm Exp $
 */
 /**
  * Guide routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.32 $
+ * @version $Revision: 1.33 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -177,7 +177,7 @@ struct Guide_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_guide.c,v 1.32 2007-08-15 16:18:48 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_guide.c,v 1.33 2007-08-15 16:45:26 cjm Exp $";
 /**
  * Instance of guide data.
  * @see #Guide_Struct
@@ -2305,7 +2305,8 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 						     terminating,FALSE,timecode_secs,status_char))
 			Autoguider_General_Error();
 		/* update SDB mag */
-		if(Guide_Data.Exposure_Length != 0)
+		/* ensure exposure length will not cause div by zero, log10 arg is +ve */
+		if((Guide_Data.Exposure_Length != 0)&&(object.Total_Counts > 0.0f))
 		{
 			mag = guide_mag_const - (2.5f * (float)log10((double)(object.Total_Counts/
 									      (Guide_Data.Exposure_Length/1000.0f))));
@@ -2515,6 +2516,10 @@ static int Guide_Dimension_Config_Load(void)
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.32  2007/08/15 16:18:48  cjm
+** Upgraded mag calculation in  Guide_Packet_Send.
+** Now needs 'guide.mag.const' configuration.
+**
 ** Revision 1.31  2007/02/13 14:37:08  cjm
 ** Added Autoguider_CIL_SDB_Packet_Send call to Use_Cadence_For_SDB_Exp_Time code,
 ** so SDB Exp Time updated even if no centroid is found.
