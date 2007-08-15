@@ -1,11 +1,11 @@
 /* autoguider_guide.c
 ** Autoguider guide routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.31 2007-02-13 14:37:08 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.32 2007-08-15 16:18:48 cjm Exp $
 */
 /**
  * Guide routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.31 $
+ * @version $Revision: 1.32 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -177,7 +177,7 @@ struct Guide_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_guide.c,v 1.31 2007-02-13 14:37:08 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_guide.c,v 1.32 2007-08-15 16:18:48 cjm Exp $";
 /**
  * Instance of guide data.
  * @see #Guide_Struct
@@ -2156,7 +2156,7 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 	int object_count,reliability,guide_counts_min_peak,guide_counts_max_peak,retval;
 	struct Autoguider_Object_Struct object;
 	char status_char;
-	float fwhm,guide_ellipticity,mag;
+	float fwhm,guide_ellipticity,mag,guide_mag_const;
 
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Packet_Send:started.");
@@ -2232,6 +2232,14 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 				"Failed to load config:'guide.ellipticity'.");
 			return FALSE;
 		}
+		retval = CCD_Config_Get_Float("guide.mag.const",&guide_mag_const);
+		if(retval == FALSE)
+		{
+			Autoguider_General_Error_Number = 756;
+			sprintf(Autoguider_General_Error_String,"Guide_Packet_Send:"
+				"Failed to load config:'guide.mag.const'.");
+			return FALSE;
+		}
 		/*
 		** 0 means confident
 		** Bit 0 set means FWHM approaching limit
@@ -2296,9 +2304,12 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 		if(!Autoguider_CIL_Guide_Packet_Send(object.CCD_X_Position,object.CCD_Y_Position,
 						     terminating,FALSE,timecode_secs,status_char))
 			Autoguider_General_Error();
-		/* update SDB  - bodge the mag */
+		/* update SDB mag */
 		if(Guide_Data.Exposure_Length != 0)
-			mag = 20.0f-(object.Peak_Counts/Guide_Data.Exposure_Length);
+		{
+			mag = guide_mag_const - (2.5f * (float)log10((double)(object.Total_Counts/
+									      (Guide_Data.Exposure_Length/1000.0f))));
+		}
 		else
 			mag = 20.0f;
 		if(!Autoguider_CIL_SDB_Packet_Centroid_Set(object.CCD_X_Position,object.CCD_Y_Position,fwhm,mag))
@@ -2504,6 +2515,11 @@ static int Guide_Dimension_Config_Load(void)
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.31  2007/02/13 14:37:08  cjm
+** Added Autoguider_CIL_SDB_Packet_Send call to Use_Cadence_For_SDB_Exp_Time code,
+** so SDB Exp Time updated even if no centroid is found.
+** Only really useful for testing...
+**
 ** Revision 1.30  2007/02/13 13:52:04  cjm
 ** Filled in error code.
 **
