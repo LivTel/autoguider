@@ -1,11 +1,11 @@
 /* autoguider_guide.c
 ** Autoguider guide routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.33 2007-08-15 16:45:26 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.34 2007-08-16 16:53:50 cjm Exp $
 */
 /**
  * Guide routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.33 $
+ * @version $Revision: 1.34 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -177,7 +177,7 @@ struct Guide_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_guide.c,v 1.33 2007-08-15 16:45:26 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_guide.c,v 1.34 2007-08-16 16:53:50 cjm Exp $";
 /**
  * Instance of guide data.
  * @see #Guide_Struct
@@ -2308,11 +2308,29 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 		/* ensure exposure length will not cause div by zero, log10 arg is +ve */
 		if((Guide_Data.Exposure_Length != 0)&&(object.Total_Counts > 0.0f))
 		{
+#if AUTOGUIDER_DEBUG > 5
+			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
+					      "Guide_Packet_Send:Computing Magnitude using Const %f,"
+						      "Exposure Length %d ms, Total Counts %f.",
+						      guide_mag_const,Guide_Data.Exposure_Length,object.Total_Counts);
+#endif
 			mag = guide_mag_const - (2.5f * (float)log10((double)(object.Total_Counts/
 									      (Guide_Data.Exposure_Length/1000.0f))));
+#if AUTOGUIDER_DEBUG > 5
+			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
+					      "Guide_Packet_Send:Magnitude %f.",mag);
+#endif
 		}
 		else
+		{
+#if AUTOGUIDER_DEBUG > 5
+			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
+					      "Guide_Packet_Send:NOT Computing Magnitude:Argument out of range:"
+						      "Const %f,Exposure Length %d ms, Total Counts %f.",
+						      guide_mag_const,Guide_Data.Exposure_Length,object.Total_Counts);
+#endif
 			mag = 20.0f;
+		}
 		if(!Autoguider_CIL_SDB_Packet_Centroid_Set(object.CCD_X_Position,object.CCD_Y_Position,fwhm,mag))
 			Autoguider_General_Error(); /* no need to fail */
 		if(!Autoguider_CIL_SDB_Packet_Send())
@@ -2516,6 +2534,9 @@ static int Guide_Dimension_Config_Load(void)
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.33  2007/08/15 16:45:26  cjm
+** Added extra checks for +ve Total_Counts in magnitude calculation.
+**
 ** Revision 1.32  2007/08/15 16:18:48  cjm
 ** Upgraded mag calculation in  Guide_Packet_Send.
 ** Now needs 'guide.mag.const' configuration.
