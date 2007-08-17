@@ -1,11 +1,11 @@
 /* autoguider_guide.c
 ** Autoguider guide routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.34 2007-08-16 16:53:50 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.35 2007-08-17 10:16:31 cjm Exp $
 */
 /**
  * Guide routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.34 $
+ * @version $Revision: 1.35 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -177,7 +177,7 @@ struct Guide_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_guide.c,v 1.34 2007-08-16 16:53:50 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_guide.c,v 1.35 2007-08-17 10:16:31 cjm Exp $";
 /**
  * Instance of guide data.
  * @see #Guide_Struct
@@ -2156,7 +2156,7 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 	int object_count,reliability,guide_counts_min_peak,guide_counts_max_peak,retval;
 	struct Autoguider_Object_Struct object;
 	char status_char;
-	float fwhm,guide_ellipticity,mag,guide_mag_const;
+	float fwhm,guide_ellipticity,mag,guide_mag_const,exposure_length_s,counts_per_s,log_counts_per_s;
 
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Packet_Send:started.");
@@ -2314,8 +2314,16 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 						      "Exposure Length %d ms, Total Counts %f.",
 						      guide_mag_const,Guide_Data.Exposure_Length,object.Total_Counts);
 #endif
-			mag = guide_mag_const - (2.5f * (float)log10((double)(object.Total_Counts/
-									      (Guide_Data.Exposure_Length/1000.0f))));
+			exposure_length_s = ((float)Guide_Data.Exposure_Length/1000.0f);
+			counts_per_s = object.Total_Counts/exposure_length_s;
+			log_counts_per_s = (float)log10((double)(counts_per_s));
+#if AUTOGUIDER_DEBUG > 9
+			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
+					      "Guide_Packet_Send:Computing Magnitude using exposure_length_s=%f,"
+						      "counts_per_s=%f, log_counts_per_s=%f.",
+						      exposure_length_s,counts_per_s,log_counts_per_s);
+#endif			
+			mag = guide_mag_const - (2.5f * log_counts_per_s);
 #if AUTOGUIDER_DEBUG > 5
 			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
 					      "Guide_Packet_Send:Magnitude %f.",mag);
@@ -2534,6 +2542,9 @@ static int Guide_Dimension_Config_Load(void)
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.34  2007/08/16 16:53:50  cjm
+** Added logging for guide magnitude computation.
+**
 ** Revision 1.33  2007/08/15 16:45:26  cjm
 ** Added extra checks for +ve Total_Counts in magnitude calculation.
 **
