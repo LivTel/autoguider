@@ -1,11 +1,11 @@
 /* autoguider_guide.c
 ** Autoguider guide routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.35 2007-08-17 10:16:31 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.36 2007-08-20 14:48:37 cjm Exp $
 */
 /**
  * Guide routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.35 $
+ * @version $Revision: 1.36 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -17,6 +17,7 @@
 #define _POSIX_C_SOURCE 199309L
 
 #include <errno.h>
+#include <math.h>
 #include <pthread.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -177,7 +178,7 @@ struct Guide_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_guide.c,v 1.35 2007-08-17 10:16:31 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_guide.c,v 1.36 2007-08-20 14:48:37 cjm Exp $";
 /**
  * Instance of guide data.
  * @see #Guide_Struct
@@ -2542,6 +2543,10 @@ static int Guide_Dimension_Config_Load(void)
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.35  2007/08/17 10:16:31  cjm
+** Changed guide magnitude computation - broken into steps. Last version always returned "20.0" (const),
+** I think because Exposure_Length was not cast to float. More logging to see which bit breaks now...
+**
 ** Revision 1.34  2007/08/16 16:53:50  cjm
 ** Added logging for guide magnitude computation.
 **
