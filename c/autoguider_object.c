@@ -1,13 +1,13 @@
 /* autoguider_object.c
 ** Autoguider object detection routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_object.c,v 1.11 2007-08-29 17:01:13 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_object.c,v 1.12 2007-08-29 17:20:01 cjm Exp $
 */
 /**
  * Object detection routines for the autoguider program.
  * Uses libdprt_object.
  * Has it's own buffer, as Object_List_Get destroys the data within it's buffer argument.
  * @author Chris Mottram
- * @version $Revision: 1.11 $
+ * @version $Revision: 1.12 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -88,7 +88,7 @@ struct Object_Internal_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_object.c,v 1.11 2007-08-29 17:01:13 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_object.c,v 1.12 2007-08-29 17:20:01 cjm Exp $";
 /**
  * Instance of object data.
  * @see #Object_Internal_Struct
@@ -105,7 +105,7 @@ static struct Object_Internal_Struct Object_Data =
 static int Object_Buffer_Set(float *buffer,int naxis1,int naxis2);
 static int Object_Buffer_Copy(float *buffer,int naxis1,int naxis2);
 static int Object_Create_Object_List(int use_standard_deviation,int start_x,int start_y);
-static int Object_Set_Threashold(int use_standard_deviation,float *threshold);
+static int Object_Set_Threshold(int use_standard_deviation,float *threshold);
 static void Object_Fill_Stats_List(void);
 static int Object_Get_Mean_Standard_Deviation_Simple(void);
 static int Object_Get_Mean_Standard_Deviation_Sigma_Reject(void);
@@ -690,7 +690,7 @@ static int Object_Buffer_Copy(float *buffer,int naxis1,int naxis2)
  * @param start_y The start of the buffer's Y position on the physical CCD. 0 for full frame.
  * @return The routine returns TRUE on success, and FALSE on failure.
  * @see #Object_Data
- * @see #Object_Set_Threashold
+ * @see #Object_Set_Threshold
  * @see #Object_Sort_Object_List_By_Total_Counts
  * @see autoguider_general.html#Autoguider_General_Log
  * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_OBJECT
@@ -728,7 +728,7 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
 #if AUTOGUIDER_DEBUG > 5
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Create_Object_List:Getting statistics.");
 #endif
-	if(!Object_Set_Threashold(use_standard_deviation,&threshold))
+	if(!Object_Set_Threshold(use_standard_deviation,&threshold))
 	{
 		Autoguider_General_Mutex_Unlock(&(Object_Data.Image_Data_Mutex));
 		return FALSE;
@@ -911,14 +911,14 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  */
-static int Object_Set_Threashold(int use_standard_deviation,float *threshold)
+static int Object_Set_Threshold(int use_standard_deviation,float *threshold)
 {
 	char *stats_type_string = NULL;
 	int retval;
 	float total_value,difference_squared_total,tmp_float,variance,threhold_sigma;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Set_Threashold:started.");
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Set_Threshold:started.");
 #endif
 	/* get a subset of image data into the Stats_List/Stats_Count */
 	Object_Fill_Stats_List();
@@ -926,7 +926,7 @@ static int Object_Set_Threashold(int use_standard_deviation,float *threshold)
 	qsort(Object_Data.Stats_List,Object_Data.Stats_Count,sizeof(float),Object_Sort_Float_List);
 	Object_Data.Median = Object_Data.Stats_List[Object_Data.Stats_Count/2];
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Set_Threashold:"
+	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Set_Threshold:"
 				      "Median pixel value %.2f.",Object_Data.Median);
 #endif
 	/* get object.theshold.stats.type to determine whether to use simple or sugma_clip stats. */
@@ -934,7 +934,7 @@ static int Object_Set_Threashold(int use_standard_deviation,float *threshold)
 	if(retval == FALSE)
 	{
 		Autoguider_General_Error_Number = 1018;
-		sprintf(Autoguider_General_Error_String,"Object_Set_Threashold:"
+		sprintf(Autoguider_General_Error_String,"Object_Set_Threshold:"
 			"Failed to load config:'object.theshold.stats.type'.");
 		return FALSE;
 	}
@@ -961,7 +961,7 @@ static int Object_Set_Threashold(int use_standard_deviation,float *threshold)
 	else
 	{
 		Autoguider_General_Error_Number = 1019;
-		sprintf(Autoguider_General_Error_String,"Object_Set_Threashold:"
+		sprintf(Autoguider_General_Error_String,"Object_Set_Threshold:"
 			"Config:'object.theshold.stats.type' had illegal value : %s.",stats_type_string);
 		free(stats_type_string);
 		return FALSE;
@@ -973,7 +973,7 @@ static int Object_Set_Threashold(int use_standard_deviation,float *threshold)
 	if(retval == FALSE)
 	{
 		Autoguider_General_Error_Number = 1017;
-		sprintf(Autoguider_General_Error_String,"Object_Set_Threashold:"
+		sprintf(Autoguider_General_Error_String,"Object_Set_Threshold:"
 			"Failed to load config:'object.theshold.sigma'.");
 		return FALSE;
 	}
@@ -983,13 +983,13 @@ static int Object_Set_Threashold(int use_standard_deviation,float *threshold)
 	else
 		(*threshold) = Object_Data.Median;
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Set_Threashold:"
+	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Set_Threshold:"
 			      "Using standard deviation = %d (%.2f), Threshold Sigma = %.2f, Threshold value %.2f.",
 				      use_standard_deviation,Object_Data.Background_Standard_Deviation,
 				      threhold_sigma,(*threshold));
 #endif
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Set_Threashold:finished.");
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Set_Threshold:finished.");
 #endif
 	return TRUE;
 }
@@ -1128,6 +1128,12 @@ static int Object_Sort_Object_List_By_Total_Counts(const void *p1, const void *p
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.11  2007/08/29 17:01:13  cjm
+** Rewrote stats generation as per bug #1298.
+** Can now choose between simple mean/stddev and iterstat (iterative sigma clipping, which should ignore
+** the star flux when calculating the std. deviation of the background, thus producing a smaller/better threshold value).
+** More confiurable as well.
+**
 ** Revision 1.10  2007/02/08 17:56:17  cjm
 ** Fixed Autoguider_Object_List_Get_Object_List_String comment.
 **
