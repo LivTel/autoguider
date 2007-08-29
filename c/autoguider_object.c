@@ -1,13 +1,13 @@
 /* autoguider_object.c
 ** Autoguider object detection routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_object.c,v 1.10 2007-02-08 17:56:17 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_object.c,v 1.11 2007-08-29 17:01:13 cjm Exp $
 */
 /**
  * Object detection routines for the autoguider program.
  * Uses libdprt_object.
  * Has it's own buffer, as Object_List_Get destroys the data within it's buffer argument.
  * @author Chris Mottram
- * @version $Revision: 1.10 $
+ * @version $Revision: 1.11 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -26,7 +26,9 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "dprt_libfits.h"
 #include "object.h"
+#include "ccd_config.h"
 
 #include "autoguider_field.h"
 #include "autoguider_general.h"
@@ -86,7 +88,7 @@ struct Object_Internal_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_object.c,v 1.10 2007-02-08 17:56:17 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_object.c,v 1.11 2007-08-29 17:01:13 cjm Exp $";
 /**
  * Instance of object data.
  * @see #Object_Internal_Struct
@@ -103,7 +105,10 @@ static struct Object_Internal_Struct Object_Data =
 static int Object_Buffer_Set(float *buffer,int naxis1,int naxis2);
 static int Object_Buffer_Copy(float *buffer,int naxis1,int naxis2);
 static int Object_Create_Object_List(int use_standard_deviation,int start_x,int start_y);
-static int Object_Set_Stats(void);
+static int Object_Set_Threashold(int use_standard_deviation,float *threshold);
+static void Object_Fill_Stats_List(void);
+static int Object_Get_Mean_Standard_Deviation_Simple(void);
+static int Object_Get_Mean_Standard_Deviation_Sigma_Reject(void);
 static int Object_Sort_Float_List(const void *p1, const void *p2);
 static int Object_Sort_Object_List_By_Total_Counts(const void *p1, const void *p2);
 
@@ -685,7 +690,7 @@ static int Object_Buffer_Copy(float *buffer,int naxis1,int naxis2)
  * @param start_y The start of the buffer's Y position on the physical CCD. 0 for full frame.
  * @return The routine returns TRUE on success, and FALSE on failure.
  * @see #Object_Data
- * @see #Object_Set_Stats
+ * @see #Object_Set_Threashold
  * @see #Object_Sort_Object_List_By_Total_Counts
  * @see autoguider_general.html#Autoguider_General_Log
  * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_OBJECT
@@ -723,20 +728,11 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
 #if AUTOGUIDER_DEBUG > 5
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Create_Object_List:Getting statistics.");
 #endif
-	if(!Object_Set_Stats())
+	if(!Object_Set_Threashold(use_standard_deviation,&threshold))
 	{
 		Autoguider_General_Mutex_Unlock(&(Object_Data.Image_Data_Mutex));
 		return FALSE;
 	}
-	if(use_standard_deviation)
-		threshold = Object_Data.Median+10.0*Object_Data.Background_Standard_Deviation;
-	else
-		threshold = Object_Data.Median;
-#if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Create_Object_List:"
-				      "Using standard deviation = %d, Threshold value %.2f.",
-				      use_standard_deviation,threshold);
-#endif
 #if AUTOGUIDER_DEBUG > 5
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Create_Object_List:"
 			       "Starting object detection.");
@@ -890,13 +886,24 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
 }
 
 /**
- * Set up the Stats_List with a (subset) of pixels in Image_Data.
- * Find the mean, median and standard deviation of the subset.
- * Assumes the Image_Data_Mutex has <b>already</b> been locked externallt to this routine, as it access
+ * Set up the Stats_List with a (subset) of pixels in Image_Data, using Object_Fill_Stats_List.
+ * Find the mean, median and standard deviation of the subset, using Object_Get_Mean_Standard_Deviation_Simple or
+ * Object_Get_Mean_Standard_Deviation_Sigma_Reject.
+ * Assumes the Image_Data_Mutex has <b>already</b> been locked external to this routine, as it access
  * the Image_Data_List to create the Stats_List.
+ * <b>object.theshold.stats.type</b> is loaded from the configuration to determine whether to use simple
+ *   or sigma clipping stats when determining the threshold value.
+ * <b>object.theshold.sigma</b> is loaded from the configuration during execution of this routine.
+ * @param use_standard_deviation Whether to use the frame's standard deviation when calculating object threshold 
+ *        for detection. Set to TRUE for field, FALSE for guide where the window is mainly filled with star.
+ * @param threshold The address of a float to store the calculated threshold value into.
  * @return The routine returns TRUE on success, and FALSE on failure.
  * @see #Object_Sort_Float_List
+ * @see #Object_Fill_Stats_List
+ * @see #Object_Get_Mean_Standard_Deviation_Simple
+ * @see #Object_Get_Mean_Standard_Deviation_Sigma_Reject
  * @see #Image_Data
+ * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Float
  * @see autoguider_general.html#Autoguider_General_Log
  * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_OBJECT
  * @see autoguider_general.html#Autoguider_General_Mutex_Lock
@@ -904,39 +911,137 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  */
-static int Object_Set_Stats(void)
+static int Object_Set_Threashold(int use_standard_deviation,float *threshold)
 {
-	int pixel_count,i,retval;
-	float total_value,difference_squared_total,tmp_float,variance;
+	char *stats_type_string = NULL;
+	int retval;
+	float total_value,difference_squared_total,tmp_float,variance,threhold_sigma;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Set_Stats_List:started.");
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Set_Threashold:started.");
 #endif
-	/* fill Stats_List with subset of Image_Data */
-	pixel_count = (Object_Data.Binned_NCols*Object_Data.Binned_NRows);
-	Object_Data.Stats_Count = MIN(pixel_count,MAXIMUM_STATS_COUNT);
-#if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Set_Stats_List:"
-				      "Using %d pixels in Stats list.",Object_Data.Stats_Count);
-#endif
-	total_value = 0.0f;
-	for(i=0;i<Object_Data.Stats_Count;i++)
-	{
-		/* take every nth pixel into the stats array */
-		Object_Data.Stats_List[i] = Object_Data.Image_Data[i*(pixel_count/Object_Data.Stats_Count)];
-		total_value += Object_Data.Stats_List[i];
-	}
+	/* get a subset of image data into the Stats_List/Stats_Count */
+	Object_Fill_Stats_List();
 	/* median */
 	qsort(Object_Data.Stats_List,Object_Data.Stats_Count,sizeof(float),Object_Sort_Float_List);
 	Object_Data.Median = Object_Data.Stats_List[Object_Data.Stats_Count/2];
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Set_Stats_List:"
+	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Set_Threashold:"
 				      "Median pixel value %.2f.",Object_Data.Median);
 #endif
+	/* get object.theshold.stats.type to determine whether to use simple or sugma_clip stats. */
+	retval = CCD_Config_Get_String("object.theshold.stats.type",&stats_type_string);
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 1018;
+		sprintf(Autoguider_General_Error_String,"Object_Set_Threashold:"
+			"Failed to load config:'object.theshold.stats.type'.");
+		return FALSE;
+	}
+	if(strcmp(stats_type_string,"simple")==0)
+	{
+		/* get a simple mean and standard devation from the Stats_List/Stats_Count 
+		 * and save into Object_Data.Mean / Object_Data.Background_Standard_Deviation */
+		if(!Object_Get_Mean_Standard_Deviation_Simple())
+		{
+			free(stats_type_string);
+			return FALSE;
+		}
+	}
+	else if(strcmp(stats_type_string,"sigma_clip")==0)
+	{
+		/* get mean and standard devation from the Stats_List/Stats_Count using sigma clipping/rejection 
+		 * and save into Object_Data.Mean / Object_Data.Background_Standard_Deviation */
+		if(!Object_Get_Mean_Standard_Deviation_Sigma_Reject())
+		{
+			free(stats_type_string);
+			return FALSE;
+		}
+	}
+	else
+	{
+		Autoguider_General_Error_Number = 1019;
+		sprintf(Autoguider_General_Error_String,"Object_Set_Threashold:"
+			"Config:'object.theshold.stats.type' had illegal value : %s.",stats_type_string);
+		free(stats_type_string);
+		return FALSE;
+	}
+	/* free allocated stats type string */
+	free(stats_type_string);
+	/* get threshold sigma */
+	retval = CCD_Config_Get_Float("object.theshold.sigma",&threhold_sigma);
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 1017;
+		sprintf(Autoguider_General_Error_String,"Object_Set_Threashold:"
+			"Failed to load config:'object.theshold.sigma'.");
+		return FALSE;
+	}
+	/* calculate threshold */
+	if(use_standard_deviation)
+		(*threshold) = Object_Data.Median+threhold_sigma*Object_Data.Background_Standard_Deviation;
+	else
+		(*threshold) = Object_Data.Median;
+#if AUTOGUIDER_DEBUG > 5
+	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Set_Threashold:"
+			      "Using standard deviation = %d (%.2f), Threshold Sigma = %.2f, Threshold value %.2f.",
+				      use_standard_deviation,Object_Data.Background_Standard_Deviation,
+				      threhold_sigma,(*threshold));
+#endif
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Set_Threashold:finished.");
+#endif
+	return TRUE;
+}
+
+/**
+ * Routine to fill Object_Data.Stats_Count/Object_Data.Stats_List with a sensible subset of of
+ * Object_Data.Image_Data.
+ * @see #Object_Data
+ * @see #MAXIMUM_STATS_COUNT
+ * @see autoguider_general.html#Autoguider_General_Log_Format
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_OBJECT
+ */
+static void Object_Fill_Stats_List(void)
+{
+	int i,pixel_count;
+
+	/* fill Stats_List with subset of Image_Data */
+	pixel_count = (Object_Data.Binned_NCols*Object_Data.Binned_NRows);
+	Object_Data.Stats_Count = MIN(pixel_count,MAXIMUM_STATS_COUNT);
+#if AUTOGUIDER_DEBUG > 5
+	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Fill_Stats_List:"
+				      "Using %d pixels in Stats list.",Object_Data.Stats_Count);
+#endif
+	for(i=0;i<Object_Data.Stats_Count;i++)
+	{
+		/* take every nth pixel into the stats array */
+		Object_Data.Stats_List[i] = Object_Data.Image_Data[i*(pixel_count/Object_Data.Stats_Count)];
+	}
+}
+
+/**
+ * Get a simple mean and standard deviation measure from Object_Data.Stats_List / Object_Data.Stats_Count.
+ * These are stored into Object_Data.Mean / Object_Data.Background_Standard_Deviation.
+ * @see #Object_Data
+ * @see autoguider_general.html#Autoguider_General_Log_Format
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_OBJECT
+ */
+static int Object_Get_Mean_Standard_Deviation_Simple(void)
+{
+	int i;
+	float total_value,difference_squared_total,tmp_float,variance;
+
+	/* find the total value of the Stats_List */
+	total_value = 0.0f;
+	for(i=0;i<Object_Data.Stats_Count;i++)
+	{
+		total_value += Object_Data.Stats_List[i];
+	}
 	/* mean */
 	Object_Data.Mean = total_value/Object_Data.Stats_Count;
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Set_Stats_List:"
+	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Get_Mean_Standard_Deviation_Simple:"
 				      "Mean pixel value %.2f.",Object_Data.Mean);
 #endif
 	/* standard deviation */
@@ -948,15 +1053,40 @@ static int Object_Set_Stats(void)
 	}
 	variance = difference_squared_total/Object_Data.Stats_Count;
 	/* background SD */
-	/* diddly 3 sigma_reject? */
 	Object_Data.Background_Standard_Deviation = (float)sqrt(((double)variance));
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Set_Stats_List:"
+	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Get_Mean_Standard_Deviation_Simple:"
 				      "Background Standard Deviation %.2f (variance %.2f).",
 				      Object_Data.Background_Standard_Deviation,variance);
 #endif
-#if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Set_Stats_List:finished.");
+	return TRUE;
+}
+
+/**
+ * Get Mean and Standard deviation using a sigma clipped RMS.
+ * This routine calls iterstat in dprt_libfits.c (DpRt).
+ */
+static int Object_Get_Mean_Standard_Deviation_Sigma_Reject(void)
+{
+	float sigma_reject;
+	int retval;
+
+	/* get threshold sigma */
+	retval = CCD_Config_Get_Float("object.theshold.sigma.reject",&sigma_reject);
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 1020;
+		sprintf(Autoguider_General_Error_String,"Object_Get_Mean_Standard_Deviation_Sigma_Reject:"
+			"Failed to load config:'object.theshold.sigma.reject'.");
+		return FALSE;
+	}
+	retval = iterstat(Object_Data.Stats_List,Object_Data.Stats_Count,sigma_reject,&(Object_Data.Mean),
+			  &(Object_Data.Background_Standard_Deviation));
+#if AUTOGUIDER_DEBUG > 5
+	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,
+				      "Object_Get_Mean_Standard_Deviation_Sigma_Reject:"
+				      "Mean = %.2f, Background Standard Deviation = %.2f, retval = %d.",
+				      Object_Data.Mean,Object_Data.Background_Standard_Deviation,retval);
 #endif
 	return TRUE;
 }
@@ -998,6 +1128,9 @@ static int Object_Sort_Object_List_By_Total_Counts(const void *p1, const void *p
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.10  2007/02/08 17:56:17  cjm
+** Fixed Autoguider_Object_List_Get_Object_List_String comment.
+**
 ** Revision 1.9  2006/11/14 18:08:54  cjm
 ** Changed Autoguider_Object_Guide_Object_Get so it uses Autoguider_Field_In_Object_Bounds
 ** to ensure selected guide objects are inside a nominal field object bounds on the CCD.
