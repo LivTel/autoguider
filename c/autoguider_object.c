@@ -1,13 +1,13 @@
 /* autoguider_object.c
 ** Autoguider object detection routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_object.c,v 1.12 2007-08-29 17:20:01 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_object.c,v 1.13 2007-08-29 18:09:27 cjm Exp $
 */
 /**
  * Object detection routines for the autoguider program.
  * Uses libdprt_object.
  * Has it's own buffer, as Object_List_Get destroys the data within it's buffer argument.
  * @author Chris Mottram
- * @version $Revision: 1.12 $
+ * @version $Revision: 1.13 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -88,7 +88,7 @@ struct Object_Internal_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_object.c,v 1.12 2007-08-29 17:20:01 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_object.c,v 1.13 2007-08-29 18:09:27 cjm Exp $";
 /**
  * Instance of object data.
  * @see #Object_Internal_Struct
@@ -977,7 +977,8 @@ static int Object_Set_Threshold(int use_standard_deviation,float *threshold)
 			"Failed to load config:'object.theshold.sigma'.");
 		return FALSE;
 	}
-	/* calculate threshold */
+	/* calculate threshold 
+	** NB Median is of all Stats_List pixels, Background_Standard_Deviation may not be if iterstat is used. */
 	if(use_standard_deviation)
 		(*threshold) = Object_Data.Median+threhold_sigma*Object_Data.Background_Standard_Deviation;
 	else
@@ -1128,6 +1129,9 @@ static int Object_Sort_Object_List_By_Total_Counts(const void *p1, const void *p
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.12  2007/08/29 17:20:01  cjm
+** Fixed sp in Object_Set_Threshold.
+**
 ** Revision 1.11  2007/08/29 17:01:13  cjm
 ** Rewrote stats generation as per bug #1298.
 ** Can now choose between simple mean/stddev and iterstat (iterative sigma clipping, which should ignore
