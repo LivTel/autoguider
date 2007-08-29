@@ -1,4 +1,4 @@
-# $Header: /home/cjm/cvs/autoguider/c/Makefile,v 1.6 2007-01-26 18:17:44 cjm Exp $
+# $Header: /home/cjm/cvs/autoguider/c/Makefile,v 1.7 2007-08-29 17:02:23 cjm Exp $
 
 include ../../Makefile.common
 include ../commandserver/Makefile.common
@@ -33,6 +33,10 @@ CFITSIO_LDFLAGS		= -lcfitsio
 OBJECT_CFLAGS		= -I${LT_SRC_HOME}/libdprt/object/include
 OBJECT_LDFLAGS		= -ldprt_object
 
+# libdprt_libfits.a (iterstat used in autoguider_object.c)
+ITERSTAT_CFLAGS		= -I${LT_SRC_HOME}/libdprt/ccd_imager
+ITERSTAT_LDFLAGS	= -ldprt_libfits
+
 # SLALIB link information - used only for calculating MJD in get_fits at the moment
 #MJD_CFLAGS 		= -DSLALIB=1 -I${LT_SRC_HOME}/astrometry/include
 #MJD_LDFLAGS		= -lsla
@@ -41,7 +45,7 @@ MJD_CFLAGS 		= -DNGATASTRO=1 -I${LT_SRC_HOME}/ngatastro/include
 MJD_LDFLAGS		= -lngatastro
 
 CFLAGS 			= -g -I$(INCDIR) $(DEBUG_CFLAGS) $(CCD_CFLAGS) $(COMMAND_SERVER_CFLAGS) $(NGATCIL_CFLAGS) \
-				$(CFITSIO_CFLAGS) $(OBJECT_CFLAGS) $(MJD_CFLAGS)
+				$(CFITSIO_CFLAGS) $(OBJECT_CFLAGS) $(MJD_CFLAGS) $(ITERSTAT_CFLAGS)
 DOCFLAGS 		= -static
 
 EXE_SRCS		= autoguider.c
@@ -62,7 +66,7 @@ top: $(EXES) $(CONFIG_BINS) docs
 
 $(BINDIR)/autoguider: $(OBJS)
 	$(CC) $^ -o $@  -L$(LT_LIB_HOME) $(COMMAND_SERVER_LDFLAGS) $(NGATCIL_LDFLAGS) $(CCD_LDFLAGS) \
-		$(CFITSIO_LDFLAGS) $(OBJECT_LDFLAGS) $(MJD_LDFLAGS) $(TIMELIB) $(SOCKETLIB) -lm -lc
+		$(CFITSIO_LDFLAGS) $(OBJECT_LDFLAGS) $(MJD_LDFLAGS) $(ITERSTAT_LDFLAGS) $(TIMELIB) $(SOCKETLIB) -lm -lc
 
 #$(BINDIR)/%: %.o
 #	$(CC) $< -o $@  -L$(LT_LIB_HOME) $(COMMAND_SERVER_LDFLAGS) $(CCD_LDFLAGS) $(TIMELIB) $(SOCKETLIB) -lm -lc
