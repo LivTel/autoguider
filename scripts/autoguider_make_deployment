@@ -1,6 +1,6 @@
 #!/bin/csh
-# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_make_deployment,v 1.7 2007-02-14 19:53:31 cjm Exp $
-# Version: $Revision: 1.7 $
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_make_deployment,v 1.8 2007-08-29 16:20:34 cjm Exp $
+# Version: $Revision: 1.8 $
 # By $Author: cjm $
 # Make a deployment tar file.
 # This contains:
@@ -70,7 +70,7 @@ endif
 #
 echo "Creating directory structure..."
 set dir_count = 0
-set dir_list = "${deployment_dir} ${deployment_dir}/${init_d_dir} ${deployment_icc_dir} ${deployment_bin_dir} ${deployment_dir}/icc/tmp ${deployment_dir}/icc/tmp/log_archive ${deployment_dir}/icc/log ${deployment_icc_dir}/config ${deployment_icc_dir}/dprt/dark ${deployment_icc_dir}/dprt/flat ${deployment_bin_dir}/scripts ${deployment_bin_dir}/autoguider/scripts ${deployment_bin_dir}/autoguider/c/${HOSTTYPE} ${deployment_bin_dir}/autoguider/commandserver/test/${HOSTTYPE} ${deployment_bin_dir}/autoguider/ccd/andor/test/${HOSTTYPE} ${deployment_bin_dir}/autoguider/andor/examples/console/cooling ${deployment_bin_dir}/autoguider/andor/examples/console/image ${deployment_bin_dir}/autoguider/ngatcil/test/${HOSTTYPE} ${deployment_bin_dir}/ics_util/c/${HOSTTYPE} ${deployment_bin_dir}/ccd/misc/${HOSTTYPE} ${deployment_bin_dir}/javalib ${deployment_bin_dir}/lib/${HOSTTYPE} ${deployment_bin_dir}/autoguider/test ${deployment_bin_dir}/libdprt/object/test/${HOSTTYPE} ${deployment_bin_dir}/autobooter/java "
+set dir_list = "${deployment_dir} ${deployment_dir}/${init_d_dir} ${deployment_icc_dir} ${deployment_bin_dir} ${deployment_dir}/icc/tmp ${deployment_dir}/icc/tmp/log_archive ${deployment_dir}/icc/log ${deployment_icc_dir}/config ${deployment_icc_dir}/dprt/dark ${deployment_icc_dir}/dprt/flat ${deployment_bin_dir}/scripts ${deployment_bin_dir}/autoguider/scripts ${deployment_bin_dir}/autoguider/c/${HOSTTYPE} ${deployment_bin_dir}/autoguider/commandserver/test/${HOSTTYPE} ${deployment_bin_dir}/autoguider/ccd/andor/test/${HOSTTYPE} ${deployment_bin_dir}/autoguider/andor/examples/console/cooling ${deployment_bin_dir}/autoguider/andor/examples/console/image ${deployment_bin_dir}/autoguider/ngatcil/test/${HOSTTYPE} ${deployment_bin_dir}/ics_util/c/${HOSTTYPE} ${deployment_bin_dir}/ccd/misc/${HOSTTYPE} ${deployment_bin_dir}/javalib ${deployment_bin_dir}/lib/${HOSTTYPE} ${deployment_bin_dir}/autoguider/test ${deployment_bin_dir}/libdprt/object/test/${HOSTTYPE} ${deployment_bin_dir}/autobooter/java ${deployment_bin_dir}/autoguider/java/gui"
 # ${deployment_bin_dir}/autoguider/andor/examples/common  
 foreach dir ( ${dir_list} )
 	mkdir -p ${dir}
@@ -97,7 +97,7 @@ echo "${dir_count} directories created."
 # Copy jars
 #
 echo "Copying jars..."
-set jar_list = "ngat_net.jar ngat_util.jar ngat_util_logging.jar"
+set jar_list = "ngat_net.jar ngat_util.jar ngat_util_logging.jar ngat_autoguider.jar ngat_swing.jar ngat_sound.jar"
 set jar_count = 0
 foreach jar ( ${jar_list} )
 	echo "jar : ${jar}"
@@ -168,7 +168,7 @@ echo "${java_class_dir_count} Java class directories copied with ${java_class_fi
 # C libraries
 #
 echo "Copying C libraries..."
-set clib_list = "libcfitsio.so libdprt_object.so libngatastro.so libautoguider_commandserver.so libautoguider_ccd_general.so libautoguider_ccd_andor.so libautoguider_ngatcil.so libestar_config.so"
+set clib_list = "libcfitsio.so libdprt_object.so libdprt_libfits.so libngatastro.so libautoguider_commandserver.so libautoguider_ccd_general.so libautoguider_ccd_andor.so libautoguider_ngatcil.so libestar_config.so"
 set clib_count = 0
 foreach clib ( ${clib_list} )
 	echo "C Library : ${clib}"
@@ -257,7 +257,7 @@ echo "${dir_count} C test program directories copied, containg ${file_count} C t
 # Scripts
 #
 echo "Copying scripts..."
-set file_list = "bin/scripts/configure_tai_data.csh bin/scripts/delete_log_files.csh bin/scripts/killhup.csh bin/scripts/fuser_check bin/autoguider/scripts/autoguider_field bin/autoguider/scripts/autoguider_get_exposure_lengths bin/autoguider/scripts/autoguider_get_guide_frames bin/autoguider/scripts/autoguider_get_guide_frames_cron bin/autoguider/scripts/autoguider_get_guide_packets bin/autoguider/scripts/autoguider_get_guide_packets_with_time bin/autoguider/scripts/autoguider_get_object_list bin/autoguider/scripts/autoguider_guide bin/autoguider/scripts/autoguider_guide_packets_graph bin/autoguider/scripts/autoguider_guide_packets_to_csv bin/autoguider/scripts/autoguider_make_dark bin/autoguider/scripts/autoguider_make_dark_list bin/autoguider/scripts/autoguider_make_flat bin/autoguider/scripts/autoguider_object_list_graph bin/autoguider/scripts/autoguider_object_list_to_csv bin/autoguider/scripts/autoguider_rm_guide_frames_cron bin/autoguider/scripts/csv2gnuplot.sh bin/autoguider/scripts/print_line.awk"
+set file_list = "bin/scripts/configure_tai_data.csh bin/scripts/delete_log_files.csh bin/scripts/killhup.csh bin/scripts/fuser_check bin/autoguider/scripts/autoguider_field bin/autoguider/scripts/autoguider_get_exposure_lengths bin/autoguider/scripts/autoguider_get_guide_frames bin/autoguider/scripts/autoguider_get_guide_frames_cron bin/autoguider/scripts/autoguider_get_guide_packets bin/autoguider/scripts/autoguider_get_guide_packets_with_time bin/autoguider/scripts/autoguider_get_object_list bin/autoguider/scripts/autoguider_guide bin/autoguider/scripts/autoguider_guide_packets_graph bin/autoguider/scripts/autoguider_guide_packets_to_csv bin/autoguider/scripts/autoguider_make_dark bin/autoguider/scripts/autoguider_make_dark_list bin/autoguider/scripts/autoguider_make_flat bin/autoguider/scripts/autoguider_object_list_graph bin/autoguider/scripts/autoguider_object_list_to_csv bin/autoguider/scripts/autoguider_rm_guide_frames_cron bin/autoguider/scripts/csv2gnuplot.sh bin/autoguider/scripts/print_line.awk bin/autoguider/java/gui/arse"
 #bin/scripts/autoguider_reboot bin/scripts/autoguider_engineering_mode bin/scripts/${HOSTTYPE}.random.awk bin/ccs_gui/java/icsgui bin/scripts/dprt_reduce_data
 set file_count = 0
 cd ${dev_dir}
@@ -277,7 +277,7 @@ echo "${file_count} scripts copied."
 #
 # in bin sub-directories
 echo "Copying machine configuration files..."
-set file_list = "autoguider/c/${HOSTTYPE}/autoguider.properties autoguider/ccd/andor/test/${HOSTTYPE}/test_exposure.properties autobooter/java/${machine_name}.autobooter.properties "
+set file_list = "autoguider/c/${HOSTTYPE}/autoguider.properties autoguider/ccd/andor/test/${HOSTTYPE}/test_exposure.properties autobooter/java/${machine_name}.autobooter.properties autoguider/java/gui/${machine_name}.ag_gui.properties"
 set file_count = 0
 cd ${dev_dir}
 foreach file ( ${file_list} )
@@ -352,20 +352,20 @@ endif
 #
 # gif files
 #
-#echo "Copying gif/wav files..."
-#set file_list = "ccs_gui/java/lt.gif ccs_gui/java/lt_icon.gif ccs_gui/java/ringo-BD64106.jpg ccs_gui/java/wav/command_completed.wav ccs_gui/java/wav/command_failed.wav ccs_gui/java/wav/filename.wav ccs_gui/java/wav/iss_message.wav ccs_gui/java/wav/welcome.wav"
-#set file_count = 0
-#cd ${dev_dir}
-#foreach file ( ${file_list} )
-#    cp ${dev_bin_dir}/${file} ${deployment_bin_dir}/${file}
-#    set cp_status = $status
-#    if( ${cp_status} != 0 ) then
-#	echo "Copy failed: ${dev_bin_dir}/${file} to ${deployment_bin_dir}/${file}"
-#	exit 6
-#    endif
-#    @ file_count ++
-#end
-#echo "${file_count} gif/wav files copied."
+echo "Copying gif/wav files..."
+set file_list = "autoguider/java/gui/lt_icon.gif"
+set file_count = 0
+cd ${dev_dir}
+foreach file ( ${file_list} )
+    cp ${dev_bin_dir}/${file} ${deployment_bin_dir}/${file}
+    set cp_status = $status
+    if( ${cp_status} != 0 ) then
+	echo "Copy failed: ${dev_bin_dir}/${file} to ${deployment_bin_dir}/${file}"
+	exit 6
+    endif
+    @ file_count ++
+end
+echo "${file_count} gif/wav files copied."
 #
 # Tidy deployment temp
 #
@@ -390,6 +390,9 @@ echo "Download ${deployment_tar}.gz autoguider_tar_install icc_cshrc icc_cshrc_e
 echo "Deployment ready."
 #
 # $Log: not supported by cvs2svn $
+# Revision 1.7  2007/02/14 19:53:31  cjm
+# Added more scripts to deployment.
+#
 # Revision 1.6  2007/01/29 12:52:41  cjm
 # No longer deploys andor kernel module.
 # No longer deploys andor installed files detector.ini,pcii29k_sldma.cof,pciifpga.rbf.
