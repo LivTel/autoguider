@@ -1,13 +1,13 @@
 /* autoguider_object.c
 ** Autoguider object detection routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_object.c,v 1.13 2007-08-29 18:09:27 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_object.c,v 1.14 2007-09-26 17:12:59 cjm Exp $
 */
 /**
  * Object detection routines for the autoguider program.
  * Uses libdprt_object.
  * Has it's own buffer, as Object_List_Get destroys the data within it's buffer argument.
  * @author Chris Mottram
- * @version $Revision: 1.13 $
+ * @version $Revision: 1.14 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -88,7 +88,7 @@ struct Object_Internal_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_object.c,v 1.13 2007-08-29 18:09:27 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_object.c,v 1.14 2007-09-26 17:12:59 cjm Exp $";
 /**
  * Instance of object data.
  * @see #Object_Internal_Struct
@@ -891,9 +891,9 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
  * Object_Get_Mean_Standard_Deviation_Sigma_Reject.
  * Assumes the Image_Data_Mutex has <b>already</b> been locked external to this routine, as it access
  * the Image_Data_List to create the Stats_List.
- * <b>object.theshold.stats.type</b> is loaded from the configuration to determine whether to use simple
+ * <b>object.threshold.stats.type</b> is loaded from the configuration to determine whether to use simple
  *   or sigma clipping stats when determining the threshold value.
- * <b>object.theshold.sigma</b> is loaded from the configuration during execution of this routine.
+ * <b>object.threshold.sigma</b> is loaded from the configuration during execution of this routine.
  * @param use_standard_deviation Whether to use the frame's standard deviation when calculating object threshold 
  *        for detection. Set to TRUE for field, FALSE for guide where the window is mainly filled with star.
  * @param threshold The address of a float to store the calculated threshold value into.
@@ -929,13 +929,13 @@ static int Object_Set_Threshold(int use_standard_deviation,float *threshold)
 	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Set_Threshold:"
 				      "Median pixel value %.2f.",Object_Data.Median);
 #endif
-	/* get object.theshold.stats.type to determine whether to use simple or sugma_clip stats. */
-	retval = CCD_Config_Get_String("object.theshold.stats.type",&stats_type_string);
+	/* get object.threshold.stats.type to determine whether to use simple or sugma_clip stats. */
+	retval = CCD_Config_Get_String("object.threshold.stats.type",&stats_type_string);
 	if(retval == FALSE)
 	{
 		Autoguider_General_Error_Number = 1018;
 		sprintf(Autoguider_General_Error_String,"Object_Set_Threshold:"
-			"Failed to load config:'object.theshold.stats.type'.");
+			"Failed to load config:'object.threshold.stats.type'.");
 		return FALSE;
 	}
 	if(strcmp(stats_type_string,"simple")==0)
@@ -962,19 +962,19 @@ static int Object_Set_Threshold(int use_standard_deviation,float *threshold)
 	{
 		Autoguider_General_Error_Number = 1019;
 		sprintf(Autoguider_General_Error_String,"Object_Set_Threshold:"
-			"Config:'object.theshold.stats.type' had illegal value : %s.",stats_type_string);
+			"Config:'object.threshold.stats.type' had illegal value : %s.",stats_type_string);
 		free(stats_type_string);
 		return FALSE;
 	}
 	/* free allocated stats type string */
 	free(stats_type_string);
 	/* get threshold sigma */
-	retval = CCD_Config_Get_Float("object.theshold.sigma",&threhold_sigma);
+	retval = CCD_Config_Get_Float("object.threshold.sigma",&threhold_sigma);
 	if(retval == FALSE)
 	{
 		Autoguider_General_Error_Number = 1017;
 		sprintf(Autoguider_General_Error_String,"Object_Set_Threshold:"
-			"Failed to load config:'object.theshold.sigma'.");
+			"Failed to load config:'object.threshold.sigma'.");
 		return FALSE;
 	}
 	/* calculate threshold 
@@ -1073,12 +1073,12 @@ static int Object_Get_Mean_Standard_Deviation_Sigma_Reject(void)
 	int retval;
 
 	/* get threshold sigma */
-	retval = CCD_Config_Get_Float("object.theshold.sigma.reject",&sigma_reject);
+	retval = CCD_Config_Get_Float("object.threshold.sigma.reject",&sigma_reject);
 	if(retval == FALSE)
 	{
 		Autoguider_General_Error_Number = 1020;
 		sprintf(Autoguider_General_Error_String,"Object_Get_Mean_Standard_Deviation_Sigma_Reject:"
-			"Failed to load config:'object.theshold.sigma.reject'.");
+			"Failed to load config:'object.threshold.sigma.reject'.");
 		return FALSE;
 	}
 	retval = iterstat(Object_Data.Stats_List,Object_Data.Stats_Count,sigma_reject,&(Object_Data.Mean),
@@ -1129,6 +1129,9 @@ static int Object_Sort_Object_List_By_Total_Counts(const void *p1, const void *p
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.13  2007/08/29 18:09:27  cjm
+** Added comment.
+**
 ** Revision 1.12  2007/08/29 17:20:01  cjm
 ** Fixed sp in Object_Set_Threshold.
 **
