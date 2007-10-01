@@ -1,0 +1,16 @@
+#!/bin/csh
+# autoguider_get_guide_packets <filename>
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_get_guide_packets_with_time,v 1.1 2007-10-01 13:50:11 cjm Exp $
+if ( $#argv < 1 ) then
+	echo "autoguider_get_guide_packets_with_time <filename> [<filename>...]"
+	exit 1
+endif
+#shift
+foreach arg ( $argv )
+    set filename = $arg
+    echo "filename : $arg"
+    grep 'NGATCil_TCS_Guide_Packet_Send:packet_buff (with checksum) =' ${filename} | sed "s/NGATCil_TCS_Guide_Packet_Send:packet_buff (with checksum) = '\(.*\) ' (length .*)./\1/" | awk -F "[ T:]" '{print $0,$2+$3/60+$4/3600}'  
+end
+#
+# $Log: not supported by cvs2svn $
+#

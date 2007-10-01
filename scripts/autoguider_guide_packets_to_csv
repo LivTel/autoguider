@@ -1,0 +1,18 @@
+#!/bin/csh
+# autoguider_guide_packets_to_csv <filename> [<filename> ...]
+# Convert files containing guide packet data to CSV files.
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_guide_packets_to_csv,v 1.1 2007-10-01 13:48:55 cjm Exp $
+if( $#argv < 1 ) then
+    echo "autoguider_guide_packets_to_csv <filename> [<filename> ...]"
+    echo "Convert files containing guide packet data to CSV files."
+    exit 1
+endif
+foreach guide_packet_file ( $argv )
+    set guide_packet_csv_file = "${guide_packet_file:r}.csv"
+    echo "Converting ${guide_packet_file} to ${guide_packet_csv_file}..."
+    cat "${guide_packet_file}" | awk -F ' ' ' { print $1","$4","$5","$6","$7 }' > ${guide_packet_csv_file}
+end
+
+#
+# $Log: not supported by cvs2svn $
+#

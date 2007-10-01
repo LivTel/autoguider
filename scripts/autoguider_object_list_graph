@@ -1,0 +1,33 @@
+#!/bin/csh
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_object_list_graph,v 1.1 2007-10-01 13:51:39 cjm Exp $
+# $Id: autoguider_object_list_graph,v 1.1 2007-10-01 13:51:39 cjm Exp $
+if ( $#argv != 1 ) then
+	echo "autoguider_object_list_graph <csv filename>"
+	exit 1
+endif
+set csv_filename = "$1"
+alias csv2gnuplot `dirname $0`"/csv2gnuplot.sh"
+set output_image_format = "png"
+set output_x_filename = "${csv_filename:r}_x.${output_image_format}"
+set output_y_filename = "${csv_filename:r}_y.${output_image_format}"
+set output_xy_filename = "${csv_filename:r}_xy.${output_image_format}"
+# ~dev/src/autoguider/scripts/autoguider_object_list_to_csv <filename>.txt
+set csv_x_filename = "${csv_filename:r}_x.csv"
+set csv_y_filename = "${csv_filename:r}_y.csv"
+set csv_xy_filename = "${csv_filename:r}_xy.csv"
+# create csv file for x vs time and y vs time. 
+# Time in seconds since start of day.
+# remove filenames from csv file
+cat ${csv_filename} | grep -v "filename," | awk -F',' ' { if ( $4 == "0" ) print $3","$7 }' >  ${csv_x_filename}
+#echo "Time(SoD),Y Pos" > ${csv_y_filename}
+cat ${csv_filename} | grep -v "filename," | awk -F',' ' { if ( $4 == "0" ) print $3","$8 }' >  ${csv_y_filename}
+cat ${csv_filename} | grep -v "filename," | awk -F',' ' { if ( $4 == "0" ) print $3","$7","$8 }' >  ${csv_xy_filename}
+# CReate graphs
+#git "${csv_x_filename}" "${output_x_filename}" 512 512
+#git "${csv_y_filename}" "${output_y_filename}" 512 512
+csv2gnuplot -i ${csv_x_filename} -o ${csv_x_filename:r}_gnuplot.dat -g ${csv_x_filename:r}_gnuplot.scr -W 800 -H 600 -F ${output_image_format} -O ${output_x_filename} -e
+csv2gnuplot -i ${csv_y_filename} -o ${csv_y_filename:r}_gnuplot.dat -g ${csv_y_filename:r}_gnuplot.scr -W 800 -H 600 -F ${output_image_format} -O ${output_y_filename} -e
+csv2gnuplot -i ${csv_xy_filename} -o ${csv_xy_filename:r}_gnuplot.dat -g ${csv_xy_filename:r}_gnuplot.scr -W 800 -H 600 -F ${output_image_format} -O ${output_xy_filename} -e
+#
+# $Log: not supported by cvs2svn $
+#
