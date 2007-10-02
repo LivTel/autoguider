@@ -1,0 +1,54 @@
+$Header: /home/cjm/cvs/autoguider/scripts/usage.txt,v 1.1 2007-10-02 10:26:29 cjm Exp $
+
+Graphing guide packets
+----------------------
+
+Select log files e.g.: 
+autoguider_log_271_21.txt autoguider_log_271_22.txt autoguider_log_271_23.txt
+
+Extract guide packet logs:
+
+~dev/src/autoguider/scripts/autoguider_get_guide_packets_with_time autoguider_log_271_21.txt autoguider_log_271_22.txt autoguider_log_271_23.txt > guide_packets_with_time_271_21_23.txt
+
+Convert extract to csv:
+
+~dev/src/autoguider/scripts/autoguider_guide_packets_to_csv guide_packets_with_time_271_21_23.txt
+
+Create graphs from csv:
+
+~dev/src/autoguider/scripts/autoguider_guide_packets_graph guide_packets_with_time_271_21_23.csv
+
+Graphing Objects
+----------------
+
+Select log files e.g.: 
+autoguider_log_271_21.txt autoguider_log_271_22.txt autoguider_log_271_23.txt
+
+Extract guide packet logs:
+
+~dev/src/autoguider/scripts/autoguider_get_object_list autoguider_log_271_21.txt autoguider_log_271_22.txt autoguider_log_271_23.txt > object_list_271_21_23.txt
+
+Convert extract to csv:
+
+~dev/src/autoguider/scripts/autoguider_guide_packets_to_csv guide_packets_with_time_271_21_23.txt
+
+Create graphs from csv:
+
+~dev/src/autoguider/scripts/autoguider_guide_packets_graph guide_packets_with_time_271_21_23.csv
+
+More graphs using autoguider_object_list_graph_column:
+-----------
+~dev/src/autoguider/scripts/autoguider_object_list_graph_column fwhm_x object_list_271_21_23.csv
+~dev/src/autoguider/scripts/autoguider_object_list_graph_column fwhm_y object_list_271_21_23.csv
+~dev/src/autoguider/scripts/autoguider_object_list_graph_column integrated_counts object_list_271_21_23.csv
+~dev/src/autoguider/scripts/autoguider_object_list_graph_column peak_counts object_list_271_21_23.csv
+~dev/src/autoguider/scripts/autoguider_object_list_graph_column number_of_pixels object_list_271_21_23.csv
+
+FWHM scatter plot
+-----------------
+
+~dev/src/autoguider/scripts/autoguider_object_list_graph_fwhm object_list_271_21_23.csv
+
+Log
+---
+$Log: not supported by cvs2svn $
