@@ -1,0 +1,39 @@
+#!/bin/csh
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_object_list_graph_column,v 1.1 2007-10-02 09:49:57 cjm Exp $
+# $Id: autoguider_object_list_graph_column,v 1.1 2007-10-02 09:49:57 cjm Exp $
+if ( $#argv != 2 ) then
+	echo "autoguider_object_list_graph_column <column> <csv filename>"
+	echo "<column> is a number or one of : integrated_counts, number_of_pixels, peak_counts, fwhm_x, fwhm_y"
+	exit 1
+endif
+set column = "$1"
+set csv_filename = "$2"
+alias csv2gnuplot `dirname $0`"/csv2gnuplot.sh"
+set output_image_format = "png"
+set output_column_filename = "${csv_filename:r}_${column}.${output_image_format}"
+set csv_column_filename = "${csv_filename:r}_${column}.csv"
+# Convert column to a number if applicable
+if ( "${column}" == "integrated_counts" ) then
+    set column = 9
+else if ( "${column}" == "number_of_pixels" ) then
+    set column = 10
+else if ( "${column}" == "peak_counts" ) then
+    set column = 11
+else if ( "${column}" == "fwhm_x" ) then
+    set column = 13
+else if ( "${column}" == "fwhm_y" ) then
+    set column = 14
+endif
+# create csv file for x vs time and y vs time. 
+# Time in seconds since start of day. (actually Frame Index!)
+# remove filenames from csv file
+cat ${csv_filename} | grep -v "filename," | awk -F',' ' { if ( $4 == "0" ) print $3","$'${column}' }' >  ${csv_column_filename}
+# CReate graphs
+#git "${csv_column_filename}" "${output_column_filename}" 512 512
+csv2gnuplot -i ${csv_column_filename} -o ${csv_column_filename:r}_gnuplot.dat -g ${csv_column_filename:r}_gnuplot.scr -W 800 -H 600 -F ${output_image_format} -O ${output_column_filename} -e
+#
+# $Log: not supported by cvs2svn $
+# Revision 1.1  2007/10/01 13:51:39  cjm
+# Initial revision
+#
+#
