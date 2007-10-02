@@ -1,0 +1,29 @@
+#!/bin/csh
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_object_list_graph_fwhm,v 1.1 2007-10-02 10:10:11 cjm Exp $
+# $Id: autoguider_object_list_graph_fwhm,v 1.1 2007-10-02 10:10:11 cjm Exp $
+if ( $#argv != 1 ) then
+	echo "autoguider_object_list_graph_fwhm <csv filename>"
+	echo "Graph FWHM as a scatter plot (use autoguider_object_list_graph_column to graph vs time)."
+	exit 1
+endif
+set csv_filename = "$1"
+alias csv2gnuplot `dirname $0`"/csv2gnuplot.sh"
+set output_image_format = "png"
+set output_fwhm_filename = "${csv_filename:r}_fwhm.${output_image_format}"
+set csv_fwhm_filename = "${csv_filename:r}_fwhm.csv"
+# create csv file for fwhm x vs fwhm y. 
+# Time in seconds since start of day. (actually Frame Index!)
+# remove filenames from csv file
+cat ${csv_filename} | grep -v "filename," | awk -F',' ' { if ( $4 == "0" ) print $13","$14 }' >  ${csv_fwhm_filename}
+# CReate graphs
+#git "${csv_fwhm_filename}" "${output_fwhm_filename}" 512 512
+csv2gnuplot -i ${csv_fwhm_filename} -o ${csv_fwhm_filename:r}_gnuplot.dat -g ${csv_fwhm_filename:r}_gnuplot.scr -W 800 -H 600 -F ${output_image_format} -O ${output_fwhm_filename} -e
+#
+# $Log: not supported by cvs2svn $
+# Revision 1.1  2007/10/02 09:49:57  cjm
+# Initial revision
+#
+# Revision 1.1  2007/10/01 13:51:39  cjm
+# Initial revision
+#
+#
