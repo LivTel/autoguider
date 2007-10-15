@@ -1,11 +1,11 @@
 /* andor_exposure.c
 ** Autoguider Andor CCD Library exposure routines
-** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_exposure.c,v 1.7 2006-11-28 15:01:09 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_exposure.c,v 1.8 2007-10-15 15:56:42 cjm Exp $
 */
 /**
  * Exposure routines for the Andor autoguider CCD library.
  * @author Chris Mottram
- * @version $Revision: 1.7 $
+ * @version $Revision: 1.8 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -61,7 +61,7 @@ struct Exposure_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: andor_exposure.c,v 1.7 2006-11-28 15:01:09 cjm Exp $";
+static char rcsid[] = "$Id: andor_exposure.c,v 1.8 2007-10-15 15:56:42 cjm Exp $";
 /**
  * Data holding the current status of ccd_exposure.
  * @see #Exposure_Struct
@@ -287,6 +287,24 @@ int Andor_Exposure_Expose(int open_shutter,struct timespec start_time,int exposu
 		current_time.tv_sec = gtod_current_time.tv_sec;
 		current_time.tv_nsec = gtod_current_time.tv_usec*CCD_GLOBAL_ONE_MICROSECOND_NS;
 #endif
+#if ANDOR_DEBUG
+		if((acquisition_counter%100)==0)
+		{
+			CCD_General_Log_Format(ANDOR_GENERAL_LOG_BIT_EXPOSURE,"Andor_Exposure_Expose():"
+					       "Exposure_Start_Time = %s, current_time = %s, fdifftime = %.2f s,"
+					       "difftime = %.2f s, exposure length = %d ms, timeout length = %.2f s, "
+					       "is a timeout = %d.",ctime(&(Exposure_Data.Exposure_Start_Time.tv_sec)),
+					       ctime(&current_time.tv_sec),
+					       fdifftime(Exposure_Data.Exposure_Start_Time,current_time),
+					       difftime(Exposure_Data.Exposure_Start_Time.tv_sec,current_time.tv_sec),
+					       Exposure_Data.Exposure_Length,
+					       ((((double)Exposure_Data.Exposure_Length)/1000.0)+
+						EXPOSURE_TIMEOUT_SECS),
+					       fdifftime(Exposure_Data.Exposure_Start_Time,current_time) > 
+					       ((((double)Exposure_Data.Exposure_Length)/1000.0)+
+						EXPOSURE_TIMEOUT_SECS));
+		}
+#endif
 		if(fdifftime(Exposure_Data.Exposure_Start_Time,current_time) >
 		   ((((double)Exposure_Data.Exposure_Length)/1000.0)+EXPOSURE_TIMEOUT_SECS))
 		{
@@ -413,6 +431,9 @@ int Andor_Exposure_Loop_Pause_Length_Set(int ms)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.7  2006/11/28 15:01:09  cjm
+** Changed EXPOSURE_TIMEOUT_SECS to be a double constant.
+**
 ** Revision 1.6  2006/09/07 14:58:34  cjm
 ** Added Andor_Exposure_Loop_Pause_Length_Set / Exposure_Data.Exposure_Loop_Pause_Length.
 ** Trying to reduce CHB losses during an exposure.
