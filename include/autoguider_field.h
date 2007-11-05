@@ -1,5 +1,5 @@
 /* autoguider_field.h
-** $Header: /home/cjm/cvs/autoguider/include/autoguider_field.h,v 1.4 2007-01-26 18:03:46 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/include/autoguider_field.h,v 1.5 2007-11-05 18:18:18 cjm Exp $
 */
 #ifndef AUTOGUIDER_FIELD_H
 #define AUTOGUIDER_FIELD_H
@@ -21,9 +21,15 @@ extern int Autoguider_Field_Get_Unbinned_NCols(void);
 extern int Autoguider_Field_Get_Unbinned_NRows(void);
 extern int Autoguider_Field_Get_Bin_X(void);
 extern int Autoguider_Field_Get_Bin_Y(void);
+extern int Autoguider_Field_Get_Save_FITS_Failed(void);
+extern int Autoguider_Field_Get_Save_FITS_Successful(void);
+extern int Autoguider_Field_Save_FITS(int successful);
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.4  2007/01/26 18:03:46  cjm
+** Added dimension getters.
+**
 ** Revision 1.3  2006/11/14 18:10:40  cjm
 ** Added Autoguider_Field_In_Object_Bounds.
 **
