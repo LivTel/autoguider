@@ -1,11 +1,11 @@
 /* autoguider_field.c
 ** Autoguider field routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_field.c,v 1.12 2007-11-05 14:35:05 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_field.c,v 1.13 2007-11-05 18:23:35 cjm Exp $
 */
 /**
  * Field routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.12 $
+ * @version $Revision: 1.13 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -126,7 +126,7 @@ struct Field_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_field.c,v 1.12 2007-11-05 14:35:05 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_field.c,v 1.13 2007-11-05 18:23:35 cjm Exp $";
 /**
  * Instance of field data.
  * @see #Field_Struct
@@ -146,7 +146,6 @@ static struct Field_Struct Field_Data =
 static int Field_Set_Dimensions(void);
 static int Field_Reduce(int buffer_index);
 static int Field_Check_Done(int *done,int *dark_exposure_length_index);
-static int Field_Save_FITS(int successful);
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -303,7 +302,6 @@ int Autoguider_Field_Exposure_Length_Set(int exposure_length,int lock)
  * @see #Field_Reduce
  * @see #Field_Set_Dimensions
  * @see #Field_Check_Done
- * @see #Field_Save_FITS
  * @see autoguider_buffer.html#Autoguider_Buffer_Raw_Field_Lock
  * @see autoguider_buffer.html#Autoguider_Buffer_Raw_Field_Unlock
  * @see autoguider_buffer.html#Autoguider_Buffer_Get_Field_Pixel_Count
@@ -455,6 +453,10 @@ int Autoguider_Field(void)
 	Field_Data.Field_Id = /*diddly (time_tm->tm_year*1000000000)+*/(time_tm->tm_yday*1000000)+
 		(time_tm->tm_hour*10000)+(time_tm->tm_min*100)+time_tm->tm_sec;
 	Field_Data.Frame_Number = 0;
+#if AUTOGUIDER_DEBUG > 5
+	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field:Field Id = %d.",
+				      Field_Data.Field_Id);
+#endif
 	/* start field loop */
 	done = FALSE;
 	while(done == FALSE)
@@ -576,13 +578,8 @@ int Autoguider_Field(void)
 			Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE);
 			/* reset fielding flag */
 			Field_Data.Is_Fielding = FALSE;
-			/* save failed FITS :- Field_Data.Last_Buffer_Index set to in use buffer index */
-			if(Field_Data.Save_FITS_Failed)
-			{
-				Field_Data.Last_Buffer_Index = Field_Data.In_Use_Buffer_Index;
-				if(!Field_Save_FITS(FALSE))
-					Autoguider_General_Error();
-			}
+			/* to facilitate save failed FITS :- Field_Data.Last_Buffer_Index set to in use buffer index */
+			Field_Data.Last_Buffer_Index = Field_Data.In_Use_Buffer_Index;
 			/* reset in use buffer index */
 			Field_Data.In_Use_Buffer_Index = -1;
 			return FALSE;
@@ -599,12 +596,6 @@ int Autoguider_Field(void)
 		{
 			/* update SDB */
 			Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE);
-			/* save failed FITS :- Field_Data.Last_Buffer_Index already correctly set here */
-			if(Field_Data.Save_FITS_Failed)
-			{
-				if(!Field_Save_FITS(FALSE))
-					Autoguider_General_Error();
-			}
 			/* reset fielding flag */
 			Field_Data.Is_Fielding = FALSE;
 			return FALSE;
@@ -612,20 +603,6 @@ int Autoguider_Field(void)
 	}/* end while */
 	/* reset fielding flag */
 	Field_Data.Is_Fielding = FALSE;
-	/* At this point, the last buffer_index to be exposed is in Last_Buffer_Index.
-	** Autoguider_Get_Fits uses Last_Buffer_Index. So we can save the last field image here
-	** using a combination of those two routines.
-	** Note we have to add a call to the save routine at every exit point in the above loop as well
-	** to capture failed fields. But some will need Last_Buffer_Index setting equal to In_Use_Buffer_Index
-	** for Autoguider_Get_Fits to pick up the right frame. */
-	if(Field_Data.Save_FITS_Successful)
-	{
-		if(!Field_Save_FITS(TRUE))
-		{
-			Autoguider_General_Error();
-			/* carry on here, failing to save should not stop autoguiding */
-		}
-	}
 	/* do NOT update SDB back to idle here,
 	** so guiding goes straight from working to guiding
 	** must manually reset to IDLE all places Autoguider_Field is called on it's own
@@ -1083,6 +1060,143 @@ int Autoguider_Field_Get_Bin_Y(void)
 	return Field_Data.Bin_Y;
 }
 
+/**
+ * Get whether to save a FITS image when the field operation did not result in a
+ * suitable guide star.
+ * @return A boolean. If TRUE a FITS image should be saved when the field operation did not result in a
+ * suitable guide star.
+ * @see #Field_Data
+ */
+int Autoguider_Field_Get_Save_FITS_Failed(void)
+{
+	return Field_Data.Save_FITS_Failed;
+}
+
+/**
+ * Get whether to save a FITS image when the field operation did result in a
+ * suitable guide star.
+ * @return A boolean. If TRUE a FITS image should be saved when the field operation did result in a
+ * suitable guide star.
+ * @see #Field_Data
+ */
+int Autoguider_Field_Get_Save_FITS_Successful(void)
+{
+	return Field_Data.Save_FITS_Successful;
+}
+
+/**
+ * Save the last reduced field buffer to a FITS image.
+ * Autoguider_Get_Fits uses Last_Buffer_Index. 
+ * @param successful A boolean, if TRUE this field operation was successful (we have found a suitable guide star),
+ *        otherwise it was a failed field.
+ * @return The routine returns TRUE on success and FALSE on failure.
+ * @see #Field_Data
+ * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_String
+ * @see autoguider_get_fits.html#Autoguider_Get_Fits
+ */
+int Autoguider_Field_Save_FITS(int successful)
+{
+	FILE *fp = NULL;
+	int retval,my_errno;
+	char *directory_name = NULL;
+	char filename[256];
+	char successful_string[16];
+	void *buffer_ptr = NULL;
+	size_t buffer_length = 0;
+
+	if(!AUTOGUIDER_GENERAL_IS_BOOLEAN(successful))
+	{
+		Autoguider_General_Error_Number = 500;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Field_Save_FITS:"
+			"successful is not a boolean(%d).",successful);
+		return FALSE;
+	}
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field_Save_FITS:started.");
+#endif
+	/* get some config */
+	retval = CCD_Config_Get_String("field.fits.directory",&(directory_name));
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 501;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Field_Save_FITS:"
+			"Getting field.fits.directory config failed.");
+		return FALSE;
+	}
+	/* get a reduced field buffer.
+	** Autoguider_Get_Fits uses Autoguider_Field_Get_Last_Buffer_Index, 
+	** so ensure Last_Buffer_Index is set right. */
+	retval = Autoguider_Get_Fits(AUTOGUIDER_GET_FITS_BUFFER_TYPE_FIELD,AUTOGUIDER_GET_FITS_BUFFER_STATE_REDUCED,
+				     &buffer_ptr,&buffer_length);
+	if(retval == FALSE)
+	{
+		if(directory_name != NULL)
+			free(directory_name);
+		return FALSE;
+	}
+	/* save buffer to disk */
+	if(successful)
+		strcpy(successful_string,"successful");
+	else
+		strcpy(successful_string,"failed");
+	sprintf(filename,"%s/field_%d_%d_%s.fits",directory_name,Field_Data.Field_Id,Field_Data.Frame_Number,
+		successful_string);
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field_Save_FITS:Saving to %s.",filename);
+#endif
+	/* open file */
+	fp = fopen(filename,"wb");
+	if(fp == NULL)
+	{
+		my_errno = errno;
+		if(directory_name != NULL)
+			free(directory_name);
+		if(buffer_ptr != NULL)
+			free(buffer_ptr);
+		Autoguider_General_Error_Number = 502;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Field_Save_FITS:"
+			"Failed to open output filename '%s' (%d).");
+		return FALSE;
+	}
+	/* write buffer to file */
+	retval = fwrite(buffer_ptr,sizeof(char),buffer_length,fp);
+	if(retval != buffer_length)
+	{
+		if(directory_name != NULL)
+			free(directory_name);
+		if(buffer_ptr != NULL)
+			free(buffer_ptr);
+		fclose(fp);
+		Autoguider_General_Error_Number = 503;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Field_Save_FITS:"
+			"Failed to write output (%d of %d) to %s.",retval,buffer_length,filename);
+		return FALSE;
+	}
+	/* close file */
+	retval = fclose(fp);
+	if(retval != 0)
+	{
+		my_errno = errno;
+		if(directory_name != NULL)
+			free(directory_name);
+		if(buffer_ptr != NULL)
+			free(buffer_ptr);
+		Autoguider_General_Error_Number = 536;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Field_Save_FITS:"
+			"Failed to close output filename '%s' (%d).",filename,my_errno);
+		return FALSE;
+	}
+	/* free allocated buffers */
+	if(buffer_ptr != NULL)
+		free(buffer_ptr);
+        if(directory_name != NULL)
+	        free(directory_name);
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field_Save_FITS:finished.");
+#endif
+	return TRUE;
+}
+
 /* ----------------------------------------------------------------------------
 ** 		internal functions 
 ** ---------------------------------------------------------------------------- */
@@ -1347,13 +1461,13 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Field_Check_Done:started.");
 #endif
-	if(done == FALSE)
+	if(done == NULL)
 	{
 		Autoguider_General_Error_Number = 530;
 		sprintf(Autoguider_General_Error_String,"Field_Check_Done:Done was NULL.");
 		return FALSE;
 	}
-	if(dark_exposure_length_index == FALSE)
+	if(dark_exposure_length_index == NULL)
 	{
 		Autoguider_General_Error_Number = 531;
 		sprintf(Autoguider_General_Error_String,"Field_Check_Done:dark_exposure_length_index was NULL.");
@@ -1609,117 +1723,11 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 	return TRUE;
 }
 
-/**
- * Save the last reduced field buffer to a FITS image.
- * Autoguider_Get_Fits uses Last_Buffer_Index. 
- * @param successful A boolean, if TRUE this field operation was successful (we have found a suitable guide star),
- *        otherwise it was a failed field.
- * @return The routine returns TRUE on success and FALSE on failure.
- * @see #Field_Data
- * @see autoguider_get_fits.html#Autoguider_Get_Fits
- */
-static int Field_Save_FITS(int successful)
-{
-	FILE *fp = NULL;
-	int retval,my_errno;
-	char *directory_name = NULL;
-	char filename[256];
-	char successful_string[16];
-	void *buffer_ptr = NULL;
-	size_t buffer_length = 0;
-
-	if(!AUTOGUIDER_GENERAL_IS_BOOLEAN(successful))
-	{
-		Autoguider_General_Error_Number = 500;
-		sprintf(Autoguider_General_Error_String,"Field_Save_FITS:"
-			"successful is not a boolean(%d).",successful);
-		return FALSE;
-	}
-#if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Field_Save_FITS:started.");
-#endif
-	/* get some config */
-	retval = CCD_Config_Get_String("field.fits.directory",&(directory_name));
-	if(retval == FALSE)
-	{
-		Autoguider_General_Error_Number = 501;
-		sprintf(Autoguider_General_Error_String,"Field_Save_FITS:"
-			"Getting field.fits.directory config failed.");
-		return FALSE;
-	}
-	/* get a reduced field buffer.
-	** Autoguider_Get_Fits uses Autoguider_Field_Get_Last_Buffer_Index, 
-	** so ensure Last_Buffer_Index is set right. */
-	retval = Autoguider_Get_Fits(AUTOGUIDER_GET_FITS_BUFFER_TYPE_FIELD,AUTOGUIDER_GET_FITS_BUFFER_STATE_REDUCED,
-				     &buffer_ptr,&buffer_length);
-	if(retval == FALSE)
-	{
-		if(directory_name != NULL)
-			free(directory_name);
-		return FALSE;
-	}
-	/* save buffer to disk */
-	if(successful)
-		strcpy(successful_string,"successful");
-	else
-		strcpy(successful_string,"failed");
-	sprintf(filename,"%s/field_%d_%d_%s.fits",directory_name,Field_Data.Field_Id,Field_Data.Frame_Number,
-		successful_string);
-	/* open file */
-	fp = fopen(filename,"wb");
-	if(fp == NULL)
-	{
-		my_errno = errno;
-		if(directory_name != NULL)
-			free(directory_name);
-		if(buffer_ptr != NULL)
-			free(buffer_ptr);
-		Autoguider_General_Error_Number = 502;
-		sprintf(Autoguider_General_Error_String,"Field_Save_FITS:"
-			"Failed to open output filename '%s' (%d).");
-		return FALSE;
-	}
-	/* write buffer to file */
-	retval = fwrite(buffer_ptr,sizeof(char),buffer_length,fp);
-	if(retval != buffer_length)
-	{
-		if(directory_name != NULL)
-			free(directory_name);
-		if(buffer_ptr != NULL)
-			free(buffer_ptr);
-		fclose(fp);
-		Autoguider_General_Error_Number = 503;
-		sprintf(Autoguider_General_Error_String,"Field_Save_FITS:"
-			"Failed to write output (%d of %d) to %s.",retval,buffer_length,filename);
-		return FALSE;
-	}
-	/* close file */
-	retval = fclose(fp);
-	if(retval != 0)
-	{
-		my_errno = errno;
-		if(directory_name != NULL)
-			free(directory_name);
-		if(buffer_ptr != NULL)
-			free(buffer_ptr);
-		Autoguider_General_Error_Number = 536;
-		sprintf(Autoguider_General_Error_String,"Field_Save_FITS:"
-			"Failed to close output filename '%s' (%d).",filename,my_errno);
-		return FALSE;
-	}
-	/* free allocated buffers */
-	if(buffer_ptr != NULL)
-		free(buffer_ptr);
-        if(directory_name != NULL)
-	        free(directory_name);
-#if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Field_Save_FITS:finished.");
-#endif
-	return TRUE;
-}
-
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.12  2007/11/05 14:35:05  cjm
+** Added saving of successful and failed FITS images.
+**
 ** Revision 1.11  2007/01/30 17:35:24  cjm
 ** Added CCD_Temperature_Get/Autoguider_Buffer_Field_CCD_Temperature_Set calls
 ** to save CCD temperature per buffer, for later FITS header inclusion.
