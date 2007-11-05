@@ -1,11 +1,11 @@
 /* autoguider_command.c
 ** Autoguider command routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_command.c,v 1.11 2007-02-09 14:41:05 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_command.c,v 1.12 2007-11-05 18:24:32 cjm Exp $
 */
 /**
  * Command routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.11 $
+ * @version $Revision: 1.12 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -44,7 +44,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_command.c,v 1.11 2007-02-09 14:41:05 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_command.c,v 1.12 2007-11-05 18:24:32 cjm Exp $";
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -310,6 +310,9 @@ int Autoguider_Command_Autoguide(char *command_string,char **reply_string)
  * @see autoguider_cil.html#Autoguider_CIL_SDB_Packet_State_Set
  * @see autoguider_cil.html#Autoguider_CIL_SDB_Packet_Send
  * @see autoguider_field.html#Autoguider_Field
+ * @see autoguider_field.html#Autoguider_Field_Save_FITS
+ * @see autoguider_field.html#Autoguider_Field_Get_Save_FITS_Failed
+ * @see autoguider_field.html#Autoguider_Field_Get_Save_FITS_Successful
  * @see autoguider_object.html#Autoguider_Object_Guide_Object_Get
  * @see autoguider_guide.html#Autoguider_Guide_Set_Guide_Object
  * @see autoguider_guide.html#Autoguider_Guide_On
@@ -328,6 +331,12 @@ int Autoguider_Command_Autoguide_On(enum COMMAND_AG_ON_TYPE on_type,float pixel_
 	retval = Autoguider_Field();
 	if(retval == FALSE)
 	{
+		/* save of the failed Field image if configured to do so. */
+		if(Autoguider_Field_Get_Save_FITS_Failed())
+		{
+			if(!Autoguider_Field_Save_FITS(FALSE))
+				Autoguider_General_Error();
+		}
 		return FALSE;
 	}
 	/* check we have an object to guide on */
@@ -343,6 +352,12 @@ int Autoguider_Command_Autoguide_On(enum COMMAND_AG_ON_TYPE on_type,float pixel_
 			Autoguider_General_Error(); /* no need to fail */
 		if(!Autoguider_CIL_SDB_Packet_Send())
 			Autoguider_General_Error(); /* no need to fail */
+		/* save of the failed Field image if configured to do so. */
+		if(Autoguider_Field_Get_Save_FITS_Failed())
+		{
+			if(!Autoguider_Field_Save_FITS(FALSE))
+				Autoguider_General_Error();
+		}
 		return FALSE;
 	}
 	/* do object selection/ guide setup */
@@ -358,7 +373,19 @@ int Autoguider_Command_Autoguide_On(enum COMMAND_AG_ON_TYPE on_type,float pixel_
 			Autoguider_General_Error(); /* no need to fail */
 		if(!Autoguider_CIL_SDB_Packet_Send())
 			Autoguider_General_Error(); /* no need to fail */
+		/* save of the failed Field image if configured to do so. */
+		if(Autoguider_Field_Get_Save_FITS_Failed())
+		{
+			if(!Autoguider_Field_Save_FITS(FALSE))
+				Autoguider_General_Error();
+		}
 		return FALSE;
+	}
+	/* save the successful field image if configured to do so */
+	if(Autoguider_Field_Get_Save_FITS_Successful())
+	{
+		if(!Autoguider_Field_Save_FITS(TRUE))
+			Autoguider_General_Error();
 	}
 	/* turn guide loop on */
 #if AUTOGUIDER_DEBUG > 5
@@ -1739,6 +1766,10 @@ int Autoguider_Command_Log_Level(char *command_string,char **reply_string)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.11  2007/02/09 14:41:05  cjm
+** Added timecode_scaling get and set commands.
+** Also getters for status on guide window.
+**
 ** Revision 1.10  2007/01/19 14:26:34  cjm
 ** Added guide window_track <on|off> command for guide window tracking
 ** control.
