@@ -1,5 +1,5 @@
 #!/bin/csh
-# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_rm_field_frames_cron,v 1.1 2007-11-06 12:12:48 cjm Exp $
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_rm_field_frames_cron,v 1.2 2007-11-06 14:52:06 cjm Exp $
 # cron task to delete "old" autoguider field frames
 # age limit is days - files older than this are deleted.
 set successful_age_limit = "7"
@@ -21,16 +21,14 @@ set ls_filename = "${tmp_dir}/autoguider_rm_field_frames_cron_file_list.txt"
 if ( -r "${ls_filename}" ) then
      /bin/rm "${ls_filename}"
 endif
-
-diddly 2 sets for successful/failed.
 #
 # Successful Field images
 #
 /bin/ls ${tmp_dir}/field_*_successful.fits >>! ${ls_filename}
 set file_count = `/usr/bin/wc -l ${ls_filename} | awk ' {print $1}'`
 echo "${date_string} : Found ${file_count} successful FITS files." >>! ${log_filename}
-set file_index = 0
-while ( "${file_index}" < "${file_count}" )
+set file_index = 1
+while ( "${file_index}" <= "${file_count}" )
 	set fits_filename = `print_line -v LINE=${file_index} ${ls_filename}`
 	if( -r "${fits_filename}" ) then
 		set fits_filename_date = `/bin/date -r ${fits_filename} +"%Y%j"`
@@ -59,8 +57,8 @@ end
 /bin/ls ${tmp_dir}/field_*_failed.fits >>! ${ls_filename}
 set file_count = `/usr/bin/wc -l ${ls_filename} | awk ' {print $1}'`
 echo "${date_string} : Found ${file_count} failed FITS files." >>! ${log_filename}
-set file_index = 0
-while ( "${file_index}" < "${file_count}" )
+set file_index = 1
+while ( "${file_index}" <= "${file_count}" )
 	set fits_filename = `print_line -v LINE=${file_index} ${ls_filename}`
 	if( -r "${fits_filename}" ) then
 		set fits_filename_date = `/bin/date -r ${fits_filename} +"%Y%j"`
@@ -85,4 +83,7 @@ end
 /bin/rm "${ls_filename}"
 #
 # $Log: not supported by cvs2svn $
+# Revision 1.1  2007/11/06 12:12:48  cjm
+# Initial revision
+#
 #
