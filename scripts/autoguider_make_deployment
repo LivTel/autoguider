@@ -1,6 +1,6 @@
 #!/bin/csh
-# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_make_deployment,v 1.11 2007-11-23 21:18:48 cjm Exp $
-# Version: $Revision: 1.11 $
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_make_deployment,v 1.12 2007-11-23 21:28:57 cjm Exp $
+# Version: $Revision: 1.12 $
 # By $Author: cjm $
 # Make a deployment tar file.
 # This contains:
@@ -70,7 +70,7 @@ endif
 #
 echo "Creating directory structure..."
 set dir_count = 0
-set dir_list = "${deployment_dir} ${deployment_dir}/${init_d_dir} ${deployment_icc_dir} ${deployment_bin_dir} ${deployment_dir}/icc/tmp ${deployment_dir}/icc/tmp/log_archive ${deployment_dir}/icc/log ${deployment_icc_dir}/config ${deployment_icc_dir}/dprt/dark ${deployment_icc_dir}/dprt/flat ${deployment_bin_dir}/scripts ${deployment_bin_dir}/autoguider/scripts ${deployment_bin_dir}/autoguider/c/${HOSTTYPE} ${deployment_bin_dir}/autoguider/commandserver/test/${HOSTTYPE} ${deployment_bin_dir}/autoguider/ccd/andor/test/${HOSTTYPE} ${deployment_bin_dir}/autoguider/andor/examples/console/cooling ${deployment_bin_dir}/autoguider/andor/examples/console/image ${deployment_bin_dir}/autoguider/ngatcil/test/${HOSTTYPE} ${deployment_bin_dir}/ics_util/c/${HOSTTYPE} ${deployment_bin_dir}/ccd/misc/${HOSTTYPE} ${deployment_bin_dir}/javalib ${deployment_bin_dir}/lib/${HOSTTYPE} ${deployment_bin_dir}/autoguider/test ${deployment_bin_dir}/libdprt/object/test/${HOSTTYPE} ${deployment_bin_dir}/autobooter/java ${deployment_bin_dir}/autoguider/java/gui"
+set dir_list = "${deployment_dir} ${deployment_dir}/${init_d_dir} ${deployment_icc_dir} ${deployment_bin_dir} ${deployment_dir}/icc/tmp ${deployment_dir}/icc/tmp/log_archive ${deployment_dir}/icc/log ${deployment_icc_dir}/config ${deployment_icc_dir}/dprt/dark ${deployment_icc_dir}/dprt/flat ${deployment_bin_dir}/scripts ${deployment_bin_dir}/autoguider/scripts ${deployment_bin_dir}/autoguider/c/${HOSTTYPE} ${deployment_bin_dir}/autoguider/commandserver/test/${HOSTTYPE} ${deployment_bin_dir}/autoguider/ccd/andor/test/${HOSTTYPE} ${deployment_bin_dir}/autoguider/andor/examples/console/cooling ${deployment_bin_dir}/autoguider/andor/examples/console/image ${deployment_bin_dir}/autoguider/ngatcil/test/${HOSTTYPE} ${deployment_bin_dir}/ics_util/c/${HOSTTYPE} ${deployment_bin_dir}/iboot/${HOSTTYPE} ${deployment_bin_dir}/ccd/misc/${HOSTTYPE} ${deployment_bin_dir}/javalib ${deployment_bin_dir}/lib/${HOSTTYPE} ${deployment_bin_dir}/autoguider/test ${deployment_bin_dir}/libdprt/object/test/${HOSTTYPE} ${deployment_bin_dir}/autobooter/java ${deployment_bin_dir}/autoguider/java/gui"
 # ${deployment_bin_dir}/autoguider/andor/examples/common  
 foreach dir ( ${dir_list} )
 	mkdir -p ${dir}
@@ -391,6 +391,9 @@ echo "Download ${deployment_tar}.gz autoguider_tar_install icc_cshrc icc_cshrc_e
 echo "Deployment ready."
 #
 # $Log: not supported by cvs2svn $
+# Revision 1.11  2007/11/23 21:18:48  cjm
+# Added iboot dir.
+#
 # Revision 1.10  2007/11/06 12:13:54  cjm
 # Added autoguider_rm_field_frames_cron.
 #
