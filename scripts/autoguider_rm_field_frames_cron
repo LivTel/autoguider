@@ -1,5 +1,5 @@
 #!/bin/csh
-# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_rm_field_frames_cron,v 1.2 2007-11-06 14:52:06 cjm Exp $
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_rm_field_frames_cron,v 1.3 2008-02-15 10:58:02 cjm Exp $
 # cron task to delete "old" autoguider field frames
 # age limit is days - files older than this are deleted.
 set successful_age_limit = "7"
@@ -19,7 +19,7 @@ else
 endif
 set ls_filename = "${tmp_dir}/autoguider_rm_field_frames_cron_file_list.txt"
 if ( -r "${ls_filename}" ) then
-     /bin/rm "${ls_filename}"
+     /bin/rm -f "${ls_filename}"
 endif
 #
 # Successful Field images
@@ -37,7 +37,7 @@ while ( "${file_index}" <= "${file_count}" )
 		echo "${date_string} : Successful FITS file ${fits_filename} is ${day_count} days old." >>! ${log_filename}
 		if( "${day_count}" > "${successful_age_limit}" ) then
 			echo "${date_string} : removing ${fits_filename}." >>! ${log_filename}
-			/bin/rm ${fits_filename}
+			/bin/rm -f ${fits_filename}
 			set rm_status = $status
 			if( "${rm_status}" == 0 ) then
 				echo "${date_string} : ${fits_filename} deleted." >>! ${log_filename}
@@ -50,7 +50,7 @@ while ( "${file_index}" <= "${file_count}" )
 	endif
 	@ file_index ++
 end
-/bin/rm "${ls_filename}"
+/bin/rm -f "${ls_filename}"
 #
 # Failed Field images
 #
@@ -67,7 +67,7 @@ while ( "${file_index}" <= "${file_count}" )
 		echo "${date_string} : Failed FITS file ${fits_filename} is ${day_count} days old." >>! ${log_filename}
 		if( "${day_count}" > "${failed_age_limit}" ) then
 			echo "${date_string} : removing ${fits_filename}." >>! ${log_filename}
-			/bin/rm ${fits_filename}
+			/bin/rm -f ${fits_filename}
 			set rm_status = $status
 			if( "${rm_status}" == 0 ) then
 				echo "${date_string} : ${fits_filename} deleted." >>! ${log_filename}
@@ -80,9 +80,13 @@ while ( "${file_index}" <= "${file_count}" )
 	endif
 	@ file_index ++
 end
-/bin/rm "${ls_filename}"
+/bin/rm -f "${ls_filename}"
 #
 # $Log: not supported by cvs2svn $
+# Revision 1.2  2007/11/06 14:52:06  cjm
+# Fixed indexing (awk goes from 1..N).
+# Removed spurious comment.
+#
 # Revision 1.1  2007/11/06 12:12:48  cjm
 # Initial revision
 #
