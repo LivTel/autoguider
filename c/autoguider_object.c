@@ -1,13 +1,13 @@
 /* autoguider_object.c
 ** Autoguider object detection routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_object.c,v 1.14 2007-09-26 17:12:59 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_object.c,v 1.15 2008-03-14 12:04:01 cjm Exp $
 */
 /**
  * Object detection routines for the autoguider program.
  * Uses libdprt_object.
  * Has it's own buffer, as Object_List_Get destroys the data within it's buffer argument.
  * @author Chris Mottram
- * @version $Revision: 1.14 $
+ * @version $Revision: 1.15 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -88,7 +88,7 @@ struct Object_Internal_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_object.c,v 1.14 2007-09-26 17:12:59 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_object.c,v 1.15 2008-03-14 12:04:01 cjm Exp $";
 /**
  * Instance of object data.
  * @see #Object_Internal_Struct
@@ -291,6 +291,75 @@ int Autoguider_Object_List_Get_Object(int index,struct Autoguider_Object_Struct 
 		return FALSE;
 	}
 	(*object) = Object_Data.Object_List[index];
+	/* unlock mutex */
+	retval = Autoguider_General_Mutex_Unlock(&(Object_Data.Object_List_Mutex));
+	if(retval == FALSE)
+		return FALSE;
+	return TRUE;
+}
+
+/**
+ * Get the detected object nearest the specified CCD pixel position from the object list.
+ * The relevant Object_List mutex is locked and un-locked.
+ * @param ccd_x_position The X position on the CCD.
+ * @param ccd_y_position The Y position on the CCD.
+ * @param object The address of an Autoguider_Object_Struct to store the selected object.
+ * @return The routine returns TRUE on success, and FALSE on failure.
+ * @see #Object_Data
+ * @see #Autoguider_Object_Struct
+ * @see autoguider_general.html#Autoguider_General_Error_Number
+ * @see autoguider_general.html#Autoguider_General_Error_String
+ * @see autoguider_general.html#Autoguider_General_Mutex_Lock
+ * @see autoguider_general.html#Autoguider_General_Mutex_Unlock
+ */
+int Autoguider_Object_List_Get_Nearest_Object(float ccd_x_position,float ccd_y_position,
+					      struct Autoguider_Object_Struct *object)
+{
+	int index,selected_object_index;
+	float distance,closest_distance,xsq,ysq,xdiff,ydiff;
+	int retval;
+
+	if(object == NULL)
+	{
+		Autoguider_General_Error_Number = 1021;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Object_List_Get_Nearest_Object:object was NULL.");
+		return FALSE;
+	}
+	/* lock mutex */
+	retval = Autoguider_General_Mutex_Lock(&(Object_Data.Object_List_Mutex));
+	if(retval == FALSE)
+		return FALSE;
+#if AUTOGUIDER_DEBUG > 7
+	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,
+				      "Autoguider_Object_List_Get_Nearest_Object:Selecting object nearest"
+				      " (%.2f,%.2f) from %d objects.",ccd_x_position,ccd_y_position,
+				      Object_Data.Object_Count);
+#endif
+	closest_distance = 999999.9f;
+	for(index = 0; index < Object_Data.Object_Count; index++)
+	{
+		/* NB no test against field object bounds
+		** Probably not needed in this case - unless specified pixel is in a silly place */
+		xdiff = Object_Data.Object_List[index].CCD_X_Position-ccd_x_position;
+		ydiff = Object_Data.Object_List[index].CCD_Y_Position-ccd_y_position;
+		xsq = xdiff*xdiff;
+		ysq = ydiff*ydiff;
+		distance = (float)sqrt((double)(xsq + ysq));
+#if AUTOGUIDER_DEBUG > 9
+		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,
+					      "Autoguider_Object_List_Get_Nearest_Object:Object index %d (%.2f,%.2f) "
+					      "is %.2f pixels away from (%.2f,%.2f).",index,
+					      Object_Data.Object_List[index].CCD_X_Position,
+					      Object_Data.Object_List[index].CCD_Y_Position,
+					      distance,ccd_x_position,ccd_y_position);
+#endif
+		if(distance <  closest_distance)
+		{
+			closest_distance = distance;
+			selected_object_index = index;
+		}
+	}/* end for */
+	(*object) = Object_Data.Object_List[selected_object_index];
 	/* unlock mutex */
 	retval = Autoguider_General_Mutex_Unlock(&(Object_Data.Object_List_Mutex));
 	if(retval == FALSE)
@@ -1129,6 +1198,9 @@ static int Object_Sort_Object_List_By_Total_Counts(const void *p1, const void *p
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.14  2007/09/26 17:12:59  cjm
+** sp fix theshold -> threshold.
+**
 ** Revision 1.13  2007/08/29 18:09:27  cjm
 ** Added comment.
 **
