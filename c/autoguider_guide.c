@@ -1,11 +1,11 @@
 /* autoguider_guide.c
 ** Autoguider guide routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.36 2007-08-20 14:48:37 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.37 2008-03-14 12:02:27 cjm Exp $
 */
 /**
  * Guide routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.36 $
+ * @version $Revision: 1.37 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -140,7 +140,13 @@ struct Guide_Window_Tracking_Struct
  *     timecode so send in the TCS UDP guide packet.</dd>
  * <dt>Use_Cadence_For_SDB_Exp_Time</dt> <dd>A boolean, if TRUE the guide loop sends the loop cadence (total loop
  *     execution time) to the SDB each time round the loop as if it were the exposure length. This is meant to
- *     help the TCS apply the right guide corrections, which uses the SDB exposure length.
+ *     help the TCS apply the right guide corrections, which uses the SDB exposure length.</dd>
+ * <dt>Initial_Object_CCD_X_Position</dt> <dd>A float, set to the selected guide objects initial CCD X position 
+ *     (before the guide loop is started). This is used within the guide loop to choose which object to guide upon 
+ *     if multiple objects are detected within the guide window.</dd>
+ * <dt>Initial_Object_CCD_Y_Position</dt> <dd>A float, set to the selected guide objects initial CCD Y position 
+ *     (before the guide loop is started). This is used within the guide loop to choose which object to guide upon 
+ *     if multiple objects are detected within the guide window.</dd>
  * </dl>
  * @see #Guide_Exposure_Length_Scaling_Struct
  * @see #Guide_Window_Tracking_Struct
@@ -172,13 +178,15 @@ struct Guide_Struct
 	struct Guide_Window_Tracking_Struct Guide_Window_Tracking;
 	float Timecode_Scaling_Factor;
 	int Use_Cadence_For_SDB_Exp_Time;
+	float Initial_Object_CCD_X_Position;
+	float Initial_Object_CCD_Y_Position;
 };
 
 /* internal data */
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_guide.c,v 1.36 2007-08-20 14:48:37 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_guide.c,v 1.37 2008-03-14 12:02:27 cjm Exp $";
 /**
  * Instance of guide data.
  * @see #Guide_Struct
@@ -765,6 +773,9 @@ int Autoguider_Guide_Set_Guide_Object(int index)
 	/* set guide window data */
 	if(!Autoguider_Guide_Window_Set_From_XY(object.CCD_X_Position,object.CCD_Y_Position))
 		return FALSE;
+	/* set initial object position for deconvolving multiple sources in the guide window */
+	Guide_Data.Initial_Object_CCD_X_Position = object.CCD_X_Position;
+	Guide_Data.Initial_Object_CCD_Y_Position = object.CCD_Y_Position;
 	/* only change exposure length if it is not locked */
 	if(Guide_Data.Exposure_Length_Lock == FALSE)
 	{
@@ -2121,8 +2132,9 @@ static int Guide_Window_Track(void)
  * <li>If object detection is switched off, no guide packet is sent.
  * <li>The number of detected objects is retrieved using Autoguider_Object_List_Get_Count.
  * <li>If no objects were detected, a NGATCIL_TCS_GUIDE_PACKET_STATUS_FAILED status guide packet is returned.
- * <li>The first object is retrieved.
- * <li>If more than one object was detected, a NGATCIL_TCS_GUIDE_PACKET_STATUS_FAILED status guide packet is returned.
+ * <li>If more than one object was detected, the one nearest the initial guide object's position is selected using
+ *     Autoguider_Object_List_Get_Nearest_Object.
+ * <li>Otherwise the first object is retrieved.
  * <li>We load config 'guide.counts.min.peak','guide.counts.max.peak' and 'guide.ellipticity' for reliability tests.
  * <li>A set of reliability tests are performed to get an integer between 0 and 7.
  * <li>The reliability number is transformed into a status char.
@@ -2147,6 +2159,8 @@ static int Guide_Window_Track(void)
  * @see autoguider_general.html#Autoguider_General_Log_Format
  * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_GUIDE
  * @see autoguider_object.html#Autoguider_Object_List_Get_Count
+ * @see autoguider_object.html#Autoguider_Object_List_Get_Nearest_Object
+ * @see autoguider_object.htmlAutoguider_Object_List_Get_Object
  * @see ../ngatcil/cdocs/ngatcil_tcs_guide_packet.html#NGATCIL_TCS_GUIDE_PACKET_STATUS_WINDOW
  * @see ../ngatcil/cdocs/ngatcil_tcs_guide_packet.html#NGATCIL_TCS_GUIDE_PACKET_STATUS_FAILED
  * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Integer
@@ -2186,27 +2200,35 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 				Autoguider_General_Error();
 			return TRUE;
 		}
-		/* get first object */
-		if(!Autoguider_Object_List_Get_Object(0,&object))
-		{
-			Autoguider_General_Error();
-			/* if object get failed send unreliable and return */
-			if(!Autoguider_CIL_Guide_Packet_Send(0.0f,0.0f,terminating,TRUE,timecode_secs,
-							     NGATCIL_TCS_GUIDE_PACKET_STATUS_FAILED))
-				Autoguider_General_Error();
-			return TRUE;
-		}
-		/* if object count > 1 return first object but send unreliable and return */
+		/* if object count > 1 select nearest object to initial guide object position */
 		if(object_count > 1)
 		{
-			if(!Autoguider_CIL_Guide_Packet_Send(object.CCD_X_Position,object.CCD_Y_Position,
-							     terminating,TRUE,timecode_secs,
-							     NGATCIL_TCS_GUIDE_PACKET_STATUS_FAILED))
+			if(!Autoguider_Object_List_Get_Nearest_Object(Guide_Data.Initial_Object_CCD_X_Position,
+								      Guide_Data.Initial_Object_CCD_Y_Position,
+								      &object))
+			{
 				Autoguider_General_Error();
-			return TRUE;
-
+				/* if object get nearest failed send unreliable and return */
+				if(!Autoguider_CIL_Guide_Packet_Send(0.0f,0.0f,terminating,TRUE,timecode_secs,
+								     NGATCIL_TCS_GUIDE_PACKET_STATUS_FAILED))
+					Autoguider_General_Error();
+				return TRUE;
+			}
 		}
-		/* we have one object on the guide frame */
+		else /* object_count is one - only 1 detected object in guide frame */
+		{
+			/* get first object */
+			if(!Autoguider_Object_List_Get_Object(0,&object))
+			{
+				Autoguider_General_Error();
+				/* if object get failed send unreliable and return */
+				if(!Autoguider_CIL_Guide_Packet_Send(0.0f,0.0f,terminating,TRUE,timecode_secs,
+								     NGATCIL_TCS_GUIDE_PACKET_STATUS_FAILED))
+					Autoguider_General_Error();
+				return TRUE;
+			}
+		}
+		/* object is the best detected object on the guide frame */
 		/* reliability tests */
 		/* load config */
 		retval = CCD_Config_Get_Integer("guide.counts.min.peak",&guide_counts_min_peak);
@@ -2543,6 +2565,9 @@ static int Guide_Dimension_Config_Load(void)
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.36  2007/08/20 14:48:37  cjm
+** Added math.h, so prototype of log10 is defined correctly.
+**
 ** Revision 1.35  2007/08/17 10:16:31  cjm
 ** Changed guide magnitude computation - broken into steps. Last version always returned "20.0" (const),
 ** I think because Exposure_Length was not cast to float. More logging to see which bit breaks now...
