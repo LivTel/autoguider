@@ -1,0 +1,45 @@
+#!/bin/csh
+# $Header: /home/cjm/cvs/autoguider/scripts/agiboot_trigger_count_cron,v 1.1 2008-05-13 10:20:55 cjm Exp $
+# Create csv file of trigger count of Autoguider iBoot
+# Currently runs from occ@occ's crontab : See trigger_count_csv_file pathname
+set address = "http://192.168.1.43/"
+set wget_output_file = "/tmp/agiboot_index.html"
+set wget_log_file = /tmp/agiboot_wget_output.txt
+set year = `/bin/date +"%Y"`
+set trigger_count_csv_file = "/occ/logs/agiboot_trigger_count_${year}.csv"
+wget --tries=1 --timeout=10 --server-response --verbose --http-user="" --http-passwd="PASS" "${address}" -O "${wget_output_file}" >& ${wget_log_file}
+# Note wget always fails due to read errors off the end of file.
+# Look for 100% in output.
+/bin/grep -q '100%' ${wget_log_file}
+set wget_status = $status
+if( ${wget_status} == 1 ) then
+	echo "agiboot_trigger_count_cron : Failed to retrieve file."
+	cat ${wget_log_file}	
+	exit 1
+endif
+# File can contain BUSY message
+/bin/grep -q "iBoot is in use" ${wget_output_file}
+set grep_status = $status
+if ( ${grep_status} == 0 ) then
+	echo "agiboot_trigger_count_cron : iBoot is in use : BUSY."
+	exit 1
+endif
+# Does file contain trigger count
+/bin/grep -q "Trigger Count" ${wget_output_file}
+set grep_status = $status
+if ( ${grep_status} != 0 ) then
+	echo "agiboot_trigger_count_cron : Could not find Trigger Count in output file."
+	cat ${wget_output_file}
+	exit 1
+endif
+# Retrieve trigger count
+set trigger_count = `cat "${wget_output_file}" | sed "s#.*>Trigger Count = \(.*\)</td>.*<input type.*#\1#"`
+set date_second_string = `/bin/date +"%s"`
+set date_string = `/bin/date`
+if ( ! -r "${trigger_count_csv_file}" ) then
+	echo "sec since 1970,date,trigger count" >> ${trigger_count_csv_file}
+endif
+echo "${date_second_string},${date_string},${trigger_count}" >> ${trigger_count_csv_file}
+#
+# $Log: not supported by cvs2svn $
+#
