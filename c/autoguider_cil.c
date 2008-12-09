@@ -1,11 +1,11 @@
 /* autoguider_cil.c
 ** Autoguider CIL server routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_cil.c,v 1.10 2006-12-19 17:50:20 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_cil.c,v 1.11 2008-12-09 17:25:55 cjm Exp $
 */
 /**
  * Autoguider CIL Server routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.10 $
+ * @version $Revision: 1.11 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -37,7 +37,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_cil.c,v 1.10 2006-12-19 17:50:20 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_cil.c,v 1.11 2008-12-09 17:25:55 cjm Exp $";
 /**
  * UDP CIL port to wait for TCS commands on.
  * @see ../cdocs/ngatcil_cil.html#NGATCIL_CIL_AGS_PORT_DEFAULT
@@ -95,7 +95,7 @@ static int CIL_Command_MCP_Process(struct NGATCil_Cil_Packet_Struct cil_packet,v
 static int CIL_Command_MCP_Activate_Process(struct NGATCil_Cil_Packet_Struct cil_packet,void *message_buff,
 					    size_t message_length,int status);
 static int CIL_Command_MCP_Safe_Process(struct NGATCil_Cil_Packet_Struct cil_packet,void *message_buff,
-					size_t message_length,int status);
+					size_t message_length);
 static int CIL_UDP_Autoguider_On_Pixel_Reply_Send(float pixel_x,float pixel_y,int status,int sequence_number);
 static int CIL_UDP_Autoguider_On_Brightest_Reply_Send(int status,int sequence_number);
 static int CIL_UDP_Autoguider_On_Rank_Reply_Send(int rank,int status,int sequence_number);
@@ -1026,7 +1026,7 @@ static int CIL_Command_MCP_Process(struct NGATCil_Cil_Packet_Struct cil_packet,v
 			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_CIL,
 				"CIL_Command_MCP_Process:Processing MCP Safe state request.");
 #endif
-			if(!CIL_Command_MCP_Safe_Process(cil_packet,message_buff,message_length,SYS_OKAY_STATE))
+			if(!CIL_Command_MCP_Safe_Process(cil_packet,message_buff,message_length))
 				return FALSE;
 			break;
 		default:
@@ -1111,7 +1111,6 @@ static int CIL_Command_MCP_Activate_Process(struct NGATCil_Cil_Packet_Struct cil
  * @param cil_packet The parsed generic CIL header.
  * @param message_buff A pointer to the memory holding the CIL message.
  * @param message_length The length of message_buff in bytes.
- * @param status The status to return, ususally SYS_OKAY_STATE.
  * @return The routine returns TRUE if successfull, and FALSE if an error occurs.
  * @see #CIL_UDP_Socket_Fd
  * @see autoguider_general.html#Autoguider_General_Log
@@ -1125,9 +1124,10 @@ static int CIL_Command_MCP_Activate_Process(struct NGATCil_Cil_Packet_Struct cil
  * @see ../ngatcil/cdocs/ngatcil_udp_raw.html#NGATCil_UDP_Raw_Send_To
  */
 static int CIL_Command_MCP_Safe_Process(struct NGATCil_Cil_Packet_Struct cil_packet,void *message_buff,
-					    size_t message_length,int status)
+					    size_t message_length)
 {
 	struct NGATCil_Cil_Packet_Struct act_reply_packet;
+	struct NGATCil_Status_Reply_Packet_Struct com_reply_packet;
 	struct timespec current_time;
 
 	/* send Act reply */
@@ -1140,13 +1140,35 @@ static int CIL_Command_MCP_Safe_Process(struct NGATCil_Cil_Packet_Struct cil_pac
 	act_reply_packet.Timestamp_Seconds = current_time.tv_sec;
 	act_reply_packet.Timestamp_Nanoseconds = current_time.tv_nsec;
 	NGATCil_UDP_Raw_To_Network_Byte_Order((void*)&act_reply_packet,sizeof(struct NGATCil_Cil_Packet_Struct));
-	/* act reply to mcp */
+	/* act (acted upon) reply to mcp */
 	if(!NGATCil_UDP_Raw_Send_To(CIL_UDP_Socket_Fd,NGATCIL_CIL_MCP_HOSTNAME_DEFAULT,NGATCIL_CIL_MCP_PORT_DEFAULT,
 				    (void*)&act_reply_packet,sizeof(struct NGATCil_Cil_Packet_Struct)))
 	{
 		Autoguider_General_Error_Number = 1143;
 		sprintf(Autoguider_General_Error_String,
 			"CIL_Command_MCP_Safe_Process:NGATCil_UDP_Raw_Send_To failed.");
+		return FALSE;
+	}
+	/* set status to safe */
+	/* send COM (completed) reply */
+	com_reply_packet.Cil_Base.Source_Id = cil_packet.Dest_Id;
+	com_reply_packet.Cil_Base.Dest_Id = cil_packet.Source_Id;
+	com_reply_packet.Cil_Base.Class = E_CIL_COM_CLASS;
+	com_reply_packet.Cil_Base.Service = cil_packet.Service;
+	com_reply_packet.Cil_Base.Seq_Num = cil_packet.Seq_Num;
+	clock_gettime(CLOCK_REALTIME,&current_time);
+	com_reply_packet.Cil_Base.Timestamp_Seconds = current_time.tv_sec;
+	com_reply_packet.Cil_Base.Timestamp_Nanoseconds = current_time.tv_nsec;
+	com_reply_packet.Status = SYS_SAFE_STATE;
+	NGATCil_UDP_Raw_To_Network_Byte_Order((void*)&com_reply_packet,
+					      sizeof(struct NGATCil_Status_Reply_Packet_Struct));
+	/* completed reply to mcp */
+	if(!NGATCil_UDP_Raw_Send_To(CIL_UDP_Socket_Fd,NGATCIL_CIL_MCP_HOSTNAME_DEFAULT,NGATCIL_CIL_MCP_PORT_DEFAULT,
+				    (void*)&com_reply_packet,sizeof(struct NGATCil_Status_Reply_Packet_Struct)))
+	{
+		Autoguider_General_Error_Number = 1157;
+		sprintf(Autoguider_General_Error_String,"CIL_Command_MCP_Safe_Process:"
+			"NGATCil_UDP_Raw_Send_To failed.");
 		return FALSE;
 	}
 	return TRUE;
@@ -1630,6 +1652,9 @@ static int CIL_Command_End_Session_Reply_Send(struct NGATCil_Ags_Packet_Struct c
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.10  2006/12/19 17:50:20  cjm
+** Init state flicker code.
+**
 ** Revision 1.9  2006/08/29 13:55:42  cjm
 ** Swapped socket FD used to send CIL UDP packets to server socket FD - as receiving end checks source port number.
 ** Added Session start/end handling.
