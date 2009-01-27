@@ -1,4 +1,4 @@
-# $Header: /home/cjm/cvs/autoguider/ccd/andor/test/Makefile,v 1.3 2007-01-19 14:28:33 cjm Exp $
+# $Header: /home/cjm/cvs/autoguider/ccd/andor/test/Makefile,v 1.4 2009-01-27 15:17:05 cjm Exp $
 
 include ../../../../Makefile.common
 include ../../../Makefile.common
@@ -20,7 +20,8 @@ CCD_LDFLAGS 		= -lautoguider_ccd_general
 ANDOR_CFLAGS 		= -I$(AUTOGUIDER_ANDOR_SRC_HOME)/include
 # NB because Andor 2.15 does not come with static libraries, we need the -L here
 # Andor 2.12 came with static libraries, and did not need this.
-ANDOR_LDFLAGS 		= -L$(AUTOGUIDER_SRC_HOME)/andor/andor/lib/ -lautoguider_ccd_andor 
+ANDOR_LDFLAGS 		= -L$(AUTOGUIDER_SRC_HOME)/andor/andor/lib/ -lautoguider_ccd_andor -landor \
+			-lstdc++ -lpthread -ldl
 
 # andor library
 #ANDOR_CFLAGS 		= -I$(AUTOGUIDER_SRC_HOME)/andor/andor/examples/common/
