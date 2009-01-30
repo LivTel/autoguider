@@ -1,11 +1,11 @@
 /* andor_setup.c
 ** Autoguider Andor CCD Library setup routines
-** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_setup.c,v 1.2 2006-04-10 15:51:23 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_setup.c,v 1.3 2009-01-30 15:41:14 cjm Exp $
 */
 /**
  * Setup routines for the Andor autoguider CCD library.
  * @author Chris Mottram
- * @version $Revision: 1.2 $
+ * @version $Revision: 1.3 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -23,7 +23,7 @@
 #include <unistd.h>
 /* andor CCD library */
 #include "atmcdLXd.h"
-
+#include "log_udp.h"
 #include "ccd_general.h"
 #include "andor_setup.h"
 
@@ -60,7 +60,7 @@ struct Setup_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: andor_setup.c,v 1.2 2006-04-10 15:51:23 cjm Exp $";
+static char rcsid[] = "$Id: andor_setup.c,v 1.3 2009-01-30 15:41:14 cjm Exp $";
 
 /**
  * Instance of the setup data.
@@ -104,7 +104,6 @@ void Andor_Setup_Initialise(void)
  * @see #ANDOR_SETUP_KEYWORD_ROOT
  * @see #Setup_Data
  * @see andor_general.html#Andor_General_ErrorCode_To_String
- * @see andor_general.html#ANDOR_GENERAL_LOG_BIT_SETUP
  * @see ../../cdocs/ccd_config.html#CCD_Config_Get_String
  * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
  * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
@@ -118,7 +117,7 @@ int Andor_Setup_Startup(void)
 	unsigned int andor_retval;
 
 #ifdef ANDOR_DEBUG
-	CCD_General_Log(ANDOR_GENERAL_LOG_BIT_SETUP,"Andor_Setup_Startup started.");
+	CCD_General_Log("ccd","andor_setup.c","Andor_Setup_Startup",LOG_VERBOSITY_INTERMEDIATE,NULL,"started.");
 #endif
 	/* sort out selected camera. */
 	andor_retval = GetAvailableCameras(&camera_count);
@@ -130,15 +129,15 @@ int Andor_Setup_Startup(void)
 		return FALSE;
 	}
 #ifdef ANDOR_DEBUG
-	CCD_General_Log_Format(ANDOR_GENERAL_LOG_BIT_SETUP,"Andor_Setup_Startup: Andor library reports %d cameras.",
-			       camera_count);
+	CCD_General_Log_Format("ccd","andor_setup.c","Andor_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,
+			       "Andor library reports %d cameras.",camera_count);
 #endif
 	retval = CCD_Config_Get_Long(ANDOR_SETUP_KEYWORD_ROOT"selected_camera",&selected_camera);
 	if(retval == FALSE)
 		return FALSE;
 #ifdef ANDOR_DEBUG
-	CCD_General_Log_Format(ANDOR_GENERAL_LOG_BIT_SETUP,"Andor_Setup_Startup: Config file has selected camera %ld.",
-			       selected_camera);
+	CCD_General_Log_Format("ccd","andor_setup.c","Andor_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,
+			       "Config file has selected camera %ld.",selected_camera);
 #endif
 	if((selected_camera >= camera_count) || (selected_camera < 0))
 	{
@@ -157,8 +156,8 @@ int Andor_Setup_Startup(void)
 		return FALSE;
 	}
 #ifdef ANDOR_DEBUG
-	CCD_General_Log_Format(ANDOR_GENERAL_LOG_BIT_SETUP,"Andor_Setup_Startup: Andor library camera handle:%ld.",
-			       Setup_Data.Camera_Handle);
+	CCD_General_Log_Format("ccd","andor_setup.c","Andor_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,
+			       "Andor library camera handle:%ld.",Setup_Data.Camera_Handle);
 #endif
 	/* set current camera */
 	andor_retval = SetCurrentCamera(Setup_Data.Camera_Handle);
@@ -174,11 +173,12 @@ int Andor_Setup_Startup(void)
 	if(retval == FALSE)
 		return FALSE;
 #ifdef ANDOR_DEBUG
-	CCD_General_Log_Format(ANDOR_GENERAL_LOG_BIT_SETUP,"Andor_Setup_Startup: "
+	CCD_General_Log_Format("ccd","andor_setup.c","Andor_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,
 			       "Config file has Andor config directory:%s.",config_directory);
 #endif
 #ifdef ANDOR_DEBUG
-	CCD_General_Log(ANDOR_GENERAL_LOG_BIT_SETUP,"Andor_Setup_Startup: Calling Andor Initialize.");
+	CCD_General_Log("ccd","andor_setup.c","Andor_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,
+			"Calling Andor Initialize.");
 #endif
 	andor_retval = Initialize(config_directory);
 	if(andor_retval != DRV_SUCCESS)
@@ -195,13 +195,14 @@ int Andor_Setup_Startup(void)
 		free(config_directory);
 	/* sleep to allow setup to complete */
 #ifdef ANDOR_DEBUG
-	CCD_General_Log(ANDOR_GENERAL_LOG_BIT_SETUP,"Andor_Setup_Startup: "
+	CCD_General_Log("ccd","andor_setup.c","Andor_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,
 			"Sleeping whilst waiting for Initialize to complete .");
 #endif
 	sleep(2);
 	/* Set read mode to image */
 #ifdef ANDOR_DEBUG
-	CCD_General_Log(ANDOR_GENERAL_LOG_BIT_SETUP,"Andor_Setup_Startup:Calling SetReadMode.");
+	CCD_General_Log("ccd","andor_setup.c","Andor_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,
+			"Calling SetReadMode.");
 #endif
 	andor_retval = SetReadMode(4);
 	if(andor_retval != DRV_SUCCESS)
@@ -214,7 +215,8 @@ int Andor_Setup_Startup(void)
 	/* Set acquisition mode to single scan */
 	/* this might be something else eventually (5 run til abort - but not for fielding!) */
 #ifdef ANDOR_DEBUG
-	CCD_General_Log(ANDOR_GENERAL_LOG_BIT_SETUP,"Andor_Setup_Startup:Calling SetAcquisitionMode.");
+	CCD_General_Log("ccd","andor_setup.c","Andor_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,
+			"Calling SetAcquisitionMode.");
 #endif
 	andor_retval = SetAcquisitionMode(1);
 	if(andor_retval != DRV_SUCCESS)
@@ -226,7 +228,8 @@ int Andor_Setup_Startup(void)
 	}
 	/* get the detector dimensions */
 #ifdef ANDOR_DEBUG
-	CCD_General_Log(ANDOR_GENERAL_LOG_BIT_SETUP,"Andor_Setup_Startup:Calling GetDetector.");
+	CCD_General_Log("ccd","andor_setup.c","Andor_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,
+			"Calling GetDetector.");
 #endif
 	andor_retval = GetDetector(&Setup_Data.Detector_X_Pixel_Count,&Setup_Data.Detector_Y_Pixel_Count);
 	if(andor_retval != DRV_SUCCESS)
@@ -238,7 +241,8 @@ int Andor_Setup_Startup(void)
 	}
 	/* initialise the shutter  - is this needed? See andor_exposure.c */
 #ifdef ANDOR_DEBUG
-	CCD_General_Log(ANDOR_GENERAL_LOG_BIT_SETUP,"Andor_Setup_Startup:Calling SetShutter.");
+	CCD_General_Log("ccd","andor_setup.c","Andor_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,
+			"Calling SetShutter.");
 #endif
 	andor_retval = SetShutter(1,0,0,0);
 	if(andor_retval != DRV_SUCCESS)
@@ -250,7 +254,8 @@ int Andor_Setup_Startup(void)
 	}
 	/* set frame transfer mode ? */
 #ifdef ANDOR_DEBUG
-	CCD_General_Log(ANDOR_GENERAL_LOG_BIT_SETUP,"Andor_Setup_Startup:Calling SetFrameTransferMode.");
+	CCD_General_Log("ccd","andor_setup.c","Andor_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,
+			"Calling SetFrameTransferMode.");
 #endif
 	andor_retval = SetFrameTransferMode(1);
 	if(andor_retval != DRV_SUCCESS)
@@ -261,7 +266,8 @@ int Andor_Setup_Startup(void)
 		return FALSE;
 	}
 #ifdef ANDOR_DEBUG
-	CCD_General_Log(ANDOR_GENERAL_LOG_BIT_SETUP,"Andor_Setup_Startup finished.");
+	CCD_General_Log("ccd","andor_setup.c","Andor_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,
+			"finished.");
 #endif
 	return TRUE;
 }
@@ -272,15 +278,16 @@ int Andor_Setup_Startup(void)
 int Andor_Setup_Shutdown(void)
 {
 #ifdef ANDOR_DEBUG
-	CCD_General_Log(ANDOR_GENERAL_LOG_BIT_SETUP,"Andor_Setup_Shutdown started.");
+	CCD_General_Log("ccd","andor_setup.c","Andor_Setup_Shutdown",LOG_VERBOSITY_VERBOSE,NULL,"started.");
 #endif
 	/* diddly documentation says temp should be > -20 before calling this */
 #ifdef ANDOR_DEBUG
-	CCD_General_Log(ANDOR_GENERAL_LOG_BIT_SETUP,"Andor_Setup_Shutdown: Calling Shutdown.");
+	CCD_General_Log("ccd","andor_setup.c","Andor_Setup_Shutdown",LOG_VERBOSITY_VERBOSE,NULL,
+			"Calling Shutdown.");
 #endif
 	ShutDown();
 #ifdef ANDOR_DEBUG
-	CCD_General_Log(ANDOR_GENERAL_LOG_BIT_SETUP,"Andor_Setup_Shutdown finished.");
+	CCD_General_Log("ccd","andor_setup.c","Andor_Setup_Shutdown",LOG_VERBOSITY_VERBOSE,NULL,"finished.");
 #endif
 	return TRUE;
 }
@@ -294,7 +301,6 @@ int Andor_Setup_Shutdown(void)
  * @param window_flags Whether to use the specified window or not.
  * @param window A structure containing window data.
  * @return The routine returns TRUE on success, and FALSE if an error occurs.
- * @see andor_general.html#ANDOR_GENERAL_LOG_BIT_SETUP
  * @see andor_general.html#Andor_General_ErrorCode_To_String
  * @see ../../cdocs/ccd_setup.html#CCD_Setup_Window_Struct
  * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
@@ -307,7 +313,7 @@ int Andor_Setup_Dimensions(int ncols,int nrows,int hbin,int vbin,int window_flag
 	unsigned int andor_retval;
 
 #ifdef ANDOR_DEBUG
-	CCD_General_Log(ANDOR_GENERAL_LOG_BIT_SETUP,"Andor_Setup_Dimensions started.");
+	CCD_General_Log("ccd","andor_setup.c","Andor_Setup_Dimensions",LOG_VERBOSITY_VERBOSE,NULL,"started.");
 #endif
 	if(window_flags > 0)
 	{
@@ -328,7 +334,7 @@ int Andor_Setup_Dimensions(int ncols,int nrows,int hbin,int vbin,int window_flag
 		Setup_Data.Vertical_End = nrows;
 	}
 #ifdef ANDOR_DEBUG
-	CCD_General_Log_Format(ANDOR_GENERAL_LOG_BIT_SETUP,"Andor_Setup_Dimensions: "
+	CCD_General_Log_Format("ccd","andor_setup.c","Andor_Setup_Dimensions",LOG_VERBOSITY_VERBOSE,NULL,
 			"Calling SetImage(hbin=%d,vbin=%d,hstart=%d,hend=%d,vstart=%d,vend=%d).",
 			Setup_Data.Horizontal_Bin,Setup_Data.Vertical_Bin,
 			Setup_Data.Horizontal_Start,Setup_Data.Horizontal_End,
@@ -349,7 +355,7 @@ int Andor_Setup_Dimensions(int ncols,int nrows,int hbin,int vbin,int window_flag
 		return FALSE;
 	}
 #ifdef ANDOR_DEBUG
-	CCD_General_Log(ANDOR_GENERAL_LOG_BIT_SETUP,"Andor_Setup_Dimensions finished.");
+	CCD_General_Log("ccd","andor_setup.c","Andor_Setup_Dimensions",LOG_VERBOSITY_VERBOSE,NULL,"finished.");
 #endif
 	return TRUE;
 }
@@ -360,7 +366,8 @@ int Andor_Setup_Dimensions(int ncols,int nrows,int hbin,int vbin,int window_flag
 void Andor_Setup_Abort(void)
 {
 #ifdef ANDOR_DEBUG
-	CCD_General_Log(ANDOR_GENERAL_LOG_BIT_SETUP,"Andor_Setup_Abort called:This does nothing at the moment..");
+	CCD_General_Log("ccd","andor_setup.c","Andor_Setup_Abort",LOG_VERBOSITY_VERBOSE,NULL,
+			"This does nothing at the moment..");
 #endif
 }
 
@@ -429,7 +436,6 @@ int Andor_Setup_Get_Detector_Rows(void)
  * @param buffer_length The address opf a size_t to hold the length of the buffer.
  * @return The routine returns TRUE on success, and FALSE if an error occurs.
  * @see #Andor_Setup_Get_Buffer_Length
- * @see andor_general.html#ANDOR_GENERAL_LOG_BIT_SETUP
  * @see ../../cdocs/ccd_setup.html#CCD_Setup_Window_Struct
  * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
  * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
@@ -440,7 +446,8 @@ int Andor_Setup_Allocate_Image_Buffer(void **buffer,size_t *buffer_length)
 	int width,height;
 
 #ifdef ANDOR_DEBUG
-	CCD_General_Log(ANDOR_GENERAL_LOG_BIT_SETUP,"Andor_Setup_Allocate_Image_Buffer started.");
+	CCD_General_Log("ccd","andor_setup.c","Andor_Setup_Allocate_Image_Buffer",LOG_VERBOSITY_VERBOSE,NULL,
+			"started.");
 #endif
 	if(buffer == NULL)
 	{
@@ -464,13 +471,17 @@ int Andor_Setup_Allocate_Image_Buffer(void **buffer,size_t *buffer_length)
 		return FALSE;
 	}
 #ifdef ANDOR_DEBUG
-	CCD_General_Log(ANDOR_GENERAL_LOG_BIT_SETUP,"Andor_Setup_Allocate_Image_Buffer finished.");
+	CCD_General_Log("ccd","andor_setup.c","Andor_Setup_Allocate_Image_Buffer",LOG_VERBOSITY_VERBOSE,NULL,
+			"finished.");
 #endif
 	return TRUE;
 }
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.2  2006/04/10 15:51:23  cjm
+** Comment fix.
+**
 ** Revision 1.1  2006/03/27 14:02:36  cjm
 ** Initial revision
 **
