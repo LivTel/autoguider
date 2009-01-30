@@ -1,5 +1,5 @@
 /* ngatcil_general.h
-** $Header: /home/cjm/cvs/autoguider/ngatcil/include/ngatcil_general.h,v 1.3 2006-07-20 15:16:01 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ngatcil/include/ngatcil_general.h,v 1.4 2009-01-30 18:01:01 cjm Exp $
 */
 #ifndef NGATCIL_GENERAL_H
 #define NGATCIL_GENERAL_H
@@ -45,32 +45,6 @@
  */
 #define NGATCIL_GENERAL_ONE_MILLISECOND_NS	(1000000)
 
-/**
- * Value to pass into logging calls, used for general code logging.
- * @see #Autoguider_General_Log
- */
-#define NGATCIL_GENERAL_LOG_BIT_GENERAL	        (1<<0)
-/**
- * Value to pass into logging calls, used for raw UDP code logging.
- * @see #Autoguider_General_Log
- */
-#define NGATCIL_GENERAL_LOG_BIT_UDP_RAW	        (1<<1)
-/**
- * Value to pass into logging calls, used for TCS guide packet logging.
- * @see #Autoguider_General_Log
- */
-#define NGATCIL_GENERAL_LOG_BIT_TCS_GUIDE_PACKET (1<<2)
-/**
- * Value to pass into logging calls, used for CIL packet logging.
- * @see #Autoguider_General_Log
- */
-#define NGATCIL_GENERAL_LOG_BIT_CIL              (1<<3)
-/**
- * Value to pass into logging calls, used for AGS SDB CIL packet logging.
- * @see #Autoguider_General_Log
- */
-#define NGATCIL_GENERAL_LOG_BIT_AGS_SDB          (1<<4)
-
 /* external variabless */
 extern int NGATCil_General_Error_Number;
 extern char NGATCil_General_Error_String[];
@@ -84,14 +58,21 @@ extern int NGATCil_General_Is_Error(void);
 extern void NGATCil_General_Get_Current_Time_String(char *time_string,int string_length);
 
 /* logging routines */
-extern void NGATCil_General_Log_Format(int level,char *format,...);
-extern void NGATCil_General_Log(int level,char *string);
-extern void NGATCil_General_Set_Log_Handler_Function(void (*log_fn)(int level,char *string));
-extern void NGATCil_General_Set_Log_Filter_Function(int (*filter_fn)(int level,char *string));
-extern void NGATCil_General_Log_Handler_Stdout(int level,char *string);
+extern void NGATCil_General_Log_Format(char *sub_system,char *source_filename,
+				       char *function,int level,char *category,char *format,...);
+extern void NGATCil_General_Log(char *sub_system,char *source_filename,
+				char *function,int level,char *category,char *string);
+extern void NGATCil_General_Set_Log_Handler_Function(void (*log_fn)(char *sub_system,char *source_filename,
+						     char *function,int level,char *category,char *string));
+extern void NGATCil_General_Set_Log_Filter_Function(int (*filter_fn)(char *sub_system,char *source_filename,
+						    char *function,int level,char *category,char *string));
+extern void NGATCil_General_Log_Handler_Stdout(char *sub_system,char *source_filename,
+					       char *function,int level,char *category,char *string);
 extern void NGATCil_General_Set_Log_Filter_Level(int level);
-extern int NGATCil_General_Log_Filter_Level_Absolute(int level,char *string);
-extern int NGATCil_General_Log_Filter_Level_Bitwise(int level,char *string);
+extern int NGATCil_General_Log_Filter_Level_Absolute(char *sub_system,char *source_filename,
+						     char *function,int level,char *category,char *string);
+extern int NGATCil_General_Log_Filter_Level_Bitwise(char *sub_system,char *source_filename,
+						    char *function,int level,char *category,char *string);
 
 /* utility routines */
 extern int NGATCil_General_Add_String(char **string,char *add);
@@ -100,6 +81,9 @@ extern int NGATCil_General_Int_List_Sort(const void *f,const void *s);
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.3  2006/07/20 15:16:01  cjm
+** Added AGS SDB logging.
+**
 ** Revision 1.2  2006/06/06 10:33:17  cjm
 ** Added NGATCIL_GENERAL_LOG_BIT_CIL.
 **

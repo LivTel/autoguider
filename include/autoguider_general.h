@@ -1,5 +1,5 @@
 /* autoguider_general.h
-** $Header: /home/cjm/cvs/autoguider/include/autoguider_general.h,v 1.3 2006-07-14 14:02:14 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/include/autoguider_general.h,v 1.4 2009-01-30 18:01:48 cjm Exp $
 */
 #ifndef AUTOGUIDER_GENERAL_H
 #define AUTOGUIDER_GENERAL_H
@@ -44,67 +44,6 @@
 #define AUTOGUIDER_GENERAL_ERROR_STRING_LENGTH	(1024)
 
 /**
- * Value to pass into logging calls, used for general code logging.
- * @see #Autoguider_General_Log
- */
-#define AUTOGUIDER_GENERAL_LOG_BIT_GENERAL	(1<<0)
-/**
- * Value to pass into logging calls, used for command code logging.
- * @see #Autoguider_General_Log
- */
-#define AUTOGUIDER_GENERAL_LOG_BIT_COMMAND	(1<<1)
-/**
- * Value to pass into logging calls, used for server code logging.
- * @see #Autoguider_General_Log
- */
-#define AUTOGUIDER_GENERAL_LOG_BIT_SERVER	(1<<2)
-/**
- * Value to pass into logging calls, used for buffer code logging.
- * @see #Autoguider_General_Log
- */
-#define AUTOGUIDER_GENERAL_LOG_BIT_BUFFER	(1<<3)
-/**
- * Value to pass into logging calls, used for field code logging.
- * @see #Autoguider_General_Log
- */
-#define AUTOGUIDER_GENERAL_LOG_BIT_FIELD	(1<<4)
-/**
- * Value to pass into logging calls, used for guide code logging.
- * @see #Autoguider_General_Log
- */
-#define AUTOGUIDER_GENERAL_LOG_BIT_GUIDE	(1<<5)
-/**
- * Value to pass into logging calls, used for get fits code logging.
- * @see #Autoguider_General_Log
- */
-#define AUTOGUIDER_GENERAL_LOG_BIT_GET_FITS	(1<<6)
-/**
- * Value to pass into logging calls, used for dark code logging.
- * @see #Autoguider_General_Log
- */
-#define AUTOGUIDER_GENERAL_LOG_BIT_DARK	        (1<<7)
-/**
- * Value to pass into logging calls, used for flat code logging.
- * @see #Autoguider_General_Log
- */
-#define AUTOGUIDER_GENERAL_LOG_BIT_FLAT	        (1<<8)
-/**
- * Value to pass into logging calls, used for object code logging.
- * @see #Autoguider_General_Log
- */
-#define AUTOGUIDER_GENERAL_LOG_BIT_OBJECT	(1<<9)
-/**
- * Value to pass into logging calls, used for CIL code logging.
- * @see #Autoguider_General_Log
- */
-#define AUTOGUIDER_GENERAL_LOG_BIT_CIL	        (1<<10)
-/**
- * Value to pass into logging calls, used for FITS Header code logging.
- * @see #Autoguider_General_Log
- */
-#define AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER	(1<<11)
-
-/**
  * The number of nanoseconds in one second. A struct timespec has fields in nanoseconds.
  */
 #define AUTOGUIDER_GENERAL_ONE_SECOND_NS	(1000000000)
@@ -137,24 +76,39 @@ extern int Autoguider_General_Error_Number;
 extern char Autoguider_General_Error_String[];
 
 /* external functions */
-extern void Autoguider_General_Error(void);
-extern void Autoguider_General_Error_To_String(char *error_string);
+extern void Autoguider_General_Error(char *sub_system,char *source_filename,char *function,int level,char *category);
+extern void Autoguider_General_Error_To_String(char *sub_system,char *source_filename,char *function,int level,
+					       char *category,char *error_string);
 
 /* routine used by other modules error code */
 extern void Autoguider_General_Get_Current_Time_String(char *time_string,int string_length);
 
 /* logging routines */
-extern void Autoguider_General_Log_Format(int level,char *format,...);
-extern void Autoguider_General_Log(int level,char *string);
-extern void Autoguider_General_Set_Log_Handler_Function(void (*log_fn)(int level,char *string));
-extern void Autoguider_General_Set_Log_Filter_Function(int (*filter_fn)(int level,char *string));
+extern void Autoguider_General_Log_Format(char *sub_system,char *source_filename,char *function,int level,
+					  char *category,char *format,...);
+extern void Autoguider_General_Log(char *sub_system,char *source_filename,char *function,int level,char *category,
+				   char *string);
+extern void Autoguider_General_Call_Log_Handlers(char *sub_system,char *source_filename,char *function,int level,
+					  char *category,char *message);
+extern int Autoguider_General_Add_Log_Handler_Function(void (*log_fn)(char *sub_system,char *source_filename,
+							char *function,int level,char *category,char *message));
+extern void Autoguider_General_Set_Log_Filter_Function(int (*filter_fn)(char *sub_system,char *source_filename,
+						       char *function,int level,char *category,char *message));
 extern int Autoguider_General_Log_Set_Directory(char *directory);
-extern void Autoguider_General_Log_Handler_Stdout(int level,char *string);
-extern void Autoguider_General_Log_Handler_Log_Fp(int level,char *string);
-extern void Autoguider_General_Log_Handler_Log_Hourly_File(int level,char *string);
+extern int Autoguider_General_Log_Set_UDP(int active,char *hostname,int port_number);
+extern void Autoguider_General_Log_Handler_Stdout(char *sub_system,char *source_filename,char *function,int level,
+						  char *category,char *message);
+extern void Autoguider_General_Log_Handler_Log_Fp(char *sub_system,char *source_filename,char *function,int level,
+						  char *category,char *message);
+extern void Autoguider_General_Log_Handler_Log_Hourly_File(char *sub_system,char *source_filename,char *function,
+							   int level,char *category,char *message);
+extern void Autoguider_General_Log_Handler_Log_UDP(char *sub_system,char *source_filename,char *function,
+						   int level,char *category,char *message);
 extern void Autoguider_General_Set_Log_Filter_Level(int level);
-extern int Autoguider_General_Log_Filter_Level_Absolute(int level,char *string);
-extern int Autoguider_General_Log_Filter_Level_Bitwise(int level,char *string);
+extern int Autoguider_General_Log_Filter_Level_Absolute(char *sub_system,char *source_filename,char *function,
+							int level,char *category,char *message);
+extern int Autoguider_General_Log_Filter_Level_Bitwise(char *sub_system,char *source_filename,char *function,
+						       int level,char *category,char *message);
 
 /* utility routines */
 extern int Autoguider_General_Add_String(char **string,char *add);
@@ -168,6 +122,9 @@ extern char *Autoguider_General_Get_Config_Filename(void);
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.3  2006/07/14 14:02:14  cjm
+** Added FITS header logging bit.
+**
 ** Revision 1.2  2006/06/12 19:24:55  cjm
 ** Added CIL log bit.
 ** Added fdifftime.
