@@ -1,11 +1,11 @@
 /* andor_exposure.c
 ** Autoguider Andor CCD Library exposure routines
-** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_exposure.c,v 1.9 2007-10-15 18:03:06 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_exposure.c,v 1.10 2009-01-30 15:41:14 cjm Exp $
 */
 /**
  * Exposure routines for the Andor autoguider CCD library.
  * @author Chris Mottram
- * @version $Revision: 1.9 $
+ * @version $Revision: 1.10 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -23,7 +23,7 @@
 #include <unistd.h>
 /* andor CCD library */
 #include "atmcdLXd.h"
-
+#include "log_udp.h"
 #include "ccd_exposure.h"
 #include "ccd_general.h"
 #include "andor_setup.h"
@@ -61,7 +61,7 @@ struct Exposure_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: andor_exposure.c,v 1.9 2007-10-15 18:03:06 cjm Exp $";
+static char rcsid[] = "$Id: andor_exposure.c,v 1.10 2009-01-30 15:41:14 cjm Exp $";
 /**
  * Data holding the current status of ccd_exposure.
  * @see #Exposure_Struct
@@ -103,7 +103,6 @@ void Andor_Exposure_Initialise(void)
  *	occurs or the exposure is aborted.
  * @see #EXPOSURE_TIMEOUT_SECS
  * @see andor_general.html#Andor_General_ErrorCode_To_String
- * @see andor_general.html#ANDOR_GENERAL_LOG_BIT_EXPOSURE
  * @see andor_setup.html#Andor_Setup_Get_Buffer_Length
  * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
  * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
@@ -121,7 +120,8 @@ int Andor_Exposure_Expose(int open_shutter,struct timespec start_time,int exposu
 	int exposure_status,acquisition_counter,done;
 
 #ifdef ANDOR_DEBUG
-	CCD_General_Log(ANDOR_GENERAL_LOG_BIT_EXPOSURE,"Andor_Exposure_Expose started.");
+	CCD_General_Log("ccd","andor_exposure.c","Andor_Exposure_Expose",LOG_VERBOSITY_TERSE,NULL,
+			"started.");
 #endif
 	/* set shutter */
 	if(open_shutter)
@@ -189,9 +189,10 @@ int Andor_Exposure_Expose(int open_shutter,struct timespec start_time,int exposu
 			current_time.tv_nsec = gtod_current_time.tv_usec*CCD_GLOBAL_ONE_MICROSECOND_NS;
 #endif
 #if ANDOR_DEBUG
-			CCD_General_Log_Format(ANDOR_GENERAL_LOG_BIT_EXPOSURE,
-				       "Andor_Exposure_Expose():Waiting for exposure start time (%ld,%ld).",
-				       current_time.tv_sec,start_time.tv_sec);
+			CCD_General_Log_Format("ccd","andor_exposure.c","Andor_Exposure_Expose",
+					       LOG_VERBOSITY_VERBOSE,NULL,
+					       "Waiting for exposure start time (%ld,%ld).",
+					       current_time.tv_sec,start_time.tv_sec);
 #endif
 		/* if we've time, sleep for a second */
 			if((start_time.tv_sec - current_time.tv_sec) > 0)
@@ -259,7 +260,8 @@ int Andor_Exposure_Expose(int open_shutter,struct timespec start_time,int exposu
 #if ANDOR_DEBUG
 		if((acquisition_counter%100)==0)
 		{
-			CCD_General_Log_Format(ANDOR_GENERAL_LOG_BIT_EXPOSURE,"Andor_Exposure_Expose():"
+			CCD_General_Log_Format("ccd","andor_exposure.c","Andor_Exposure_Expose",
+					       LOG_VERBOSITY_VERBOSE,NULL,
 					       "Current Acquisition Status after %d loops is %s(%u).",
 					       acquisition_counter,Andor_General_ErrorCode_To_String(exposure_status),
 					       exposure_status);
@@ -269,10 +271,12 @@ int Andor_Exposure_Expose(int open_shutter,struct timespec start_time,int exposu
 		/* check - have we been aborted? */
 		if(Exposure_Data.Abort)
 	        {
-			CCD_General_Log_Format(ANDOR_GENERAL_LOG_BIT_EXPOSURE,"Andor_Exposure_Expose():"
+			CCD_General_Log_Format("ccd","andor_exposure.c","Andor_Exposure_Expose",
+					       LOG_VERBOSITY_VERBOSE,NULL,
 					       "Abort detected, attempting Andor AbortAcquisition.");
 			andor_retval = AbortAcquisition();
-			CCD_General_Log_Format(ANDOR_GENERAL_LOG_BIT_EXPOSURE,"Andor_Exposure_Expose():"
+			CCD_General_Log_Format("ccd","andor_exposure.c","Andor_Exposure_Expose",
+					       LOG_VERBOSITY_VERBOSE,NULL,
 					       "AbortAcquisition() return %u.",andor_retval);
 			Exposure_Data.Exposure_Status = CCD_EXPOSURE_STATUS_NONE;
 			CCD_General_Error_Number = 1108;
@@ -290,7 +294,8 @@ int Andor_Exposure_Expose(int open_shutter,struct timespec start_time,int exposu
 #if ANDOR_DEBUG
 		if((acquisition_counter%100)==0)
 		{
-			CCD_General_Log_Format(ANDOR_GENERAL_LOG_BIT_EXPOSURE,"Andor_Exposure_Expose():"
+			CCD_General_Log_Format("ccd","andor_exposure.c","Andor_Exposure_Expose",
+					       LOG_VERBOSITY_VERBOSE,NULL,
 					       "Exposure_Start_Time = %s, current_time = %s, fdifftime = %.2f s,"
 					       "difftime = %.2f s, exposure length = %d ms, timeout length = %.2f s, "
 					       "is a timeout = %d.",ctime(&(Exposure_Data.Exposure_Start_Time.tv_sec)),
@@ -308,10 +313,12 @@ int Andor_Exposure_Expose(int open_shutter,struct timespec start_time,int exposu
 		if(fdifftime(current_time,Exposure_Data.Exposure_Start_Time) >
 		   ((((double)Exposure_Data.Exposure_Length)/1000.0)+EXPOSURE_TIMEOUT_SECS))
 		{
-			CCD_General_Log_Format(ANDOR_GENERAL_LOG_BIT_EXPOSURE,"Andor_Exposure_Expose():"
+			CCD_General_Log_Format("ccd","andor_exposure.c","Andor_Exposure_Expose",
+					       LOG_VERBOSITY_VERBOSE,NULL,
 					       "Timeout detected, attempting Andor AbortAcquisition.");
 			andor_retval = AbortAcquisition();
-			CCD_General_Log_Format(ANDOR_GENERAL_LOG_BIT_EXPOSURE,"Andor_Exposure_Expose():"
+			CCD_General_Log_Format("ccd","andor_exposure.c","Andor_Exposure_Expose",
+					       LOG_VERBOSITY_VERBOSE,NULL,
 					       "AbortAcquisition() return %u.",andor_retval);
 			Exposure_Data.Exposure_Status = CCD_EXPOSURE_STATUS_NONE;
 			CCD_General_Error_Number = 1110;
@@ -322,14 +329,14 @@ int Andor_Exposure_Expose(int open_shutter,struct timespec start_time,int exposu
 	}
 	while(exposure_status==DRV_ACQUIRING);
 #if ANDOR_DEBUG
-	CCD_General_Log_Format(ANDOR_GENERAL_LOG_BIT_EXPOSURE,"Andor_Exposure_Expose():"
+	CCD_General_Log_Format("ccd","andor_exposure.c","Andor_Exposure_Expose",LOG_VERBOSITY_VERBOSE,NULL,
 			       "Acquisition Status after %d loops is %s(%u).",acquisition_counter,
 			       Andor_General_ErrorCode_To_String(exposure_status),exposure_status);
 #endif
 	/* diddly check exposure_status is correct (DRV_IDLE?) */
 	/* get data */
 #if ANDOR_DEBUG
-	CCD_General_Log_Format(ANDOR_GENERAL_LOG_BIT_EXPOSURE,"Andor_Exposure_Expose():"
+	CCD_General_Log_Format("ccd","andor_exposure.c","Andor_Exposure_Expose",LOG_VERBOSITY_VERBOSE,NULL,
 			       "Calling GetAcquiredData16(%p,%ld).",buffer,buffer_length);
 #endif
 	Exposure_Data.Exposure_Status = CCD_EXPOSURE_STATUS_READOUT;
@@ -345,7 +352,8 @@ int Andor_Exposure_Expose(int open_shutter,struct timespec start_time,int exposu
 	}
 	Exposure_Data.Exposure_Status = CCD_EXPOSURE_STATUS_NONE;
 #ifdef ANDOR_DEBUG
-	CCD_General_Log(ANDOR_GENERAL_LOG_BIT_EXPOSURE,"Andor_Exposure_Expose finished.");
+	CCD_General_Log("ccd","andor_exposure.c","Andor_Exposure_Expose",LOG_VERBOSITY_TERSE,NULL,
+			"finished.");
 #endif
 	return TRUE;
 }
@@ -354,7 +362,6 @@ int Andor_Exposure_Expose(int open_shutter,struct timespec start_time,int exposu
  * Take a bias.
  * @return Returns TRUE on success, and FALSE if an error occurs or the exposure is aborted.
  * @see andor_general.html#Andor_General_ErrorCode_To_String
- * @see andor_general.html#ANDOR_GENERAL_LOG_BIT_EXPOSURE
  * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
  * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
  * @see ../../cdocs/ccd_general.html#CCD_General_Log
@@ -365,11 +372,12 @@ int Andor_Exposure_Bias(void *buffer,size_t buffer_length)
 	int retval;
 
 #ifdef ANDOR_DEBUG
-	CCD_General_Log(ANDOR_GENERAL_LOG_BIT_EXPOSURE,"Andor_Exposure_Bias started.");
+	CCD_General_Log("ccd","andor_exposure.c","Andor_Exposure_Bias",LOG_VERBOSITY_INTERMEDIATE,NULL,"started.");
 #endif
 	retval = Andor_Exposure_Expose(FALSE,start_time,0,buffer,buffer_length);
 #ifdef ANDOR_DEBUG
-	CCD_General_Log(ANDOR_GENERAL_LOG_BIT_EXPOSURE,"Andor_Exposure_Bias finished.");
+	CCD_General_Log("ccd","andor_exposure.c","Andor_Exposure_Bias",LOG_VERBOSITY_INTERMEDIATE,NULL,
+			"finished.");
 #endif
 	return retval;
 }
@@ -377,7 +385,6 @@ int Andor_Exposure_Bias(void *buffer,size_t buffer_length)
 /**
  * Abort an exposure
  * @return Returns TRUE on success, and FALSE if an error occurs.
- * @see andor_general.html#ANDOR_GENERAL_LOG_BIT_EXPOSURE
  * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
  * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
  * @see ../../cdocs/ccd_general.html#CCD_General_Log
@@ -385,11 +392,13 @@ int Andor_Exposure_Bias(void *buffer,size_t buffer_length)
 int Andor_Exposure_Abort(void)
 {
 #ifdef ANDOR_DEBUG
-	CCD_General_Log(ANDOR_GENERAL_LOG_BIT_EXPOSURE,"Andor_Exposure_Abort started.");
+	CCD_General_Log("ccd","andor_exposure.c","Andor_Exposure_Abort",LOG_VERBOSITY_INTERMEDIATE,NULL,
+			"started.");
 #endif
 	Exposure_Data.Abort = TRUE;
 #ifdef ANDOR_DEBUG
-	CCD_General_Log(ANDOR_GENERAL_LOG_BIT_EXPOSURE,"Andor_Exposure_Abort finished.");
+	CCD_General_Log("ccd","andor_exposure.c","Andor_Exposure_Abort",LOG_VERBOSITY_INTERMEDIATE,NULL,
+			"finished.");
 #endif
 	return TRUE;
 }
@@ -431,6 +440,10 @@ int Andor_Exposure_Loop_Pause_Length_Set(int ms)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.9  2007/10/15 18:03:06  cjm
+** Reversed fdifftime arguments so elapsed time is positive...
+** This means timeout code will now actually fire (probably not work though!).
+**
 ** Revision 1.8  2007/10/15 15:56:42  cjm
 ** Added timeout logging.
 **

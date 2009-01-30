@@ -1,11 +1,11 @@
 /* andor_temperature.c
 ** Autoguder Andor CCD Library temperature routines
-** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_temperature.c,v 1.4 2007-01-30 16:28:24 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_temperature.c,v 1.5 2009-01-30 15:41:14 cjm Exp $
 */
 /**
  * Temperature routines for the Andor autoguider CCD library.
  * @author Chris Mottram
- * @version $Revision: 1.4 $
+ * @version $Revision: 1.5 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -21,7 +21,7 @@
 #include <string.h>
 /* andor CCD library */
 #include "atmcdLXd.h"
-
+#include "log_udp.h"
 #include "ccd_general.h"
 #include "ccd_temperature.h"
 #include "andor_general.h"
@@ -31,7 +31,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: andor_temperature.c,v 1.4 2007-01-30 16:28:24 cjm Exp $";
+static char rcsid[] = "$Id: andor_temperature.c,v 1.5 2009-01-30 15:41:14 cjm Exp $";
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -50,7 +50,8 @@ int Andor_Temperature_Get(double *temperature,enum CCD_TEMPERATURE_STATUS *tempe
 	float temperature_f;
 
 #ifdef ANDOR_DEBUG
-	CCD_General_Log(ANDOR_GENERAL_LOG_BIT_EXPOSURE,"Andor_Temperature_Get started.");
+	CCD_General_Log("ccd","andor_temperature.c","Andor_Temperature_Get",LOG_VERBOSITY_VERBOSE,NULL,
+			"started.");
 #endif
 	if(temperature == NULL)
 	{
@@ -67,7 +68,7 @@ int Andor_Temperature_Get(double *temperature,enum CCD_TEMPERATURE_STATUS *tempe
 	andor_retval = GetTemperatureF(&temperature_f);
 	(*temperature) = (double)temperature_f;
 #ifdef ANDOR_DEBUG
-	CCD_General_Log_Format(ANDOR_GENERAL_LOG_BIT_EXPOSURE,"Andor_Temperature_Get:"
+	CCD_General_Log_Format("ccd","andor_temperature.c","Andor_Temperature_Get",LOG_VERBOSITY_VERBOSE,NULL,
 			       "GetTemperatureF returned (%.2f,%d).",(*temperature),andor_retval);
 #endif
 	switch(andor_retval)
@@ -105,9 +106,10 @@ int Andor_Temperature_Get(double *temperature,enum CCD_TEMPERATURE_STATUS *tempe
 			return FALSE;
 	}
 #ifdef ANDOR_DEBUG
-	CCD_General_Log_Format(ANDOR_GENERAL_LOG_BIT_EXPOSURE,"Andor_Temperature_Get returned (%.2f,%d).",
-			       (*temperature),(*temperature_status));
-	CCD_General_Log(ANDOR_GENERAL_LOG_BIT_EXPOSURE,"Andor_Temperature_Get finished.");
+	CCD_General_Log_Format("ccd","andor_temperature.c","Andor_Temperature_Get",LOG_VERBOSITY_VERBOSE,NULL,
+			       "returned (%.2f,%d).",(*temperature),(*temperature_status));
+	CCD_General_Log("ccd","andor_temperature.c","Andor_Temperature_Get",LOG_VERBOSITY_VERBOSE,NULL,
+			"finished.");
 #endif
 	return TRUE;
 }
@@ -123,7 +125,8 @@ int Andor_Temperature_Set(double target_temperature)
 	unsigned int andor_retval;
 
 #ifdef ANDOR_DEBUG
-	CCD_General_Log(ANDOR_GENERAL_LOG_BIT_EXPOSURE,"Andor_Temperature_Set started.");
+	CCD_General_Log("ccd","andor_temperature.c","Andor_Temperature_Set",LOG_VERBOSITY_VERBOSE,NULL,
+			"started.");
 #endif
 	andor_retval = SetTemperature(target_temperature);
 	if(andor_retval != DRV_SUCCESS)
@@ -134,7 +137,8 @@ int Andor_Temperature_Set(double target_temperature)
 		return FALSE;
 	}
 #ifdef ANDOR_DEBUG
-	CCD_General_Log(ANDOR_GENERAL_LOG_BIT_EXPOSURE,"Andor_Temperature_Set finished.");
+	CCD_General_Log("ccd","andor_temperature.c","Andor_Temperature_Set",LOG_VERBOSITY_VERBOSE,NULL,
+			"finished.");
 #endif
 	return TRUE;
 }
@@ -149,7 +153,8 @@ int Andor_Temperature_Cooler_On(void)
 	unsigned int andor_retval;
 
 #ifdef ANDOR_DEBUG
-	CCD_General_Log(ANDOR_GENERAL_LOG_BIT_EXPOSURE,"Andor_Temperature_Cooler_On started.");
+	CCD_General_Log("ccd","andor_temperature.c","Andor_Temperature_Cooler_On",LOG_VERBOSITY_VERBOSE,NULL,
+			"started.");
 #endif
 	andor_retval = CoolerON();
 	if(andor_retval != DRV_SUCCESS)
@@ -160,7 +165,8 @@ int Andor_Temperature_Cooler_On(void)
 		return FALSE;
 	}
 #ifdef ANDOR_DEBUG
-	CCD_General_Log(ANDOR_GENERAL_LOG_BIT_EXPOSURE,"Andor_Temperature_Cooler_On finished.");
+	CCD_General_Log("ccd","andor_temperature.c","Andor_Temperature_Cooler_On",LOG_VERBOSITY_VERBOSE,NULL,
+			"finished.");
 #endif
 	return TRUE;
 }
@@ -175,7 +181,8 @@ int Andor_Temperature_Cooler_Off(void)
 	unsigned int andor_retval;
 
 #ifdef ANDOR_DEBUG
-	CCD_General_Log(ANDOR_GENERAL_LOG_BIT_EXPOSURE,"Andor_Temperature_Cooler_Off started.");
+	CCD_General_Log("ccd","andor_temperature.c","Andor_Temperature_Cooler_Off",LOG_VERBOSITY_VERBOSE,NULL,
+			"started.");
 #endif
 	andor_retval = CoolerOFF();
 	if(andor_retval != DRV_SUCCESS)
@@ -186,13 +193,18 @@ int Andor_Temperature_Cooler_Off(void)
 		return FALSE;
 	}
 #ifdef ANDOR_DEBUG
-	CCD_General_Log(ANDOR_GENERAL_LOG_BIT_EXPOSURE,"Andor_Temperature_Cooler_Off finished.");
+	CCD_General_Log("ccd","andor_temperature.c","Andor_Temperature_Cooler_Off",LOG_VERBOSITY_VERBOSE,NULL,
+			"finished.");
 #endif
 	return TRUE;
 }
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.4  2007/01/30 16:28:24  cjm
+** Added error return in Andor_Temperature_Get when GetTemperatureF returns DRV_ACQUIRING, because the
+** temperature returned in that state is -999.
+**
 ** Revision 1.3  2007/01/29 14:43:07  cjm
 ** Added more Andor_Temperature_Get logging.
 **

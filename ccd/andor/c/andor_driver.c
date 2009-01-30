@@ -1,11 +1,11 @@
 /* andor_driver.c
 ** Autoguder Andor CCD Library driver interface routines
-** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_driver.c,v 1.3 2006-09-07 14:57:48 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_driver.c,v 1.4 2009-01-30 15:41:14 cjm Exp $
 */
 /**
  * Driver interface routines for the Andor autoguider CCD library.
  * @author Chris Mottram
- * @version $Revision: 1.3 $
+ * @version $Revision: 1.4 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -18,7 +18,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
-
+#include "log_udp.h"
 #include "ccd_general.h"
 #include "andor_driver.h"
 #include "andor_exposure.h"
@@ -30,7 +30,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: andor_driver.c,v 1.3 2006-09-07 14:57:48 cjm Exp $";
+static char rcsid[] = "$Id: andor_driver.c,v 1.4 2009-01-30 15:41:14 cjm Exp $";
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -56,7 +56,8 @@ static char rcsid[] = "$Id: andor_driver.c,v 1.3 2006-09-07 14:57:48 cjm Exp $";
 int Andor_Driver_Register(struct CCD_Driver_Function_Struct *functions)
 {
 #ifdef ANDOR_DEBUG
-	CCD_General_Log(ANDOR_GENERAL_LOG_BIT_DRIVER,"Andor_Driver_Register started.");
+	CCD_General_Log("ccd","andor_driver.c","Andor_Driver_Register",LOG_VERBOSITY_INTERMEDIATE,NULL,
+			"started.");
 #endif
 	if(functions == NULL)
 	{
@@ -83,12 +84,16 @@ int Andor_Driver_Register(struct CCD_Driver_Function_Struct *functions)
 	functions->Temperature_Cooler_On = Andor_Temperature_Cooler_On;
 	functions->Temperature_Cooler_Off = Andor_Temperature_Cooler_Off;
 #ifdef ANDOR_DEBUG
-	CCD_General_Log(ANDOR_GENERAL_LOG_BIT_DRIVER,"Andor_Driver_Register finished.");
+	CCD_General_Log("ccd","andor_driver.c","Andor_Driver_Register",LOG_VERBOSITY_INTERMEDIATE,NULL,
+			"finished.");
 #endif
 	return TRUE;
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.3  2006/09/07 14:57:48  cjm
+** Added Exposure_Loop_Pause_Length_Set to driver functions.
+**
 ** Revision 1.2  2006/04/28 14:28:02  cjm
 ** Added Log comment.
 **
