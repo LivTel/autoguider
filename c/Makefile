@@ -1,4 +1,4 @@
-# $Header: /home/cjm/cvs/autoguider/c/Makefile,v 1.7 2007-08-29 17:02:23 cjm Exp $
+# $Header: /home/cjm/cvs/autoguider/c/Makefile,v 1.8 2009-01-30 18:01:53 cjm Exp $
 
 include ../../Makefile.common
 include ../commandserver/Makefile.common
@@ -12,6 +12,10 @@ DOCSDIR 		= $(AUTOGUIDER_DOC_HOME)/cdocs
 
 #DEBUG_CFLAGS		= 
 DEBUG_CFLAGS		= -DAUTOGUIDER_DEBUG=10 -DAUTOGUIDER_CIL_SILENCE
+
+# log_udp library
+LOG_UDP_CFLAGS		= -I$(LOG_UDP_SRC_HOME)/include
+LOG_UDP_LDFLAGS		= -l$(LOG_UDP_HOME)
 
 # autoguider ccd (general) library
 CCD_CFLAGS 		= -I$(AUTOGUIDER_CCD_SRC_HOME)/include
@@ -44,8 +48,8 @@ ITERSTAT_LDFLAGS	= -ldprt_libfits
 MJD_CFLAGS 		= -DNGATASTRO=1 -I${LT_SRC_HOME}/ngatastro/include
 MJD_LDFLAGS		= -lngatastro
 
-CFLAGS 			= -g -I$(INCDIR) $(DEBUG_CFLAGS) $(CCD_CFLAGS) $(COMMAND_SERVER_CFLAGS) $(NGATCIL_CFLAGS) \
-				$(CFITSIO_CFLAGS) $(OBJECT_CFLAGS) $(MJD_CFLAGS) $(ITERSTAT_CFLAGS)
+CFLAGS 			= -g -I$(INCDIR) $(DEBUG_CFLAGS) $(LOG_UDP_CFLAGS) $(CCD_CFLAGS) $(COMMAND_SERVER_CFLAGS) \
+				$(NGATCIL_CFLAGS) $(CFITSIO_CFLAGS) $(OBJECT_CFLAGS) $(MJD_CFLAGS) $(ITERSTAT_CFLAGS)
 DOCFLAGS 		= -static
 
 EXE_SRCS		= autoguider.c
@@ -66,7 +70,8 @@ top: $(EXES) $(CONFIG_BINS) docs
 
 $(BINDIR)/autoguider: $(OBJS)
 	$(CC) $^ -o $@  -L$(LT_LIB_HOME) $(COMMAND_SERVER_LDFLAGS) $(NGATCIL_LDFLAGS) $(CCD_LDFLAGS) \
-		$(CFITSIO_LDFLAGS) $(OBJECT_LDFLAGS) $(MJD_LDFLAGS) $(ITERSTAT_LDFLAGS) $(TIMELIB) $(SOCKETLIB) -lm -lc
+		$(LOG_UDP_LDFLAGS)  $(CFITSIO_LDFLAGS) $(OBJECT_LDFLAGS) $(MJD_LDFLAGS) $(ITERSTAT_LDFLAGS) \
+		$(TIMELIB) $(SOCKETLIB) -lm -lc
 
 #$(BINDIR)/%: %.o
 #	$(CC) $< -o $@  -L$(LT_LIB_HOME) $(COMMAND_SERVER_LDFLAGS) $(CCD_LDFLAGS) $(TIMELIB) $(SOCKETLIB) -lm -lc

@@ -1,4 +1,4 @@
-# $Header: /home/cjm/cvs/autoguider/ngatcil/test/Makefile,v 1.3 2006-08-29 14:18:48 cjm Exp $
+# $Header: /home/cjm/cvs/autoguider/ngatcil/test/Makefile,v 1.4 2009-01-30 18:01:26 cjm Exp $
 
 include ../../../Makefile.common
 include ../../Makefile.common
@@ -10,6 +10,9 @@ BINDIR			= $(AUTOGUIDER_NGATCIL_BIN_HOME)/$(TEST_HOME)/$(HOSTTYPE)
 INCDIR 			= $(AUTOGUIDER_NGATCIL_SRC_HOME)/include
 DOCSDIR 		= $(AUTOGUIDER_NGATCIL_DOC_HOME)/$(TEST_HOME)
 
+# log_udp library (log_udp.h is included for verbosity settings)
+LOG_UDP_CFLAGS		= -I$(LOG_UDP_SRC_HOME)/include
+
 #DEBUG_CFLAGS	= 
 DEBUG_CFLAGS	= -DNGATCIL_DEBUG=10
 
@@ -20,7 +23,7 @@ NGATCIL_LDFLAGS		= -lautoguider_ngatcil
 COMMAND_SERVER_CFLAGS 	= -I$(AUTOGUIDER_COMMANDSERVER_SRC_HOME)/include
 COMMAND_SERVER_LDFLAGS 	= -lautoguider_commandserver
 
-CFLAGS 		= -g -I$(INCDIR) $(DEBUG_CFLAGS) $(COMMAND_SERVER_CFLAGS)
+CFLAGS 		= -g -I$(INCDIR) $(DEBUG_CFLAGS) $(COMMAND_SERVER_CFLAGS) $(LOG_UDP_CFLAGS)
 DOCFLAGS 	= -static
 
 EXE_SRCS	= test_tcs.c test_autoguider.c test_sdb.c test_cil_server.c test_raw_send.c

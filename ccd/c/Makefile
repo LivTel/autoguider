@@ -1,4 +1,4 @@
-# $Header: /home/cjm/cvs/autoguider/ccd/c/Makefile,v 1.1 2006-05-26 10:08:06 cjm Exp $
+# $Header: /home/cjm/cvs/autoguider/ccd/c/Makefile,v 1.2 2009-01-30 18:00:43 cjm Exp $
 
 include ../../../Makefile.common
 include ../../Makefile.common
@@ -19,11 +19,14 @@ ESTAR_CONFIG_LDFLAGS 	= -L$(eSTAR_LIB_HOME) -lestar_config
 CFITSIO_CFLAGS		= -I$(CFITSIOINCDIR) 
 CFITSIO_LDFLAGS		= -L$(LT_LIB_HOME) -lcfitsio
 
+# log_udp library (log_udp.h is included for verbosity settings)
+LOG_UDP_CFLAGS		= -I$(LOG_UDP_SRC_HOME)/include
+
 # dynamic linking loader shared library flags
 # -rdynamic ?
 DL_LDFLAGS		= -ldl
 
-CFLAGS 			= -g -I$(INCDIR) $(DEBUG_CFLAGS) $(ESTAR_CONFIG_CFLAGS) $(CFITSIO_CFLAGS)
+CFLAGS 			= -g -I$(INCDIR) $(DEBUG_CFLAGS) $(ESTAR_CONFIG_CFLAGS) $(CFITSIO_CFLAGS) $(LOG_UDP_CFLAGS)
 DOCFLAGS 		= -static
 
 LIB_SRCS		= ccd_general.c ccd_config.c ccd_driver.c ccd_exposure.c ccd_setup.c ccd_temperature.c
@@ -79,114 +82,178 @@ checkout:
 
 # DO NOT DELETE
 
-ccd_general.o: /usr/include/errno.h /usr/include/features.h
-ccd_general.o: /usr/include/sys/cdefs.h /usr/include/gnu/stubs.h
-ccd_general.o: /usr/include/bits/errno.h /usr/include/linux/errno.h
-ccd_general.o: /usr/include/asm/errno.h
-ccd_general.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stdarg.h
-ccd_general.o: /usr/include/stdio.h
-ccd_general.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stddef.h
-ccd_general.o: /usr/include/bits/types.h /usr/include/bits/wordsize.h
-ccd_general.o: /usr/include/bits/typesizes.h /usr/include/libio.h
-ccd_general.o: /usr/include/_G_config.h /usr/include/wchar.h
-ccd_general.o: /usr/include/bits/wchar.h /usr/include/gconv.h
-ccd_general.o: /usr/include/bits/stdio_lim.h /usr/include/bits/sys_errlist.h
-ccd_general.o: /usr/include/string.h /usr/include/time.h
-ccd_general.o: /usr/include/bits/time.h /usr/include/unistd.h
-ccd_general.o: /usr/include/bits/posix_opt.h /usr/include/bits/confname.h
-ccd_general.o: /usr/include/getopt.h
-ccd_general.o: /home/dev/src/autoguider/ccd/include/ccd_general.h
-ccd_config.o: /usr/include/stdio.h /usr/include/features.h
-ccd_config.o: /usr/include/sys/cdefs.h /usr/include/gnu/stubs.h
-ccd_config.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stddef.h
-ccd_config.o: /usr/include/bits/types.h /usr/include/bits/wordsize.h
-ccd_config.o: /usr/include/bits/typesizes.h /usr/include/libio.h
-ccd_config.o: /usr/include/_G_config.h /usr/include/wchar.h
-ccd_config.o: /usr/include/bits/wchar.h /usr/include/gconv.h
-ccd_config.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stdarg.h
-ccd_config.o: /usr/include/bits/stdio_lim.h /usr/include/bits/sys_errlist.h
-ccd_config.o: /usr/include/string.h /usr/include/unistd.h
-ccd_config.o: /usr/include/bits/posix_opt.h /usr/include/bits/confname.h
-ccd_config.o: /usr/include/getopt.h
-ccd_config.o: /home/dev/src/estar/config/include/estar_config.h
-ccd_config.o: /home/dev/src/autoguider/ccd/include/ccd_general.h
-ccd_config.o: /home/dev/src/autoguider/ccd/include/ccd_config.h
-ccd_driver.o: /usr/include/stdio.h /usr/include/features.h
-ccd_driver.o: /usr/include/sys/cdefs.h /usr/include/gnu/stubs.h
-ccd_driver.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stddef.h
-ccd_driver.o: /usr/include/bits/types.h /usr/include/bits/wordsize.h
-ccd_driver.o: /usr/include/bits/typesizes.h /usr/include/libio.h
-ccd_driver.o: /usr/include/_G_config.h /usr/include/wchar.h
-ccd_driver.o: /usr/include/bits/wchar.h /usr/include/gconv.h
-ccd_driver.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stdarg.h
-ccd_driver.o: /usr/include/bits/stdio_lim.h /usr/include/bits/sys_errlist.h
-ccd_driver.o: /usr/include/string.h /usr/include/unistd.h
-ccd_driver.o: /usr/include/bits/posix_opt.h /usr/include/bits/confname.h
-ccd_driver.o: /usr/include/getopt.h /usr/include/dlfcn.h
-ccd_driver.o: /usr/include/bits/dlfcn.h
-ccd_driver.o: /home/dev/src/autoguider/ccd/include/ccd_config.h
-ccd_driver.o: /home/dev/src/autoguider/ccd/include/ccd_driver.h
-ccd_driver.o: /usr/include/time.h /usr/include/bits/time.h
-ccd_driver.o: /home/dev/src/autoguider/ccd/include/ccd_setup.h
-ccd_driver.o: /home/dev/src/autoguider/ccd/include/ccd_temperature.h
-ccd_driver.o: /home/dev/src/autoguider/ccd/include/ccd_general.h
-ccd_exposure.o: /usr/include/stdio.h /usr/include/features.h
-ccd_exposure.o: /usr/include/sys/cdefs.h /usr/include/gnu/stubs.h
-ccd_exposure.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stddef.h
-ccd_exposure.o: /usr/include/bits/types.h /usr/include/bits/wordsize.h
-ccd_exposure.o: /usr/include/bits/typesizes.h /usr/include/libio.h
-ccd_exposure.o: /usr/include/_G_config.h /usr/include/wchar.h
-ccd_exposure.o: /usr/include/bits/wchar.h /usr/include/gconv.h
-ccd_exposure.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stdarg.h
-ccd_exposure.o: /usr/include/bits/stdio_lim.h /usr/include/bits/sys_errlist.h
-ccd_exposure.o: /usr/include/string.h /usr/include/unistd.h
-ccd_exposure.o: /usr/include/bits/posix_opt.h /usr/include/bits/confname.h
-ccd_exposure.o: /usr/include/getopt.h
-ccd_exposure.o: /home/dev/src/cfitsio3.006/include/fitsio.h
-ccd_exposure.o: /usr/include/stdlib.h /usr/include/limits.h
-ccd_exposure.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/limits.h
-ccd_exposure.o: /usr/include/bits/posix1_lim.h /usr/include/bits/local_lim.h
-ccd_exposure.o: /usr/include/linux/limits.h /usr/include/bits/posix2_lim.h
-ccd_exposure.o: /home/dev/src/cfitsio3.006/include/longnam.h
-ccd_exposure.o: /home/dev/src/autoguider/ccd/include/ccd_config.h
-ccd_exposure.o: /home/dev/src/autoguider/ccd/include/ccd_driver.h
-ccd_exposure.o: /usr/include/time.h /usr/include/bits/time.h
-ccd_exposure.o: /home/dev/src/autoguider/ccd/include/ccd_setup.h
-ccd_exposure.o: /home/dev/src/autoguider/ccd/include/ccd_temperature.h
-ccd_exposure.o: /home/dev/src/autoguider/ccd/include/ccd_exposure.h
-ccd_exposure.o: /home/dev/src/autoguider/ccd/include/ccd_general.h
-ccd_setup.o: /usr/include/stdio.h /usr/include/features.h
-ccd_setup.o: /usr/include/sys/cdefs.h /usr/include/gnu/stubs.h
-ccd_setup.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stddef.h
-ccd_setup.o: /usr/include/bits/types.h /usr/include/bits/wordsize.h
-ccd_setup.o: /usr/include/bits/typesizes.h /usr/include/libio.h
-ccd_setup.o: /usr/include/_G_config.h /usr/include/wchar.h
-ccd_setup.o: /usr/include/bits/wchar.h /usr/include/gconv.h
-ccd_setup.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stdarg.h
-ccd_setup.o: /usr/include/bits/stdio_lim.h /usr/include/bits/sys_errlist.h
-ccd_setup.o: /usr/include/string.h /usr/include/unistd.h
-ccd_setup.o: /usr/include/bits/posix_opt.h /usr/include/bits/confname.h
-ccd_setup.o: /usr/include/getopt.h
-ccd_setup.o: /home/dev/src/autoguider/ccd/include/ccd_config.h
-ccd_setup.o: /home/dev/src/autoguider/ccd/include/ccd_driver.h
-ccd_setup.o: /usr/include/time.h /usr/include/bits/time.h
-ccd_setup.o: /home/dev/src/autoguider/ccd/include/ccd_setup.h
-ccd_setup.o: /home/dev/src/autoguider/ccd/include/ccd_temperature.h
-ccd_setup.o: /home/dev/src/autoguider/ccd/include/ccd_general.h
-ccd_temperature.o: /usr/include/stdio.h /usr/include/features.h
-ccd_temperature.o: /usr/include/sys/cdefs.h /usr/include/gnu/stubs.h
-ccd_temperature.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stddef.h
-ccd_temperature.o: /usr/include/bits/types.h /usr/include/bits/wordsize.h
-ccd_temperature.o: /usr/include/bits/typesizes.h /usr/include/libio.h
-ccd_temperature.o: /usr/include/_G_config.h /usr/include/wchar.h
-ccd_temperature.o: /usr/include/bits/wchar.h /usr/include/gconv.h
-ccd_temperature.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stdarg.h
-ccd_temperature.o: /usr/include/bits/stdio_lim.h
-ccd_temperature.o: /usr/include/bits/sys_errlist.h /usr/include/string.h
-ccd_temperature.o: /usr/include/unistd.h /usr/include/bits/posix_opt.h
-ccd_temperature.o: /usr/include/bits/confname.h /usr/include/getopt.h
-ccd_temperature.o: /home/dev/src/autoguider/ccd/include/ccd_driver.h
-ccd_temperature.o: /usr/include/time.h /usr/include/bits/time.h
-ccd_temperature.o: /home/dev/src/autoguider/ccd/include/ccd_setup.h
-ccd_temperature.o: /home/dev/src/autoguider/ccd/include/ccd_temperature.h
-ccd_temperature.o: /home/dev/src/autoguider/ccd/include/ccd_general.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_general.o: /usr/include/errno.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_general.o: /usr/include/features.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_general.o: /usr/include/sys/cdefs.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_general.o: /usr/include/gnu/stubs.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_general.o: /usr/include/bits/errno.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_general.o: /usr/include/linux/errno.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_general.o: /usr/include/asm/errno.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_general.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stdarg.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_general.o: /usr/include/stdio.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_general.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stddef.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_general.o: /usr/include/bits/types.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_general.o: /usr/include/bits/wordsize.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_general.o: /usr/include/bits/typesizes.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_general.o: /usr/include/libio.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_general.o: /usr/include/_G_config.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_general.o: /usr/include/wchar.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_general.o: /usr/include/bits/wchar.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_general.o: /usr/include/gconv.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_general.o: /usr/include/bits/stdio_lim.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_general.o: /usr/include/bits/sys_errlist.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_general.o: /usr/include/string.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_general.o: /usr/include/time.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_general.o: /usr/include/bits/time.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_general.o: /usr/include/unistd.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_general.o: /usr/include/bits/posix_opt.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_general.o: /usr/include/bits/confname.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_general.o: /usr/include/getopt.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_general.o: /home/dev/src/autoguider/ccd/include/ccd_general.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_config.o: /usr/include/stdio.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_config.o: /usr/include/features.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_config.o: /usr/include/sys/cdefs.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_config.o: /usr/include/gnu/stubs.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_config.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stddef.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_config.o: /usr/include/bits/types.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_config.o: /usr/include/bits/wordsize.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_config.o: /usr/include/bits/typesizes.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_config.o: /usr/include/libio.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_config.o: /usr/include/_G_config.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_config.o: /usr/include/wchar.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_config.o: /usr/include/bits/wchar.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_config.o: /usr/include/gconv.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_config.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stdarg.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_config.o: /usr/include/bits/stdio_lim.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_config.o: /usr/include/bits/sys_errlist.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_config.o: /usr/include/string.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_config.o: /usr/include/unistd.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_config.o: /usr/include/bits/posix_opt.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_config.o: /usr/include/bits/confname.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_config.o: /usr/include/getopt.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_config.o: /home/dev/src/estar/config/include/estar_config.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_config.o: /home/dev/src/autoguider/ccd/include/ccd_general.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_config.o: /home/dev/src/autoguider/ccd/include/ccd_config.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_driver.o: /usr/include/stdio.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_driver.o: /usr/include/features.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_driver.o: /usr/include/sys/cdefs.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_driver.o: /usr/include/gnu/stubs.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_driver.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stddef.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_driver.o: /usr/include/bits/types.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_driver.o: /usr/include/bits/wordsize.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_driver.o: /usr/include/bits/typesizes.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_driver.o: /usr/include/libio.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_driver.o: /usr/include/_G_config.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_driver.o: /usr/include/wchar.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_driver.o: /usr/include/bits/wchar.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_driver.o: /usr/include/gconv.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_driver.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stdarg.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_driver.o: /usr/include/bits/stdio_lim.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_driver.o: /usr/include/bits/sys_errlist.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_driver.o: /usr/include/string.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_driver.o: /usr/include/unistd.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_driver.o: /usr/include/bits/posix_opt.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_driver.o: /usr/include/bits/confname.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_driver.o: /usr/include/getopt.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_driver.o: /usr/include/dlfcn.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_driver.o: /usr/include/bits/dlfcn.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_driver.o: /home/dev/src/autoguider/ccd/include/ccd_config.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_driver.o: /home/dev/src/autoguider/ccd/include/ccd_driver.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_driver.o: /usr/include/time.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_driver.o: /usr/include/bits/time.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_driver.o: /home/dev/src/autoguider/ccd/include/ccd_setup.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_driver.o: /home/dev/src/autoguider/ccd/include/ccd_temperature.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_driver.o: /home/dev/src/autoguider/ccd/include/ccd_general.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_exposure.o: /usr/include/stdio.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_exposure.o: /usr/include/features.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_exposure.o: /usr/include/sys/cdefs.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_exposure.o: /usr/include/gnu/stubs.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_exposure.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stddef.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_exposure.o: /usr/include/bits/types.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_exposure.o: /usr/include/bits/wordsize.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_exposure.o: /usr/include/bits/typesizes.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_exposure.o: /usr/include/libio.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_exposure.o: /usr/include/_G_config.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_exposure.o: /usr/include/wchar.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_exposure.o: /usr/include/bits/wchar.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_exposure.o: /usr/include/gconv.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_exposure.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stdarg.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_exposure.o: /usr/include/bits/stdio_lim.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_exposure.o: /usr/include/bits/sys_errlist.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_exposure.o: /usr/include/string.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_exposure.o: /usr/include/unistd.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_exposure.o: /usr/include/bits/posix_opt.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_exposure.o: /usr/include/bits/confname.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_exposure.o: /usr/include/getopt.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_exposure.o: /home/dev/src/cfitsio3.006/include/fitsio.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_exposure.o: /usr/include/stdlib.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_exposure.o: /usr/include/limits.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_exposure.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/limits.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_exposure.o: /usr/include/bits/posix1_lim.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_exposure.o: /usr/include/bits/local_lim.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_exposure.o: /usr/include/linux/limits.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_exposure.o: /usr/include/bits/posix2_lim.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_exposure.o: /home/dev/src/cfitsio3.006/include/longnam.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_exposure.o: /home/dev/src/autoguider/ccd/include/ccd_config.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_exposure.o: /home/dev/src/autoguider/ccd/include/ccd_driver.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_exposure.o: /usr/include/time.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_exposure.o: /usr/include/bits/time.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_exposure.o: /home/dev/src/autoguider/ccd/include/ccd_setup.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_exposure.o: /home/dev/src/autoguider/ccd/include/ccd_temperature.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_exposure.o: /home/dev/src/autoguider/ccd/include/ccd_exposure.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_exposure.o: /home/dev/src/autoguider/ccd/include/ccd_general.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_setup.o: /usr/include/stdio.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_setup.o: /usr/include/features.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_setup.o: /usr/include/sys/cdefs.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_setup.o: /usr/include/gnu/stubs.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_setup.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stddef.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_setup.o: /usr/include/bits/types.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_setup.o: /usr/include/bits/wordsize.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_setup.o: /usr/include/bits/typesizes.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_setup.o: /usr/include/libio.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_setup.o: /usr/include/_G_config.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_setup.o: /usr/include/wchar.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_setup.o: /usr/include/bits/wchar.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_setup.o: /usr/include/gconv.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_setup.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stdarg.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_setup.o: /usr/include/bits/stdio_lim.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_setup.o: /usr/include/bits/sys_errlist.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_setup.o: /usr/include/string.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_setup.o: /usr/include/unistd.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_setup.o: /usr/include/bits/posix_opt.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_setup.o: /usr/include/bits/confname.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_setup.o: /usr/include/getopt.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_setup.o: /home/dev/src/autoguider/ccd/include/ccd_config.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_setup.o: /home/dev/src/autoguider/ccd/include/ccd_driver.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_setup.o: /usr/include/time.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_setup.o: /usr/include/bits/time.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_setup.o: /home/dev/src/autoguider/ccd/include/ccd_setup.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_setup.o: /home/dev/src/autoguider/ccd/include/ccd_temperature.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_setup.o: /home/dev/src/autoguider/ccd/include/ccd_general.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_temperature.o: /usr/include/stdio.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_temperature.o: /usr/include/features.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_temperature.o: /usr/include/sys/cdefs.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_temperature.o: /usr/include/gnu/stubs.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_temperature.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stddef.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_temperature.o: /usr/include/bits/types.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_temperature.o: /usr/include/bits/wordsize.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_temperature.o: /usr/include/bits/typesizes.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_temperature.o: /usr/include/libio.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_temperature.o: /usr/include/_G_config.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_temperature.o: /usr/include/wchar.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_temperature.o: /usr/include/bits/wchar.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_temperature.o: /usr/include/gconv.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_temperature.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stdarg.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_temperature.o: /usr/include/bits/stdio_lim.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_temperature.o: /usr/include/bits/sys_errlist.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_temperature.o: /usr/include/string.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_temperature.o: /usr/include/unistd.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_temperature.o: /usr/include/bits/posix_opt.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_temperature.o: /usr/include/bits/confname.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_temperature.o: /usr/include/getopt.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_temperature.o: /home/dev/src/autoguider/ccd/include/ccd_driver.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_temperature.o: /usr/include/time.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_temperature.o: /usr/include/bits/time.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_temperature.o: /home/dev/src/autoguider/ccd/include/ccd_setup.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_temperature.o: /home/dev/src/autoguider/ccd/include/ccd_temperature.h
+/home/dev/bin/autoguider/ccd/c/i386-linux/ccd_temperature.o: /home/dev/src/autoguider/ccd/include/ccd_general.h

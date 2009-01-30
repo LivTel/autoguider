@@ -1,4 +1,4 @@
-# $Header: /home/cjm/cvs/autoguider/ngatcil/c/Makefile,v 1.3 2006-07-20 15:16:42 cjm Exp $
+# $Header: /home/cjm/cvs/autoguider/ngatcil/c/Makefile,v 1.4 2009-01-30 18:01:10 cjm Exp $
 
 include ../../../Makefile.common
 include ../../Makefile.common
@@ -8,10 +8,13 @@ BINDIR			= $(AUTOGUIDER_NGATCIL_BIN_HOME)/c/$(HOSTTYPE)
 INCDIR 			= $(AUTOGUIDER_NGATCIL_SRC_HOME)/include
 DOCSDIR 		= $(AUTOGUIDER_NGATCIL_DOC_HOME)/cdocs
 
+# log_udp library (log_udp.h is included for verbosity settings)
+LOG_UDP_CFLAGS		= -I$(LOG_UDP_SRC_HOME)/include
+
 #DEBUG_CFLAGS	= 
 DEBUG_CFLAGS	= -DNGATCIL_DEBUG=10
 
-CFLAGS 		= -g -I$(INCDIR) $(DEBUG_CFLAGS)
+CFLAGS 		= -g -I$(INCDIR) $(DEBUG_CFLAGS) $(LOG_UDP_CFLAGS)
 DOCFLAGS 	= -static
 
 LIB_SRCS	=ngatcil_general.c ngatcil_udp_raw.c ngatcil_tcs_guide_packet.c ngatcil_cil.c ngatcil_ags_sdb.c
@@ -62,6 +65,9 @@ checkout:
 
 #
 # $Log: not supported by cvs2svn $
+# Revision 1.3  2006/07/20 15:16:42  cjm
+# Added ngatcil_ags_sdb.c.
+#
 # Revision 1.2  2006/06/06 10:34:01  cjm
 # Added ngatcil_cil.c.
 #
@@ -198,3 +204,34 @@ checkout:
 /home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_cil.o: /home/dev/src/autoguider/ngatcil/include/ngatcil_general.h
 /home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_cil.o: /home/dev/src/autoguider/ngatcil/include/ngatcil_udp_raw.h
 /home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_cil.o: /home/dev/src/autoguider/ngatcil/include/ngatcil_cil.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_cil.o: /usr/include/stdint.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_ags_sdb.o: /usr/include/limits.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_ags_sdb.o: /usr/include/features.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_ags_sdb.o: /usr/include/sys/cdefs.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_ags_sdb.o: /usr/include/gnu/stubs.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_ags_sdb.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/limits.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_ags_sdb.o: /usr/include/bits/posix1_lim.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_ags_sdb.o: /usr/include/bits/local_lim.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_ags_sdb.o: /usr/include/linux/limits.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_ags_sdb.o: /usr/include/bits/posix2_lim.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_ags_sdb.o: /usr/include/stdint.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_ags_sdb.o: /usr/include/bits/wchar.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_ags_sdb.o: /usr/include/bits/wordsize.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_ags_sdb.o: /usr/include/stdio.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_ags_sdb.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stddef.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_ags_sdb.o: /usr/include/bits/types.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_ags_sdb.o: /usr/include/bits/typesizes.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_ags_sdb.o: /usr/include/libio.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_ags_sdb.o: /usr/include/_G_config.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_ags_sdb.o: /usr/include/wchar.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_ags_sdb.o: /usr/include/gconv.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_ags_sdb.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stdarg.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_ags_sdb.o: /usr/include/bits/stdio_lim.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_ags_sdb.o: /usr/include/bits/sys_errlist.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_ags_sdb.o: /usr/include/string.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_ags_sdb.o: /usr/include/time.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_ags_sdb.o: /usr/include/bits/time.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_ags_sdb.o: /home/dev/src/autoguider/ngatcil/include/ngatcil_ags_sdb.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_ags_sdb.o: /home/dev/src/autoguider/ngatcil/include/ngatcil_general.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_ags_sdb.o: /home/dev/src/autoguider/ngatcil/include/ngatcil_udp_raw.h
+/home/dev/bin/autoguider/ngatcil/c/i386-linux/ngatcil_ags_sdb.o: /home/dev/src/autoguider/ngatcil/include/ngatcil_cil.h

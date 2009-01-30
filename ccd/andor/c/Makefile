@@ -1,4 +1,4 @@
-# $Header: /home/cjm/cvs/autoguider/ccd/andor/c/Makefile,v 1.4 2007-01-19 14:27:44 cjm Exp $
+# $Header: /home/cjm/cvs/autoguider/ccd/andor/c/Makefile,v 1.5 2009-01-30 18:00:07 cjm Exp $
 
 include ../../../../Makefile.common
 include ../../../Makefile.common
@@ -16,6 +16,9 @@ DEBUG_CFLAGS		= -DANDOR_DEBUG
 CCD_CFLAGS 		= -I$(AUTOGUIDER_CCD_SRC_HOME)/include
 CCD_LDFLAGS 		= -lautoguider_ccd_general
 
+# log_udp library (log_udp.h is included for verbosity settings)
+LOG_UDP_CFLAGS		= -I$(LOG_UDP_SRC_HOME)/include
+
 # andor library
 # need to link to standard c++ library as autoguider_ccd_andor links against andor-gcc3
 # which links against stdc++
@@ -26,7 +29,7 @@ CCD_LDFLAGS 		= -lautoguider_ccd_general
 ANDOR_CFLAGS 		= -I$(AUTOGUIDER_SRC_HOME)/andor/andor/include/
 ANDOR_LDFLAGS 		= -L$(AUTOGUIDER_SRC_HOME)/andor/andor/lib/ -landor -lstdc++ -lpthread -ldl
 
-CFLAGS 			= -g -I$(INCDIR) $(DEBUG_CFLAGS) $(ANDOR_CFLAGS) $(CCD_CFLAGS)
+CFLAGS 			= -g -I$(INCDIR) $(DEBUG_CFLAGS) $(ANDOR_CFLAGS) $(CCD_CFLAGS) $(LOG_UDP_CFLAGS)
 DOCFLAGS 		= -static
 
 LIB_SRCS		= andor_general.c andor_setup.c andor_exposure.c andor_temperature.c andor_driver.c
