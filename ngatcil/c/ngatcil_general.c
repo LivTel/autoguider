@@ -1,11 +1,11 @@
 /* ngatcil_general.c
 ** NGATCil general routines
-** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_general.c,v 1.1 2006-06-01 15:28:06 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_general.c,v 1.2 2009-01-30 18:00:52 cjm Exp $
 */
 /**
  * General routines (logging, errror etc) for the NGAT Cil library.
  * @author Chris Mottram
- * @version $Revision: 1.1 $
+ * @version $Revision: 1.2 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -58,8 +58,10 @@ char NGATCil_General_Error_String[NGATCIL_GENERAL_ERROR_STRING_LENGTH] = "";
  */
 struct General_Struct
 {
-	void (*Log_Handler)(int level,char *string);
-	int (*Log_Filter)(int level,char *string);
+	void (*Log_Handler)(char *sub_system,char *source_filename,
+			    char *function,int level,char *category,char *string);
+	int (*Log_Filter)(char *sub_system,char *source_filename,
+			  char *function,int level,char *category,char *string);
 	int Log_Filter_Level;
 };
 
@@ -67,7 +69,7 @@ struct General_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: ngatcil_general.c,v 1.1 2006-06-01 15:28:06 cjm Exp $";
+static char rcsid[] = "$Id: ngatcil_general.c,v 1.2 2009-01-30 18:00:52 cjm Exp $";
 
 /**
  * The instance of General_Struct that contains local data for this module.
@@ -196,7 +198,8 @@ void NGATCil_General_Get_Current_Time_String(char *time_string,int string_length
  * @see #NGATCil_General_Log
  * @see #NGATCIL_GENERAL_ERROR_STRING_LENGTH
  */
-void NGATCil_General_Log_Format(int level,char *format,...)
+void NGATCil_General_Log_Format(char *sub_system,char *source_filename,
+				char *function,int level,char *category,char *format,...)
 {
 	va_list ap;
 	char buff[NGATCIL_GENERAL_ERROR_STRING_LENGTH];
@@ -206,19 +209,23 @@ void NGATCil_General_Log_Format(int level,char *format,...)
 	vsprintf(buff,format,ap);
 	va_end(ap);
 /* call the log routine to log the results */
-	NGATCil_General_Log(level,buff);
+	NGATCil_General_Log(sub_system,source_filename,function,level,category,buff);
 }
 
 /**
  * Routine to log a message to a defined logging mechanism. If the string or General_Data.Log_Handler are NULL
  * the routine does not log the message. If the General_Data.Log_Filter function pointer is non-NULL, the
  * message is passed to it to determoine whether to log the message.
- * @param level An integer, used to decide whether this particular message has been selected for
- * 	logging or not.
+ * @param sub_system The sub system. Can be NULL.
+ * @param source_file The source filename. Can be NULL.
+ * @param function The function calling the log. Can be NULL.
+ * @param level At what level is the log message (TERSE/high level or VERBOSE/low level), 
+ *         a valid member of LOG_VERBOSITY.
+ * @param category What sort of information is the message. Designed to be used as a filter. Can be NULL.
  * @param string The message to log.
  * @see #General_Data
  */
-void NGATCil_General_Log(int level,char *string)
+void NGATCil_General_Log(char *sub_system,char *source_filename,char *function,int level,char *category,char *string)
 {
 /* If the string is NULL, don't log. */
 	if(string == NULL)
@@ -229,11 +236,11 @@ void NGATCil_General_Log(int level,char *string)
 /* If there's a log filter, check it returns TRUE for this message */
 	if(General_Data.Log_Filter != NULL)
 	{
-		if(General_Data.Log_Filter(level,string) == FALSE)
+		if(General_Data.Log_Filter(sub_system,source_filename,function,level,category,string) == FALSE)
 			return;
 	}
 /* We can log the message */
-	(*General_Data.Log_Handler)(level,string);
+	(*General_Data.Log_Handler)(sub_system,source_filename,function,level,category,string);
 }
 
 /**
@@ -242,7 +249,8 @@ void NGATCil_General_Log(int level,char *string)
  * @see #General_Data
  * @see #NGATCil_General_Log
  */
-void NGATCil_General_Set_Log_Handler_Function(void (*log_fn)(int level,char *string))
+void NGATCil_General_Set_Log_Handler_Function(void (*log_fn)(char *sub_system,char *source_filename,char *function,
+							     int level,char *category,char *string))
 {
 	General_Data.Log_Handler = log_fn;
 }
@@ -253,7 +261,8 @@ void NGATCil_General_Set_Log_Handler_Function(void (*log_fn)(int level,char *str
  * @see #General_Data
  * @see #NGATCil_General_Log
  */
-void NGATCil_General_Set_Log_Filter_Function(int (*filter_fn)(int level,char *string))
+void NGATCil_General_Set_Log_Filter_Function(int (*filter_fn)(char *sub_system,char *source_filename,char *function,
+							      int level,char *category,char *string))
 {
 	General_Data.Log_Filter = filter_fn;
 }
@@ -261,14 +270,20 @@ void NGATCil_General_Set_Log_Filter_Function(int (*filter_fn)(int level,char *st
 /**
  * A log handler to be used for the General_Data.Log_Handler function.
  * Just prints the message to stdout, terminated by a newline.
- * @param level The log level for this message.
+ * @param sub_system The sub system. Can be NULL.
+ * @param source_file The source filename. Can be NULL.
+ * @param function The function calling the log. Can be NULL.
+ * @param level At what level is the log message (TERSE/high level or VERBOSE/low level), 
+ *         a valid member of LOG_VERBOSITY.
+ * @param category What sort of information is the message. Designed to be used as a filter. Can be NULL.
  * @param string The log message to be logged. 
  */
-void NGATCil_General_Log_Handler_Stdout(int level,char *string)
+void NGATCil_General_Log_Handler_Stdout(char *sub_system,char *source_filename,char *function,int level,
+					char *category,char *string)
 {
 	if(string == NULL)
 		return;
-	fprintf(stdout,"%s\n",string);
+	fprintf(stdout,"%s:%s\n",function,string);
 }
 
 /**
@@ -282,26 +297,38 @@ void NGATCil_General_Set_Log_Filter_Level(int level)
 
 /**
  * A log message filter routine, to be used for the General_Data.Log_Filter function pointer.
- * @param level The log level of the message to be tested.
+ * @param sub_system The sub system. Can be NULL.
+ * @param source_file The source filename. Can be NULL.
+ * @param function The function calling the log. Can be NULL.
+ * @param level At what level is the log message (TERSE/high level or VERBOSE/low level), 
+ *         a valid member of LOG_VERBOSITY.
+ * @param category What sort of information is the message. Designed to be used as a filter. Can be NULL.
  * @param string The log message to be logged, not used in this filter. 
  * @return The routine returns TRUE if the level is less than or equal to the General_Data.Log_Filter_Level,
  * 	otherwise it returns FALSE.
  * @see #General_Data
  */
-int NGATCil_General_Log_Filter_Level_Absolute(int level,char *string)
+int NGATCil_General_Log_Filter_Level_Absolute(char *sub_system,char *source_filename,char *function,int level,
+					      char *category,char *string)
 {
 	return (level <= General_Data.Log_Filter_Level);
 }
 
 /**
  * A log message filter routine, to be used for the General_Data.Log_Filter function pointer.
- * @param level The log level of the message to be tested.
+ * @param sub_system The sub system. Can be NULL.
+ * @param source_file The source filename. Can be NULL.
+ * @param function The function calling the log. Can be NULL.
+ * @param level At what level is the log message (TERSE/high level or VERBOSE/low level), 
+ *         a valid member of LOG_VERBOSITY.
+ * @param category What sort of information is the message. Designed to be used as a filter. Can be NULL.
  * @param string The log message to be logged, not used in this filter. 
  * @return The routine returns TRUE if the level has bits set that are also set in the 
  * 	General_Data.Log_Filter_Level, otherwise it returns FALSE.
  * @see #General_Data
  */
-int NGATCil_General_Log_Filter_Level_Bitwise(int level,char *string)
+int NGATCil_General_Log_Filter_Level_Bitwise(char *sub_system,char *source_filename,char *function,int level,
+					     char *category,char *string)
 {
 	return ((level & General_Data.Log_Filter_Level) > 0);
 }
@@ -396,4 +423,7 @@ int NGATCil_General_Int_List_Sort(const void *f,const void *s)
 ** ---------------------------------------------------------------------------- */
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2006/06/01 15:28:06  cjm
+** Initial revision
+**
 */

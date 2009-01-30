@@ -1,11 +1,11 @@
 /* autoguider_server.c
 ** Autoguider server routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_server.c,v 1.10 2007-01-19 14:26:34 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_server.c,v 1.11 2009-01-30 18:01:33 cjm Exp $
 */
 /**
  * Command Server routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.10 $
+ * @version $Revision: 1.11 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -23,6 +23,8 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "log_udp.h"
+
 #include "command_server.h"
 
 #include "autoguider_general.h"
@@ -31,7 +33,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_server.c,v 1.10 2007-01-19 14:26:34 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_server.c,v 1.11 2009-01-30 18:01:33 cjm Exp $";
 /**
  * The server context to use for this server.
  * @see ../command_server/cdocs/command_server.html#Command_Server_Server_Context_T
@@ -61,7 +63,6 @@ static int Send_Binary_Reply_Error(Command_Server_Handle_T connection_handle);
  * @see #Command_Server_Port_Number
  * @see autoguider_general.html#Autoguider_General_Log
  * @see autoguider_general.html#Autoguider_General_Log_Format
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_SERVER
  * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Unsigned_Short
  */
 int Autoguider_Server_Initialise(void)
@@ -69,7 +70,8 @@ int Autoguider_Server_Initialise(void)
 	int retval;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_SERVER,"Autoguider_Server_Initialise:started.");
+	Autoguider_General_Log_Format("server","autoguider_server.c","Autoguider_Server_Initialise",
+				      LOG_VERBOSITY_TERSE,"SERVER","started.");
 #endif
 	/* get port number from config */
 	retval = CCD_Config_Get_Unsigned_Short("command.server.port_number",&Command_Server_Port_Number);
@@ -80,7 +82,8 @@ int Autoguider_Server_Initialise(void)
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_SERVER,"Autoguider_Server_Initialise:finished.");
+	Autoguider_General_Log_Format("server","autoguider_server.c","Autoguider_Server_Initialise",
+				      LOG_VERBOSITY_TERSE,"SERVER","finished.");
 #endif
 	return TRUE;
 }
@@ -94,7 +97,6 @@ int Autoguider_Server_Initialise(void)
  * @see #Command_Server_Context
  * @see autoguider_general.html#Autoguider_General_Log
  * @see autoguider_general.html#Autoguider_General_Log_Format
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_SERVER
  * @see ../command_server/cdocs/command_server.html#Command_Server_Start_Server
  */
 int Autoguider_Server_Start(void)
@@ -102,10 +104,12 @@ int Autoguider_Server_Start(void)
 	int retval;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_SERVER,"Autoguider_Server_Start:started.");
+	Autoguider_General_Log("server","autoguider_server.c","Autoguider_Server_Start",
+			       LOG_VERBOSITY_VERY_TERSE,"SERVER","started.");
 #endif
 #if AUTOGUIDER_DEBUG > 2
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_SERVER,
+	Autoguider_General_Log_Format("server","autoguider_server.c","Autoguider_Server_Start",
+				      LOG_VERBOSITY_VERY_TERSE,"SERVER",
 				      "Starting multi-threaded server on port %hu.",Command_Server_Port_Number);
 #endif
 	retval = Command_Server_Start_Server(&Command_Server_Port_Number,Autoguider_Server_Connection_Callback,
@@ -118,7 +122,8 @@ int Autoguider_Server_Start(void)
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_SERVER,"Autoguider_Server_Start:finished.");
+	Autoguider_General_Log("server","autoguider_server.c","Autoguider_Server_Start",
+			       LOG_VERBOSITY_VERY_TERSE,"SERVER","finished.");
 #endif
 	return TRUE;
 }
@@ -129,14 +134,14 @@ int Autoguider_Server_Start(void)
  * @see #Command_Server_Context
  * @see autoguider_general.html#Autoguider_General_Log
  * @see autoguider_general.html#Autoguider_General_Log_Format
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_SERVER
  * @see ../command_server/cdocs/command_server.html#Command_Server_Close_Server
  */
 int Autoguider_Server_Stop(void)
 {
 	int retval;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_SERVER,"Autoguider_Server_Stop:started.");
+	Autoguider_General_Log_Format("server","autoguider_server.c","Autoguider_Server_Stop",
+				      LOG_VERBOSITY_VERY_TERSE,"SERVER","started.");
 #endif
 	retval = Command_Server_Close_Server(&Command_Server_Context);
 	if(retval == FALSE)
@@ -147,7 +152,8 @@ int Autoguider_Server_Stop(void)
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_SERVER,"Autoguider_Server_Stop:finished.");
+	Autoguider_General_Log_Format("server","autoguider_server.c","Autoguider_Server_Stop",
+				      LOG_VERBOSITY_VERY_TERSE,"SERVER","finished.");
 #endif
 	return TRUE;
 }
@@ -167,7 +173,6 @@ int Autoguider_Server_Stop(void)
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  * @see autoguider_general.html#Autoguider_General_Log_Format
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_SERVER
  * @see ../command_server/cdocs/command_server.html#Command_Server_Read_Message
  */
 static void Autoguider_Server_Connection_Callback(Command_Server_Handle_T connection_handle)
@@ -186,19 +191,20 @@ static void Autoguider_Server_Connection_Callback(Command_Server_Handle_T connec
 		Autoguider_General_Error_Number = 203;
 		sprintf(Autoguider_General_Error_String,"Autoguider_Server_Connection_Callback:"
 			"Failed to read message.");
-		Autoguider_General_Error();
+		Autoguider_General_Error("server","autoguider_server.c","Autoguider_Server_Connection_Callback",
+					 LOG_VERBOSITY_VERY_TERSE,"SERVER");
 		return;
 	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_SERVER,"Autoguider_Server_Connection_Callback:"
-				      "received '%s'",client_message);
+	Autoguider_General_Log_Format("server","autoguider_server.c","Autoguider_Server_Connection_Callback",
+				      LOG_VERBOSITY_VERY_TERSE,"SERVER","received '%s'",client_message);
 #endif
 	/* do something with message */
 	if(strncmp(client_message,"abort",5) == 0)
 	{
 #if AUTOGUIDER_DEBUG > 1
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_SERVER,"Autoguider_Server_Connection_Callback:"
-				       "abort detected.");
+		Autoguider_General_Log("server","autoguider_server.c","Autoguider_Server_Connection_Callback",
+				       LOG_VERBOSITY_VERY_TERSE,"SERVER","abort detected.");
 #endif
 		retval = Autoguider_Command_Abort(client_message,&reply_string);
 		if(retval == TRUE)
@@ -207,21 +213,31 @@ static void Autoguider_Server_Connection_Callback(Command_Server_Handle_T connec
 			if(reply_string != NULL)
 				free(reply_string);
 			if(retval == FALSE)
-				Autoguider_General_Error();
+			{
+				Autoguider_General_Error("server","autoguider_server.c",
+							 "Autoguider_Server_Connection_Callback",
+							 LOG_VERBOSITY_VERY_TERSE,"SERVER");
+			}
 		}
 		else
 		{
-			Autoguider_General_Error();
+			Autoguider_General_Error("server","autoguider_server.c",
+						 "Autoguider_Server_Connection_Callback",
+						 LOG_VERBOSITY_VERY_TERSE,"SERVER");
 			retval = Send_Reply(connection_handle, "1 Autoguider_Command_Abort failed.");
 			if(retval == FALSE)
-				Autoguider_General_Error();
+			{
+				Autoguider_General_Error("server","autoguider_server.c",
+							 "Autoguider_Server_Connection_Callback",
+							 LOG_VERBOSITY_VERY_TERSE,"SERVER");
+			}
 		}
 	}
 	else if(strncmp(client_message,"autoguide",9) == 0)
 	{
 #if AUTOGUIDER_DEBUG > 1
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_SERVER,"Autoguider_Server_Connection_Callback:"
-				       "autoguide detected.");
+		Autoguider_General_Log("server","autoguider_server.c","Autoguider_Server_Connection_Callback",
+				       LOG_VERBOSITY_VERY_TERSE,"SERVER","autoguide detected.");
 #endif
 		retval = Autoguider_Command_Autoguide(client_message,&reply_string);
 		if(retval == TRUE)
@@ -230,21 +246,31 @@ static void Autoguider_Server_Connection_Callback(Command_Server_Handle_T connec
 			if(reply_string != NULL)
 				free(reply_string);
 			if(retval == FALSE)
-				Autoguider_General_Error();
+			{
+				Autoguider_General_Error("server","autoguider_server.c",
+							 "Autoguider_Server_Connection_Callback",
+							 LOG_VERBOSITY_VERY_TERSE,"SERVER");
+			}
 		}
 		else
 		{
-			Autoguider_General_Error();
+			Autoguider_General_Error("server","autoguider_server.c",
+						 "Autoguider_Server_Connection_Callback",
+						 LOG_VERBOSITY_VERY_TERSE,"SERVER");
 			retval = Send_Reply(connection_handle, "1 Autoguider_Command_Autoguide failed.");
 			if(retval == FALSE)
-				Autoguider_General_Error();
+			{
+				Autoguider_General_Error("server","autoguider_server.c",
+							 "Autoguider_Server_Connection_Callback",
+							 LOG_VERBOSITY_VERY_TERSE,"SERVER");
+			}
 		}
 	}
 	else if(strncmp(client_message,"agstate",7) == 0)
 	{
 #if AUTOGUIDER_DEBUG > 1
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_SERVER,"Autoguider_Server_Connection_Callback:"
-				       "agstate detected.");
+		Autoguider_General_Log("server","autoguider_server.c","Autoguider_Server_Connection_Callback",
+				       LOG_VERBOSITY_VERY_TERSE,"SERVER","agstate detected.");
 #endif
 		retval = Autoguider_Command_Agstate(client_message,&reply_string);
 		if(retval == TRUE)
@@ -253,21 +279,31 @@ static void Autoguider_Server_Connection_Callback(Command_Server_Handle_T connec
 			if(reply_string != NULL)
 				free(reply_string);
 			if(retval == FALSE)
-				Autoguider_General_Error();
+			{
+				Autoguider_General_Error("server","autoguider_server.c",
+							 "Autoguider_Server_Connection_Callback",
+							 LOG_VERBOSITY_VERY_TERSE,"SERVER");
+			}
 		}
 		else
 		{
-			Autoguider_General_Error();
+			Autoguider_General_Error("server","autoguider_server.c",
+						 "Autoguider_Server_Connection_Callback",
+						 LOG_VERBOSITY_VERY_TERSE,"SERVER");
 			retval = Send_Reply(connection_handle, "1 Autoguider_Command_Agstate failed.");
 			if(retval == FALSE)
-				Autoguider_General_Error();
+			{
+				Autoguider_General_Error("server","autoguider_server.c",
+							 "Autoguider_Server_Connection_Callback",
+							 LOG_VERBOSITY_VERY_TERSE,"SERVER");
+			}
 		}
 	}
 	else if(strncmp(client_message,"configload",10) == 0)
 	{
 #if AUTOGUIDER_DEBUG > 1
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_SERVER,"Autoguider_Server_Connection_Callback:"
-				       "configload detected.");
+		Autoguider_General_Log("server","autoguider_server.c","Autoguider_Server_Connection_Callback",
+				       LOG_VERBOSITY_VERY_TERSE,"SERVER","configload detected.");
 #endif
 		retval = Autoguider_Command_Config_Load(client_message,&reply_string);
 		if(retval == TRUE)
@@ -276,21 +312,31 @@ static void Autoguider_Server_Connection_Callback(Command_Server_Handle_T connec
 			if(reply_string != NULL)
 				free(reply_string);
 			if(retval == FALSE)
-				Autoguider_General_Error();
+			{
+				Autoguider_General_Error("server","autoguider_server.c",
+							 "Autoguider_Server_Connection_Callback",
+							 LOG_VERBOSITY_VERY_TERSE,"SERVER");
+			}
 		}
 		else
 		{
-			Autoguider_General_Error();
+			Autoguider_General_Error("server","autoguider_server.c",
+						 "Autoguider_Server_Connection_Callback",
+						 LOG_VERBOSITY_VERY_TERSE,"SERVER");
 			retval = Send_Reply(connection_handle, "1 Autoguider_Command_Config_Load failed.");
 			if(retval == FALSE)
-				Autoguider_General_Error();
+			{
+				Autoguider_General_Error("server","autoguider_server.c",
+							 "Autoguider_Server_Connection_Callback",
+							 LOG_VERBOSITY_VERY_TERSE,"SERVER");
+			}
 		}
 	}
 	else if(strncmp(client_message,"expose",6) == 0)
 	{
 #if AUTOGUIDER_DEBUG > 1
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_SERVER,"Autoguider_Server_Connection_Callback:"
-				       "expose detected.");
+		Autoguider_General_Log("server","autoguider_server.c","Autoguider_Server_Connection_Callback",
+				       LOG_VERBOSITY_VERY_TERSE,"SERVER","expose detected.");
 #endif
 		retval = Autoguider_Command_Expose(client_message,&reply_string);
 		if(retval == TRUE)
@@ -299,21 +345,31 @@ static void Autoguider_Server_Connection_Callback(Command_Server_Handle_T connec
 			if(reply_string != NULL)
 				free(reply_string);
 			if(retval == FALSE)
-				Autoguider_General_Error();
+			{
+				Autoguider_General_Error("server","autoguider_server.c",
+							 "Autoguider_Server_Connection_Callback",
+							 LOG_VERBOSITY_VERY_TERSE,"SERVER");
+			}
 		}
 		else
 		{
-			Autoguider_General_Error();
+			Autoguider_General_Error("server","autoguider_server.c",
+						 "Autoguider_Server_Connection_Callback",
+						 LOG_VERBOSITY_VERY_TERSE,"SERVER");
 			retval = Send_Reply(connection_handle, "1 Autoguider_Command_Expose failed.");
 			if(retval == FALSE)
-				Autoguider_General_Error();
+			{
+				Autoguider_General_Error("server","autoguider_server.c",
+							 "Autoguider_Server_Connection_Callback",
+							 LOG_VERBOSITY_VERY_TERSE,"SERVER");
+			}
 		}
 	}
 	else if(strncmp(client_message,"field",5) == 0)
 	{
 #if AUTOGUIDER_DEBUG > 1
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_SERVER,"Autoguider_Server_Connection_Callback:"
-				       "field detected.");
+		Autoguider_General_Log("server","autoguider_server.c","Autoguider_Server_Connection_Callback",
+				       LOG_VERBOSITY_VERY_TERSE,"SERVER","field detected.");
 #endif
 		retval = Autoguider_Command_Field(client_message,&reply_string);
 		if(retval == TRUE)
@@ -322,21 +378,31 @@ static void Autoguider_Server_Connection_Callback(Command_Server_Handle_T connec
 			if(reply_string != NULL)
 				free(reply_string);
 			if(retval == FALSE)
-				Autoguider_General_Error();
+			{
+				Autoguider_General_Error("server","autoguider_server.c",
+							 "Autoguider_Server_Connection_Callback",
+							 LOG_VERBOSITY_VERY_TERSE,"SERVER");
+			}
 		}
 		else
 		{
-			Autoguider_General_Error();
+			Autoguider_General_Error("server","autoguider_server.c",
+							 "Autoguider_Server_Connection_Callback",
+							 LOG_VERBOSITY_VERY_TERSE,"SERVER");
 			retval = Send_Reply(connection_handle, "1 Autoguider_Command_Field failed.");
 			if(retval == FALSE)
-				Autoguider_General_Error();
+			{
+				Autoguider_General_Error("server","autoguider_server.c",
+							 "Autoguider_Server_Connection_Callback",
+							 LOG_VERBOSITY_VERY_TERSE,"SERVER");
+			}
 		}
 	}
 	else if(strncmp(client_message,"getfits",7) == 0)
 	{
 #if AUTOGUIDER_DEBUG > 1
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_SERVER,"Autoguider_Server_Connection_Callback:"
-				       "getfits detected.");
+		Autoguider_General_Log("server","autoguider_server.c","Autoguider_Server_Connection_Callback",
+				       LOG_VERBOSITY_VERY_TERSE,"SERVER","getfits detected.");
 #endif
 		retval = Autoguider_Command_Get_Fits(client_message,&buffer_ptr,&buffer_length);
 		if(retval == TRUE)
@@ -345,20 +411,28 @@ static void Autoguider_Server_Connection_Callback(Command_Server_Handle_T connec
 			if(buffer_ptr != NULL)
 				free(buffer_ptr);
 			if(retval == FALSE)
-				Autoguider_General_Error();
+			{
+				Autoguider_General_Error("server","autoguider_server.c",
+							 "Autoguider_Server_Connection_Callback",
+							 LOG_VERBOSITY_VERY_TERSE,"SERVER");
+			}
 		}
 		else
 		{
 			retval = Send_Binary_Reply_Error(connection_handle);
 			if(retval == FALSE)
-				Autoguider_General_Error();
+			{
+				Autoguider_General_Error("server","autoguider_server.c",
+							 "Autoguider_Server_Connection_Callback",
+							 LOG_VERBOSITY_VERY_TERSE,"SERVER");
+			}
 		}
 	}
 	else if(strncmp(client_message,"guide",5) == 0)
 	{
 #if AUTOGUIDER_DEBUG > 1
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_SERVER,"Autoguider_Server_Connection_Callback:"
-				       "guide detected.");
+		Autoguider_General_Log("server","autoguider_server.c","Autoguider_Server_Connection_Callback",
+							 LOG_VERBOSITY_VERY_TERSE,"SERVER","guide detected.");
 #endif
 		retval = Autoguider_Command_Guide(client_message,&reply_string);
 		if(retval == TRUE)
@@ -367,21 +441,31 @@ static void Autoguider_Server_Connection_Callback(Command_Server_Handle_T connec
 			if(reply_string != NULL)
 				free(reply_string);
 			if(retval == FALSE)
-				Autoguider_General_Error();
+			{
+				Autoguider_General_Error("server","autoguider_server.c",
+							 "Autoguider_Server_Connection_Callback",
+							 LOG_VERBOSITY_VERY_TERSE,"SERVER");
+			}
 		}
 		else
 		{
-			Autoguider_General_Error();
+			Autoguider_General_Error("server","autoguider_server.c",
+						 "Autoguider_Server_Connection_Callback",
+						 LOG_VERBOSITY_VERY_TERSE,"SERVER");
 			retval = Send_Reply(connection_handle, "1 Autoguider_Command_Guide failed.");
 			if(retval == FALSE)
-				Autoguider_General_Error();
+			{
+				Autoguider_General_Error("server","autoguider_server.c",
+							 "Autoguider_Server_Connection_Callback",
+							 LOG_VERBOSITY_VERY_TERSE,"SERVER");
+			}
 		}
 	}
 	else if(strncmp(client_message,"log_level",9) == 0)
 	{
 #if AUTOGUIDER_DEBUG > 1
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_SERVER,"Autoguider_Server_Connection_Callback:"
-				       "log_level detected.");
+		Autoguider_General_Log("server","autoguider_server.c","Autoguider_Server_Connection_Callback",
+							 LOG_VERBOSITY_VERY_TERSE,"SERVER","log_level detected.");
 #endif
 		retval = Autoguider_Command_Log_Level(client_message,&reply_string);
 		if(retval == TRUE)
@@ -390,21 +474,31 @@ static void Autoguider_Server_Connection_Callback(Command_Server_Handle_T connec
 			if(reply_string != NULL)
 				free(reply_string);
 			if(retval == FALSE)
-				Autoguider_General_Error();
+			{
+				Autoguider_General_Error("server","autoguider_server.c",
+							 "Autoguider_Server_Connection_Callback",
+							 LOG_VERBOSITY_VERY_TERSE,"SERVER");
+			}
 		}
 		else
 		{
-			Autoguider_General_Error();
+			Autoguider_General_Error("server","autoguider_server.c",
+							 "Autoguider_Server_Connection_Callback",
+							 LOG_VERBOSITY_VERY_TERSE,"SERVER");
 			retval = Send_Reply(connection_handle, "1 Autoguider_Command_Log_Level failed.");
 			if(retval == FALSE)
-				Autoguider_General_Error();
+			{
+				Autoguider_General_Error("server","autoguider_server.c",
+							 "Autoguider_Server_Connection_Callback",
+							 LOG_VERBOSITY_VERY_TERSE,"SERVER");
+			}
 		}
 	}
 	else if(strcmp(client_message, "help") == 0)
 	{
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_SERVER,"Autoguider_Server_Connection_Callback:"
-			       "help detected.");
+	Autoguider_General_Log("server","autoguider_server.c","Autoguider_Server_Connection_Callback",
+			       LOG_VERBOSITY_VERY_TERSE,"SERVER","help detected.");
 #endif
 		Send_Reply(connection_handle, "help:\n"
 			   "\tabort\n"
@@ -434,8 +528,8 @@ static void Autoguider_Server_Connection_Callback(Command_Server_Handle_T connec
 	else if(strncmp(client_message,"status",6) == 0)
 	{
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_SERVER,"Autoguider_Server_Connection_Callback:"
-			       "status detected.");
+	Autoguider_General_Log("server","autoguider_server.c","Autoguider_Server_Connection_Callback",
+			       LOG_VERBOSITY_VERY_TERSE,"SERVER","status detected.");
 #endif
 		retval = Autoguider_Command_Status(client_message,&reply_string);
 		if(retval == TRUE)
@@ -444,21 +538,31 @@ static void Autoguider_Server_Connection_Callback(Command_Server_Handle_T connec
 			if(reply_string != NULL)
 				free(reply_string);
 			if(retval == FALSE)
-				Autoguider_General_Error();
+			{
+				Autoguider_General_Error("server","autoguider_server.c",
+							 "Autoguider_Server_Connection_Callback",
+							 LOG_VERBOSITY_VERY_TERSE,"SERVER");
+			}
 		}
 		else
 		{
-			Autoguider_General_Error();
+			Autoguider_General_Error("server","autoguider_server.c",
+						 "Autoguider_Server_Connection_Callback",
+						 LOG_VERBOSITY_VERY_TERSE,"SERVER");
 			retval = Send_Reply(connection_handle, "1 Autoguider_Command_Status failed.");
 			if(retval == FALSE)
-				Autoguider_General_Error();
+			{
+				Autoguider_General_Error("server","autoguider_server.c",
+							 "Autoguider_Server_Connection_Callback",
+							 LOG_VERBOSITY_VERY_TERSE,"SERVER");
+			}
 		}
 	}
 	else if(strncmp(client_message,"temperature",11) == 0)
 	{
 #if AUTOGUIDER_DEBUG > 1
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_SERVER,"Autoguider_Server_Connection_Callback:"
-				       "temperature detected.");
+		Autoguider_General_Log("server","autoguider_server.c","Autoguider_Server_Connection_Callback",
+				       LOG_VERBOSITY_VERY_TERSE,"SERVER","temperature detected.");
 #endif
 		retval = Autoguider_Command_Temperature(client_message,&reply_string);
 		if(retval == TRUE)
@@ -467,39 +571,59 @@ static void Autoguider_Server_Connection_Callback(Command_Server_Handle_T connec
 			if(reply_string != NULL)
 				free(reply_string);
 			if(retval == FALSE)
-				Autoguider_General_Error();
+			{
+				Autoguider_General_Error("server","autoguider_server.c",
+							 "Autoguider_Server_Connection_Callback",
+							 LOG_VERBOSITY_VERY_TERSE,"SERVER");
+			}
 		}
 		else
 		{
-			Autoguider_General_Error();
+			Autoguider_General_Error("server","autoguider_server.c",
+						 "Autoguider_Server_Connection_Callback",
+						 LOG_VERBOSITY_VERY_TERSE,"SERVER");
 			retval = Send_Reply(connection_handle, "1 Autoguider_Command_Temperature failed.");
 			if(retval == FALSE)
-				Autoguider_General_Error();
+			{
+				Autoguider_General_Error("server","autoguider_server.c",
+							 "Autoguider_Server_Connection_Callback",
+							 LOG_VERBOSITY_VERY_TERSE,"SERVER");
+			}
 		}
 	}
 	else if(strcmp(client_message, "shutdown") == 0)
 	{
 #if AUTOGUIDER_DEBUG > 1
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_SERVER,"Autoguider_Server_Connection_Callback:"
-				       "shutdown detected:about to stop.");
+		Autoguider_General_Log("server","autoguider_server.c","Autoguider_Server_Connection_Callback",
+				       LOG_VERBOSITY_VERY_TERSE,"SERVER","shutdown detected:about to stop.");
 #endif
 		retval = Send_Reply(connection_handle, "0 ok");
 		if(retval == FALSE)
-			Autoguider_General_Error();
+			Autoguider_General_Error("server","autoguider_server.c",
+						 "Autoguider_Server_Connection_Callback",
+						 LOG_VERBOSITY_VERY_TERSE,"SERVER");
 		retval = Autoguider_Server_Stop();
 		if(retval == FALSE)
-			Autoguider_General_Error();
+		{
+			Autoguider_General_Error("server","autoguider_server.c",
+						 "Autoguider_Server_Connection_Callback",
+						 LOG_VERBOSITY_VERY_TERSE,"SERVER");
+		}
 	}
 	else
 	{
 #if AUTOGUIDER_DEBUG > 1
-		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_SERVER,
-					      "Autoguider_Server_Connection_Callback:"
-					      "message unknown: '%s'\n", client_message);
+		Autoguider_General_Log_Format("server","autoguider_server.c","Autoguider_Server_Connection_Callback",
+					      LOG_VERBOSITY_VERY_TERSE,"SERVER","message unknown: '%s'\n",
+					      client_message);
 #endif
 		retval = Send_Reply(connection_handle, "1 failed message unknown");
 		if(retval == FALSE)
-			Autoguider_General_Error();
+		{
+			Autoguider_General_Error("server","autoguider_server.c",
+						 "Autoguider_Server_Connection_Callback",
+						 LOG_VERBOSITY_VERY_TERSE,"SERVER");
+		}
 	}
 	/* free message */
 	free(client_message);
@@ -513,7 +637,6 @@ static void Autoguider_Server_Connection_Callback(Command_Server_Handle_T connec
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  * @see autoguider_general.html#Autoguider_General_Log_Format
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_SERVER
  * @see ../command_server/cdocs/command_server.html#Command_Server_Write_Message
  */
 static int Send_Reply(Command_Server_Handle_T connection_handle,char *reply_message)
@@ -522,8 +645,8 @@ static int Send_Reply(Command_Server_Handle_T connection_handle,char *reply_mess
 
 	/* send something back to the client */
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_SERVER,"Send_Reply: about to send '%.80s'...",
-				      reply_message);
+	Autoguider_General_Log_Format("server","autoguider_server.c","Send_Reply",LOG_VERBOSITY_TERSE,"SERVER",
+				      "about to send '%.80s'...",reply_message);
 #endif
 	retval = Command_Server_Write_Message(connection_handle, reply_message);
 	if(retval == FALSE)
@@ -534,7 +657,8 @@ static int Send_Reply(Command_Server_Handle_T connection_handle,char *reply_mess
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_SERVER,"Send_Reply: sent '%.80s'...",reply_message);
+	Autoguider_General_Log_Format("server","autoguider_server.c","Send_Reply",LOG_VERBOSITY_TERSE,"SERVER",
+				      "sent '%.80s'...",reply_message);
 #endif
 	return TRUE;
 }
@@ -548,7 +672,6 @@ static int Send_Reply(Command_Server_Handle_T connection_handle,char *reply_mess
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  * @see autoguider_general.html#Autoguider_General_Log_Format
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_SERVER
  * @see ../command_server/cdocs/command_server.html#Command_Server_Write_Binary_Message
  */
 static int Send_Binary_Reply(Command_Server_Handle_T connection_handle,void *buffer_ptr,size_t buffer_length)
@@ -556,8 +679,9 @@ static int Send_Binary_Reply(Command_Server_Handle_T connection_handle,void *buf
 	int retval;
 
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_SERVER,"Send_Binary_Reply: about to send %ld bytes.",
-				      buffer_length);
+	Autoguider_General_Log_Format("server","autoguider_server.c","Send_Binary_Reply",
+				      LOG_VERBOSITY_INTERMEDIATE,"SERVER",
+				      "about to send %ld bytes.",buffer_length);
 #endif
 	retval = Command_Server_Write_Binary_Message(connection_handle,buffer_ptr,buffer_length);
 	if(retval == FALSE)
@@ -568,8 +692,8 @@ static int Send_Binary_Reply(Command_Server_Handle_T connection_handle,void *buf
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_SERVER,"Send_Binary_Reply: sent %ld bytes.",
-				      buffer_length);
+	Autoguider_General_Log_Format("server","autoguider_server.c","Send_Binary_Reply",
+				      LOG_VERBOSITY_INTERMEDIATE,"SERVER","sent %ld bytes.",buffer_length);
 #endif
 	return TRUE;
 }
@@ -582,7 +706,6 @@ static int Send_Binary_Reply(Command_Server_Handle_T connection_handle,void *buf
  * @return The routine returns TRUE on success and FALSE on failure.
  * @see autoguider_general.html#Autoguider_General_Error_To_String
  * @see autoguider_general.html#Autoguider_General_Log_Format
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_SERVER
  * @see ../command_server/cdocs/command_server.html#Command_Server_Write_Binary_Message
  */
 static int Send_Binary_Reply_Error(Command_Server_Handle_T connection_handle)
@@ -591,9 +714,11 @@ static int Send_Binary_Reply_Error(Command_Server_Handle_T connection_handle)
 	int retval;
 
 
-	Autoguider_General_Error_To_String(error_buff);
+	Autoguider_General_Error_To_String("server","autoguider_server.c","Send_Binary_Reply_Error",
+				      LOG_VERBOSITY_INTERMEDIATE,"SERVER",error_buff);
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_SERVER,"Send_Binary_Reply_Error:"
+	Autoguider_General_Log_Format("server","autoguider_server.c","Send_Binary_Reply_Error",
+				      LOG_VERBOSITY_INTERMEDIATE,"SERVER",
 				      "about to send error '%s' : Length %ld bytes.",
 				      error_buff,strlen(error_buff));
 #endif
@@ -607,14 +732,18 @@ static int Send_Binary_Reply_Error(Command_Server_Handle_T connection_handle)
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_SERVER,"Send_Binary_Reply_Error: sent %ld bytes.",
-				      strlen(error_buff));
+	Autoguider_General_Log_Format("server","autoguider_server.c","Send_Binary_Reply_Error",
+				      LOG_VERBOSITY_INTERMEDIATE,"SERVER","sent %ld bytes.",strlen(error_buff));
 #endif
 	return TRUE;
 }
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.10  2007/01/19 14:26:34  cjm
+** Added guide window_track <on|off> command for guide window tracking
+** control.
+**
 ** Revision 1.9  2006/08/29 13:55:42  cjm
 ** Added agstate command call.
 **

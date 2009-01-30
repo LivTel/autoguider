@@ -1,11 +1,11 @@
 /* autoguider_fits_header.c
 ** Autoguider fits header list handling routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_fits_header.c,v 1.4 2007-01-30 17:35:24 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_fits_header.c,v 1.5 2009-01-30 18:01:33 cjm Exp $
 */
 /**
  * Routines to look after lists of FITS headers to go into images.
  * @author Chris Mottram
- * @version $Revision: 1.4 $
+ * @version $Revision: 1.5 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -24,6 +24,8 @@
 #include <unistd.h>
 
 #include "fitsio.h"
+
+#include "log_udp.h"
 
 #include "autoguider_fits_header.h"
 #include "autoguider_general.h"
@@ -97,7 +99,7 @@ struct Fits_Header_Card_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_fits_header.c,v 1.4 2007-01-30 17:35:24 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_fits_header.c,v 1.5 2009-01-30 18:01:33 cjm Exp $";
 
 /* internal functions */
 static int Fits_Header_Add_Card(struct Fits_Header_Struct *header,struct Fits_Header_Card_Struct card);
@@ -112,14 +114,14 @@ static int Fits_Header_Add_Card(struct Fits_Header_Struct *header,struct Fits_He
  *         and Autoguider_General_Error_String should be filled in with suitable values.
  * @see autoguider.general.html#Autoguider_General_Log
  * @see autoguider.general.html#Autoguider_General_Log_Format
- * @see autoguider.general.html#AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER
  * @see autoguider.general.html#Autoguider_General_Error_Number
  * @see autoguider.general.html#Autoguider_General_Error_String
  */
 int Autoguider_Fits_Header_Initialise(struct Fits_Header_Struct *header)
 {
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER,"Autoguider_Fits_Header_Initialise:started.");
+	Autoguider_General_Log("fits_header","autoguider_fits_header.c","Autoguider_Fits_Header_Initialise",
+			       LOG_VERBOSITY_INTERMEDIATE,"FITS","started.");
 #endif
 	if(header == NULL)
 	{
@@ -131,7 +133,8 @@ int Autoguider_Fits_Header_Initialise(struct Fits_Header_Struct *header)
 	header->Allocated_Card_Count = 0;
 	header->Card_Count = 0;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER,"Autoguider_Fits_Header_Initialise:finished.");
+	Autoguider_General_Log("fits_header","autoguider_fits_header.c","Autoguider_Fits_Header_Initialise",
+			       LOG_VERBOSITY_INTERMEDIATE,"FITS","finished.");
 #endif
 	return TRUE;
 }
@@ -143,14 +146,14 @@ int Autoguider_Fits_Header_Initialise(struct Fits_Header_Struct *header)
  *         and Autoguider_General_Error_String should be filled in with suitable values.
  * @see autoguider.general.html#Autoguider_General_Log
  * @see autoguider.general.html#Autoguider_General_Log_Format
- * @see autoguider.general.html#AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER
  * @see autoguider.general.html#Autoguider_General_Error_Number
  * @see autoguider.general.html#Autoguider_General_Error_String
  */
 int Autoguider_Fits_Header_Clear(struct Fits_Header_Struct *header)
 {
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER,"Autoguider_Fits_Header_Clear:started.");
+	Autoguider_General_Log("fits_header","autoguider_fits_header.c","Autoguider_Fits_Header_Clear",
+			       LOG_VERBOSITY_INTERMEDIATE,"FITS","started.");
 #endif
 	if(header == NULL)
 	{
@@ -161,7 +164,8 @@ int Autoguider_Fits_Header_Clear(struct Fits_Header_Struct *header)
 	/* reset number of cards, without resetting allocated cards */
 	header->Card_Count = 0;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER,"Autoguider_Fits_Header_Clear:finished.");
+	Autoguider_General_Log("fits_header","autoguider_fits_header.c","Autoguider_Fits_Header_Clear",
+			       LOG_VERBOSITY_INTERMEDIATE,"FITS","finished.");
 #endif
 	return TRUE;
 }
@@ -176,7 +180,6 @@ int Autoguider_Fits_Header_Clear(struct Fits_Header_Struct *header)
  *         and Autoguider_General_Error_String should be filled in with suitable values.
  * @see autoguider.general.html#Autoguider_General_Log
  * @see autoguider.general.html#Autoguider_General_Log_Format
- * @see autoguider.general.html#AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER
  * @see autoguider.general.html#Autoguider_General_Error_Number
  * @see autoguider.general.html#Autoguider_General_Error_String
  */
@@ -185,7 +188,8 @@ int Autoguider_Fits_Header_Delete(struct Fits_Header_Struct *header,char *keywor
 	int found_index,index,done;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER,"Autoguider_Fits_Header_Delete:started.");
+	Autoguider_General_Log("fits_header","autoguider_fits_header.c","Autoguider_Fits_Header_Delete",
+			       LOG_VERBOSITY_INTERMEDIATE,"FITS","started.");
 #endif
 	/* check parameters */
 	if(header == NULL)
@@ -230,7 +234,8 @@ int Autoguider_Fits_Header_Delete(struct Fits_Header_Struct *header,char *keywor
 	header->Card_Count--;
 	/* leave memory allocated for reuse - this is deleted in Autoguider_Fits_Header_Free */
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER,"Autoguider_Fits_Header_Delete:finished.");
+	Autoguider_General_Log("fits_header","autoguider_fits_header.c","Autoguider_Fits_Header_Delete",
+			       LOG_VERBOSITY_INTERMEDIATE,"FITS","finished.");
 #endif
 	return TRUE;
 }
@@ -253,7 +258,6 @@ int Autoguider_Fits_Header_Delete(struct Fits_Header_Struct *header,char *keywor
  * @see #Fits_Header_Add_Card
  * @see autoguider.general.html#Autoguider_General_Log
  * @see autoguider.general.html#Autoguider_General_Log_Format
- * @see autoguider.general.html#AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER
  * @see autoguider.general.html#Autoguider_General_Error_Number
  * @see autoguider.general.html#Autoguider_General_Error_String
  */
@@ -262,7 +266,8 @@ int Autoguider_Fits_Header_Add_String(struct Fits_Header_Struct *header,char *ke
 	struct Fits_Header_Card_Struct card;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER,"Autoguider_Fits_Header_Add_String:started.");
+	Autoguider_General_Log("fits_header","autoguider_fits_header.c","Autoguider_Fits_Header_Add_String",
+			       LOG_VERBOSITY_INTERMEDIATE,"FITS","started.");
 #endif
 	if(keyword == NULL)
 	{
@@ -303,7 +308,8 @@ int Autoguider_Fits_Header_Add_String(struct Fits_Header_Struct *header,char *ke
 	if(!Fits_Header_Add_Card(header,card))
 		return FALSE;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER,"Autoguider_Fits_Header_Add_String:finished.");
+	Autoguider_General_Log("fits_header","autoguider_fits_header.c","Autoguider_Fits_Header_Add_String",
+			       LOG_VERBOSITY_INTERMEDIATE,"FITS","finished.");
 #endif
 	return TRUE;
 }
@@ -325,7 +331,6 @@ int Autoguider_Fits_Header_Add_String(struct Fits_Header_Struct *header,char *ke
  * @see #Fits_Header_Add_Card
  * @see autoguider.general.html#Autoguider_General_Log
  * @see autoguider.general.html#Autoguider_General_Log_Format
- * @see autoguider.general.html#AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER
  * @see autoguider.general.html#Autoguider_General_Error_Number
  * @see autoguider.general.html#Autoguider_General_Error_String
  */
@@ -334,7 +339,8 @@ int Autoguider_Fits_Header_Add_Int(struct Fits_Header_Struct *header,char *keywo
 	struct Fits_Header_Card_Struct card;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER,"Autoguider_Fits_Header_Add_Int:started.");
+	Autoguider_General_Log("fits_header","autoguider_fits_header.c","Autoguider_Fits_Header_Add_Int",
+			       LOG_VERBOSITY_INTERMEDIATE,"FITS","started.");
 #endif
 	if(keyword == NULL)
 	{
@@ -365,7 +371,8 @@ int Autoguider_Fits_Header_Add_Int(struct Fits_Header_Struct *header,char *keywo
 	if(!Fits_Header_Add_Card(header,card))
 		return FALSE;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER,"Autoguider_Fits_Header_Add_Int:finished.");
+	Autoguider_General_Log("fits_header","autoguider_fits_header.c","Autoguider_Fits_Header_Add_Int",
+			       LOG_VERBOSITY_INTERMEDIATE,"FITS","finished.");
 #endif
 	return TRUE;
 }
@@ -387,7 +394,6 @@ int Autoguider_Fits_Header_Add_Int(struct Fits_Header_Struct *header,char *keywo
  * @see #Fits_Header_Add_Card
  * @see autoguider.general.html#Autoguider_General_Log
  * @see autoguider.general.html#Autoguider_General_Log_Format
- * @see autoguider.general.html#AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER
  * @see autoguider.general.html#Autoguider_General_Error_Number
  * @see autoguider.general.html#Autoguider_General_Error_String
  */
@@ -396,7 +402,8 @@ int Autoguider_Fits_Header_Add_Float(struct Fits_Header_Struct *header,char *key
 	struct Fits_Header_Card_Struct card;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER,"Autoguider_Fits_Header_Add_Float:started.");
+	Autoguider_General_Log("fits_header","autoguider_fits_header.c","Autoguider_Fits_Header_Add_Float",
+			       LOG_VERBOSITY_INTERMEDIATE,"FITS","started.");
 #endif
 	if(keyword == NULL)
 	{
@@ -427,7 +434,8 @@ int Autoguider_Fits_Header_Add_Float(struct Fits_Header_Struct *header,char *key
 	if(!Fits_Header_Add_Card(header,card))
 		return FALSE;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER,"Autoguider_Fits_Header_Add_Float:finished.");
+	Autoguider_General_Log("fits_header","autoguider_fits_header.c","Autoguider_Fits_Header_Add_Float",
+			       LOG_VERBOSITY_INTERMEDIATE,"FITS","finished.");
 #endif
 	return TRUE;
 }
@@ -449,7 +457,6 @@ int Autoguider_Fits_Header_Add_Float(struct Fits_Header_Struct *header,char *key
  * @see #Fits_Header_Add_Card
  * @see autoguider.general.html#Autoguider_General_Log
  * @see autoguider.general.html#Autoguider_General_Log_Format
- * @see autoguider.general.html#AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER
  * @see autoguider.general.html#Autoguider_General_Error_Number
  * @see autoguider.general.html#Autoguider_General_Error_String
  */
@@ -458,7 +465,8 @@ int Autoguider_Fits_Header_Add_Logical(struct Fits_Header_Struct *header,char *k
 	struct Fits_Header_Card_Struct card;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER,"Autoguider_Fits_Header_Add_Logical:started.");
+	Autoguider_General_Log("fits_header","autoguider_fits_header.c","Autoguider_Fits_Header_Add_Logical",
+			       LOG_VERBOSITY_INTERMEDIATE,"FITS","started.");
 #endif
 	if(keyword == NULL)
 	{
@@ -496,7 +504,8 @@ int Autoguider_Fits_Header_Add_Logical(struct Fits_Header_Struct *header,char *k
 	if(!Fits_Header_Add_Card(header,card))
 		return FALSE;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER,"Autoguider_Fits_Header_Add_Logical:finished.");
+	Autoguider_General_Log("fits_header","autoguider_fits_header.c","Autoguider_Fits_Header_Add_Logical",
+			       LOG_VERBOSITY_INTERMEDIATE,"FITS","Autoguider_Fits_Header_Add_Logical:finished.");
 #endif
 	return TRUE;
 }
@@ -508,14 +517,14 @@ int Autoguider_Fits_Header_Add_Logical(struct Fits_Header_Struct *header,char *k
  *         and Autoguider_General_Error_String should be filled in with suitable values.
  * @see autoguider.general.html#Autoguider_General_Log
  * @see autoguider.general.html#Autoguider_General_Log_Format
- * @see autoguider.general.html#AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER
  * @see autoguider.general.html#Autoguider_General_Error_Number
  * @see autoguider.general.html#Autoguider_General_Error_String
  */
 int Autoguider_Fits_Header_Free(struct Fits_Header_Struct *header)
 {
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER,"Autoguider_Fits_Header_Free:started.");
+	Autoguider_General_Log("fits_header","autoguider_fits_header.c","Autoguider_Fits_Header_Free",
+			       LOG_VERBOSITY_INTERMEDIATE,"FITS","started.");
 #endif
 	if(header == NULL)
 	{
@@ -529,7 +538,8 @@ int Autoguider_Fits_Header_Free(struct Fits_Header_Struct *header)
 	header->Card_Count = 0;
 	header->Allocated_Card_Count = 0;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER,"Autoguider_Fits_Header_Free:finished.");
+	Autoguider_General_Log("fits_header","autoguider_fits_header.c","Autoguider_Fits_Header_Free",
+			       LOG_VERBOSITY_INTERMEDIATE,"FITS","finished.");
 #endif
 	return TRUE;
 }
@@ -542,7 +552,6 @@ int Autoguider_Fits_Header_Free(struct Fits_Header_Struct *header)
  *         and Autoguider_General_Error_String should be filled in with suitable values.
  * @see autoguider.general.html#Autoguider_General_Log
  * @see autoguider.general.html#Autoguider_General_Log_Format
- * @see autoguider.general.html#AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER
  * @see autoguider.general.html#Autoguider_General_Error_Number
  * @see autoguider.general.html#Autoguider_General_Error_String
  */
@@ -552,8 +561,8 @@ int Autoguider_Fits_Header_Write_To_Fits(struct Fits_Header_Struct header,fitsfi
 	char buff[32]; /* fits_get_errstatus returns 30 chars max */
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER,
-			       "Autoguider_Fits_Header_Write_To_Fits:started.");
+	Autoguider_General_Log("fits_header","autoguider_fits_header.c","Autoguider_Fits_Header_Write_To_Fits",
+			       LOG_VERBOSITY_INTERMEDIATE,"FITS","started.");
 #endif
 	status = 0;
 	for(i=0;i<header.Card_Count;i++)
@@ -562,8 +571,10 @@ int Autoguider_Fits_Header_Write_To_Fits(struct Fits_Header_Struct header,fitsfi
 		{
 			case FITS_HEADER_TYPE_STRING:
 #if AUTOGUIDER_DEBUG > 9
-				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER,
-							      "Autoguider_Fits_Header_Write_To_Fits:%d: %s = %s.",i,
+				Autoguider_General_Log_Format("fits_header","autoguider_fits_header.c",
+							      "Autoguider_Fits_Header_Write_To_Fits",
+							      LOG_VERBOSITY_VERBOSE,"FITS",
+							      "%d: %s = %s.",i,
 						       header.Card_List[i].Keyword,header.Card_List[i].Value.String);
 #endif
 				retval = fits_update_key(fits_fp,TSTRING,header.Card_List[i].Keyword,
@@ -571,8 +582,10 @@ int Autoguider_Fits_Header_Write_To_Fits(struct Fits_Header_Struct header,fitsfi
 				break;
 			case FITS_HEADER_TYPE_INTEGER:
 #if AUTOGUIDER_DEBUG > 9
-				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER,
-							      "Autoguider_Fits_Header_Write_To_Fits:%d: %s = %d.",i,
+				Autoguider_General_Log_Format("fits_header","autoguider_fits_header.c",
+							      "Autoguider_Fits_Header_Write_To_Fits",
+							      LOG_VERBOSITY_VERBOSE,"FITS",
+							      "%d: %s = %d.",i,
 						       header.Card_List[i].Keyword,header.Card_List[i].Value.Int);
 #endif
 				retval = fits_update_key(fits_fp,TINT,header.Card_List[i].Keyword,
@@ -580,8 +593,10 @@ int Autoguider_Fits_Header_Write_To_Fits(struct Fits_Header_Struct header,fitsfi
 				break;
 			case FITS_HEADER_TYPE_FLOAT:
 #if AUTOGUIDER_DEBUG > 9
-				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER,
-							      "Autoguider_Fits_Header_Write_To_Fits:%d: %s = %.2f.",i,
+				Autoguider_General_Log_Format("fits_header","autoguider_fits_header.c",
+							      "Autoguider_Fits_Header_Write_To_Fits",
+							      LOG_VERBOSITY_VERBOSE,"FITS",
+							      "%d: %s = %.2f.",i,
 						       header.Card_List[i].Keyword,header.Card_List[i].Value.Float);
 #endif
 				retval = fits_update_key_fixdbl(fits_fp,header.Card_List[i].Keyword,
@@ -591,8 +606,10 @@ int Autoguider_Fits_Header_Write_To_Fits(struct Fits_Header_Struct header,fitsfi
 				break;
 			case FITS_HEADER_TYPE_LOGICAL:
 #if AUTOGUIDER_DEBUG > 9
-				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER,
-							      "Autoguider_Fits_Header_Write_To_Fits:%d: %s = %d.",i,
+				Autoguider_General_Log_Format("fits_header","autoguider_fits_header.c",
+							      "Autoguider_Fits_Header_Write_To_Fits",
+							      LOG_VERBOSITY_VERBOSE,"FITS",
+							      "%d: %s = %d.",i,
 						       header.Card_List[i].Keyword,header.Card_List[i].Value.Boolean);
 #endif
 				retval = fits_update_key(fits_fp,TLOGICAL,header.Card_List[i].Keyword,
@@ -618,8 +635,8 @@ int Autoguider_Fits_Header_Write_To_Fits(struct Fits_Header_Struct header,fitsfi
 		/*diddly*/
 	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER,
-			       "Autoguider_Fits_Header_Write_To_Fits:finished.");
+	Autoguider_General_Log("fits_header","autoguider_fits_header.c","Autoguider_Fits_Header_Write_To_Fits",
+			       LOG_VERBOSITY_INTERMEDIATE,"FITS","finished.");
 #endif
 	return TRUE;
 }
@@ -635,7 +652,6 @@ int Autoguider_Fits_Header_Write_To_Fits(struct Fits_Header_Struct header,fitsfi
  *         and Autoguider_General_Error_String should be filled in with suitable values.
  * @see autoguider.general.html#Autoguider_General_Log
  * @see autoguider.general.html#Autoguider_General_Log_Format
- * @see autoguider.general.html#AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER
  * @see autoguider.general.html#Autoguider_General_Error_Number
  * @see autoguider.general.html#Autoguider_General_Error_String
  */
@@ -643,7 +659,8 @@ static int Fits_Header_Add_Card(struct Fits_Header_Struct *header,struct Fits_He
 {
 	int index,done;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER,"Fits_Header_Add_Card:started.");
+	Autoguider_General_Log("fits_header","autoguider_fits_header.c","Fits_Header_Add_Card",
+			       LOG_VERBOSITY_VERBOSE,"FITS","started.");
 #endif
 	if(header == NULL)
 	{
@@ -667,9 +684,9 @@ static int Fits_Header_Add_Card(struct Fits_Header_Struct *header,struct Fits_He
 	if(done == TRUE)
 	{
 #if AUTOGUIDER_DEBUG > 5
-		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER,
-				       "Fits_Header_Add_Card:Found keyword %s at index %d:Card updated.",
-				       card.Keyword,index);
+		Autoguider_General_Log_Format("fits_header","autoguider_fits_header.c","Fits_Header_Add_Card",
+					      LOG_VERBOSITY_VERY_VERBOSE,"FITS",
+					      "Found keyword %s at index %d:Card updated.",card.Keyword,index);
 #endif
 		header->Card_List[index] = card;
 		return TRUE;
@@ -706,13 +723,19 @@ static int Fits_Header_Add_Card(struct Fits_Header_Struct *header,struct Fits_He
 	header->Card_List[header->Card_Count] = card;
 	header->Card_Count++;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FITS_HEADER,"Fits_Header_Add_Card:finished.");
+	Autoguider_General_Log("fits_header","autoguider_fits_header.c","Fits_Header_Add_Card",
+			       LOG_VERBOSITY_VERBOSE,"FITS","finished.");
 #endif
 	return TRUE;
 
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.4  2007/01/30 17:35:24  cjm
+** Added Autoguider_Fits_Header_Initialise to initialise a
+** FITS header structure properly.
+** Added Autoguider_Fits_Header_Write_To_Fits logging
+**
 ** Revision 1.3  2006/08/29 13:55:42  cjm
 ** More implementation - not finished yet!
 **

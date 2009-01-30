@@ -1,5 +1,5 @@
 /* test_exposure.c
- * $Header: /home/cjm/cvs/autoguider/ccd/andor/test/test_exposure.c,v 1.2 2006-06-01 15:26:32 cjm Exp $
+ * $Header: /home/cjm/cvs/autoguider/ccd/andor/test/test_exposure.c,v 1.3 2009-01-30 18:00:15 cjm Exp $
  * Test exposure code.
  */
 /**
@@ -7,7 +7,7 @@
  * <pre>
  * </pre>
  * @author $Author: cjm $
- * @version $Revision: 1.2 $
+ * @version $Revision: 1.3 $
  */
 
 #include <stdio.h>
@@ -55,7 +55,7 @@ enum COMMAND_ID
 /**
  * Revision control system identifier.
  */
-static char rcsid[] = "$Id: test_exposure.c,v 1.2 2006-06-01 15:26:32 cjm Exp $";
+static char rcsid[] = "$Id: test_exposure.c,v 1.3 2009-01-30 18:00:15 cjm Exp $";
 /**
  * Temperature to set the CCD to.
  * @see #DEFAULT_TEMPERATURE
@@ -244,7 +244,7 @@ static void Help(void)
 	fprintf(stdout,"It then calls either Andor_Exposure_Bias or Andor_Exposure_Expose to perform an exposure.\n");
 	fprintf(stdout,"test_exposure \n");
 	fprintf(stdout,"\t[-co[nfig_filename] <filename>]\n");
-	fprintf(stdout,"\t[-l[og_level] <bit field>][-h[elp]]\n");
+	fprintf(stdout,"\t[-l[og_level] <verbosity>][-h[elp]]\n");
 	fprintf(stdout,"\t[-temperature <temperature>]\n");
 	fprintf(stdout,"\t[-xs[ize] <no. of pixels>][-ys[ize] <no. of pixels>]\n");
 	fprintf(stdout,"\t[-xb[in] <binning factor>][-yb[in] <binning factor>]\n");
@@ -258,7 +258,6 @@ static void Help(void)
 	fprintf(stdout,"\t<temperature> should be a valid double, a temperature in degrees Celcius.\n");
 	fprintf(stdout,"\t<exposure length> is a positive integer in milliseconds.\n");
 	fprintf(stdout,"\t<no. of pixels> and <binning factor> is a positive integer.\n");
-	fprintf(stdout,"\tlog bits: 256 = setup, 512 = exposure, 1024 = temperature, 1792 = all.\n");
 }
 
 /**
@@ -395,7 +394,7 @@ static int Parse_Arguments(int argc, char *argv[])
 					fprintf(stderr,"Parse_Arguments:Parsing log level %s failed.\n",argv[i+1]);
 					return FALSE;
 				}
-				CCD_General_Set_Log_Filter_Function(CCD_General_Log_Filter_Level_Bitwise);
+				CCD_General_Set_Log_Filter_Function(CCD_General_Log_Filter_Level_Absolute);
 				CCD_General_Set_Log_Filter_Level(log_level);
 				i++;
 			}
@@ -649,6 +648,9 @@ static void Test_Fits_Header_Error(int status)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.2  2006/06/01 15:26:32  cjm
+** Changed exposure save to use common CCD_Exposure_Save.
+**
 ** Revision 1.1  2006/03/27 14:03:08  cjm
 ** Initial revision
 **

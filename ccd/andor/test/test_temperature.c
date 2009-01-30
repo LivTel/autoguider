@@ -1,11 +1,11 @@
 /* test_temperature.c
-** $Header: /home/cjm/cvs/autoguider/ccd/andor/test/test_temperature.c,v 1.3 2006-06-01 15:26:32 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/andor/test/test_temperature.c,v 1.4 2009-01-30 18:00:15 cjm Exp $
 ** Test temperature.
 */
 /**
  * This program tests the temperature code.
  * @author $Author: cjm $
- * @version $Revision: 1.3 $
+ * @version $Revision: 1.4 $
  */
 #include <stdio.h>
 #include <string.h>
@@ -43,7 +43,7 @@ enum COMMAND_ID
 /**
  * Revision control system identifier.
  */
-static char rcsid[] = "$Id: test_temperature.c,v 1.3 2006-06-01 15:26:32 cjm Exp $";
+static char rcsid[] = "$Id: test_temperature.c,v 1.4 2009-01-30 18:00:15 cjm Exp $";
 /**
  * Temperature to set the CCD to.
  * @see #DEFAULT_TEMPERATURE
@@ -191,7 +191,7 @@ static void Help(void)
 	fprintf(stdout,"This program calls Andor_Setup_Startup to set up the controller dimensions.\n");
 	fprintf(stdout,"test_temperature \n");
 	fprintf(stdout,"\t[-co[nfig_filename] <filename>]\n");
-	fprintf(stdout,"\t[-l[og_level] <bit field>][-h[elp]]\n");
+	fprintf(stdout,"\t[-l[og_level] <verbosity>][-h[elp]]\n");
 	fprintf(stdout,"\t[-s[et_temperature] <temperature>]\n");
 	fprintf(stdout,"\t[-g[et_temperature]]\n");
 	fprintf(stdout,"\t[-on]\n");
@@ -203,7 +203,6 @@ static void Help(void)
 	fprintf(stdout,"\t<config filename> should be a valid configuration filename.\n");
 	fprintf(stdout,"\t-noshutdown stops this invocation calling Andor_Setup_Shutdown,\n"
 		"\t\twhich may close down the temperature control sub-system..\n");
-	fprintf(stdout,"\tlog bits: 256 = setup, 512 = exposure, 1024 = temperature, 1792 = all.\n");
 }
 
 /**
@@ -273,7 +272,7 @@ static int Parse_Arguments(int argc, char *argv[])
 					fprintf(stderr,"Parse_Arguments:Parsing log level %s failed.\n",argv[i+1]);
 					return FALSE;
 				}
-				CCD_General_Set_Log_Filter_Function(CCD_General_Log_Filter_Level_Bitwise);
+				CCD_General_Set_Log_Filter_Function(CCD_General_Log_Filter_Level_Absolute);
 				CCD_General_Set_Log_Filter_Level(log_level);
 				i++;
 			}
@@ -314,6 +313,9 @@ static int Parse_Arguments(int argc, char *argv[])
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.3  2006/06/01 15:26:32  cjm
+** Now get temperature status with CCD_Temperature_Status_To_String.
+**
 ** Revision 1.2  2006/03/28 15:21:03  cjm
 ** Fixed temperature_status enum.
 **

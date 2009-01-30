@@ -1,10 +1,10 @@
 /* test_sdb.c
-** $Header: /home/cjm/cvs/autoguider/ngatcil/test/test_sdb.c,v 1.1 2006-08-29 14:15:44 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ngatcil/test/test_sdb.c,v 1.2 2009-01-30 18:01:14 cjm Exp $
 */
 /**
  * Test SDB submission.
  * @author Chris Mottram
- * @version $Revision: 1.1 $
+ * @version $Revision: 1.2 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -17,7 +17,7 @@
 
 #include <stdio.h>
 #include <string.h>
-
+#include "log_udp.h"
 #include "ngatcil_cil.h"
 #include "ngatcil_general.h"
 #include "ngatcil_udp_raw.h"
@@ -46,7 +46,7 @@ struct Test_SDB_Datum_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: test_sdb.c,v 1.1 2006-08-29 14:15:44 cjm Exp $";
+static char rcsid[] = "$Id: test_sdb.c,v 1.2 2009-01-30 18:01:14 cjm Exp $";
 /**
  * SDB CIL hostname.
  * @see ../cdocs/ngatcil_ags_sdb.html#NGATCIL_AGS_SDB_MCC_DEFAULT
@@ -108,9 +108,8 @@ int main(int argc, char* argv[])
 	}
 	/* setup logging */
 	NGATCil_General_Set_Log_Handler_Function(NGATCil_General_Log_Handler_Stdout);
-	NGATCil_General_Set_Log_Filter_Function(NGATCil_General_Log_Filter_Level_Bitwise);
-	NGATCil_General_Set_Log_Filter_Level(NGATCIL_GENERAL_LOG_BIT_GENERAL|NGATCIL_GENERAL_LOG_BIT_UDP_RAW|
-					     NGATCIL_GENERAL_LOG_BIT_AGS_SDB|NGATCIL_GENERAL_LOG_BIT_CIL);
+	NGATCil_General_Set_Log_Filter_Function(NGATCil_General_Log_Filter_Level_Absolute);
+	NGATCil_General_Set_Log_Filter_Level(LOG_VERBOSITY_VERY_VERBOSE);
 	if(!Parse_Arguments(argc,argv))
 		return 1;
 	/* start NGAT CIL AGS Command reply packet server */
@@ -326,4 +325,7 @@ static void Help(void)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2006/08/29 14:15:44  cjm
+** Initial revision
+**
 */

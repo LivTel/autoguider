@@ -1,11 +1,11 @@
 /* autoguider_flat.c
 ** Autoguider flat routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_flat.c,v 1.2 2006-09-08 13:33:39 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_flat.c,v 1.3 2009-01-30 18:01:33 cjm Exp $
 */
 /**
  * Flat routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.2 $
+ * @version $Revision: 1.3 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -24,6 +24,8 @@
 #include <unistd.h>
 
 #include "fitsio.h"
+
+#include "log_udp.h"
 
 #include "ccd_config.h"
 #include "ccd_general.h"
@@ -70,7 +72,7 @@ struct Flat_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_flat.c,v 1.2 2006-09-08 13:33:39 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_flat.c,v 1.3 2009-01-30 18:01:33 cjm Exp $";
 /**
  * Instance of flat data.
  * @see #Flat_Struct
@@ -94,7 +96,6 @@ static int Flat_Load_Reduced(char *filename,int bin_x,int bin_y);
  * @see #Autoguider_Flat_Set_Dimension
  * @see #Autoguider_Flat_Set
  * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_FLAT
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Integer
@@ -104,7 +105,8 @@ int Autoguider_Flat_Initialise(void)
 	int retval,ncols,nrows,x_bin,y_bin;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FLAT,"Autoguider_Flat_Initialise:started.");
+	Autoguider_General_Log("flat","autoguider_flat.c","Autoguider_Flat_Initialise",
+			       LOG_VERBOSITY_INTERMEDIATE,"FLAT","started.");
 #endif
 	/* get default config */
 	/* field */
@@ -143,7 +145,8 @@ int Autoguider_Flat_Initialise(void)
 	if(retval == FALSE)
 		return FALSE;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FLAT,"Autoguider_Flat_Initialise:finished.");
+	Autoguider_General_Log("flat","autoguider_flat.c","Autoguider_Flat_Initialise",
+			       LOG_VERBOSITY_INTERMEDIATE,"FLAT","finished.");
 #endif
 	return TRUE;
 }
@@ -160,7 +163,6 @@ int Autoguider_Flat_Initialise(void)
  * @see autoguider_general.html#Autoguider_General_Mutex_Lock
  * @see autoguider_general.html#Autoguider_General_Mutex_Unlock
  * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_FLAT
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  */
@@ -169,7 +171,8 @@ int Autoguider_Flat_Set_Dimension(int ncols,int nrows,int x_bin,int y_bin)
 	int i,retval;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FLAT,"Autoguider_Flat_Set_Dimension:started.");
+	Autoguider_General_Log("flat","autoguider_flat.c","Autoguider_Flat_Set_Dimension",
+			       LOG_VERBOSITY_INTERMEDIATE,"FLAT","started.");
 #endif
 	Flat_Data.Unbinned_NCols = ncols;
 	Flat_Data.Unbinned_NRows = nrows;
@@ -208,7 +211,8 @@ int Autoguider_Flat_Set_Dimension(int ncols,int nrows,int x_bin,int y_bin)
 	if(retval == FALSE)
 		return FALSE;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FLAT,"Autoguider_Flat_Set_Dimension:finished.");
+	Autoguider_General_Log("flat","autoguider_flat.c","Autoguider_Flat_Set_Dimension",
+			       LOG_VERBOSITY_INTERMEDIATE,"FLAT","finished.");
 #endif
 	return TRUE;
 }
@@ -222,7 +226,6 @@ int Autoguider_Flat_Set_Dimension(int ncols,int nrows,int x_bin,int y_bin)
  * @see #Flat_Data
  * @see #Flat_Load_Reduced
  * @see autoguider.general.html#Autoguider_General_Log
- * @see autoguider.general.html#AUTOGUIDER_GENERAL_LOG_BIT_FLAT
  * @see autoguider.general.html#Autoguider_General_Error_Number
  * @see autoguider.general.html#Autoguider_General_Error_String
  */
@@ -233,7 +236,8 @@ int Autoguider_Flat_Set(int bin_x,int bin_y)
 	int retval;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FLAT,"Autoguider_Flat_Set:started.");
+	Autoguider_General_Log("flat","autoguider_flat.c","Autoguider_Flat_Set",
+			       LOG_VERBOSITY_INTERMEDIATE,"FLAT","started.");
 #endif
 	/* check parameters */
 	if(bin_x < 1)
@@ -264,8 +268,8 @@ int Autoguider_Flat_Set(int bin_x,int bin_y)
 	{
 		/* we already have the right flat loaded */
 #if AUTOGUIDER_DEBUG > 5
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FLAT,"Autoguider_Flat_Set:"
-				       "Correct flat already loaded:exiting.");
+		Autoguider_General_Log("flat","autoguider_flat.c","Autoguider_Flat_Set",
+				       LOG_VERBOSITY_INTERMEDIATE,"FLAT","Correct flat already loaded:exiting.");
 #endif
 		return TRUE;
 	}
@@ -295,7 +299,8 @@ int Autoguider_Flat_Set(int bin_x,int bin_y)
 	Flat_Data.Reduced_Inverted_Bin_Y = bin_y;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FLAT,"Autoguider_Flat_Set:finished.");
+	Autoguider_General_Log("flat","autoguider_flat.c","Autoguider_Flat_Set",
+			       LOG_VERBOSITY_INTERMEDIATE,"FLAT","finished.");
 #endif
 	return TRUE;
 }
@@ -312,7 +317,6 @@ int Autoguider_Flat_Set(int bin_x,int bin_y)
  * @param window If the buffer is a window, the dimensions of that window.
  * @return The routine returns TRUE on success and FALSE on failure.
  * @see autoguider.general.html#Autoguider_General_Log
- * @see autoguider.general.html#AUTOGUIDER_GENERAL_LOG_BIT_FLAT
  * @see autoguider.general.html#Autoguider_General_Error_Number
  * @see autoguider.general.html#Autoguider_General_Error_String
  */
@@ -325,7 +329,8 @@ int Autoguider_Flat_Field(float *buffer_ptr,int pixel_count,int ncols,int nrows,
 	int flat_start_x,flat_start_y,flat_end_x,flat_end_y,buffer_ncols,buffer_nrows,buffer_x,buffer_y;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FLAT,"Autoguider_Flat_Field:started.");
+	Autoguider_General_Log("flat","autoguider_flat.c","Autoguider_Flat_Field",
+			       LOG_VERBOSITY_INTERMEDIATE,"FLAT","started.");
 #endif
 	/* check parameters */
 	if(buffer_ptr == NULL)
@@ -411,8 +416,9 @@ int Autoguider_Flat_Field(float *buffer_ptr,int pixel_count,int ncols,int nrows,
 		buffer_nrows = nrows;
 	}
 #if AUTOGUIDER_DEBUG > 9
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FLAT,"Autoguider_Flat_Field:"
-			       "Subtracting from buffer y 0..%d.",buffer_nrows);
+	Autoguider_General_Log_Format("flat","autoguider_flat.c","Autoguider_Flat_Field",
+				      LOG_VERBOSITY_INTERMEDIATE,"FLAT",
+				      "Subtracting from buffer y 0..%d.",buffer_nrows);
 #endif
 	flat_zero_count = 0;
 	/* subtract relevant bit of flat from buffer */
@@ -424,11 +430,13 @@ int Autoguider_Flat_Field(float *buffer_ptr,int pixel_count,int ncols,int nrows,
 #if AUTOGUIDER_DEBUG > 9
 		if(buffer_y==0)
 		{
-			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FLAT,"Autoguider_Flat_Field:"
+			Autoguider_General_Log_Format("flat","autoguider_flat.c","Autoguider_Flat_Field",
+						      LOG_VERBOSITY_VERY_VERBOSE,"FLAT",
 					       "current_buffer_ptr %p = buffer_ptr %p+buffer_y %d * buffer_ncols %d.",
 					       current_buffer_ptr,buffer_ptr,buffer_y,buffer_ncols);
-			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FLAT,"Autoguider_Flat_Field:"
-					       "current_flat_ptr %p = Flat_Data.Reduced_Inverted_Data %p+ (((flat_start_y %d + "
+			Autoguider_General_Log_Format("flat","autoguider_flat.c","Autoguider_Flat_Field",
+						      LOG_VERBOSITY_VERY_VERBOSE,"FLAT",
+				     "current_flat_ptr %p = Flat_Data.Reduced_Inverted_Data %p+ (((flat_start_y %d + "
 					       "buffer_y %d)*Flat_Data.Binned_NCols %d)+flat_start_x %d.",
 					       current_flat_ptr,Flat_Data.Reduced_Inverted_Data,flat_start_y,buffer_y,
 					       Flat_Data.Binned_NCols,flat_start_x);
@@ -439,8 +447,8 @@ int Autoguider_Flat_Field(float *buffer_ptr,int pixel_count,int ncols,int nrows,
 #if AUTOGUIDER_DEBUG > 9
 			if((buffer_y==0)&&(buffer_x < 10))
 			{
-				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FLAT,
-				       "Autoguider_Flat_Field:"
+				Autoguider_General_Log_Format("flat","autoguider_flat.c","Autoguider_Flat_Field",
+						      LOG_VERBOSITY_VERY_VERBOSE,"FLAT",
 				       "buffer_y %d, buffer_x %d : current_buffer_ptr %f *= current_flat_ptr %f.",
 						       buffer_y,buffer_x,(*current_buffer_ptr),(*current_flat_ptr));
 			}
@@ -459,8 +467,10 @@ int Autoguider_Flat_Field(float *buffer_ptr,int pixel_count,int ncols,int nrows,
 #if AUTOGUIDER_DEBUG > 1
 				if(flat_zero_count < 10)
 				{
-					Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FLAT,
-						    "Autoguider_Flat_Field:flat has zero value at (%d,%d).",
+					Autoguider_General_Log_Format("flat","autoguider_flat.c",
+								      "Autoguider_Flat_Field",
+						      LOG_VERBOSITY_VERY_VERBOSE,"FLAT",
+						    "flat has zero value at (%d,%d).",
 								      buffer_x,buffer_y);
 				}
 #endif
@@ -471,11 +481,13 @@ int Autoguider_Flat_Field(float *buffer_ptr,int pixel_count,int ncols,int nrows,
 		}
 	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FLAT,
-				      "Autoguider_Flat_Field:flat has %d zero values.",flat_zero_count);
+	Autoguider_General_Log_Format("flat","autoguider_flat.c","Autoguider_Flat_Field",
+						      LOG_VERBOSITY_INTERMEDIATE,"FLAT",
+				      "flat has %d zero values.",flat_zero_count);
 #endif
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FLAT,"Autoguider_Flat_Field:finished.");
+	Autoguider_General_Log("flat","autoguider_flat.c","Autoguider_Flat_Field",
+			       LOG_VERBOSITY_INTERMEDIATE,"FLAT","finished.");
 #endif
 	return TRUE;
 }
@@ -487,7 +499,6 @@ int Autoguider_Flat_Field(float *buffer_ptr,int pixel_count,int ncols,int nrows,
  * @see autoguider.general.html#Autoguider_General_Mutex_Lock
  * @see autoguider.general.html#Autoguider_General_Mutex_Unlock
  * @see autoguider.general.html#Autoguider_General_Log
- * @see autoguider.general.html#AUTOGUIDER_GENERAL_LOG_BIT_FLAT
  * @see autoguider.general.html#Autoguider_General_Error_Number
  * @see autoguider.general.html#Autoguider_General_Error_String
  */
@@ -496,7 +507,8 @@ int Autoguider_Flat_Shutdown(void)
 	int i,retval;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FLAT,"Autoguider_Flat_Shutdown:started.");
+	Autoguider_General_Log("flat","autoguider_flat.c","Autoguider_Flat_Shutdown",
+			       LOG_VERBOSITY_INTERMEDIATE,"FLAT","started.");
 #endif
 	/* raw */
 
@@ -513,7 +525,8 @@ int Autoguider_Flat_Shutdown(void)
 	if(retval == FALSE)
 		return FALSE;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FLAT,"Autoguider_Flat_Shutdown:finished.");
+	Autoguider_General_Log("flat","autoguider_flat.c","Autoguider_Flat_Shutdown",
+			       LOG_VERBOSITY_INTERMEDIATE,"FLAT","finished.");
 #endif
 	return TRUE;
 }
@@ -535,7 +548,6 @@ int Autoguider_Flat_Shutdown(void)
  * @see autoguider.general.html#Autoguider_General_Mutex_Lock
  * @see autoguider.general.html#Autoguider_General_Mutex_Unlock
  * @see autoguider.general.html#Autoguider_General_Log
- * @see autoguider.general.html#AUTOGUIDER_GENERAL_LOG_BIT_FLAT
  * @see autoguider.general.html#Autoguider_General_Error_Number
  * @see autoguider.general.html#Autoguider_General_Error_String
  */
@@ -546,7 +558,8 @@ static int Flat_Load_Reduced(char *filename,int bin_x,int bin_y)
 	int retval,naxis,naxis1,naxis2,pixel_count,cfitsio_status=0,i;
 
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FLAT,"Flat_Load_Reduced:started.");
+	Autoguider_General_Log("flat","autoguider_flat.c","Flat_Load_Reduced",
+			       LOG_VERBOSITY_INTERMEDIATE,"FLAT","started.");
 #endif
 	/* diddly check binning matches expected flat binning? */
 	/* diddly or call Autoguider_Flat_Set_Dimension? */
@@ -671,7 +684,8 @@ static int Flat_Load_Reduced(char *filename,int bin_x,int bin_y)
 #if AUTOGUIDER_DEBUG > 9
 			if(i < 10)
 			{
-				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FLAT,"Flat_Load_Reduced:"
+				Autoguider_General_Log_Format("flat","autoguider_flat.c","Flat_Load_Reduced",
+							      LOG_VERBOSITY_VERY_VERBOSE,"FLAT",
 							      "Inverting pixel %d: %f = 1/%f.",i,
 							      Flat_Data.Reduced_Inverted_Data[i],
 							      1.0f/Flat_Data.Reduced_Inverted_Data[i]);
@@ -682,7 +696,8 @@ static int Flat_Load_Reduced(char *filename,int bin_x,int bin_y)
 		else
 		{
 #if AUTOGUIDER_DEBUG > 1
-			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FLAT,"Flat_Load_Reduced:"
+			Autoguider_General_Log_Format("flat","autoguider_flat.c","Flat_Load_Reduced",
+						      LOG_VERBOSITY_VERY_VERBOSE,"FLAT",
 						      "Pixel %d has value %f:Setting inverted pixel value to 1.0f.",i,
 						      Flat_Data.Reduced_Inverted_Data[i]);
 #endif
@@ -697,13 +712,18 @@ static int Flat_Load_Reduced(char *filename,int bin_x,int bin_y)
 	if(retval == FALSE)
 		return FALSE;
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FLAT,"Flat_Load_Reduced:finished.");
+	Autoguider_General_Log("flat","autoguider_flat.c","Flat_Load_Reduced",
+			       LOG_VERBOSITY_INTERMEDIATE,"FLAT","finished.");
 #endif
 	return TRUE;
 }
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.2  2006/09/08 13:33:39  cjm
+** Changed limits detection in Autoguider_Flat_Field, so you can have
+** X-End/Y-End at last pixel inclusive, and it doesn't trigger an error.
+**
 ** Revision 1.1  2006/06/01 15:18:38  cjm
 ** Initial revision
 **

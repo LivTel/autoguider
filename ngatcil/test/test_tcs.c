@@ -1,5 +1,5 @@
 /* test_tcs.c
-** $Header: /home/cjm/cvs/autoguider/ngatcil/test/test_tcs.c,v 1.3 2006-08-29 14:15:44 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ngatcil/test/test_tcs.c,v 1.4 2009-01-30 18:01:14 cjm Exp $
 */
 /**
  * Test server that pretends to be an TCS, and receives guide packets sent by an autoguider.
@@ -8,7 +8,7 @@
  * test_tcs 
  * </pre>
  * @author Chris Mottram
- * @version $Revision: 1.3 $
+ * @version $Revision: 1.4 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -26,14 +26,14 @@
 #include "ngatcil_udp_raw.h"
 #include "ngatcil_tcs_guide_packet.h"
 #include "ngatcil_cil.h"
-
+#include "log_udp.h"
 #include "command_server.h"
 
 /* internal data */
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: test_tcs.c,v 1.3 2006-08-29 14:15:44 cjm Exp $";
+static char rcsid[] = "$Id: test_tcs.c,v 1.4 2009-01-30 18:01:14 cjm Exp $";
 /**
  * Command server (telnet) port.
  */
@@ -103,13 +103,12 @@ int main(int argc, char* argv[])
 	}
 	/* setup logging */
 	Command_Server_Set_Log_Handler_Function(Command_Server_Log_Handler_Stdout);
-	Command_Server_Set_Log_Filter_Function(Command_Server_Log_Filter_Level_Bitwise);
-	Command_Server_Set_Log_Filter_Level(COMMAND_SERVER_LOG_BIT_GENERAL);
+	Command_Server_Set_Log_Filter_Function(Command_Server_Log_Filter_Level_Absolute);
+	Command_Server_Set_Log_Filter_Level(LOG_VERBOSITY_VERY_VERBOSE);
 
 	NGATCil_General_Set_Log_Handler_Function(NGATCil_General_Log_Handler_Stdout);
-	NGATCil_General_Set_Log_Filter_Function(NGATCil_General_Log_Filter_Level_Bitwise);
-	NGATCil_General_Set_Log_Filter_Level(NGATCIL_GENERAL_LOG_BIT_GENERAL|NGATCIL_GENERAL_LOG_BIT_UDP_RAW|
-					     NGATCIL_GENERAL_LOG_BIT_TCS_GUIDE_PACKET|NGATCIL_GENERAL_LOG_BIT_CIL);
+	NGATCil_General_Set_Log_Filter_Function(NGATCil_General_Log_Filter_Level_Absolute);
+	NGATCil_General_Set_Log_Filter_Level(LOG_VERBOSITY_VERY_VERBOSE);
 	/* start NGAT CIL Guide packet server */
 	fprintf(stdout, "Starting TCS guide packet UDP server on port %d.\n",TCS_UDP_Guide_Port);
 	retval = NGATCil_UDP_Server_Start(TCS_UDP_Guide_Port,NGATCIL_TCS_GUIDE_PACKET_LENGTH,&TCS_UDP_Guide_Socket_Fd,
@@ -488,6 +487,9 @@ static void Help(void)
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.3  2006/08/29 14:15:44  cjm
+** Rewritten to use server socket.
+**
 ** Revision 1.2  2006/06/07 13:43:09  cjm
 ** Added CIL command handling.
 **

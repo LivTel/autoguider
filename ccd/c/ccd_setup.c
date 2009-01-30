@@ -1,11 +1,11 @@
 /* ccd_setup.c
 ** Autoguider CCD Library setup routines
-** $Header: /home/cjm/cvs/autoguider/ccd/c/ccd_setup.c,v 1.1 2006-06-01 15:27:37 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/c/ccd_setup.c,v 1.2 2009-01-30 18:00:24 cjm Exp $
 */
 /**
  * Setup routines for the autoguider CCD library.
  * @author Chris Mottram
- * @version $Revision: 1.1 $
+ * @version $Revision: 1.2 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -19,7 +19,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-
+#include "log_udp.h"
 #include "ccd_config.h"
 #include "ccd_driver.h"
 #include "ccd_general.h"
@@ -29,7 +29,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: ccd_setup.c,v 1.1 2006-06-01 15:27:37 cjm Exp $";
+static char rcsid[] = "$Id: ccd_setup.c,v 1.2 2009-01-30 18:00:24 cjm Exp $";
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -40,10 +40,10 @@ static char rcsid[] = "$Id: ccd_setup.c,v 1.1 2006-06-01 15:27:37 cjm Exp $";
 void CCD_Setup_Initialise(void)
 {
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_SETUP,"CCD_Setup_Initialise() started.");
+	CCD_General_Log("ccd","ccd_setup.c","CCD_Setup_Initialise",LOG_VERBOSITY_VERY_VERBOSE,NULL,"started.");
 #endif
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_SETUP,"CCD_Setup_Initialise() finished.");
+	CCD_General_Log("ccd","ccd_setup.c","CCD_Setup_Initialise",LOG_VERBOSITY_VERY_VERBOSE,NULL,"finished.");
 #endif
 }
 
@@ -53,7 +53,6 @@ void CCD_Setup_Initialise(void)
  * @see ccd_driver.html#CCD_Driver_Function_Struct
  * @see ccd_general.html#CCD_General_Log_Format
  * @see ccd_general.html#CCD_General_Log
- * @see ccd_general.html#CCD_GENERAL_LOG_BIT_SETUP
  * @see ccd_general.html#CCD_CCD_General_Error_Number
  * @see ccd_general.html#CCD_CCD_General_Error_String
  */
@@ -63,7 +62,7 @@ int CCD_Setup_Startup(void)
 	int retval;
 
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_SETUP,"CCD_Setup_Startup() started.");
+	CCD_General_Log("ccd","ccd_setup.c","CCD_Setup_Startup",LOG_VERBOSITY_TERSE,NULL,"started.");
 #endif
 	/* get driver functions */
 	retval = CCD_Driver_Get_Functions(&functions);
@@ -81,7 +80,7 @@ int CCD_Setup_Startup(void)
 	if(retval == FALSE)
 		return FALSE;
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_SETUP,"CCD_Setup_Startup() finished.");
+	CCD_General_Log("ccd","ccd_setup.c","CCD_Setup_Startup",LOG_VERBOSITY_TERSE,NULL,"finished.");
 #endif
 	return TRUE;
 }
@@ -92,7 +91,6 @@ int CCD_Setup_Startup(void)
  * @see ccd_driver.html#CCD_Driver_Function_Struct
  * @see ccd_general.html#CCD_General_Log_Format
  * @see ccd_general.html#CCD_General_Log
- * @see ccd_general.html#CCD_GENERAL_LOG_BIT_SETUP
  * @see ccd_general.html#CCD_CCD_General_Error_Number
  * @see ccd_general.html#CCD_CCD_General_Error_String
  */
@@ -102,7 +100,7 @@ int CCD_Setup_Shutdown(void)
 	int retval;
 
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_SETUP,"CCD_Setup_Shutdown() started.");
+	CCD_General_Log("ccd","ccd_setup.c","CCD_Setup_Shutdown",LOG_VERBOSITY_VERBOSE,NULL,"started.");
 #endif
 	/* get driver functions */
 	retval = CCD_Driver_Get_Functions(&functions);
@@ -120,7 +118,7 @@ int CCD_Setup_Shutdown(void)
 	if(retval == FALSE)
 		return FALSE;
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_SETUP,"CCD_Setup_Shutdown() finished.");
+	CCD_General_Log("ccd","ccd_setup.c","CCD_Setup_Shutdown",LOG_VERBOSITY_VERBOSE,NULL,"finished.");
 #endif
 	return TRUE;
 }
@@ -138,7 +136,6 @@ int CCD_Setup_Shutdown(void)
  * @see ccd_driver.html#CCD_Driver_Function_Struct
  * @see ccd_general.html#CCD_General_Log_Format
  * @see ccd_general.html#CCD_General_Log
- * @see ccd_general.html#CCD_GENERAL_LOG_BIT_SETUP
  * @see ccd_general.html#CCD_CCD_General_Error_Number
  * @see ccd_general.html#CCD_CCD_General_Error_String
  */
@@ -149,7 +146,7 @@ int CCD_Setup_Dimensions(int ncols,int nrows,int nsbin,int npbin,
 	int retval;
 
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_SETUP,"CCD_Setup_Dimensions() started.");
+	CCD_General_Log("ccd","ccd_setup.c","CCD_Setup_Dimensions",LOG_VERBOSITY_TERSE,NULL,"started.");
 #endif
 	/* get driver functions */
 	retval = CCD_Driver_Get_Functions(&functions);
@@ -167,7 +164,7 @@ int CCD_Setup_Dimensions(int ncols,int nrows,int nsbin,int npbin,
 	if(retval == FALSE)
 		return FALSE;
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_SETUP,"CCD_Setup_Dimensions() finished.");
+	CCD_General_Log("ccd","ccd_setup.c","CCD_Setup_Dimensions",LOG_VERBOSITY_TERSE,NULL,"finished.");
 #endif
 	return TRUE;
 }
@@ -178,7 +175,6 @@ int CCD_Setup_Dimensions(int ncols,int nrows,int nsbin,int npbin,
  * @see ccd_driver.html#CCD_Driver_Function_Struct
  * @see ccd_general.html#CCD_General_Log_Format
  * @see ccd_general.html#CCD_General_Log
- * @see ccd_general.html#CCD_GENERAL_LOG_BIT_SETUP
  * @see ccd_general.html#CCD_CCD_General_Error_Number
  * @see ccd_general.html#CCD_CCD_General_Error_String
  */
@@ -188,7 +184,7 @@ void CCD_Setup_Abort(void)
 	int retval;
 
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_SETUP,"CCD_Setup_Abort() started.");
+	CCD_General_Log("ccd","ccd_setup.c","CCD_Setup_Abort",LOG_VERBOSITY_TERSE,NULL,"started.");
 #endif
 	/* get driver functions */
 	retval = CCD_Driver_Get_Functions(&functions);
@@ -204,7 +200,7 @@ void CCD_Setup_Abort(void)
 	/* call driver function */
 	(*(functions.Setup_Abort))();
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_SETUP,"CCD_Setup_Abort() finished.");
+	CCD_General_Log("ccd","ccd_setup.c","CCD_Setup_Abort",LOG_VERBOSITY_TERSE,NULL,"finished.");
 #endif
 }
 
@@ -215,7 +211,6 @@ void CCD_Setup_Abort(void)
  * @see ccd_driver.html#CCD_Driver_Function_Struct
  * @see ccd_general.html#CCD_General_Log_Format
  * @see ccd_general.html#CCD_General_Log
- * @see ccd_general.html#CCD_GENERAL_LOG_BIT_SETUP
  * @see ccd_general.html#CCD_CCD_General_Error_Number
  * @see ccd_general.html#CCD_CCD_General_Error_String
  */
@@ -225,7 +220,7 @@ int CCD_Setup_Get_NCols(void)
 	int retval;
 
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_SETUP,"CCD_Setup_Get_NCols() started.");
+	CCD_General_Log("ccd","ccd_setup.c","CCD_Setup_Get_NCols",LOG_VERBOSITY_VERY_VERBOSE,NULL,"started.");
 #endif
 	/* get driver functions */
 	retval = CCD_Driver_Get_Functions(&functions);
@@ -241,7 +236,7 @@ int CCD_Setup_Get_NCols(void)
 	/* call driver function */
 	retval = (*(functions.Setup_Get_NCols))();
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_SETUP,"CCD_Setup_Get_NCols() finished.");
+	CCD_General_Log("ccd","ccd_setup.c","CCD_Setup_Get_NCols",LOG_VERBOSITY_VERY_VERBOSE,NULL,"finished.");
 #endif
 	return retval;
 }
@@ -253,7 +248,6 @@ int CCD_Setup_Get_NCols(void)
  * @see ccd_driver.html#CCD_Driver_Function_Struct
  * @see ccd_general.html#CCD_General_Log_Format
  * @see ccd_general.html#CCD_General_Log
- * @see ccd_general.html#CCD_GENERAL_LOG_BIT_SETUP
  * @see ccd_general.html#CCD_CCD_General_Error_Number
  * @see ccd_general.html#CCD_CCD_General_Error_String
  */
@@ -263,7 +257,7 @@ int CCD_Setup_Get_NRows(void)
 	int retval;
 
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_SETUP,"CCD_Setup_Get_NRows() started.");
+	CCD_General_Log("ccd","ccd_setup.c","CCD_Setup_Get_NRows",LOG_VERBOSITY_VERY_VERBOSE,NULL,"started.");
 #endif
 	/* get driver functions */
 	retval = CCD_Driver_Get_Functions(&functions);
@@ -279,11 +273,14 @@ int CCD_Setup_Get_NRows(void)
 	/* call driver function */
 	retval = (*(functions.Setup_Get_NRows))();
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_SETUP,"CCD_Setup_Get_NRows() finished.");
+	CCD_General_Log("ccd","ccd_setup.c","CCD_Setup_Get_NRows",LOG_VERBOSITY_VERY_VERBOSE,NULL,"finished.");
 #endif
 	return retval;
 }
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2006/06/01 15:27:37  cjm
+** Initial revision
+**
 */

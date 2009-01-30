@@ -1,11 +1,11 @@
 /* ngatcil_udp_raw.c
 ** NGATCil UDP raw transmission routines
-** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_udp_raw.c,v 1.5 2006-08-29 14:07:57 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_udp_raw.c,v 1.6 2009-01-30 18:00:52 cjm Exp $
 */
 /**
  * NGAT Cil library raw UDP packet transmission.
  * @author Chris Mottram
- * @version $Revision: 1.5 $
+ * @version $Revision: 1.6 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -26,7 +26,7 @@
 #include <netinet/in.h> /* htons etc */
 #include <sys/types.h>
 #include <sys/socket.h>
-
+#include "log_udp.h"
 #include "ngatcil_general.h"
 #include "ngatcil_udp_raw.h"
 
@@ -53,7 +53,7 @@ struct UDP_Raw_Server_Context_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: ngatcil_udp_raw.c,v 1.5 2006-08-29 14:07:57 cjm Exp $";
+static char rcsid[] = "$Id: ngatcil_udp_raw.c,v 1.6 2009-01-30 18:00:52 cjm Exp $";
 
 /* internal function declaration */
 static void *UDP_Raw_Server_Thread(void *);
@@ -82,7 +82,8 @@ int NGATCil_UDP_Open(char *hostname,int port_number,int *socket_id)
 	struct sockaddr_in server;
 
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,"NGATCil_UDP_Open(%s,%d):started.",
+	NGATCil_General_Log_Format("ngatcil","ngatcil_udp_raw.c","NGATCil_UDP_Open",
+				   LOG_VERBOSITY_VERBOSE,NULL,"NGATCil_UDP_Open(%s,%d):started.",
 				   hostname,port_number);
 #endif
 	if(socket_id == NULL)
@@ -109,8 +110,9 @@ int NGATCil_UDP_Open(char *hostname,int port_number,int *socket_id)
 	if(saddr == INADDR_NONE)
 	{
 #if NGATCIL_DEBUG > 5
-		NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,
-					   "NGATCil_UDP_Open:inet_addr didn't work:trying gethostbyname(%s).",
+		NGATCil_General_Log_Format("ngatcil","ngatcil_udp_raw.c","NGATCil_UDP_Open",
+					   LOG_VERBOSITY_VERBOSE,NULL,
+					   "inet_addr didn't work:trying gethostbyname(%s).",
 					   hostname);
 #endif
 		/* try getting by hostname instead */
@@ -144,9 +146,9 @@ int NGATCil_UDP_Open(char *hostname,int port_number,int *socket_id)
 		return FALSE;
 	}
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,
-				   "NGATCil_UDP_Open(%s,%d):returned socket %d:finished.",
-				   hostname,port_number,(*socket_id));
+	NGATCil_General_Log_Format("ngatcil","ngatcil_udp_raw.c","NGATCil_UDP_Open",
+				   LOG_VERBOSITY_VERBOSE,NULL,
+				   "returned socket %d:finished.",(*socket_id));
 #endif
 	return TRUE;
 }
@@ -168,8 +170,9 @@ int NGATCil_UDP_Raw_To_Network_Byte_Order(void *message_buff,size_t message_buff
 	int retval,int_count,i;
 
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,
-				   "NGATCil_UDP_Raw_To_Network_Byte_Order(length=%d):started.",message_buff_len);
+	NGATCil_General_Log_Format("ngatcil","ngatcil_udp_raw.c","NGATCil_UDP_Raw_To_Network_Byte_Order",
+				   LOG_VERBOSITY_VERY_VERBOSE,NULL,
+				   "started:buffer length = %d.",message_buff_len);
 #endif
 	if(message_buff == NULL)
 	{
@@ -192,8 +195,8 @@ int NGATCil_UDP_Raw_To_Network_Byte_Order(void *message_buff,size_t message_buff
 		message_buff_int_ptr[i] = htonl(message_buff_int_ptr[i]);
 	}
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,
-				   "NGATCil_UDP_Raw_To_Network_Byte_Order(%d):finished.",message_buff_len);
+	NGATCil_General_Log("ngatcil","ngatcil_udp_raw.c","NGATCil_UDP_Raw_To_Network_Byte_Order",
+			    LOG_VERBOSITY_VERY_VERBOSE,NULL,"finished.");
 #endif
 	return TRUE;
 }
@@ -215,8 +218,9 @@ int NGATCil_UDP_Raw_Send(int socket_id,void *message_buff,size_t message_buff_le
 	int retval,send_errno;
 
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,
-				   "NGATCil_UDP_Raw_Send(socket=%d,length=%d):started.",socket_id,message_buff_len);
+	NGATCil_General_Log_Format("ngatcil","ngatcil_udp_raw.c","NGATCil_UDP_Raw_Send",
+				   LOG_VERBOSITY_VERY_VERBOSE,NULL,
+				   "started(socket=%d,length=%d).",socket_id,message_buff_len);
 #endif
 	if(message_buff == NULL)
 	{
@@ -241,7 +245,8 @@ int NGATCil_UDP_Raw_Send(int socket_id,void *message_buff,size_t message_buff_le
 		return FALSE;
 	}
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,"NGATCil_UDP_Raw_Send(%d):finished.",socket_id);
+	NGATCil_General_Log_Format("ngatcil","ngatcil_udp_raw.c","NGATCil_UDP_Raw_Send",
+				   LOG_VERBOSITY_VERY_VERBOSE,NULL,"finished(%d).",socket_id);
 #endif
 	return TRUE;
 }
@@ -275,8 +280,9 @@ int NGATCil_UDP_Raw_Send_To(int socket_fd,char *hostname,int port_number,void *m
 		return FALSE;
 	}
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,
-				   "NGATCil_UDP_Raw_Send_To(socket=%d,hostname=%s,port_number=%d,length=%d):started.",
+	NGATCil_General_Log_Format("ngatcil","ngatcil_udp_raw.c","NGATCil_UDP_Raw_Send_To",
+				   LOG_VERBOSITY_VERY_VERBOSE,NULL,
+				   "started(socket=%d,hostname=%s,port_number=%d,length=%d).",
 				   socket_fd,hostname,port_number,message_buff_len);
 #endif
 	if(message_buff == NULL)
@@ -291,9 +297,9 @@ int NGATCil_UDP_Raw_Send_To(int socket_fd,char *hostname,int port_number,void *m
 	if(saddr == INADDR_NONE)
 	{
 #if NGATCIL_DEBUG > 10
-		NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,
-					   "NGATCil_UDP_Raw_Send_To:inet_addr didn't work:trying gethostbyname(%s).",
-					   hostname);
+		NGATCil_General_Log_Format("ngatcil","ngatcil_udp_raw.c","NGATCil_UDP_Raw_Send_To",
+					   LOG_VERBOSITY_VERY_VERBOSE,NULL,
+					   "inet_addr didn't work:trying gethostbyname(%s).",hostname);
 #endif
 		/* try getting by hostname instead */
 		host_entry = gethostbyname(hostname);
@@ -327,7 +333,8 @@ int NGATCil_UDP_Raw_Send_To(int socket_fd,char *hostname,int port_number,void *m
 		return FALSE;
 	}
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,"NGATCil_UDP_Raw_Send_To(%d):finished.",socket_fd);
+	NGATCil_General_Log_Format("ngatcil","ngatcil_udp_raw.c","NGATCil_UDP_Raw_Send_To",
+				   LOG_VERBOSITY_VERY_VERBOSE,NULL,"finished(%d).",socket_fd);
 #endif
 	return TRUE;
 }
@@ -350,7 +357,8 @@ int NGATCil_UDP_Raw_Recv(int socket_id,void *message_buff,size_t message_buff_le
 	int retval,send_errno;
 
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,"NGATCil_UDP_Raw_Recv(%d):started.",socket_id);
+	NGATCil_General_Log_Format("ngatcil","ngatcil_udp_raw.c","NGATCil_UDP_Raw_Recv",
+				   LOG_VERBOSITY_VERY_VERBOSE,NULL,"started(%d).",socket_id);
 #endif
 	if(message_buff == NULL)
 	{
@@ -375,7 +383,8 @@ int NGATCil_UDP_Raw_Recv(int socket_id,void *message_buff,size_t message_buff_le
 		return FALSE;
 	}
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,"NGATCil_UDP_Raw_Recv(%d):finished.",socket_id);
+	NGATCil_General_Log_Format("ngatcil","ngatcil_udp_raw.c","NGATCil_UDP_Raw_Recv",
+				   LOG_VERBOSITY_VERY_VERBOSE,NULL,"finished(%d).",socket_id);
 #endif
 	return TRUE;
 }
@@ -395,7 +404,8 @@ int NGATCil_UDP_Close(int socket_id)
 	int retval,socket_errno;
 
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,"NGATCil_UDP_Close(%d):started.",socket_id);
+	NGATCil_General_Log_Format("ngatcil","ngatcil_udp_raw.c","NGATCil_UDP_Close",
+				   LOG_VERBOSITY_VERY_VERBOSE,NULL,"started(%d).",socket_id);
 #endif
 	retval = shutdown(socket_id,SHUT_RDWR);
 	if(retval < 0)
@@ -407,7 +417,8 @@ int NGATCil_UDP_Close(int socket_id)
 		return FALSE;
 	}
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,"NGATCil_UDP_Close(%d):finished.",socket_id);
+	NGATCil_General_Log_Format("ngatcil","ngatcil_udp_raw.c","NGATCil_UDP_Close",
+				   LOG_VERBOSITY_VERY_VERBOSE,NULL,"finished(%d).",socket_id);
 #endif
 	return TRUE;
 }
@@ -438,8 +449,8 @@ int NGATCil_UDP_Server_Start(int port_number,size_t message_length,int *socket_i
 	int retval,socket_errno;
 
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,"NGATCil_UDP_Server_Start(%d):started.",
-				   port_number);
+	NGATCil_General_Log_Format("ngatcil","ngatcil_udp_raw.c","NGATCil_UDP_Server_Start",
+				   LOG_VERBOSITY_INTERMEDIATE,NULL,"started(%d).",port_number);
 #endif
 	if(connection_handler == NULL)
 	{
@@ -509,8 +520,8 @@ int NGATCil_UDP_Server_Start(int port_number,size_t message_length,int *socket_i
 		return FALSE;
 	}
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,"NGATCil_UDP_Server_Start(%d):finished.",
-				   port_number);
+	NGATCil_General_Log_Format("ngatcil","ngatcil_udp_raw.c","NGATCil_UDP_Server_Start",
+				   LOG_VERBOSITY_INTERMEDIATE,NULL,"finished(%d).",port_number);
 #endif
 	return TRUE;
 }
@@ -532,7 +543,8 @@ static void *UDP_Raw_Server_Thread(void *arg)
 	int done,retval,socket_errno,current_client_length,recv_message_length,i;
 
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,"UDP_Raw_Server_Thread:started.");
+	NGATCil_General_Log("ngatcil","ngatcil_udp_raw.c","UDP_Raw_Server_Thread",
+			    LOG_VERBOSITY_VERBOSE,NULL,"started.");
 #endif
 	server_context = (struct UDP_Raw_Server_Context_Struct *)arg;
 	if(server_context == NULL)
@@ -542,7 +554,8 @@ static void *UDP_Raw_Server_Thread(void *arg)
 		return FALSE;
 	}
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,"UDP_Raw_Server_Thread:listening on socket %d.",
+	NGATCil_General_Log_Format("ngatcil","ngatcil_udp_raw.c","UDP_Raw_Server_Thread",
+				   LOG_VERBOSITY_VERBOSE,NULL,"listening on socket %d.",
 				   server_context->Socket_Id);
 #endif
 	/* allocate recv buffer */
@@ -559,9 +572,9 @@ static void *UDP_Raw_Server_Thread(void *arg)
 	while(done == FALSE)
 	{
 #if NGATCIL_DEBUG > 9
-		NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,
-					   "UDP_Raw_Server_Thread:Waiting for UDP packet on socket %d.",
-					   server_context->Socket_Id);
+		NGATCil_General_Log_Format("ngatcil","ngatcil_udp_raw.c","UDP_Raw_Server_Thread",
+					   LOG_VERBOSITY_VERBOSE,NULL,
+					   "Waiting for UDP packet on socket %d.",server_context->Socket_Id);
 #endif
 		current_client_length = sizeof(client);
 		recv_message_length = recvfrom(server_context->Socket_Id,message_buff,server_context->Message_Length,0,
@@ -572,7 +585,8 @@ static void *UDP_Raw_Server_Thread(void *arg)
 			/* quit server - hopefully error due to closing socket? */
 			done = TRUE;
 #if NGATCIL_DEBUG > 9
-			NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,"UDP_Raw_Server_Thread:Terminating:"
+			NGATCil_General_Log_Format("ngatcil","ngatcil_udp_raw.c","UDP_Raw_Server_Thread",
+						   LOG_VERBOSITY_VERBOSE,NULL,"Terminating:"
 						   "recvfrom returned %d (%d:%s).",recv_message_length,socket_errno,
 						   strerror(socket_errno));
 #endif
@@ -582,7 +596,8 @@ static void *UDP_Raw_Server_Thread(void *arg)
 			if(recv_message_length != server_context->Message_Length)
 			{
 #if NGATCIL_DEBUG > 9
-				NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,"UDP_Raw_Server_Thread:"
+				NGATCil_General_Log_Format("ngatcil","ngatcil_udp_raw.c","UDP_Raw_Server_Thread",
+							   LOG_VERBOSITY_VERBOSE,NULL,
 							   "Detected short packet (%d vs %d).",recv_message_length,
 							   server_context->Message_Length);
 #endif
@@ -591,8 +606,10 @@ static void *UDP_Raw_Server_Thread(void *arg)
 				{
 					done = TRUE;
 #if NGATCIL_DEBUG > 3
-					NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,
-							       "UDP_Raw_Server_Thread:Zero length packet:"
+					NGATCil_General_Log_Format("ngatcil","ngatcil_udp_raw.c",
+								   "UDP_Raw_Server_Thread",
+								   LOG_VERBOSITY_VERBOSE,NULL,
+								   "Zero length packet:"
 								   "socket closed?:quiting server thread.");
 #endif
 				}
@@ -601,7 +618,8 @@ static void *UDP_Raw_Server_Thread(void *arg)
 			if((recv_message_length % sizeof(int)) == 0)
 			{
 #if NGATCIL_DEBUG > 9
-				NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,"UDP_Raw_Server_Thread:"
+				NGATCil_General_Log("ngatcil","ngatcil_udp_raw.c","UDP_Raw_Server_Thread",
+						    LOG_VERBOSITY_VERBOSE,NULL,
 						    "Translating packet contents from network to host byte order.");
 #endif
 				int_message_ptr = (int*)message_buff;
@@ -617,7 +635,8 @@ static void *UDP_Raw_Server_Thread(void *arg)
 				else
 				{
 #if NGATCIL_DEBUG > 3
-					NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,"UDP_Raw_Server_Thread:"
+					NGATCil_General_Log("ngatcil","ngatcil_udp_raw.c","UDP_Raw_Server_Thread",
+							    LOG_VERBOSITY_VERBOSE,NULL,
 							 "Packet received but Connection Handler appears to be NULL.");
 #endif
 				}
@@ -625,7 +644,8 @@ static void *UDP_Raw_Server_Thread(void *arg)
 			else
 			{
 #if NGATCIL_DEBUG > 3
-				NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,"UDP_Raw_Server_Thread:"
+				NGATCil_General_Log_Format("ngatcil","ngatcil_udp_raw.c","UDP_Raw_Server_Thread",
+							   LOG_VERBOSITY_VERBOSE,NULL,
 							   "Packet received with non-word number of bytes %d.",
 							   recv_message_length);
 #endif
@@ -633,20 +653,26 @@ static void *UDP_Raw_Server_Thread(void *arg)
 		}/* if */
 	}/* while */
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,"UDP_Raw_Server_Thread:shutdown on socket %d.",
+	NGATCil_General_Log_Format("ngatcil","ngatcil_udp_raw.c","UDP_Raw_Server_Thread",
+				   LOG_VERBOSITY_VERBOSE,NULL,"shutdown on socket %d.",
 				   server_context->Socket_Id);
 #endif
 	shutdown(server_context->Socket_Id,SHUT_RDWR);
 	free(server_context);
 	free(message_buff);
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_UDP_RAW,"UDP_Raw_Server_Thread:finished.");
+	NGATCil_General_Log_Format("ngatcil","ngatcil_udp_raw.c","UDP_Raw_Server_Thread",
+				   LOG_VERBOSITY_VERBOSE,NULL,"finished.");
 #endif
 	return NULL;
 }
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.5  2006/08/29 14:07:57  cjm
+** Added NGATCil_UDP_Raw_To_Network_Byte_Order.
+** Added NGATCil_UDP_Raw_Send_To.
+**
 ** Revision 1.4  2006/06/29 17:02:19  cjm
 ** Now UDP_Raw_Server_Thread does network to host word conversion.
 **

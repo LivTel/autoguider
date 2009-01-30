@@ -1,11 +1,11 @@
 /* autoguider_command.c
 ** Autoguider command routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_command.c,v 1.12 2007-11-05 18:24:32 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_command.c,v 1.13 2009-01-30 18:01:33 cjm Exp $
 */
 /**
  * Command routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.12 $
+ * @version $Revision: 1.13 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -22,6 +22,8 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+
+#include "log_udp.h"
 
 #include "ccd_exposure.h"
 #include "ccd_general.h"
@@ -44,7 +46,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_command.c,v 1.12 2007-11-05 18:24:32 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_command.c,v 1.13 2009-01-30 18:01:33 cjm Exp $";
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -56,7 +58,6 @@ static char rcsid[] = "$Id: autoguider_command.c,v 1.12 2007-11-05 18:24:32 cjm 
  * @return The routine returns TRUE on success and FALSE on failure.
  * @see autoguider_general.html#Autoguider_General_Add_String
  * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_COMMAND
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  * @see autoguider_general.html#Autoguider_General_Get_Config_Filename
@@ -68,7 +69,8 @@ int Autoguider_Command_Abort(char *command_string,char **reply_string)
 	int retval;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Abort:started.");
+	Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Abort",LOG_VERBOSITY_TERSE,
+			       "COMMAND","started.");
 #endif
 	/* are we fielding/guiding etc? */
 	if((Autoguider_Field_Is_Fielding() == FALSE)&&(Autoguider_Guide_Is_Guiding() == FALSE))
@@ -82,7 +84,8 @@ int Autoguider_Command_Abort(char *command_string,char **reply_string)
 	{
 		Autoguider_General_Error_Number = 318;
 		sprintf(Autoguider_General_Error_String,"Autoguider_Command_Abort:CCD_Exposure_Abort failed.");
-		Autoguider_General_Error();
+		Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Abort",
+					 LOG_VERBOSITY_TERSE,"COMMAND");
 		if(!Autoguider_General_Add_String(reply_string,"1 Abort failed."))
 			return FALSE;
 		return TRUE;
@@ -90,7 +93,8 @@ int Autoguider_Command_Abort(char *command_string,char **reply_string)
 	if(!Autoguider_General_Add_String(reply_string,"0 Abort suceeded."))
 		return FALSE;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Abort:finished.");
+	Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Abort",LOG_VERBOSITY_TERSE,
+			       "COMMAND","finished.");
 #endif
 	return TRUE;
 }
@@ -104,7 +108,6 @@ int Autoguider_Command_Abort(char *command_string,char **reply_string)
  * @see autoguider_cil.html#Autoguider_CIL_SDB_Packet_Send
  * @see autoguider_general.html#Autoguider_General_Add_String
  * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_COMMAND
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  */
@@ -113,7 +116,8 @@ int Autoguider_Command_Agstate(char *command_string,char **reply_string)
 	int retval,agstate;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Agstate:started.");
+	Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Agstate",LOG_VERBOSITY_TERSE,
+			       "COMMAND","started.");
 #endif
 	/* parse command */
 	retval = sscanf(command_string,"agstate %d",&agstate);
@@ -123,21 +127,23 @@ int Autoguider_Command_Agstate(char *command_string,char **reply_string)
 		sprintf(Autoguider_General_Error_String,"Autoguider_Command_Agstate:"
 			"Failed to parse command %s (%d).",command_string,retval);
 #if AUTOGUIDER_DEBUG > 1
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,
-				       "Autoguider_Command_Agstate:finished (command parse failed).");
+		Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Agstate",
+				       LOG_VERBOSITY_TERSE,"COMMAND","finished (command parse failed).");
 #endif
 		return FALSE;
 	}
 	if(!Autoguider_CIL_SDB_Packet_State_Set(agstate))
 	{
-		Autoguider_General_Error();
+		Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Agstate",
+					 LOG_VERBOSITY_TERSE,"COMMAND");
 		if(!Autoguider_General_Add_String(reply_string,"1 Setting AgState failed."))
 			return FALSE;
 		return TRUE;
 	}
 	if(!Autoguider_CIL_SDB_Packet_Send())
 	{
-		Autoguider_General_Error();
+		Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Agstate",
+					 LOG_VERBOSITY_TERSE,"COMMAND");
 		if(!Autoguider_General_Add_String(reply_string,"1 Sending AgState to SDB failed."))
 			return FALSE;
 		return TRUE;
@@ -145,7 +151,8 @@ int Autoguider_Command_Agstate(char *command_string,char **reply_string)
 	if(!Autoguider_General_Add_String(reply_string,"0 Agstate suceeded."))
 		return FALSE;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Agstate:finished.");
+	Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Agstate",
+			       LOG_VERBOSITY_TERSE,"COMMAND","finished.");
 #endif
 	return TRUE;
 }
@@ -158,7 +165,6 @@ int Autoguider_Command_Agstate(char *command_string,char **reply_string)
  * @see #Autoguider_Command_Autoguide_On
  * @see autoguider_general.html#Autoguider_General_Add_String
  * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_COMMAND
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  * @see autoguider_general.html#Autoguider_General_Get_Config_Filename
@@ -173,7 +179,8 @@ int Autoguider_Command_Autoguide(char *command_string,char **reply_string)
 	float pixel_x,pixel_y;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Autoguide:started.");
+	Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Autoguide",
+			       LOG_VERBOSITY_TERSE,"COMMAND","started.");
 #endif
 	/* parse the command */
 	parameter_count = sscanf(command_string,"autoguide %63s %63s %63s %63s",onoff_string,parameter1_string,
@@ -257,7 +264,8 @@ int Autoguider_Command_Autoguide(char *command_string,char **reply_string)
 		retval = Autoguider_Command_Autoguide_On(on_type,pixel_x,pixel_y,rank);
 		if(retval == FALSE)
 		{
-			Autoguider_General_Error();
+			Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Autoguide",
+						 LOG_VERBOSITY_TERSE,"COMMAND");
 			if(!Autoguider_General_Add_String(reply_string,"1 autoguide on failed."))
 				return FALSE;
 			return TRUE;
@@ -272,7 +280,8 @@ int Autoguider_Command_Autoguide(char *command_string,char **reply_string)
 		retval = Autoguider_Guide_Off();
 		if(retval == FALSE)
 		{
-			Autoguider_General_Error();
+			Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Autoguide",
+						 LOG_VERBOSITY_TERSE,"COMMAND");
 			if(!Autoguider_General_Add_String(reply_string,"1 autoguide off:Guide off failed."))
 				return FALSE;
 			return TRUE;
@@ -294,7 +303,8 @@ int Autoguider_Command_Autoguide(char *command_string,char **reply_string)
 	if(!Autoguider_General_Add_String(reply_string,"0 Autoguide suceeded."))
 		return FALSE;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Autoguide:finished.");
+	Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Autoguide",
+			       LOG_VERBOSITY_TERSE,"COMMAND","finished.");
 #endif
 	return TRUE;
 }
@@ -320,13 +330,15 @@ int Autoguider_Command_Autoguide(char *command_string,char **reply_string)
 int Autoguider_Command_Autoguide_On(enum COMMAND_AG_ON_TYPE on_type,float pixel_x,float pixel_y,int rank)
 {
 	int selected_object_index,retval;
-
+	
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Autoguide_On:started.");
+	Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Autoguide_On",
+			       LOG_VERBOSITY_TERSE,"COMMAND","started.");
 #endif
 	/* do fielding */
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Autoguide_On:Fielding.");
+	Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Autoguide_On",
+			       LOG_VERBOSITY_TERSE,"COMMAND","Fielding.");
 #endif
 	retval = Autoguider_Field();
 	if(retval == FALSE)
@@ -335,49 +347,74 @@ int Autoguider_Command_Autoguide_On(enum COMMAND_AG_ON_TYPE on_type,float pixel_
 		if(Autoguider_Field_Get_Save_FITS_Failed())
 		{
 			if(!Autoguider_Field_Save_FITS(FALSE))
-				Autoguider_General_Error();
+			{
+				Autoguider_General_Error("command","autoguider_command.c",
+							 "Autoguider_Command_Autoguide_On",
+							 LOG_VERBOSITY_TERSE,"COMMAND");
+			}
 		}
 		return FALSE;
 	}
 	/* check we have an object to guide on */
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Autoguide_On:"
-			       "Getting suitable object.");
+	Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Autoguide_On",
+			       LOG_VERBOSITY_TERSE,"COMMAND","Getting suitable object.");
 #endif
 	retval = Autoguider_Object_Guide_Object_Get(on_type,pixel_x,pixel_y,rank,&selected_object_index);
 	if(retval == FALSE)
 	{
 		/* update SDB */
 		if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
-			Autoguider_General_Error(); /* no need to fail */
+		{
+			Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Autoguide_On",
+						 LOG_VERBOSITY_TERSE,"COMMAND"); /* no need to fail */
+		}
 		if(!Autoguider_CIL_SDB_Packet_Send())
-			Autoguider_General_Error(); /* no need to fail */
+		{
+			Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Autoguide_On",
+						 LOG_VERBOSITY_TERSE,"COMMAND"); /* no need to fail */
+		}
 		/* save of the failed Field image if configured to do so. */
 		if(Autoguider_Field_Get_Save_FITS_Failed())
 		{
 			if(!Autoguider_Field_Save_FITS(FALSE))
-				Autoguider_General_Error();
+			{
+				Autoguider_General_Error("command","autoguider_command.c",
+							 "Autoguider_Command_Autoguide_On",
+							 LOG_VERBOSITY_TERSE,"COMMAND");
+			}
 		}
 		return FALSE;
 	}
 	/* do object selection/ guide setup */
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Autoguide_On:"
-			       "Setting guide object to %d.",selected_object_index);
+	Autoguider_General_Log_Format("command","autoguider_command.c","Autoguider_Command_Autoguide_On",
+				      LOG_VERBOSITY_TERSE,"COMMAND",
+				      "Setting guide object to %d.",selected_object_index);
 #endif
 	retval = Autoguider_Guide_Set_Guide_Object(selected_object_index);
 	if(retval == FALSE)
 	{
 		/* update SDB */
 		if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
-			Autoguider_General_Error(); /* no need to fail */
+		{
+			Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Autoguide_On",
+						 LOG_VERBOSITY_TERSE,"COMMAND"); /* no need to fail */
+		}
 		if(!Autoguider_CIL_SDB_Packet_Send())
-			Autoguider_General_Error(); /* no need to fail */
+		{
+			Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Autoguide_On",
+						 LOG_VERBOSITY_TERSE,"COMMAND"); /* no need to fail */
+		}
 		/* save of the failed Field image if configured to do so. */
 		if(Autoguider_Field_Get_Save_FITS_Failed())
 		{
 			if(!Autoguider_Field_Save_FITS(FALSE))
-				Autoguider_General_Error();
+			{
+				Autoguider_General_Error("command","autoguider_command.c",
+							 "Autoguider_Command_Autoguide_On",
+							 LOG_VERBOSITY_TERSE,"COMMAND");
+			}
 		}
 		return FALSE;
 	}
@@ -385,25 +422,35 @@ int Autoguider_Command_Autoguide_On(enum COMMAND_AG_ON_TYPE on_type,float pixel_
 	if(Autoguider_Field_Get_Save_FITS_Successful())
 	{
 		if(!Autoguider_Field_Save_FITS(TRUE))
-			Autoguider_General_Error();
+		{
+			Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Autoguide_On",
+						 LOG_VERBOSITY_TERSE,"COMMAND");
+		}
 	}
 	/* turn guide loop on */
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Autoguide_On:"
-			       "Turning on guide loop.");
+	Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Autoguide_On",
+			       LOG_VERBOSITY_TERSE,"COMMAND","Turning on guide loop.");
 #endif
 	retval = Autoguider_Guide_On();
 	if(retval == FALSE)
 	{
 		/* update SDB */
 		if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
-			Autoguider_General_Error(); /* no need to fail */
+		{
+			Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Autoguide_On",
+						 LOG_VERBOSITY_TERSE,"COMMAND"); /* no need to fail */
+		}
 		if(!Autoguider_CIL_SDB_Packet_Send())
-			Autoguider_General_Error(); /* no need to fail */
+		{
+			Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Autoguide_On",
+						 LOG_VERBOSITY_TERSE,"COMMAND"); /* no need to fail */
+		}
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Autoguide_On:finished.");
+	Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Autoguide_On",
+			       LOG_VERBOSITY_TERSE,"COMMAND","finished.");
 #endif
 	return TRUE;
 }
@@ -416,7 +463,6 @@ int Autoguider_Command_Autoguide_On(enum COMMAND_AG_ON_TYPE on_type,float pixel_
  * @return The routine returns TRUE on success and FALSE on failure.
  * @see autoguider_general.html#Autoguider_General_Add_String
  * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_COMMAND
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  * @see autoguider_general.html#Autoguider_General_Get_Config_Filename
@@ -429,7 +475,8 @@ int Autoguider_Command_Config_Load(char *command_string,char **reply_string)
 	int retval;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Config_Load:started.");
+	Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Config_Load",
+			       LOG_VERBOSITY_TERSE,"COMMAND","started.");
 #endif
 	config_filename = Autoguider_General_Get_Config_Filename();
 	/* are we fielding/guiding etc? */
@@ -447,7 +494,8 @@ int Autoguider_Command_Config_Load(char *command_string,char **reply_string)
 	}
 	/* shutdown and free the currently loaded config */
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Config_Load:"
+	Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Config_Load",
+			       LOG_VERBOSITY_TERSE,"COMMAND",
 			       "Calling CCD_Config_Shutdown: Warning this is dangerous operation.");
 #endif
 	retval = CCD_Config_Shutdown();
@@ -455,14 +503,16 @@ int Autoguider_Command_Config_Load(char *command_string,char **reply_string)
 	{
 		Autoguider_General_Error_Number = 316;
 		sprintf(Autoguider_General_Error_String,"Autoguider_Command_Config_Load:CCD_Config_Shutdown failed.");
-		Autoguider_General_Error();
+		Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Config_Load",
+					 LOG_VERBOSITY_TERSE,"COMMAND");
 		if(!Autoguider_General_Add_String(reply_string,"1 Config Load failed."))
 			return FALSE;
 		return TRUE;
 	}
 	/* try re loading the config file */
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Config_Load:"
+	Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Config_Load",
+			       LOG_VERBOSITY_TERSE,"COMMAND",
 			       "Calling CCD_Config_Load: Warning this is dangerous operation.");
 #endif
 	retval = CCD_Config_Load(Autoguider_General_Get_Config_Filename());
@@ -471,7 +521,8 @@ int Autoguider_Command_Config_Load(char *command_string,char **reply_string)
 		Autoguider_General_Error_Number = 317;
 		sprintf(Autoguider_General_Error_String,"Autoguider_Command_Config_Load:CCD_Config_Load(%s) failed.",
 			Autoguider_General_Get_Config_Filename());
-		Autoguider_General_Error();
+		Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Config_Load",
+					 LOG_VERBOSITY_TERSE,"COMMAND");
 		if(!Autoguider_General_Add_String(reply_string,"1 Config Load failed."))
 			return FALSE;
 		return TRUE;
@@ -479,7 +530,8 @@ int Autoguider_Command_Config_Load(char *command_string,char **reply_string)
 	if(!Autoguider_General_Add_String(reply_string,"0 Config Load suceeded."))
 		return FALSE;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Config_Load:finished.");
+	Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Config_Load",
+			       LOG_VERBOSITY_TERSE,"COMMAND","Autoguider_Command_Config_Load:finished.");
 #endif
 	return TRUE;
 }
@@ -503,7 +555,6 @@ int Autoguider_Command_Config_Load(char *command_string,char **reply_string)
  * @see autoguider_field.html#Autoguider_Field_Get_Do_Object_Detect
  * @see autoguider_general.html#Autoguider_General_Add_String
  * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_COMMAND
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  * @see autoguider_guide.html#Autoguider_Guide_Is_Guiding
@@ -533,7 +584,8 @@ int Autoguider_Command_Status(char *command_string,char **reply_string)
 	int retval,ivalue;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Status:started.");
+	Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Status",
+			       LOG_VERBOSITY_TERSE,"COMMAND","started.");
 #endif
 	if(command_string == NULL)
 	{
@@ -548,7 +600,8 @@ int Autoguider_Command_Status(char *command_string,char **reply_string)
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Status:parsing command string.");
+	Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Status",
+			       LOG_VERBOSITY_TERSE,"COMMAND","Autoguider_Command_Status:parsing command string.");
 #endif
 	retval = sscanf(command_string,"status %64s %64s",type_string,element_string);
 	if(retval != 2)
@@ -561,8 +614,8 @@ int Autoguider_Command_Status(char *command_string,char **reply_string)
 	if(strcmp(type_string,"temperature") == 0)
 	{
 #if AUTOGUIDER_DEBUG > 5
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Status:"
-				       "temperature status detected.");
+		Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Status",
+				       LOG_VERBOSITY_TERSE,"COMMAND","temperature status detected.");
 #endif
 		retval = CCD_Temperature_Get(&current_temperature,&temperature_status);
 		if(retval == FALSE)
@@ -570,7 +623,8 @@ int Autoguider_Command_Status(char *command_string,char **reply_string)
 			Autoguider_General_Error_Number = 302;
 			sprintf(Autoguider_General_Error_String,"Autoguider_Command_Status:"
 				"CCD_Temperature_Get failed.");
-			Autoguider_General_Error();
+			Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Status",
+						 LOG_VERBOSITY_TERSE,"COMMAND");
 			if(!Autoguider_General_Add_String(reply_string,"1 Failed to get current temperature status."))
 				return FALSE;
 			return TRUE;
@@ -607,8 +661,8 @@ int Autoguider_Command_Status(char *command_string,char **reply_string)
 	else if(strcmp(type_string,"field") == 0)
 	{
 #if AUTOGUIDER_DEBUG > 5
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Status:"
-				       "field status detected.");
+		Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Status",
+				       LOG_VERBOSITY_TERSE,"COMMAND","field status detected.");
 #endif
 		if(strcmp(element_string,"active") == 0)
 		{
@@ -680,8 +734,8 @@ int Autoguider_Command_Status(char *command_string,char **reply_string)
 	else if(strcmp(type_string,"guide") == 0)
 	{
 #if AUTOGUIDER_DEBUG > 5
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Status:"
-				       "guide status detected.");
+		Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Status",
+				       LOG_VERBOSITY_TERSE,"COMMAND","guide status detected.");
 #endif
 		if(strcmp(element_string,"active") == 0)
 		{
@@ -799,14 +853,15 @@ int Autoguider_Command_Status(char *command_string,char **reply_string)
 	else if(strcmp(type_string,"object") == 0)
 	{
 #if AUTOGUIDER_DEBUG > 5
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Status:"
-				       "object status detected.");
+		Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Status",
+				       LOG_VERBOSITY_TERSE,"COMMAND","object status detected.");
 #endif
 		if(strcmp(element_string,"count") == 0)
 		{
 			if(!Autoguider_Object_List_Get_Count(&ivalue))
 			{
-				Autoguider_General_Error();
+				Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Status",
+							 LOG_VERBOSITY_TERSE,"COMMAND");
 				if(!Autoguider_General_Add_String(reply_string,"1 Failed to get object list count."))
 					return FALSE;
 				return TRUE;
@@ -820,7 +875,8 @@ int Autoguider_Command_Status(char *command_string,char **reply_string)
 		{
 			if(!Autoguider_Object_List_Get_Object_List_String(&object_list_string))
 			{
-				Autoguider_General_Error();
+				Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Status",
+							 LOG_VERBOSITY_TERSE,"COMMAND");
 				if(!Autoguider_General_Add_String(reply_string,"1 Failed to get object list."))
 					return FALSE;
 				return TRUE;
@@ -873,7 +929,6 @@ int Autoguider_Command_Status(char *command_string,char **reply_string)
  * @return The routine returns TRUE on success and FALSE on failure.
  * @see autoguider_general.html#Autoguider_General_Add_String
  * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_COMMAND
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  * @see ../ccd/cdocs/ccd_temperature.html#CCD_Temperature_Set
@@ -889,7 +944,8 @@ int Autoguider_Command_Temperature(char *command_string,char **reply_string)
 	int retval;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Temperature:started.");
+	Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Temperature",
+			       LOG_VERBOSITY_TERSE,"COMMAND","started.");
 #endif
 	if(command_string == NULL)
 	{
@@ -898,8 +954,8 @@ int Autoguider_Command_Temperature(char *command_string,char **reply_string)
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Temperature:"
-				       "parsing command string.");
+	Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Temperature",
+			       LOG_VERBOSITY_TERSE,"COMMAND","parsing command string.");
 #endif
 	retval = sscanf(command_string,"temperature %64s %64s",type_string,parameter_string);
 	if(retval != 2)
@@ -907,14 +963,15 @@ int Autoguider_Command_Temperature(char *command_string,char **reply_string)
 		Autoguider_General_Error_Number = 304;
 		sprintf(Autoguider_General_Error_String,"Autoguider_Command_Temperature:"
 			"Failed to parse temperature command %s (%d).",command_string,retval);
-		Autoguider_General_Error();
+		Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Temperature",
+			       LOG_VERBOSITY_TERSE,"COMMAND");
 		if(!Autoguider_General_Add_String(reply_string,"1 Failed to parse command string:"))
 			return FALSE;
 		if(!Autoguider_General_Add_String(reply_string,command_string))
 			return FALSE;
 #if AUTOGUIDER_DEBUG > 1
-			Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,
-					       "Autoguider_Command_Temperature:finished (command parse failed).");
+			Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Temperature",
+					       LOG_VERBOSITY_TERSE,"COMMAND","finished (command parse failed).");
 #endif
 			return TRUE;
 	}
@@ -928,14 +985,15 @@ int Autoguider_Command_Temperature(char *command_string,char **reply_string)
 			if(!Autoguider_General_Add_String(reply_string,parameter_string))
 				return FALSE;
 #if AUTOGUIDER_DEBUG > 1
-			Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,
-					       "Autoguider_Command_Temperature:finished.");
+			Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Temperature",
+					       LOG_VERBOSITY_TERSE,"COMMAND","finished.");
 #endif
 			return TRUE;
 		}
 #if AUTOGUIDER_DEBUG > 3
-		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Temperature:"
-				       "Setting target temperature to %lf.",target_temperature);
+		Autoguider_General_Log_Format("command","autoguider_command.c","Autoguider_Command_Temperature",
+					      LOG_VERBOSITY_TERSE,"COMMAND","Setting target temperature to %lf.",
+					      target_temperature);
 #endif
 		retval = CCD_Temperature_Set(target_temperature);
 		if(retval == FALSE)
@@ -943,12 +1001,13 @@ int Autoguider_Command_Temperature(char *command_string,char **reply_string)
 			Autoguider_General_Error_Number = 305;
 			sprintf(Autoguider_General_Error_String,"Autoguider_Command_Temperature:"
 				"Failed to set temperature.");
-			Autoguider_General_Error();
+			Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Temperature",
+			       LOG_VERBOSITY_TERSE,"COMMAND");
 			if(!Autoguider_General_Add_String(reply_string,"1 Failed to set target temperature."))
 				return FALSE;
 #if AUTOGUIDER_DEBUG > 1
-			Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,
-					       "Autoguider_Command_Temperature:finished.");
+			Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Temperature",
+					       LOG_VERBOSITY_TERSE,"COMMAND","finished.");
 #endif
 			return TRUE;
 		}
@@ -964,8 +1023,8 @@ int Autoguider_Command_Temperature(char *command_string,char **reply_string)
 		if(strcmp(parameter_string,"on")==0)
 		{
 #if AUTOGUIDER_DEBUG > 3
-			Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Temperature:"
-					       "Turning cooler on.");
+			Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Temperature",
+					       LOG_VERBOSITY_TERSE,"COMMAND","Turning cooler on.");
 #endif
 			retval = CCD_Temperature_Cooler_On();
 			if(retval == FALSE)
@@ -973,12 +1032,15 @@ int Autoguider_Command_Temperature(char *command_string,char **reply_string)
 				Autoguider_General_Error_Number = 306;
 				sprintf(Autoguider_General_Error_String,"Autoguider_Command_Temperature:"
 					"Failed to turn cooler on.");
-				Autoguider_General_Error();
+				Autoguider_General_Error("command","autoguider_command.c",
+							 "Autoguider_Command_Temperature",
+							 LOG_VERBOSITY_TERSE,"COMMAND");
 				if(!Autoguider_General_Add_String(reply_string,"1 Failed to turn cooler on."))
 					return FALSE;
 #if AUTOGUIDER_DEBUG > 1
-				Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,
-						       "Autoguider_Command_Temperature:finished.");
+				Autoguider_General_Log("command","autoguider_command.c",
+						       "Autoguider_Command_Temperature",LOG_VERBOSITY_TERSE,"COMMAND",
+						       "finished.");
 #endif
 				return TRUE;
 			}
@@ -988,8 +1050,8 @@ int Autoguider_Command_Temperature(char *command_string,char **reply_string)
 		else if(strcmp(parameter_string,"off")==0)
 		{
 #if AUTOGUIDER_DEBUG > 3
-			Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Temperature:"
-					       "Turning cooler off.");
+			Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Temperature",
+					       LOG_VERBOSITY_TERSE,"COMMAND","Turning cooler off.");
 #endif
 			retval = CCD_Temperature_Cooler_Off();
 			if(retval == FALSE)
@@ -997,12 +1059,15 @@ int Autoguider_Command_Temperature(char *command_string,char **reply_string)
 				Autoguider_General_Error_Number = 307;
 				sprintf(Autoguider_General_Error_String,"Autoguider_Command_Temperature:"
 					"Failed to turn cooler on.");
-				Autoguider_General_Error();
+				Autoguider_General_Error("command","autoguider_command.c",
+							 "Autoguider_Command_Temperature",
+							 LOG_VERBOSITY_TERSE,"COMMAND");
 				if(!Autoguider_General_Add_String(reply_string,"1 Failed to turn cooler off."))
 					return FALSE;
 #if AUTOGUIDER_DEBUG > 1
-				Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,
-						       "Autoguider_Command_Temperature:finished.");
+				Autoguider_General_Log("command","autoguider_command.c",
+						       "Autoguider_Command_Temperature",LOG_VERBOSITY_TERSE,"COMMAND",
+						       "finished.");
 #endif
 				return TRUE;
 			}
@@ -1028,14 +1093,14 @@ int Autoguider_Command_Temperature(char *command_string,char **reply_string)
 		if(!Autoguider_General_Add_String(reply_string,"."))
 			return FALSE;
 #if AUTOGUIDER_DEBUG > 1
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,
-				       "Autoguider_Command_Temperature:finished.");
+		Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Temperature",
+				       LOG_VERBOSITY_TERSE,"COMMAND","finished.");
 #endif
 		return TRUE;
 	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,
-			       "Autoguider_Command_Temperature:finished.");
+	Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Temperature",
+			       LOG_VERBOSITY_TERSE,"COMMAND","finished.");
 #endif
 	return TRUE;
 }
@@ -1053,7 +1118,6 @@ int Autoguider_Command_Temperature(char *command_string,char **reply_string)
  * @see autoguider_cil.html#Autoguider_CIL_SDB_Packet_Send
  * @see autoguider_general.html#Autoguider_General_Add_String
  * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_COMMAND
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  * @see autoguider_field.html#Autoguider_Field
@@ -1065,7 +1129,8 @@ int Autoguider_Command_Field(char *command_string,char **reply_string)
 	int parameter_count,retval,exposure_length,doit,lockit;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Field:started.");
+	Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Field",
+			       LOG_VERBOSITY_TERSE,"COMMAND","started.");
 #endif
 	/* parse command */
 	parameter_count = sscanf(command_string,"field %64s %64s",parameter_string1,parameter_string2);
@@ -1107,7 +1172,8 @@ int Autoguider_Command_Field(char *command_string,char **reply_string)
 			retval = Autoguider_Field_Set_Do_Dark_Subtract(doit);
 			if(retval == FALSE)
 			{
-				Autoguider_General_Error();
+				Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Field",
+							 LOG_VERBOSITY_TERSE,"COMMAND");
 				if(!Autoguider_General_Add_String(reply_string,
 								  "1 Setting field dark subtraction failed."))
 					return FALSE;
@@ -1121,7 +1187,8 @@ int Autoguider_Command_Field(char *command_string,char **reply_string)
 			retval = Autoguider_Field_Set_Do_Flat_Field(doit);
 			if(retval == FALSE)
 			{
-				Autoguider_General_Error();
+				Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Field",
+							 LOG_VERBOSITY_TERSE,"COMMAND");
 				if(!Autoguider_General_Add_String(reply_string,
 								  "1 Setting field flat field failed."))
 					return FALSE;
@@ -1135,7 +1202,8 @@ int Autoguider_Command_Field(char *command_string,char **reply_string)
 			retval = Autoguider_Field_Set_Do_Object_Detect(doit);
 			if(retval == FALSE)
 			{
-				Autoguider_General_Error();
+				Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Field",
+							 LOG_VERBOSITY_TERSE,"COMMAND");
 				if(!Autoguider_General_Add_String(reply_string,
 								  "1 Setting field object detect failed."))
 					return FALSE;
@@ -1158,8 +1226,9 @@ int Autoguider_Command_Field(char *command_string,char **reply_string)
 				sprintf(Autoguider_General_Error_String,"Autoguider_Command_Field:"
 					"Failed to parse command %s (%d).",command_string,retval);
 #if AUTOGUIDER_DEBUG > 1
-				Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,
-						       "Autoguider_Command_Field:finished (command parse failed).");
+				Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Field",
+						       LOG_VERBOSITY_TERSE,"COMMAND",
+						       "finished (command parse failed).");
 #endif
 				return FALSE;
 			}
@@ -1184,7 +1253,8 @@ int Autoguider_Command_Field(char *command_string,char **reply_string)
 			retval = Autoguider_Field_Exposure_Length_Set(exposure_length,lockit);
 			if(retval == FALSE)
 			{
-				Autoguider_General_Error();
+				Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Field",
+							 LOG_VERBOSITY_TERSE,"COMMAND");
 				if(!Autoguider_General_Add_String(reply_string,
 								  "1 Setting field exposure length failed."))
 					return FALSE;
@@ -1195,21 +1265,29 @@ int Autoguider_Command_Field(char *command_string,char **reply_string)
 		retval = Autoguider_Field();
 		if(retval == FALSE)
 		{
-			Autoguider_General_Error();
+			Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Field",
+						 LOG_VERBOSITY_TERSE,"COMMAND");
 			if(!Autoguider_General_Add_String(reply_string,"1 Field failed."))
 				return FALSE;
 			return TRUE;
 		}
 		/* update SDB */
 		if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
-			Autoguider_General_Error(); /* no need to fail */
+		{
+			Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Field",
+						 LOG_VERBOSITY_TERSE,"COMMAND"); /* no need to fail */
+		}
 		if(!Autoguider_CIL_SDB_Packet_Send())
-			Autoguider_General_Error(); /* no need to fail */
+		{
+			Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Field",
+						 LOG_VERBOSITY_TERSE,"COMMAND"); /* no need to fail */
+		}
 		if(!Autoguider_General_Add_String(reply_string,"0 Field suceeded."))
 			return FALSE;
 	}/* end else */
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Field:finished.");
+	Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Field",
+			       LOG_VERBOSITY_TERSE,"COMMAND","finished.");
 #endif
 	return TRUE;
 }
@@ -1221,7 +1299,6 @@ int Autoguider_Command_Field(char *command_string,char **reply_string)
  * @return The routine returns TRUE on success and FALSE on failure.
  * @see autoguider_general.html#Autoguider_General_Add_String
  * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_COMMAND
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  * @see autoguider_field.html#Autoguider_Field_Expose
@@ -1232,7 +1309,8 @@ int Autoguider_Command_Expose(char *command_string,char **reply_string)
 	int retval,exposure_length;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Expose:started.");
+	Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Expose",
+			       LOG_VERBOSITY_TERSE,"COMMAND","started.");
 #endif
 	/* parse command */
 	retval = sscanf(command_string,"expose %d",&exposure_length);
@@ -1242,15 +1320,16 @@ int Autoguider_Command_Expose(char *command_string,char **reply_string)
 		sprintf(Autoguider_General_Error_String,"Autoguider_Command_Expose:"
 			"Failed to parse command %s (%d).",command_string,retval);
 #if AUTOGUIDER_DEBUG > 1
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,
-				       "Autoguider_Command_Expose:finished (command parse failed).");
+		Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Expose",
+				       LOG_VERBOSITY_TERSE,"COMMAND","finished (command parse failed).");
 #endif
 		return FALSE;
 	}
 	retval = Autoguider_Field_Exposure_Length_Set(exposure_length,FALSE);
 	if(retval == FALSE)
 	{
-		Autoguider_General_Error();
+		Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Expose",
+					 LOG_VERBOSITY_TERSE,"COMMAND");
 		if(!Autoguider_General_Add_String(reply_string,"1 Setting field exposure length failed."))
 			return FALSE;
 		return TRUE;
@@ -1258,7 +1337,8 @@ int Autoguider_Command_Expose(char *command_string,char **reply_string)
 	retval = Autoguider_Field_Expose();
 	if(retval == FALSE)
 	{
-		Autoguider_General_Error();
+		Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Expose",
+					 LOG_VERBOSITY_TERSE,"COMMAND");
 		if(!Autoguider_General_Add_String(reply_string,"1 Expose failed."))
 			return FALSE;
 		return TRUE;
@@ -1266,7 +1346,8 @@ int Autoguider_Command_Expose(char *command_string,char **reply_string)
 	if(!Autoguider_General_Add_String(reply_string,"0 Expose suceeded."))
 		return FALSE;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Expose:finished.");
+	Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Expose",
+			       LOG_VERBOSITY_TERSE,"COMMAND","finished.");
 #endif
 	return TRUE;
 }
@@ -1287,7 +1368,6 @@ int Autoguider_Command_Expose(char *command_string,char **reply_string)
  * @see autoguider_cil.html#Autoguider_CIL_Guide_Packet_Send_Set
  * @see autoguider_general.html#Autoguider_General_Add_String
  * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_COMMAND
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  * @see autoguider_guide.html#Autoguider_Guide_On
@@ -1312,7 +1392,8 @@ int Autoguider_Command_Guide(char *command_string,char **reply_string)
 	float float_value;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Guide:started.");
+	Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Guide",
+			       LOG_VERBOSITY_TERSE,"COMMAND","started.");
 #endif
 	/* parse command */
 	parameter_count = sscanf(command_string,"guide %64s %64s %64s %64s %64s",parameter_string1,parameter_string2,
@@ -1323,8 +1404,8 @@ int Autoguider_Command_Guide(char *command_string,char **reply_string)
 		sprintf(Autoguider_General_Error_String,"Autoguider_Command_Guide:"
 			"Failed to parse command %s (%d).",command_string,retval);
 #if AUTOGUIDER_DEBUG > 1
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,
-				       "Autoguider_Command_Guide:finished (command parse failed).");
+		Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Guide",
+				       LOG_VERBOSITY_TERSE,"COMMAND","finished (command parse failed).");
 #endif
 		return FALSE;
 	}
@@ -1333,7 +1414,8 @@ int Autoguider_Command_Guide(char *command_string,char **reply_string)
 		retval = Autoguider_Guide_On();
 		if(retval == FALSE)
 		{
-			Autoguider_General_Error();
+			Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Guide",
+						 LOG_VERBOSITY_TERSE,"COMMAND");
 			if(!Autoguider_General_Add_String(reply_string,"1 Guide on failed."))
 				return FALSE;
 			return TRUE;
@@ -1346,7 +1428,8 @@ int Autoguider_Command_Guide(char *command_string,char **reply_string)
 		retval = Autoguider_Guide_Off();
 		if(retval == FALSE)
 		{
-			Autoguider_General_Error();
+			Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Guide",
+						 LOG_VERBOSITY_TERSE,"COMMAND");
 			if(!Autoguider_General_Add_String(reply_string,"1 Guide off failed."))
 				return FALSE;
 			return TRUE;
@@ -1363,15 +1446,16 @@ int Autoguider_Command_Guide(char *command_string,char **reply_string)
 			sprintf(Autoguider_General_Error_String,"Autoguider_Command_Guide:"
 				"Failed to parse command %s (%d).",command_string,retval);
 #if AUTOGUIDER_DEBUG > 1
-			Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,
-					       "Autoguider_Command_Guide:finished (command parse failed).");
+			Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Guide",
+					       LOG_VERBOSITY_TERSE,"COMMAND","finished (command parse failed).");
 #endif
 			return FALSE;
 		}
 		retval = Autoguider_Guide_Window_Set(sx,sy,ex,ey);
 		if(retval == FALSE)
 		{
-			Autoguider_General_Error();
+			Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Guide",
+						 LOG_VERBOSITY_TERSE,"COMMAND");
 			if(!Autoguider_General_Add_String(reply_string,"1 Guide window failed."))
 				return FALSE;
 			return TRUE;
@@ -1389,8 +1473,8 @@ int Autoguider_Command_Guide(char *command_string,char **reply_string)
 			sprintf(Autoguider_General_Error_String,"Autoguider_Command_Guide:"
 				"Failed to parse command %s (%d).",command_string,retval);
 #if AUTOGUIDER_DEBUG > 1
-			Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,
-					       "Autoguider_Command_Guide:finished (command parse failed).");
+			Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Guide",
+					       LOG_VERBOSITY_TERSE,"COMMAND","finished (command parse failed).");
 #endif
 			return FALSE;
 		}
@@ -1415,7 +1499,8 @@ int Autoguider_Command_Guide(char *command_string,char **reply_string)
 		retval = Autoguider_Guide_Exposure_Length_Set(exposure_length,doit);
 		if(retval == FALSE)
 		{
-			Autoguider_General_Error();
+			Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Guide",
+						 LOG_VERBOSITY_TERSE,"COMMAND");
 			if(!Autoguider_General_Add_String(reply_string,"1 Setting guide exposure length failed."))
 				return FALSE;
 			return TRUE;
@@ -1457,7 +1542,8 @@ int Autoguider_Command_Guide(char *command_string,char **reply_string)
 			retval = Autoguider_Guide_Set_Do_Dark_Subtract(doit);
 			if(retval == FALSE)
 			{
-				Autoguider_General_Error();
+				Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Guide",
+							 LOG_VERBOSITY_TERSE,"COMMAND");
 				if(!Autoguider_General_Add_String(reply_string,
 								  "1 Setting guide dark subtraction failed."))
 					return FALSE;
@@ -1471,7 +1557,8 @@ int Autoguider_Command_Guide(char *command_string,char **reply_string)
 			retval = Autoguider_Guide_Set_Do_Flat_Field(doit);
 			if(retval == FALSE)
 			{
-				Autoguider_General_Error();
+				Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Guide",
+							 LOG_VERBOSITY_TERSE,"COMMAND");
 				if(!Autoguider_General_Add_String(reply_string,
 								  "1 Setting guide flat field failed."))
 					return FALSE;
@@ -1485,7 +1572,8 @@ int Autoguider_Command_Guide(char *command_string,char **reply_string)
 			retval = Autoguider_CIL_Guide_Packet_Send_Set(doit);
 			if(retval == FALSE)
 			{
-				Autoguider_General_Error();
+				Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Guide",
+							 LOG_VERBOSITY_TERSE,"COMMAND");
 				if(!Autoguider_General_Add_String(reply_string,
 								  "1 Setting guide packet send failed."))
 					return FALSE;
@@ -1499,7 +1587,8 @@ int Autoguider_Command_Guide(char *command_string,char **reply_string)
 			retval = Autoguider_Guide_Set_Guide_Window_Tracking(doit);
 			if(retval == FALSE)
 			{
-				Autoguider_General_Error();
+				Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Guide",
+							 LOG_VERBOSITY_TERSE,"COMMAND");
 				if(!Autoguider_General_Add_String(reply_string,
 								  "1 Setting guide window tracking failed."))
 					return FALSE;
@@ -1548,7 +1637,8 @@ int Autoguider_Command_Guide(char *command_string,char **reply_string)
 			retval = Autoguider_Guide_Set_Do_Object_Detect(doit);
 			if(retval == FALSE)
 			{
-				Autoguider_General_Error();
+				Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Guide",
+							 LOG_VERBOSITY_TERSE,"COMMAND");
 				if(!Autoguider_General_Add_String(reply_string,
 								  "1 Setting guide object detect failed."))
 					return FALSE;
@@ -1563,7 +1653,8 @@ int Autoguider_Command_Guide(char *command_string,char **reply_string)
 			retval = Autoguider_Guide_Set_Guide_Object(object_index);
 			if(retval == FALSE)
 			{
-				Autoguider_General_Error();
+				Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Guide",
+							 LOG_VERBOSITY_TERSE,"COMMAND");
 				if(!Autoguider_General_Add_String(reply_string,
 								  "1 Setting guide object failed."))
 					return FALSE;
@@ -1582,15 +1673,16 @@ int Autoguider_Command_Guide(char *command_string,char **reply_string)
 			sprintf(Autoguider_General_Error_String,"Autoguider_Command_Guide:"
 				"Failed to parse command %s (%d).",command_string,retval);
 #if AUTOGUIDER_DEBUG > 1
-			Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,
-					       "Autoguider_Command_Guide:finished (command parse failed).");
+			Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Guide",
+					       LOG_VERBOSITY_TERSE,"COMMAND","finished (command parse failed).");
 #endif
 			return FALSE;
 		}
 		retval = Autoguider_Guide_Timecode_Scaling_Set(float_value);
 		if(retval == FALSE)
 		{
-			Autoguider_General_Error();
+			Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Guide",
+						 LOG_VERBOSITY_TERSE,"COMMAND");
 			if(!Autoguider_General_Add_String(reply_string,"1 Setting guide timecode scaling failed."))
 				return FALSE;
 			return TRUE;
@@ -1606,7 +1698,8 @@ int Autoguider_Command_Guide(char *command_string,char **reply_string)
 			return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Guide:finished.");
+	Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Guide",
+			       LOG_VERBOSITY_TERSE,"COMMAND","finished.");
 #endif
 	return TRUE;
 }
@@ -1619,7 +1712,6 @@ int Autoguider_Command_Guide(char *command_string,char **reply_string)
  * @return The routine returns TRUE on success and FALSE on failure.
  * @see #Autoguider_General_Add_String
  * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_COMMAND
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  * @see autoguider_get_fits.html#Autoguider_Get_Fits
@@ -1631,7 +1723,8 @@ int Autoguider_Command_Get_Fits(char *command_string,void **buffer_ptr,size_t *b
 	int retval,buffer_type,buffer_state;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Get_Fits:started.");
+	Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Get_Fits",
+			       LOG_VERBOSITY_TERSE,"COMMAND","started.");
 #endif
 	/* parse command */
 	retval = sscanf(command_string,"getfits %64s %64s",type_parameter_string,state_parameter_string);
@@ -1641,8 +1734,8 @@ int Autoguider_Command_Get_Fits(char *command_string,void **buffer_ptr,size_t *b
 		sprintf(Autoguider_General_Error_String,"Autoguider_Command_Get_Fits:"
 			"Failed to parse command %s (%d).",command_string,retval);
 #if AUTOGUIDER_DEBUG > 1
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,
-				       "Autoguider_Command_Get_Fits:finished (command parse failed).");
+		Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Get_Fits",
+				       LOG_VERBOSITY_TERSE,"COMMAND","finished (command parse failed).");
 #endif
 		return FALSE;
 	}
@@ -1677,7 +1770,8 @@ int Autoguider_Command_Get_Fits(char *command_string,void **buffer_ptr,size_t *b
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Get_Fits:finished.");
+	Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Get_Fits",
+			       LOG_VERBOSITY_TERSE,"COMMAND","finished.");
 #endif
 	return TRUE;
 }
@@ -1689,7 +1783,6 @@ int Autoguider_Command_Get_Fits(char *command_string,void **buffer_ptr,size_t *b
  * @return The routine returns TRUE on success and FALSE on failure.
  * @see autoguider_general.html#Autoguider_General_Add_String
  * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_COMMAND
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  * @see ../ccd/cdocs/ccd_general.html#CCD_General_Set_Log_Filter_Level
@@ -1703,7 +1796,8 @@ int Autoguider_Command_Log_Level(char *command_string,char **reply_string)
 	int retval,log_level;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Log_Level:started.");
+	Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Log_Level",
+			       LOG_VERBOSITY_TERSE,"COMMAND","started.");
 #endif
 	/* parse command */
 	retval = sscanf(command_string,"log_level %32s %d",parameter_buff,&log_level);
@@ -1713,8 +1807,8 @@ int Autoguider_Command_Log_Level(char *command_string,char **reply_string)
 		sprintf(Autoguider_General_Error_String,"Autoguider_Command_Log_Level:"
 			"Failed to parse command '%s' (%d).",command_string,retval);
 #if AUTOGUIDER_DEBUG > 1
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,
-				       "Autoguider_Command_Log_Level:finished (command parse failed).");
+		Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Log_Level",
+				       LOG_VERBOSITY_TERSE,"COMMAND","finished (command parse failed).");
 #endif
 		return FALSE;
 	}
@@ -1726,7 +1820,6 @@ int Autoguider_Command_Log_Level(char *command_string,char **reply_string)
 	}
 	else if(strcmp(parameter_buff,"ccd") == 0)
 	{
-		CCD_General_Set_Log_Filter_Function(CCD_General_Log_Filter_Level_Bitwise);
 		CCD_General_Set_Log_Filter_Level(log_level);
 		if(!Autoguider_General_Add_String(reply_string,"0 Setting ccd log level suceeded."))
 			return FALSE;
@@ -1759,13 +1852,18 @@ int Autoguider_Command_Log_Level(char *command_string,char **reply_string)
 			return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_COMMAND,"Autoguider_Command_Log_Level:finished.");
+	Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Log_Level",
+			       LOG_VERBOSITY_TERSE,"COMMAND","finished.");
 #endif
 	return TRUE;
 }
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.12  2007/11/05 18:24:32  cjm
+** Added calls to Autoguider_Field_Get_Save_FITS_Failed, Autoguider_Field_Get_Save_FITS_Successful and
+** Autoguider_Field_Save_FITS to save the field image in a FITS file if configured to do so.
+**
 ** Revision 1.11  2007/02/09 14:41:05  cjm
 ** Added timecode_scaling get and set commands.
 ** Also getters for status on guide window.

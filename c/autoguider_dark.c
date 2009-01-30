@@ -1,11 +1,11 @@
 /* autoguider_dark.c
 ** Autoguider dark routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_dark.c,v 1.2 2006-08-29 14:35:38 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_dark.c,v 1.3 2009-01-30 18:01:33 cjm Exp $
 */
 /**
  * Dark routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.2 $
+ * @version $Revision: 1.3 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -24,6 +24,8 @@
 #include <unistd.h>
 
 #include "fitsio.h"
+
+#include "log_udp.h"
 
 #include "ccd_config.h"
 #include "ccd_general.h"
@@ -71,7 +73,7 @@ struct Dark_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_dark.c,v 1.2 2006-08-29 14:35:38 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_dark.c,v 1.3 2009-01-30 18:01:33 cjm Exp $";
 /**
  * Instance of dark data.
  * @see #Dark_Struct
@@ -96,7 +98,6 @@ static int Dark_Exposure_Length_List_Initialise(void);
  * @see #Dark_Exposure_Length_List_Initialise
  * @see #Autoguider_Dark_Set_Dimension
  * @see autoguider.general.html#Autoguider_General_Log
- * @see autoguider.general.html#AUTOGUIDER_GENERAL_LOG_BIT_DARK
  * @see autoguider.general.html#Autoguider_General_Error_Number
  * @see autoguider.general.html#Autoguider_General_Error_String
  * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Integer
@@ -106,7 +107,8 @@ int Autoguider_Dark_Initialise(void)
 	int retval,ncols,nrows,x_bin,y_bin;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_DARK,"Autoguider_Dark_Initialise:started.");
+	Autoguider_General_Log("dark","autoguider_dark.c","Autoguider_Dark_Initialise",LOG_VERBOSITY_INTERMEDIATE,
+			       "DARK","started.");
 #endif
 	/* get default config */
 	/* field */
@@ -150,7 +152,8 @@ int Autoguider_Dark_Initialise(void)
 		return FALSE;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_DARK,"Autoguider_Dark_Initialise:finished.");
+	Autoguider_General_Log("dark","autoguider_dark.c","Autoguider_Dark_Initialise",LOG_VERBOSITY_INTERMEDIATE,
+			       "DARK","finished.");
 #endif
 	return TRUE;
 }
@@ -167,7 +170,6 @@ int Autoguider_Dark_Initialise(void)
  * @see autoguider_general.html#Autoguider_General_Mutex_Lock
  * @see autoguider_general.html#Autoguider_General_Mutex_Unlock
  * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_DARK
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  */
@@ -176,7 +178,8 @@ int Autoguider_Dark_Set_Dimension(int ncols,int nrows,int x_bin,int y_bin)
 	int i,retval;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_DARK,"Autoguider_Dark_Set_Dimension:started.");
+	Autoguider_General_Log("dark","autoguider_dark.c","Autoguider_Dark_Set_Dimension",LOG_VERBOSITY_INTERMEDIATE,
+			       "DARK","started.");
 #endif
 	Dark_Data.Unbinned_NCols = ncols;
 	Dark_Data.Unbinned_NRows = nrows;
@@ -215,7 +218,8 @@ int Autoguider_Dark_Set_Dimension(int ncols,int nrows,int x_bin,int y_bin)
 	if(retval == FALSE)
 		return FALSE;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_DARK,"Autoguider_Dark_Set_Dimension:finished.");
+	Autoguider_General_Log("dark","autoguider_dark.c","Autoguider_Dark_Set_Dimension",LOG_VERBOSITY_INTERMEDIATE,
+			       "DARK","finished.");
 #endif
 	return TRUE;
 }
@@ -230,7 +234,6 @@ int Autoguider_Dark_Set_Dimension(int ncols,int nrows,int x_bin,int y_bin)
  * @see #Dark_Data
  * @see #Dark_Load_Reduced
  * @see autoguider.general.html#Autoguider_General_Log
- * @see autoguider.general.html#AUTOGUIDER_GENERAL_LOG_BIT_DARK
  * @see autoguider.general.html#Autoguider_General_Error_Number
  * @see autoguider.general.html#Autoguider_General_Error_String
  */
@@ -241,7 +244,8 @@ int Autoguider_Dark_Set(int bin_x,int bin_y,int exposure_length)
 	int retval;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_DARK,"Autoguider_Dark_Set:started.");
+	Autoguider_General_Log("dark","autoguider_dark.c","Autoguider_Dark_Set",LOG_VERBOSITY_INTERMEDIATE,
+			       "DARK","started.");
 #endif
 	/* check parameters */
 	if(bin_x < 1)
@@ -269,8 +273,8 @@ int Autoguider_Dark_Set(int bin_x,int bin_y,int exposure_length)
 	{
 		/* we already have the right dark loaded */
 #if AUTOGUIDER_DEBUG > 5
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_DARK,"Autoguider_Dark_Set:"
-				       "Correct dark already loaded:exiting.");
+		Autoguider_General_Log("dark","autoguider_dark.c","Autoguider_Dark_Set",LOG_VERBOSITY_INTERMEDIATE,
+				       "DARK","Correct dark already loaded:exiting.");
 #endif
 		return TRUE;
 	}
@@ -296,7 +300,8 @@ int Autoguider_Dark_Set(int bin_x,int bin_y,int exposure_length)
 	if(filename_string != NULL)
 		free(filename_string);
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_DARK,"Autoguider_Dark_Set:finished.");
+	Autoguider_General_Log("dark","autoguider_dark.c","Autoguider_Dark_Set",LOG_VERBOSITY_INTERMEDIATE,
+			       "DARK","finished.");
 #endif
 	return TRUE;
 }
@@ -313,7 +318,6 @@ int Autoguider_Dark_Set(int bin_x,int bin_y,int exposure_length)
  * @param window If the buffer is a window, the dimensions of that window.
  * @return The routine returns TRUE on success and FALSE on failure.
  * @see autoguider.general.html#Autoguider_General_Log
- * @see autoguider.general.html#AUTOGUIDER_GENERAL_LOG_BIT_DARK
  * @see autoguider.general.html#Autoguider_General_Error_Number
  * @see autoguider.general.html#Autoguider_General_Error_String
  */
@@ -326,7 +330,8 @@ int Autoguider_Dark_Subtract(float *buffer_ptr,int pixel_count,int ncols,int nro
 	int dark_start_x,dark_start_y,dark_end_x,dark_end_y,buffer_ncols,buffer_nrows,buffer_x,buffer_y;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_DARK,"Autoguider_Dark_Subtract:started.");
+	Autoguider_General_Log("dark","autoguider_dark.c","Autoguider_Dark_Subtract",LOG_VERBOSITY_INTERMEDIATE,
+			       "DARK","started.");
 #endif
 	/* check parameters */
 	if(buffer_ptr == NULL)
@@ -412,8 +417,8 @@ int Autoguider_Dark_Subtract(float *buffer_ptr,int pixel_count,int ncols,int nro
 		buffer_nrows = nrows;
 	}
 #if AUTOGUIDER_DEBUG > 9
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_DARK,"Autoguider_Dark_Subtract:"
-			       "Subtracting from buffer y 0..%d.",buffer_nrows);
+	Autoguider_General_Log_Format("dark","autoguider_dark.c","Autoguider_Dark_Subtract",LOG_VERBOSITY_INTERMEDIATE,
+			       "DARK","Subtracting from buffer y 0..%d.",buffer_nrows);
 #endif
 	/* subtract relevant bit of dark from buffer */
 	for(buffer_y=0;buffer_y<buffer_nrows;buffer_y++)
@@ -424,10 +429,12 @@ int Autoguider_Dark_Subtract(float *buffer_ptr,int pixel_count,int ncols,int nro
 #if AUTOGUIDER_DEBUG > 9
 		if(buffer_y==0)
 		{
-			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_DARK,"Autoguider_Dark_Subtract:"
+			Autoguider_General_Log_Format("dark","autoguider_dark.c","Autoguider_Dark_Subtract",
+						      LOG_VERBOSITY_VERY_VERBOSE,"DARK",
 					       "current_buffer_ptr %p = buffer_ptr %p+buffer_y %d * buffer_ncols %d.",
 					       current_buffer_ptr,buffer_ptr,buffer_y,buffer_ncols);
-			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_DARK,"Autoguider_Dark_Subtract:"
+			Autoguider_General_Log_Format("dark","autoguider_dark.c","Autoguider_Dark_Subtract",
+						      LOG_VERBOSITY_VERY_VERBOSE,"DARK",
 					       "current_dark_ptr %p = Dark_Data.Reduced_Data %p+ (((dark_start_y %d + "
 					       "buffer_y %d)*Dark_Data.Binned_NCols %d)+dark_start_x %d.",
 					       current_dark_ptr,Dark_Data.Reduced_Data,dark_start_y,buffer_y,
@@ -439,8 +446,8 @@ int Autoguider_Dark_Subtract(float *buffer_ptr,int pixel_count,int ncols,int nro
 #if AUTOGUIDER_DEBUG > 9
 			if((buffer_y==0)&&(buffer_x < 10))
 			{
-				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_DARK,
-				       "Autoguider_Dark_Subtract:"
+				Autoguider_General_Log_Format("dark","autoguider_dark.c","Autoguider_Dark_Subtract",
+							      LOG_VERBOSITY_VERY_VERBOSE,"DARK",
 				       "buffer_y %d, buffer_x %d : current_buffer_ptr %f -= current_dark_ptr %f.",
 						       buffer_y,buffer_x,(*current_buffer_ptr),(*current_dark_ptr));
 			}
@@ -454,7 +461,8 @@ int Autoguider_Dark_Subtract(float *buffer_ptr,int pixel_count,int ncols,int nro
 		}
 	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_DARK,"Autoguider_Dark_Subtract:finished.");
+	Autoguider_General_Log("dark","autoguider_dark.c","Autoguider_Dark_Subtract",LOG_VERBOSITY_INTERMEDIATE,
+			       "DARK","finished.");
 #endif
 	return TRUE;
 }
@@ -467,7 +475,6 @@ int Autoguider_Dark_Subtract(float *buffer_ptr,int pixel_count,int ncols,int nro
  * @see autoguider.general.html#Autoguider_General_Mutex_Lock
  * @see autoguider.general.html#Autoguider_General_Mutex_Unlock
  * @see autoguider.general.html#Autoguider_General_Log
- * @see autoguider.general.html#AUTOGUIDER_GENERAL_LOG_BIT_DARK
  * @see autoguider.general.html#Autoguider_General_Error_Number
  * @see autoguider.general.html#Autoguider_General_Error_String
  */
@@ -476,7 +483,8 @@ int Autoguider_Dark_Shutdown(void)
 	int i,retval;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_DARK,"Autoguider_Dark_Shutdown:started.");
+	Autoguider_General_Log("dark","autoguider_dark.c","Autoguider_Dark_Shutdown",LOG_VERBOSITY_INTERMEDIATE,
+			       "DARK","started.");
 #endif
 	/* raw */
 
@@ -498,7 +506,8 @@ int Autoguider_Dark_Shutdown(void)
 	Dark_Data.Exposure_Length_List = NULL;
 	Dark_Data.Exposure_Length_Count = 0;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_DARK,"Autoguider_Dark_Shutdown:finished.");
+	Autoguider_General_Log("dark","autoguider_dark.c","Autoguider_Dark_Shutdown",LOG_VERBOSITY_INTERMEDIATE,
+			       "DARK","finished.");
 #endif
 	return TRUE;
 }
@@ -513,7 +522,6 @@ int Autoguider_Dark_Shutdown(void)
  * @return The routine returns TRUE on success and FALSE on failure.
  * @see #Dark_Data
  * @see autoguider.general.html#Autoguider_General_Log
- * @see autoguider.general.html#AUTOGUIDER_GENERAL_LOG_BIT_DARK
  * @see autoguider.general.html#Autoguider_General_Error_Number
  * @see autoguider.general.html#Autoguider_General_Error_String
  */
@@ -522,8 +530,8 @@ int Autoguider_Dark_Get_Exposure_Length_Nearest(int *exposure_length,int *exposu
 	int i,nearest_exposure_length,difference,nearest_difference,nearest_index;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_DARK,
-			       "Autoguider_Dark_Get_Exposure_Length_Nearest:started.");
+	Autoguider_General_Log("dark","autoguider_dark.c","Autoguider_Dark_Get_Exposure_Length_Nearest",
+			       LOG_VERBOSITY_INTERMEDIATE,"DARK","started.");
 #endif
 	if(exposure_length == NULL)
 	{
@@ -533,9 +541,9 @@ int Autoguider_Dark_Get_Exposure_Length_Nearest(int *exposure_length,int *exposu
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_DARK,
-			       "Autoguider_Dark_Get_Exposure_Length_Nearest:Finding nearest exposure length to %d.",
-			       (*exposure_length));
+	Autoguider_General_Log_Format("dark","autoguider_dark.c","Autoguider_Dark_Get_Exposure_Length_Nearest",
+				      LOG_VERBOSITY_INTERMEDIATE,"DARK",
+				      "Finding nearest exposure length to %d.",(*exposure_length));
 #endif
 	nearest_difference = 999999999;
 	nearest_index = -1;
@@ -550,17 +558,17 @@ int Autoguider_Dark_Get_Exposure_Length_Nearest(int *exposure_length,int *exposu
 		}
 	}/* end for */
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_DARK,
-			       "Autoguider_Dark_Get_Exposure_Length_Nearest:"
+	Autoguider_General_Log_Format("dark","autoguider_dark.c","Autoguider_Dark_Get_Exposure_Length_Nearest",
+				      LOG_VERBOSITY_INTERMEDIATE,"DARK",
 				      "Nearest exposure length to %d was %d (index %d).",
-			       (*exposure_length),nearest_exposure_length,nearest_index);
+				      (*exposure_length),nearest_exposure_length,nearest_index);
 #endif
 	(*exposure_length) = nearest_exposure_length;
 	if(exposure_length_index != NULL)
 		(*exposure_length_index) = nearest_index;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_DARK,
-			       "Autoguider_Dark_Get_Exposure_Length_Nearest:finished.");
+	Autoguider_General_Log("dark","autoguider_dark.c","Autoguider_Dark_Get_Exposure_Length_Nearest",
+				      LOG_VERBOSITY_INTERMEDIATE,"DARK","finished.");
 #endif
 	return TRUE;
 }
@@ -573,14 +581,14 @@ int Autoguider_Dark_Get_Exposure_Length_Nearest(int *exposure_length,int *exposu
  * @return The routine returns TRUE on success and FALSE on failure.
  * @see #Dark_Data
  * @see autoguider.general.html#Autoguider_General_Log
- * @see autoguider.general.html#AUTOGUIDER_GENERAL_LOG_BIT_DARK
  * @see autoguider.general.html#Autoguider_General_Error_Number
  * @see autoguider.general.html#Autoguider_General_Error_String
  */
 int Autoguider_Dark_Get_Exposure_Length_Index(int index,int *exposure_length)
 {
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_DARK,"Autoguider_Dark_Get_Exposure_Length_Index:started.");
+	Autoguider_General_Log("dark","autoguider_dark.c","Autoguider_Dark_Get_Exposure_Length_Index",
+			       LOG_VERBOSITY_INTERMEDIATE,"DARK","started.");
 #endif
 	if(exposure_length == NULL)
 	{
@@ -598,7 +606,8 @@ int Autoguider_Dark_Get_Exposure_Length_Index(int index,int *exposure_length)
 	}
 	(*exposure_length) = Dark_Data.Exposure_Length_List[index];
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_DARK,"Autoguider_Dark_Get_Exposure_Length_Index:finished.");
+	Autoguider_General_Log("dark","autoguider_dark.c","Autoguider_Dark_Get_Exposure_Length_Index",
+			       LOG_VERBOSITY_INTERMEDIATE,"DARK","finished.");
 #endif
 	return TRUE;
 }
@@ -629,7 +638,6 @@ int Autoguider_Dark_Get_Exposure_Length_Count(void)
  * @see autoguider.general.html#Autoguider_General_Mutex_Lock
  * @see autoguider.general.html#Autoguider_General_Mutex_Unlock
  * @see autoguider.general.html#Autoguider_General_Log
- * @see autoguider.general.html#AUTOGUIDER_GENERAL_LOG_BIT_DARK
  * @see autoguider.general.html#Autoguider_General_Error_Number
  * @see autoguider.general.html#Autoguider_General_Error_String
  */
@@ -640,7 +648,8 @@ static int Dark_Load_Reduced(char *filename,int bin_x,int bin_y,int exposure_len
 	int retval,naxis,naxis1,naxis2,cfitsio_status=0;
 
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_DARK,"Dark_Load_Reduced:started.");
+	Autoguider_General_Log("dark","autoguider_dark.c","Dark_Load_Reduced",
+			       LOG_VERBOSITY_INTERMEDIATE,"DARK","started.");
 #endif
 	/* diddly check binning matches expected dark binning? */
 	/* diddly or call Autoguider_Dark_Set_Dimension? */
@@ -763,7 +772,8 @@ static int Dark_Load_Reduced(char *filename,int bin_x,int bin_y,int exposure_len
 	if(retval == FALSE)
 		return FALSE;
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_DARK,"Dark_Load_Reduced:finished.");
+	Autoguider_General_Log("dark","autoguider_dark.c","Dark_Load_Reduced",
+			       LOG_VERBOSITY_INTERMEDIATE,"DARK","finished.");
 #endif
 	return TRUE;
 }
@@ -774,7 +784,6 @@ static int Dark_Load_Reduced(char *filename,int bin_x,int bin_y,int exposure_len
  * @return The routine returns TRUE on success and FALSE on failure.
  * @see #Dark_Data
  * @see autoguider.general.html#Autoguider_General_Log
- * @see autoguider.general.html#AUTOGUIDER_GENERAL_LOG_BIT_DARK
  * @see autoguider.general.html#Autoguider_General_Error_Number
  * @see autoguider.general.html#Autoguider_General_Error_String
  * @see autoguider.general.html#Autoguider_General_Int_List_Add
@@ -787,7 +796,8 @@ static int Dark_Exposure_Length_List_Initialise(void)
 	int index,done,exposure_length,retval;
 
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_DARK,"Dark_Exposure_Length_List_Initialise:started.");
+	Autoguider_General_Log("dark","autoguider_dark.c","Dark_Exposure_Length_List_Initialise",
+			       LOG_VERBOSITY_INTERMEDIATE,"DARK","started.");
 #endif
 	/* free currently allocated list? */
 	if(Dark_Data.Exposure_Length_List != NULL)
@@ -817,12 +827,17 @@ static int Dark_Exposure_Length_List_Initialise(void)
 	qsort(Dark_Data.Exposure_Length_List,Dark_Data.Exposure_Length_Count,sizeof(int),
 	      Autoguider_General_Int_List_Sort);
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_DARK,"Dark_Exposure_Length_List_Initialise:finished.");
+	Autoguider_General_Log("dark","autoguider_dark.c","Dark_Exposure_Length_List_Initialise",
+			       LOG_VERBOSITY_INTERMEDIATE,"DARK","finished.");
 #endif
 	return TRUE;
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.2  2006/08/29 14:35:38  cjm
+** Changed limits detection in Autoguider_Dark_Subtract, so you can have
+** X-End/Y-End at last pixel inclusive, and it doesn't trigger an error.
+**
 ** Revision 1.1  2006/06/01 15:18:38  cjm
 ** Initial revision
 **

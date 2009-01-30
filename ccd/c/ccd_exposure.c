@@ -1,11 +1,11 @@
 /* ccd_exposure.c
 ** Autoguider CCD Library exposure routines
-** $Header: /home/cjm/cvs/autoguider/ccd/c/ccd_exposure.c,v 1.4 2006-09-07 15:36:26 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/c/ccd_exposure.c,v 1.5 2009-01-30 18:00:24 cjm Exp $
 */
 /**
  * Exposure routines for the autoguider CCD library.
  * @author Chris Mottram
- * @version $Revision: 1.4 $
+ * @version $Revision: 1.5 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -21,7 +21,7 @@
 #include <unistd.h>
 
 #include "fitsio.h"
-
+#include "log_udp.h"
 #include "ccd_config.h"
 #include "ccd_driver.h"
 #include "ccd_exposure.h"
@@ -31,7 +31,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: ccd_exposure.c,v 1.4 2006-09-07 15:36:26 cjm Exp $";
+static char rcsid[] = "$Id: ccd_exposure.c,v 1.5 2009-01-30 18:00:24 cjm Exp $";
 
 /* internal function declarations */
 static int fexist(char *filename);
@@ -45,10 +45,12 @@ static int fexist(char *filename);
 void CCD_Exposure_Initialise(void)
 {
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_EXPOSURE,"CCD_Exposure_Initialise() started.");
+	CCD_General_Log("ccd","ccd_exposure.c","CCD_Exposure_Initialise",LOG_VERBOSITY_VERY_VERBOSE,NULL,
+			"started.");
 #endif
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_EXPOSURE,"CCD_Exposure_Initialise() finished.");
+	CCD_General_Log("ccd","ccd_exposure.c","CCD_Exposure_Initialise",LOG_VERBOSITY_VERY_VERBOSE,NULL,
+			"finished.");
 #endif
 }
 
@@ -67,7 +69,6 @@ void CCD_Exposure_Initialise(void)
  * @see ccd_driver.html#CCD_Driver_Function_Struct
  * @see ccd_general.html#CCD_General_Log_Format
  * @see ccd_general.html#CCD_General_Log
- * @see ccd_general.html#CCD_GENERAL_LOG_BIT_EXPOSURE
  * @see ccd_general.html#CCD_CCD_General_Error_Number
  * @see ccd_general.html#CCD_CCD_General_Error_String
  */
@@ -78,7 +79,7 @@ int CCD_Exposure_Expose(int open_shutter,struct timespec start_time,int exposure
 	int retval;
 
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_EXPOSURE,"CCD_Exposure_Expose() started.");
+	CCD_General_Log("ccd","ccd_exposure.c","CCD_Exposure_Expose",LOG_VERBOSITY_VERY_TERSE,NULL,"started.");
 #endif
 	/* get driver functions */
 	retval = CCD_Driver_Get_Functions(&functions);
@@ -96,7 +97,7 @@ int CCD_Exposure_Expose(int open_shutter,struct timespec start_time,int exposure
 	if(retval == FALSE)
 		return FALSE;
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_EXPOSURE,"CCD_Exposure_Expose() finished.");
+	CCD_General_Log("ccd","ccd_exposure.c","CCD_Exposure_Expose",LOG_VERBOSITY_VERY_TERSE,NULL,"finished.");
 #endif
 	return TRUE;
 }
@@ -112,7 +113,6 @@ int CCD_Exposure_Expose(int open_shutter,struct timespec start_time,int exposure
  * @see ccd_driver.html#CCD_Driver_Function_Struct
  * @see ccd_general.html#CCD_General_Log_Format
  * @see ccd_general.html#CCD_General_Log
- * @see ccd_general.html#CCD_GENERAL_LOG_BIT_EXPOSURE
  * @see ccd_general.html#CCD_CCD_General_Error_Number
  * @see ccd_general.html#CCD_CCD_General_Error_String
  */
@@ -122,7 +122,7 @@ int CCD_Exposure_Bias(void *buffer,size_t buffer_length)
 	int retval;
 
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_EXPOSURE,"CCD_Exposure_Bias() started.");
+	CCD_General_Log("ccd","ccd_exposure.c","CCD_Exposure_Bias",LOG_VERBOSITY_TERSE,NULL,"started.");
 #endif
 	/* get driver functions */
 	retval = CCD_Driver_Get_Functions(&functions);
@@ -140,7 +140,7 @@ int CCD_Exposure_Bias(void *buffer,size_t buffer_length)
 	if(retval == FALSE)
 		return FALSE;
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_EXPOSURE,"CCD_Exposure_Bias() finished.");
+	CCD_General_Log("ccd","ccd_exposure.c","CCD_Exposure_Bias",LOG_VERBOSITY_TERSE,NULL,"finished.");
 #endif
 	return TRUE;
 }
@@ -152,7 +152,6 @@ int CCD_Exposure_Bias(void *buffer,size_t buffer_length)
  * @see ccd_driver.html#CCD_Driver_Function_Struct
  * @see ccd_general.html#CCD_General_Log_Format
  * @see ccd_general.html#CCD_General_Log
- * @see ccd_general.html#CCD_GENERAL_LOG_BIT_EXPOSURE
  * @see ccd_general.html#CCD_CCD_General_Error_Number
  * @see ccd_general.html#CCD_CCD_General_Error_String
  */
@@ -162,7 +161,7 @@ int CCD_Exposure_Abort(void)
 	int retval;
 
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_EXPOSURE,"CCD_Exposure_Abort() started.");
+	CCD_General_Log("ccd","ccd_exposure.c","CCD_Exposure_Abort",LOG_VERBOSITY_TERSE,NULL,"started.");
 #endif
 	/* get driver functions */
 	retval = CCD_Driver_Get_Functions(&functions);
@@ -180,7 +179,7 @@ int CCD_Exposure_Abort(void)
 	if(retval == FALSE)
 		return FALSE;
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_EXPOSURE,"CCD_Exposure_Abort() finished.");
+	CCD_General_Log("ccd","ccd_exposure.c","CCD_Exposure_Abort",LOG_VERBOSITY_TERSE,NULL,"finished.");
 #endif
 	return TRUE;
 }
@@ -192,7 +191,6 @@ int CCD_Exposure_Abort(void)
  * @see ccd_driver.html#CCD_Driver_Function_Struct
  * @see ccd_general.html#CCD_General_Log_Format
  * @see ccd_general.html#CCD_General_Log
- * @see ccd_general.html#CCD_GENERAL_LOG_BIT_EXPOSURE
  * @see ccd_general.html#CCD_CCD_General_Error_Number
  * @see ccd_general.html#CCD_CCD_General_Error_String
  */
@@ -202,7 +200,8 @@ int CCD_Exposure_Get_Exposure_Start_Time(struct timespec *timespec)
 	int retval;
 
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_EXPOSURE,"CCD_Exposure_Get_Exposure_Start_Time() started.");
+	CCD_General_Log("ccd","ccd_exposure.c","CCD_Exposure_Get_Exposure_Start_Time",LOG_VERBOSITY_VERY_VERBOSE,
+			NULL,"started.");
 #endif
 	/* check parameters */
 	if(timespec == NULL)
@@ -226,7 +225,8 @@ int CCD_Exposure_Get_Exposure_Start_Time(struct timespec *timespec)
 	/* call driver function */
 	(*timespec) = (*(functions.Exposure_Get_Exposure_Start_Time))();
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_EXPOSURE,"CCD_Exposure_Get_Exposure_Start_Time() finished.");
+	CCD_General_Log("ccd","ccd_exposure.c","CCD_Exposure_Get_Exposure_Start_Time",LOG_VERBOSITY_VERY_VERBOSE,
+			NULL,"finished.");
 #endif
 	return TRUE;
 }
@@ -239,7 +239,6 @@ int CCD_Exposure_Get_Exposure_Start_Time(struct timespec *timespec)
  * @see ccd_driver.html#CCD_Driver_Function_Struct
  * @see ccd_general.html#CCD_General_Log_Format
  * @see ccd_general.html#CCD_General_Log
- * @see ccd_general.html#CCD_GENERAL_LOG_BIT_EXPOSURE
  * @see ccd_general.html#CCD_CCD_General_Error_Number
  * @see ccd_general.html#CCD_CCD_General_Error_String
  */
@@ -249,7 +248,8 @@ int CCD_Exposure_Loop_Pause_Length_Set(int ms)
 	int retval;
 
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_EXPOSURE,"CCD_Exposure_Loop_Pause_Length_Set() started.");
+	CCD_General_Log("ccd","ccd_exposure.c","CCD_Exposure_Loop_Pause_Length_Set",LOG_VERBOSITY_VERY_VERBOSE,
+			NULL,"started.");
 #endif
 	/* get driver functions */
 	retval = CCD_Driver_Get_Functions(&functions);
@@ -268,7 +268,8 @@ int CCD_Exposure_Loop_Pause_Length_Set(int ms)
 	if(retval == FALSE)
 		return FALSE;
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_EXPOSURE,"CCD_Exposure_Loop_Pause_Length_Set() finished.");
+	CCD_General_Log("ccd","ccd_exposure.c","CCD_Exposure_Loop_Pause_Length_Set",LOG_VERBOSITY_VERY_VERBOSE,
+			NULL,"finished.");
 #endif
 	return TRUE;
 }
@@ -281,7 +282,6 @@ int CCD_Exposure_Loop_Pause_Length_Set(int ms)
  * @param ncols The number of binned image columns (the X size/width of the image).
  * @param nrows The number of binned image rows (the Y size/height of the image).
  * @return Returns TRUE on success, and FALSE if an error occurs.
- * @see ccd_general.html#CCD_GENERAL_LOG_BIT_EXPOSURE
  * @see ccd_general.html#CCD_General_Error_Number
  * @see ccd_general.html#CCD_General_Error_String
  * @see ccd_general.html#CCD_General_Log
@@ -296,7 +296,7 @@ int CCD_Exposure_Save(char *filename,void *buffer,size_t buffer_length,int ncols
 	double dvalue;
 
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_EXPOSURE,"CCD_Exposure_Save started.");
+	CCD_General_Log("ccd","ccd_exposure.c","CCD_Exposure_Save",LOG_VERBOSITY_TERSE,NULL,"started.");
 #endif
 	/* check existence of FITS image and create or append as appropriate? */
 	if(fexist(filename))
@@ -366,7 +366,7 @@ int CCD_Exposure_Save(char *filename,void *buffer,size_t buffer_length,int ncols
 		return FALSE;
 	}
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_EXPOSURE,"CCD_Exposure_Save finished.");
+	CCD_General_Log("ccd","ccd_exposure.c","CCD_Exposure_Save",LOG_VERBOSITY_TERSE,NULL,"finished.");
 #endif
 	return TRUE;
 }
@@ -393,6 +393,9 @@ static int fexist(char *filename)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.4  2006/09/07 15:36:26  cjm
+** Added CCD_Exposure_Loop_Pause_Length_Set.
+**
 ** Revision 1.3  2006/04/28 14:26:40  cjm
 ** Added CCD_Exposure_Get_Exposure_Start_Time.
 **

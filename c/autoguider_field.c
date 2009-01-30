@@ -1,11 +1,11 @@
 /* autoguider_field.c
 ** Autoguider field routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_field.c,v 1.13 2007-11-05 18:23:35 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_field.c,v 1.14 2009-01-30 18:01:33 cjm Exp $
 */
 /**
  * Field routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.13 $
+ * @version $Revision: 1.14 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -22,6 +22,8 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+
+#include "log_udp.h"
 
 #include "ccd_exposure.h"
 #include "ccd_general.h"
@@ -126,7 +128,7 @@ struct Field_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_field.c,v 1.13 2007-11-05 18:23:35 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_field.c,v 1.14 2009-01-30 18:01:33 cjm Exp $";
 /**
  * Instance of field data.
  * @see #Field_Struct
@@ -160,7 +162,8 @@ int Autoguider_Field_Initialise(void)
 	int retval;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field_Initialise:started.");
+	Autoguider_General_Log("field","autoguider_field.c","Autoguider_Field_Initialise",LOG_VERBOSITY_TERSE,
+			       "FIELD","started.");
 #endif
 	/* get reduction booleans */
 	retval = CCD_Config_Get_Boolean("field.dark_subtract",&(Field_Data.Do_Dark_Subtract));
@@ -238,7 +241,8 @@ int Autoguider_Field_Initialise(void)
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field_Initialise:finished.");
+	Autoguider_General_Log("field","autoguider_field.c","Autoguider_Field_Initialise",LOG_VERBOSITY_TERSE,
+			       "FIELD","Autoguider_Field_Initialise:finished.");
 #endif
 	return TRUE;
 }
@@ -316,7 +320,6 @@ int Autoguider_Field_Exposure_Length_Set(int exposure_length,int lock)
  * @see autoguider_flat.html#Autoguider_Flat_Set
  * @see autoguider_general.html#Autoguider_General_Log
  * @see autoguider_general.html#Autoguider_General_Log_Format
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_FIELD
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  * @see autoguider_guide.html#Autoguider_Guide_Is_Guiding
@@ -338,7 +341,8 @@ int Autoguider_Field(void)
 	int retval,dark_exposure_length_index,done;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field:started.");
+	Autoguider_General_Log("field","autoguider_field.c","Autoguider_Field",LOG_VERBOSITY_TERSE,
+			       "FIELD","started.");
 #endif
 	/* ensure we are not already fielding */
 	if(Field_Data.Is_Fielding)
@@ -356,9 +360,15 @@ int Autoguider_Field(void)
 	Field_Data.Is_Fielding = TRUE;
 	/* update SDB */
 	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_WORKING))
-		Autoguider_General_Error(); /* no need to fail */
+	{
+		Autoguider_General_Error("field","autoguider_field.c","Autoguider_Field",LOG_VERBOSITY_TERSE,
+					 "FIELD"); /* no need to fail */
+	}
 	if(!Autoguider_CIL_SDB_Packet_Send())
-		Autoguider_General_Error(); /* no need to fail */
+	{
+		Autoguider_General_Error("field","autoguider_field.c","Autoguider_Field",LOG_VERBOSITY_TERSE,
+					 "FIELD"); /* no need to fail */
+	}
 	/* get dimensions */
 	/* nb this code is replicated in autoguider_buffer.c : Autoguider_Buffer_Initialise.
 	** We could perhaps only load from config once, and have getters in autoguider_buffer.c. */
@@ -375,7 +385,8 @@ int Autoguider_Field(void)
 	/* setup CCD */
 	/* diddly Consider some sort of mutex around CCD calls? */
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field:Calling CCD_Setup_Dimensions.");
+	Autoguider_General_Log("field","autoguider_field.c","Autoguider_Field",LOG_VERBOSITY_VERBOSE,
+			       "FIELD","Calling CCD_Setup_Dimensions.");
 #endif
 	retval = CCD_Setup_Dimensions(Field_Data.Unbinned_NCols,Field_Data.Unbinned_NRows,
 				      Field_Data.Bin_X,Field_Data.Bin_Y,FALSE,window);
@@ -409,16 +420,17 @@ int Autoguider_Field(void)
 			return FALSE;
 		}
 #if AUTOGUIDER_DEBUG > 5
-		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
-					      "Autoguider_Field:Exposure Length set to default:%d ms.",
+		Autoguider_General_Log_Format("field","autoguider_field.c","Autoguider_Field",
+					      LOG_VERBOSITY_VERBOSE,"FIELD","Exposure Length set to default:%d ms.",
 					      Field_Data.Exposure_Length);
 #endif
 	}
 	else
 	{
 #if AUTOGUIDER_DEBUG > 5
-		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
-					      "Autoguider_Field:Using current Exposure Length:%d ms.",
+		Autoguider_General_Log_Format("field","autoguider_field.c","Autoguider_Field",
+					      LOG_VERBOSITY_VERBOSE,"FIELD",
+					      "Using current Exposure Length:%d ms.",
 					      Field_Data.Exposure_Length);
 #endif
 	}
@@ -433,8 +445,9 @@ int Autoguider_Field(void)
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
-				      "Autoguider_Field:nearest guide exposure length = %d ms (index %d).",
+	Autoguider_General_Log_Format("field","autoguider_field.c","Autoguider_Field",
+				      LOG_VERBOSITY_VERBOSE,"FIELD",
+				      "nearest guide exposure length = %d ms (index %d).",
 				      Field_Data.Exposure_Length,dark_exposure_length_index);
 #endif
 	/* ensure the correct flat is loaded */
@@ -454,8 +467,8 @@ int Autoguider_Field(void)
 		(time_tm->tm_hour*10000)+(time_tm->tm_min*100)+time_tm->tm_sec;
 	Field_Data.Frame_Number = 0;
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field:Field Id = %d.",
-				      Field_Data.Field_Id);
+	Autoguider_General_Log_Format("field","autoguider_field.c","Autoguider_Field",
+				      LOG_VERBOSITY_VERBOSE,"FIELD","Field Id = %d.",Field_Data.Field_Id);
 #endif
 	/* start field loop */
 	done = FALSE;
@@ -463,7 +476,10 @@ int Autoguider_Field(void)
 	{
 		/* update SDB */
 		if(!Autoguider_CIL_SDB_Packet_Exp_Time_Set(Field_Data.Exposure_Length))
-			Autoguider_General_Error(); /* no need to fail */
+		{
+			Autoguider_General_Error("field","autoguider_field.c","Autoguider_Field",
+				      LOG_VERBOSITY_VERBOSE,"FIELD"); /* no need to fail */
+		}
 		/* ensure the correct dark is loaded */
 		retval = Autoguider_Dark_Set(Field_Data.Bin_X,Field_Data.Bin_Y,Field_Data.Exposure_Length);
 		if(retval == FALSE)
@@ -478,8 +494,9 @@ int Autoguider_Field(void)
 		/* Use the buffer index _not_ used by the last completed field readout */
 		Field_Data.In_Use_Buffer_Index = (!Field_Data.Last_Buffer_Index);
 #if AUTOGUIDER_DEBUG > 9
-		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
-					      "Autoguider_Field:Locking raw field buffer %d.",
+		Autoguider_General_Log_Format("field","autoguider_field.c","Autoguider_Field",
+					      LOG_VERBOSITY_VERBOSE,"FIELD",
+					      "Locking raw field buffer %d.",
 					      Field_Data.In_Use_Buffer_Index);
 #endif
 		retval = Autoguider_Buffer_Raw_Field_Lock(Field_Data.In_Use_Buffer_Index,&buffer_ptr);
@@ -496,13 +513,15 @@ int Autoguider_Field(void)
 			return FALSE;
 		}
 #if AUTOGUIDER_DEBUG > 9
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field:field buffer locked.");
+		Autoguider_General_Log("field","autoguider_field.c","Autoguider_Field",
+				       LOG_VERBOSITY_VERBOSE,"FIELD","field buffer locked.");
 #endif
 		/* do a field */
 		start_time.tv_sec = 0;
 		start_time.tv_nsec = 0;
 #if AUTOGUIDER_DEBUG > 5
-		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field:"
+		Autoguider_General_Log_Format("field","autoguider_field.c","Autoguider_Field",
+					      LOG_VERBOSITY_VERBOSE,"FIELD",
 					      "Calling CCD_Exposure_Expose with exposure length %d ms.",
 					      Field_Data.Exposure_Length);
 #endif
@@ -526,31 +545,42 @@ int Autoguider_Field(void)
 		** for future reference (FITS headers) */
 		if(!Autoguider_Buffer_Field_Exposure_Length_Set(Field_Data.In_Use_Buffer_Index,
 								Field_Data.Exposure_Length))
-			Autoguider_General_Error();
+		{
+			Autoguider_General_Error("field","autoguider_field.c","Autoguider_Field",
+				      LOG_VERBOSITY_VERBOSE,"FIELD");
+		}
 		retval = CCD_Exposure_Get_Exposure_Start_Time(&start_time);
 		if(retval == TRUE)
 		{
 			if(!Autoguider_Buffer_Field_Exposure_Start_Time_Set(Field_Data.In_Use_Buffer_Index,start_time))
-				Autoguider_General_Error();
+			{
+				Autoguider_General_Error("field","autoguider_field.c","Autoguider_Field",
+				      LOG_VERBOSITY_VERBOSE,"FIELD");
+			}
 		}
 		retval = CCD_Temperature_Get(&current_temperature,&temperature_status);
 		if(retval)
 		{
 #if AUTOGUIDER_DEBUG > 9
-			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Autoguider_Field:"
-					      "current temperature is %.2f C.",current_temperature);
+			Autoguider_General_Log_Format("field","autoguider_field.c","Autoguider_Field",
+						      LOG_VERBOSITY_VERBOSE,"FIELD",
+						      "current temperature is %.2f C.",current_temperature);
 #endif
 			if(!Autoguider_Buffer_Field_CCD_Temperature_Set(Field_Data.In_Use_Buffer_Index,
 									current_temperature))
-				Autoguider_General_Error();
+			{
+				Autoguider_General_Error("field","autoguider_field.c","Autoguider_Field",
+				      LOG_VERBOSITY_VERBOSE,"FIELD");
+			}
 		}
 #if AUTOGUIDER_DEBUG > 7
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field:exposure completed.");
+		Autoguider_General_Log("field","autoguider_field.c","Autoguider_Field",
+				       LOG_VERBOSITY_VERBOSE,"FIELD","exposure completed.");
 #endif
 		/* unlock readout buffer */
 #if AUTOGUIDER_DEBUG > 9
-		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field:"
-					      "Unlocking raw field buffer %d.",
+		Autoguider_General_Log_Format("field","autoguider_field.c","Autoguider_Field",
+					      LOG_VERBOSITY_VERBOSE,"FIELD","Unlocking raw field buffer %d.",
 					      Field_Data.In_Use_Buffer_Index);
 #endif
 		retval = Autoguider_Buffer_Raw_Field_Unlock(Field_Data.In_Use_Buffer_Index);
@@ -588,8 +618,10 @@ int Autoguider_Field(void)
 		Field_Data.Last_Buffer_Index = Field_Data.In_Use_Buffer_Index;
 		Field_Data.In_Use_Buffer_Index = -1;
 #if AUTOGUIDER_DEBUG > 9
-		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field:"
-					      "Field buffer unlocked, last buffer now %d.",Field_Data.Last_Buffer_Index);
+		Autoguider_General_Log_Format("field","autoguider_field.c","Autoguider_Field",
+					      LOG_VERBOSITY_VERBOSE,"FIELD",
+					      "Field buffer unlocked, last buffer now %d.",
+					      Field_Data.Last_Buffer_Index);
 #endif
 		/* Check whether we have found suitable objects to guide on */
 		if(!Field_Check_Done(&done,&dark_exposure_length_index))
@@ -612,7 +644,8 @@ int Autoguider_Field(void)
 	** 	Autoguider_General_Error(); 
 	*/
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field:finished.");
+	Autoguider_General_Log("field","autoguider_field.c","Autoguider_Field",
+			       LOG_VERBOSITY_VERBOSE,"FIELD","finished.");
 #endif
 	return TRUE;
 }
@@ -633,7 +666,6 @@ int Autoguider_Field(void)
  * @see autoguider_flat.html#Autoguider_Flat_Set
  * @see autoguider_general.html#Autoguider_General_Log
  * @see autoguider_general.html#Autoguider_General_Log_Format
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_FIELD
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  * @see autoguider_guide.html#Autoguider_Guide_Is_Guiding
@@ -656,7 +688,8 @@ int Autoguider_Field_Expose(void)
 	int retval;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field_Expose:started.");
+	Autoguider_General_Log("field","autoguider_field.c","Autoguider_Field_Expose",
+			       LOG_VERBOSITY_TERSE,"FIELD","started.");
 #endif
 	/* ensure we are not already fielding */
 	if(Field_Data.Is_Fielding)
@@ -674,9 +707,15 @@ int Autoguider_Field_Expose(void)
 	Field_Data.Is_Fielding = TRUE;
 	/* update SDB */
 	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_WORKING))
-		Autoguider_General_Error(); /* no need to fail */
+	{
+		Autoguider_General_Error("field","autoguider_field.c","Autoguider_Field_Expose",
+			       LOG_VERBOSITY_TERSE,"FIELD"); /* no need to fail */
+	}
 	if(!Autoguider_CIL_SDB_Packet_Send())
-		Autoguider_General_Error(); /* no need to fail */
+	{
+		Autoguider_General_Error("field","autoguider_field.c","Autoguider_Field_Expose",
+			       LOG_VERBOSITY_TERSE,"FIELD"); /* no need to fail */
+	}
 	/* get dimensions */
 	/* nb this code is replicated in autoguider_buffer.c : Autoguider_Buffer_Initialise.
 	** We could perhaps only load from config once, and have getters in autoguider_buffer.c. */
@@ -693,8 +732,8 @@ int Autoguider_Field_Expose(void)
 	/* diddly Consider some sort of mutex around CCD calls? */
 	/* also state checking, are we already fielding/guiding ? */
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field_Expose:"
-			       "Calling CCD_Setup_Dimensions.");
+	Autoguider_General_Log("field","autoguider_field.c","Autoguider_Field_Expose",
+			       LOG_VERBOSITY_VERBOSE,"FIELD","Calling CCD_Setup_Dimensions.");
 #endif
 	retval = CCD_Setup_Dimensions(Field_Data.Unbinned_NCols,Field_Data.Unbinned_NRows,
 				      Field_Data.Bin_X,Field_Data.Bin_Y,FALSE,window);
@@ -720,8 +759,9 @@ int Autoguider_Field_Expose(void)
 	else
 	{
 #if AUTOGUIDER_DEBUG > 5
-		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
-					      "Autoguider_Field_Expose:Using current Exposure Length:%d ms.",
+		Autoguider_General_Log_Format("field","autoguider_field.c","Autoguider_Field_Expose",
+					      LOG_VERBOSITY_VERBOSE,"FIELD",
+					      "Using current Exposure Length:%d ms.",
 					      Field_Data.Exposure_Length);
 #endif
 	}
@@ -760,8 +800,9 @@ int Autoguider_Field_Expose(void)
 	/* Use the buffer index _not_ used by the last completed field readout */
 	Field_Data.In_Use_Buffer_Index = (!Field_Data.Last_Buffer_Index);
 #if AUTOGUIDER_DEBUG > 9
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field_Expose:"
-				      "Locking raw field buffer %d.",Field_Data.In_Use_Buffer_Index);
+	Autoguider_General_Log_Format("field","autoguider_field.c","Autoguider_Field_Expose",
+				      LOG_VERBOSITY_VERBOSE,"FIELD","Locking raw field buffer %d.",
+				      Field_Data.In_Use_Buffer_Index);
 #endif
 	retval = Autoguider_Buffer_Raw_Field_Lock(Field_Data.In_Use_Buffer_Index,&buffer_ptr);
 	if(retval == FALSE)
@@ -777,13 +818,15 @@ int Autoguider_Field_Expose(void)
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 9
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field_Expose:field buffer locked.");
+	Autoguider_General_Log("field","autoguider_field.c","Autoguider_Field_Expose",
+			       LOG_VERBOSITY_VERBOSE,"FIELD","field buffer locked.");
 #endif
 	/* do a field */
 	start_time.tv_sec = 0;
 	start_time.tv_nsec = 0;
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field_Expose:"
+	Autoguider_General_Log_Format("field","autoguider_field.c","Autoguider_Field_Expose",
+				      LOG_VERBOSITY_VERBOSE,"FIELD",
 				      "Calling CCD_Exposure_Expose with exposure length %d ms.",
 				      Field_Data.Exposure_Length);
 #endif
@@ -805,31 +848,42 @@ int Autoguider_Field_Expose(void)
 	/* save the exposure length and start time for this buffer for future reference (FITS headers) */
 	if(!Autoguider_Buffer_Field_Exposure_Length_Set(Field_Data.In_Use_Buffer_Index,
 							Field_Data.Exposure_Length))
-		Autoguider_General_Error();
+	{
+		Autoguider_General_Error("field","autoguider_field.c","Autoguider_Field_Expose",
+				      LOG_VERBOSITY_VERBOSE,"FIELD");
+	}
 	retval = CCD_Exposure_Get_Exposure_Start_Time(&start_time);
 	if(retval == TRUE)
 	{
 		if(!Autoguider_Buffer_Field_Exposure_Start_Time_Set(Field_Data.In_Use_Buffer_Index,start_time))
-			Autoguider_General_Error();
+		{
+			Autoguider_General_Error("field","autoguider_field.c","Autoguider_Field_Expose",
+				      LOG_VERBOSITY_VERBOSE,"FIELD");
+		}
 	}
 	retval = CCD_Temperature_Get(&current_temperature,&temperature_status);
 	if(retval)
 	{
 #if AUTOGUIDER_DEBUG > 9
-		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Autoguider_Field_Expose:"
+		Autoguider_General_Log_Format("field","autoguider_field.c","Autoguider_Field_Expose",
+					      LOG_VERBOSITY_VERBOSE,"FIELD",
 					      "current temperature is %.2f C.",current_temperature);
 #endif
 		if(!Autoguider_Buffer_Field_CCD_Temperature_Set(Field_Data.In_Use_Buffer_Index,
 								current_temperature))
-			Autoguider_General_Error();
+		{
+			Autoguider_General_Error("field","autoguider_field.c","Autoguider_Field_Expose",
+				      LOG_VERBOSITY_VERBOSE,"FIELD");
+		}
 	}
 #if AUTOGUIDER_DEBUG > 7
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field:exposure completed.");
+	Autoguider_General_Log("field","autoguider_field.c","Autoguider_Field_Expose",
+			       LOG_VERBOSITY_VERBOSE,"FIELD","exposure completed.");
 #endif
 	/* unlock readout buffer */
 #if AUTOGUIDER_DEBUG > 9
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field_Expose:"
-				      "Unlocking raw field buffer %d.",
+	Autoguider_General_Log_Format("field","autoguider_field.c","Autoguider_Field_Expose",
+				      LOG_VERBOSITY_VERBOSE,"FIELD","Unlocking raw field buffer %d.",
 				      Field_Data.In_Use_Buffer_Index);
 #endif
 	retval = Autoguider_Buffer_Raw_Field_Unlock(Field_Data.In_Use_Buffer_Index);
@@ -864,18 +918,26 @@ int Autoguider_Field_Expose(void)
 	Field_Data.Last_Buffer_Index = Field_Data.In_Use_Buffer_Index;
 	Field_Data.In_Use_Buffer_Index = -1;
 #if AUTOGUIDER_DEBUG > 9
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field_Expose:"
+	Autoguider_General_Log_Format("field","autoguider_field.c","Autoguider_Field_Expose",
+				      LOG_VERBOSITY_VERBOSE,"FIELD",
 				      "Field buffer unlocked, last buffer now %d.",Field_Data.Last_Buffer_Index);
 #endif
 	/* reset fielding flag */
 	Field_Data.Is_Fielding = FALSE;
 	/* update SDB */
 	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
-		Autoguider_General_Error(); /* no need to fail */
+	{
+		Autoguider_General_Error("field","autoguider_field.c","Autoguider_Field_Expose",
+					 LOG_VERBOSITY_VERBOSE,"FIELD"); /* no need to fail */
+	}
 	if(!Autoguider_CIL_SDB_Packet_Send())
-		Autoguider_General_Error(); /* no need to fail */
+	{
+		Autoguider_General_Error("field","autoguider_field.c","Autoguider_Field_Expose",
+					 LOG_VERBOSITY_VERBOSE,"FIELD"); /* no need to fail */
+	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field_Expose:finished.");
+	Autoguider_General_Log("field","autoguider_field.c","Autoguider_Field_Expose",
+			       LOG_VERBOSITY_TERSE,"FIELD","finished.");
 #endif
 	return TRUE;
 }
@@ -1112,7 +1174,8 @@ int Autoguider_Field_Save_FITS(int successful)
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field_Save_FITS:started.");
+	Autoguider_General_Log("field","autoguider_field.c","Autoguider_Field_Save_FITS",
+			       LOG_VERBOSITY_TERSE,"FIELD","started.");
 #endif
 	/* get some config */
 	retval = CCD_Config_Get_String("field.fits.directory",&(directory_name));
@@ -1142,7 +1205,8 @@ int Autoguider_Field_Save_FITS(int successful)
 	sprintf(filename,"%s/field_%d_%d_%s.fits",directory_name,Field_Data.Field_Id,Field_Data.Frame_Number,
 		successful_string);
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field_Save_FITS:Saving to %s.",filename);
+	Autoguider_General_Log_Format("field","autoguider_field.c","Autoguider_Field_Save_FITS",
+				      LOG_VERBOSITY_VERBOSE,"FIELD","Saving to %s.",filename);
 #endif
 	/* open file */
 	fp = fopen(filename,"wb");
@@ -1192,7 +1256,8 @@ int Autoguider_Field_Save_FITS(int successful)
         if(directory_name != NULL)
 	        free(directory_name);
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Autoguider_Field_Save_FITS:finished.");
+	Autoguider_General_Log("field","autoguider_field.c","Autoguider_Field_Save_FITS",
+			       LOG_VERBOSITY_TERSE,"FIELD","finished.");
 #endif
 	return TRUE;
 }
@@ -1207,7 +1272,6 @@ int Autoguider_Field_Save_FITS(int successful)
  * @see #Field_Struct
  * @see autoguider_general.html#Autoguider_General_Log
  * @see autoguider_general.html#Autoguider_General_Log_Format
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_FIELD
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Integer
@@ -1217,7 +1281,8 @@ static int Field_Set_Dimensions(void)
 	int retval;
 
 #if AUTOGUIDER_DEBUG > 3
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Field_Set_Dimensions:started.");
+	Autoguider_General_Log("field","autoguider_field.c","Field_Set_Dimensions",
+			       LOG_VERBOSITY_VERBOSE,"FIELD","started.");
 #endif
 	/* nb this code is replicated in autoguider_buffer.c : Autoguider_Buffer_Initialise.
 	** We could perhaps only load from config once, and have getters in autoguider_buffer.c. */
@@ -1256,7 +1321,8 @@ static int Field_Set_Dimensions(void)
 	Field_Data.Binned_NCols = Field_Data.Unbinned_NCols / Field_Data.Bin_X;
 	Field_Data.Binned_NRows = Field_Data.Unbinned_NRows / Field_Data.Bin_Y;
 #if AUTOGUIDER_DEBUG > 3
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Field_Set_Dimensions:finished.");
+	Autoguider_General_Log("field","autoguider_field.c","Field_Set_Dimensions",
+			       LOG_VERBOSITY_VERBOSE,"FIELD","finished.");
 #endif
 	return TRUE;
 }
@@ -1274,7 +1340,6 @@ static int Field_Set_Dimensions(void)
  * @see autoguider_flat.html#Autoguider_Flat_Field
  * @see autoguider_general.html#Autoguider_General_Log
  * @see autoguider_general.html#Autoguider_General_Log_Format
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_FIELD
  * @see autoguider_object.html#Autoguider_Object_Detect
  */
 static int Field_Reduce(int buffer_index)
@@ -1284,14 +1349,16 @@ static int Field_Reduce(int buffer_index)
 	int retval;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Field_Reduce(%d):started.",buffer_index);
+	Autoguider_General_Log_Format("field","autoguider_field.c","Field_Reduce",
+				      LOG_VERBOSITY_TERSE,"FIELD","Field_Reduce(%d):started.",buffer_index);
 #endif
 	/* copy raw data to reduced data */
 	retval = Autoguider_Buffer_Raw_To_Reduced_Field(buffer_index);
 	if(retval == FALSE)
 	{
 #if AUTOGUIDER_DEBUG > 5
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Field_Reduce:"
+		Autoguider_General_Log("field","autoguider_field.c","Field_Reduce",
+				       LOG_VERBOSITY_VERBOSE,"FIELD",
 				       "Autoguider_Buffer_Raw_To_Reduced_Field failed.");
 #endif
 		return FALSE;
@@ -1301,8 +1368,9 @@ static int Field_Reduce(int buffer_index)
 	if(retval == FALSE)
 	{
 #if AUTOGUIDER_DEBUG > 5
-		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Field_Reduce:"
-				       "Autoguider_Buffer_Reduced_Field_Lock(%d) failed.",buffer_index);
+		Autoguider_General_Log_Format("field","autoguider_field.c","Field_Reduce",
+					      LOG_VERBOSITY_VERBOSE,"FIELD",
+					      "Autoguider_Buffer_Reduced_Field_Lock(%d) failed.",buffer_index);
 #endif
 		return FALSE;
 	}
@@ -1316,8 +1384,8 @@ static int Field_Reduce(int buffer_index)
 		{
 			Autoguider_Buffer_Reduced_Field_Unlock(buffer_index);
 #if AUTOGUIDER_DEBUG > 5
-			Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Field_Reduce:"
-					       "Autoguider_Dark_Subtract failed.");
+			Autoguider_General_Log("field","autoguider_field.c","Field_Reduce",
+					       LOG_VERBOSITY_VERBOSE,"FIELD","Autoguider_Dark_Subtract failed.");
 #endif
 			return FALSE;
 		}
@@ -1325,8 +1393,8 @@ static int Field_Reduce(int buffer_index)
 	else
 	{
 #if AUTOGUIDER_DEBUG > 5
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Field_Reduce:"
-				       "Did NOT subtract dark.");
+		Autoguider_General_Log("field","autoguider_field.c","Field_Reduce",
+				       LOG_VERBOSITY_VERBOSE,"FIELD","Did NOT subtract dark.");
 #endif
 	}
 	/* flat field */
@@ -1339,8 +1407,8 @@ static int Field_Reduce(int buffer_index)
 		{
 			Autoguider_Buffer_Reduced_Field_Unlock(buffer_index);
 #if AUTOGUIDER_DEBUG > 5
-			Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Field_Reduce:"
-					       "Autoguider_Flat_Field failed.");
+			Autoguider_General_Log("field","autoguider_field.c","Field_Reduce",
+					       LOG_VERBOSITY_VERBOSE,"FIELD","Autoguider_Flat_Field failed.");
 #endif
 			return FALSE;
 		}
@@ -1348,8 +1416,8 @@ static int Field_Reduce(int buffer_index)
 	else
 	{
 #if AUTOGUIDER_DEBUG > 5
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Field_Reduce:"
-				       "Did NOT flat field.");
+		Autoguider_General_Log("field","autoguider_field.c","Field_Reduce",
+				       LOG_VERBOSITY_VERBOSE,"FIELD","Did NOT flat field.");
 #endif
 	}
 	/* object detect */
@@ -1361,8 +1429,8 @@ static int Field_Reduce(int buffer_index)
 		{
 			Autoguider_Buffer_Reduced_Field_Unlock(buffer_index);
 #if AUTOGUIDER_DEBUG > 5
-			Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Field_Reduce:"
-					       "Autoguider_Object_Detect failed.");
+			Autoguider_General_Log("field","autoguider_field.c","Field_Reduce",
+					       LOG_VERBOSITY_VERBOSE,"FIELD","Autoguider_Object_Detect failed.");
 #endif
 			return FALSE;
 		}
@@ -1370,7 +1438,8 @@ static int Field_Reduce(int buffer_index)
 	else
 	{
 #if AUTOGUIDER_DEBUG > 5
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Field_Reduce:Did NOT object detect.");
+		Autoguider_General_Log("field","autoguider_field.c","Field_Reduce",
+				       LOG_VERBOSITY_VERBOSE,"FIELD","Did NOT object detect.");
 #endif
 	}
 	/* unlock reduction buffer */
@@ -1380,7 +1449,8 @@ static int Field_Reduce(int buffer_index)
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Field_Reduce:finished.");
+	Autoguider_General_Log("field","autoguider_field.c","Field_Reduce",
+			       LOG_VERBOSITY_TERSE,"FIELD","finished.");
 #endif
 	return TRUE;
 }
@@ -1448,7 +1518,6 @@ static int Field_Reduce(int buffer_index)
  * @see autoguider_dark.html#Autoguider_Dark_Get_Exposure_Length_Nearest
  * @see autoguider_general.html#Autoguider_General_Log
  * @see autoguider_general.html#Autoguider_General_Log_Format
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_FIELD
  * @see autoguider_object.html#Autoguider_Object_List_Get_Count
  * @see autoguider_object.html#Autoguider_Object_List_Get_Object
  */
@@ -1459,7 +1528,8 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 	float fwhm;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Field_Check_Done:started.");
+	Autoguider_General_Log("field","autoguider_field.c","Field_Check_Done",
+			       LOG_VERBOSITY_TERSE,"FIELD","started.");
 #endif
 	if(done == NULL)
 	{
@@ -1474,8 +1544,8 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
-				      "Field_Check_Done:Current exposure length %d ms (index %d).",
+	Autoguider_General_Log_Format("field","autoguider_field.c","Field_Check_Done",
+				      LOG_VERBOSITY_VERBOSE,"FIELD","Current exposure length %d ms (index %d).",
 				      Field_Data.Exposure_Length,(*dark_exposure_length_index));
 #endif
 	(*done) = FALSE;
@@ -1483,8 +1553,9 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 	if(Field_Data.Do_Object_Detect == FALSE)
 	{
 #if AUTOGUIDER_DEBUG > 1
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
-				       "Field_Check_Done:Object detection off:Nothing to check:finish field.");
+		Autoguider_General_Log("field","autoguider_field.c","Field_Check_Done",
+				       LOG_VERBOSITY_VERBOSE,"FIELD",
+				       "Object detection off:Nothing to check:finish field.");
 #endif
 		(*done) = TRUE;
 		return TRUE;
@@ -1493,8 +1564,9 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 	if(Field_Data.Exposure_Length_Lock == TRUE)
 	{
 #if AUTOGUIDER_DEBUG > 1
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
-		      	       "Field_Check_Done:Exposure Length locked:Cannot improve results:finish field.");
+		Autoguider_General_Log("field","autoguider_field.c","Field_Check_Done",
+				       LOG_VERBOSITY_VERBOSE,"FIELD",
+				       "Exposure Length locked:Cannot improve results:finish field.");
 #endif
 		(*done) = TRUE;
 		return TRUE;		
@@ -1503,8 +1575,9 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 	if(!Autoguider_Object_List_Get_Count(&object_count))
 	{
 #if AUTOGUIDER_DEBUG > 1
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
-				       "Field_Check_Done:Failed to get object list count:finish field.");
+		Autoguider_General_Log("field","autoguider_field.c","Field_Check_Done",
+				       LOG_VERBOSITY_VERBOSE,"FIELD",
+				       "Failed to get object list count:finish field.");
 #endif
 		(*done) = TRUE;
 		return FALSE;
@@ -1520,8 +1593,9 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 								&new_dark_exposure_length_index))
 		{
 #if AUTOGUIDER_DEBUG > 1
-			Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
-			      	       "Field_Check_Done:Failed to get nearest dark exposure length:finish field.");
+			Autoguider_General_Log("field","autoguider_field.c","Field_Check_Done",
+					       LOG_VERBOSITY_VERBOSE,"FIELD",
+					       "Failed to get nearest dark exposure length:finish field.");
 #endif
 			(*done) = TRUE;
 			return FALSE;
@@ -1530,8 +1604,9 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 		if(new_dark_exposure_length_index == (*dark_exposure_length_index))
 		{
 #if AUTOGUIDER_DEBUG > 1
-			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
-			      	  "Field_Check_Done:Failed to get new nearest dark exposure length (%d):finish field.",
+			Autoguider_General_Log_Format("field","autoguider_field.c","Field_Check_Done",
+						      LOG_VERBOSITY_VERBOSE,"FIELD",
+					   "Failed to get new nearest dark exposure length (%d):finish field.",
 						      new_dark_exposure_length_index);
 #endif
 			(*done) = TRUE;
@@ -1540,8 +1615,9 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 		/* otherwise we've successfully increased the exposure length - return not done */
 		(*dark_exposure_length_index) = new_dark_exposure_length_index;
 #if AUTOGUIDER_DEBUG > 1
-		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
-		      "Field_Check_Done:No objects found:Increased exposure length to %d ms (index %d):retry field.",
+		Autoguider_General_Log_Format("field","autoguider_field.c","Field_Check_Done",
+					      LOG_VERBOSITY_VERBOSE,"FIELD",
+		      "No objects found:Increased exposure length to %d ms (index %d):retry field.",
 					      Field_Data.Exposure_Length,(*dark_exposure_length_index));
 #endif
 		(*done) = FALSE;
@@ -1556,8 +1632,9 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 		if(!Autoguider_Object_List_Get_Object(i,&object))
 		{
 #if AUTOGUIDER_DEBUG > 1
-			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
-			      	       "Field_Check_Done:Failed to get object %d of %d from list:finish field.",
+			Autoguider_General_Log_Format("field","autoguider_field.c","Field_Check_Done",
+						      LOG_VERBOSITY_VERBOSE,"FIELD",
+						      "Failed to get object %d of %d from list:finish field.",
 						      i,object_count);
 #endif
 			(*done) = TRUE;
@@ -1580,16 +1657,18 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 					{
 						good_object_count++;
 #if AUTOGUIDER_DEBUG > 5
-						Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
-						    "Field_Check_Done:Object %d of %d:peak counts seem good %.2f.",
+						Autoguider_General_Log_Format("field","autoguider_field.c",
+							       "Field_Check_Done",LOG_VERBOSITY_VERBOSE,"FIELD",
+						    "Object %d of %d:peak counts seem good %.2f.",
 									      i,object_count,object.Peak_Counts);
 #endif
 					}
 					else
 					{
 #if AUTOGUIDER_DEBUG > 5
-						Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
-						  "Field_Check_Done:Object %d of %d:Object too near edge (%.2f,%.2f).",
+						Autoguider_General_Log_Format("field","autoguider_field.c",
+								     "Field_Check_Done",LOG_VERBOSITY_VERBOSE,"FIELD",
+						  "Object %d of %d:Object too near edge (%.2f,%.2f).",
 							i,object_count,object.CCD_X_Position,object.CCD_Y_Position);
 #endif
 					}
@@ -1597,15 +1676,17 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 				else
 				{
 #if AUTOGUIDER_DEBUG > 5
-					Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
-						      "Field_Check_Done:Object %d of %d:peak counts too large %.2f.",
-							      i,object_count,object.Peak_Counts);
+					Autoguider_General_Log_Format("field","autoguider_field.c",
+								     "Field_Check_Done",LOG_VERBOSITY_VERBOSE,"FIELD",
+								      "Object %d of %d:peak counts too large %.2f.",
+								      i,object_count,object.Peak_Counts);
 #endif
 					if(object_count == 1)/* this is the only object in the list - reduce exp len */
 					{
 #if AUTOGUIDER_DEBUG > 1
-						Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
-			      	       "Field_Check_Done:Only object has too many counts:reduce exp len:retry field.");
+						Autoguider_General_Log("field","autoguider_field.c",
+								     "Field_Check_Done",LOG_VERBOSITY_VERBOSE,"FIELD",
+			      	                        "Only object has too many counts:reduce exp len:retry field.");
 #endif
 						Field_Data.Exposure_Length = Field_Data.Exposure_Length/2.0f;
 						/* round field exposure length to nearest available dark */
@@ -1617,8 +1698,9 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 										&new_dark_exposure_length_index))
 						{
 #if AUTOGUIDER_DEBUG > 1
-							Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
-				          "Field_Check_Done:Failed to get nearest dark exposure length:finish field.");
+							Autoguider_General_Log("field","autoguider_field.c",
+								     "Field_Check_Done",LOG_VERBOSITY_VERBOSE,"FIELD",
+							  "Failed to get nearest dark exposure length:finish field.");
 #endif
 							(*done) = TRUE;
 							return FALSE;
@@ -1628,8 +1710,8 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 						if(new_dark_exposure_length_index == (*dark_exposure_length_index))
 						{
 #if AUTOGUIDER_DEBUG > 1
-							Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
-							   "Field_Check_Done:"
+							Autoguider_General_Log_Format("field","autoguider_field.c",
+								     "Field_Check_Done",LOG_VERBOSITY_VERBOSE,"FIELD",
 							   "Failed to get new nearest dark exposure length (%d):"
 							   "finish field.",new_dark_exposure_length_index);
 #endif
@@ -1640,8 +1722,9 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 						** return not done */
 						(*dark_exposure_length_index) = new_dark_exposure_length_index;
 #if AUTOGUIDER_DEBUG > 1
-						Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
-							   "Field_Check_Done:Object too bright:"
+						Autoguider_General_Log_Format("field","autoguider_field.c",
+								     "Field_Check_Done",LOG_VERBOSITY_VERBOSE,"FIELD",
+							   "Object too bright:"
 							   "Decreased exposure length to %d ms (index %d):"
 							   "retry field.",
 							   Field_Data.Exposure_Length,(*dark_exposure_length_index));
@@ -1655,8 +1738,9 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 			else
 			{
 #if AUTOGUIDER_DEBUG > 5
-				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
-						      "Field_Check_Done:Object %d of %d:peak counts too small %.2f.",
+				Autoguider_General_Log_Format("field","autoguider_field.c",
+							      "Field_Check_Done",LOG_VERBOSITY_VERBOSE,"FIELD",
+							      "Object %d of %d:peak counts too small %.2f.",
 							      i,object_count,object.Peak_Counts);
 #endif
 			}
@@ -1664,8 +1748,9 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 		else
 		{
 #if AUTOGUIDER_DEBUG > 5
-			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
-		      			      "Field_Check_Done:Object %d of %d is not stellar.",i,object_count);
+			Autoguider_General_Log_Format("field","autoguider_field.c",
+						      "Field_Check_Done",LOG_VERBOSITY_VERBOSE,"FIELD",
+						      "Object %d of %d is not stellar.",i,object_count);
 #endif
 		}
 	}/* end for */
@@ -1674,8 +1759,9 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 	{
 		(*done) = TRUE;
 #if AUTOGUIDER_DEBUG > 1
-		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
-					      "Field_Check_Done: %d good objects (of %d) found:finish field.",
+		Autoguider_General_Log_Format("field","autoguider_field.c",
+					      "Field_Check_Done",LOG_VERBOSITY_VERBOSE,"FIELD",
+					      "%d good objects (of %d) found:finish field.",
 					      good_object_count,object_count);
 #endif
 	}
@@ -1689,8 +1775,9 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 								&new_dark_exposure_length_index))
 		{
 #if AUTOGUIDER_DEBUG > 1
-			Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
-			      	       "Field_Check_Done:Failed to get nearest dark exposure length:finish field.");
+			Autoguider_General_Log("field","autoguider_field.c",
+					       "Field_Check_Done",LOG_VERBOSITY_VERBOSE,"FIELD",
+					       "Failed to get nearest dark exposure length:finish field.");
 #endif
 			(*done) = TRUE;
 			return FALSE;
@@ -1699,8 +1786,9 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 		if(new_dark_exposure_length_index == (*dark_exposure_length_index))
 		{
 #if AUTOGUIDER_DEBUG > 1
-			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
-			      	  "Field_Check_Done:Failed to get new nearest dark exposure length (%d):finish field.",
+			Autoguider_General_Log_Format("field","autoguider_field.c",
+						      "Field_Check_Done",LOG_VERBOSITY_VERBOSE,"FIELD",
+						 "Failed to get new nearest dark exposure length (%d):finish field.",
 						      new_dark_exposure_length_index);
 #endif
 			(*done) = TRUE;
@@ -1709,8 +1797,9 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 		/* otherwise we've successfully increased the exposure length - return not done */
 		(*dark_exposure_length_index) = new_dark_exposure_length_index;
 #if AUTOGUIDER_DEBUG > 1
-		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,
-		      "Field_Check_Done:No good objects found:"
+		Autoguider_General_Log_Format("field","autoguider_field.c",
+					      "Field_Check_Done",LOG_VERBOSITY_VERBOSE,"FIELD",
+					      "No good objects found:"
 					      "Increased exposure length to %d ms (index %d):retry field.",
 					      Field_Data.Exposure_Length,(*dark_exposure_length_index));
 #endif
@@ -1718,13 +1807,19 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 		return TRUE;
 	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_FIELD,"Field_Check_Done:finished.");
+	Autoguider_General_Log("field","autoguider_field.c","Field_Check_Done",LOG_VERBOSITY_TERSE,"FIELD",
+			       "finished.");
 #endif
 	return TRUE;
 }
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.13  2007/11/05 18:23:35  cjm
+** Removed Field_Save_FITS from Autoguider_Field.
+** New Autoguider_Field_Save_FITS is externally accessible, and Save_FITS_Failed and Save_FITS_Successful
+** have external accessors, so the correct calls can be made from autoguider_command.c: Autoguider_Command_Autoguide_On.
+**
 ** Revision 1.12  2007/11/05 14:35:05  cjm
 ** Added saving of successful and failed FITS images.
 **

@@ -1,11 +1,11 @@
 /* autoguider_guide.c
 ** Autoguider guide routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.37 2008-03-14 12:02:27 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.38 2009-01-30 18:01:33 cjm Exp $
 */
 /**
  * Guide routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.37 $
+ * @version $Revision: 1.38 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -24,6 +24,8 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+
+#include "log_udp.h"
 
 #include "ccd_exposure.h"
 #include "ccd_general.h"
@@ -186,7 +188,7 @@ struct Guide_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_guide.c,v 1.37 2008-03-14 12:02:27 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_guide.c,v 1.38 2009-01-30 18:01:33 cjm Exp $";
 /**
  * Instance of guide data.
  * @see #Guide_Struct
@@ -244,7 +246,8 @@ int Autoguider_Guide_Initialise(void)
 	int retval;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Autoguider_Guide_Initialise:started.");
+	Autoguider_General_Log("guide","autoguider_guide.c","Autoguider_Guide_Initialise",LOG_VERBOSITY_INTERMEDIATE,
+			       "GUIDE","started.");
 #endif
 	/* get reduction booleans */
 	retval = CCD_Config_Get_Boolean("guide.dark_subtract",&(Guide_Data.Do_Dark_Subtract));
@@ -323,7 +326,8 @@ int Autoguider_Guide_Initialise(void)
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Autoguider_Guide_Initialise:finished.");
+	Autoguider_General_Log("guide","autoguider_guide.c","Autoguider_Guide_Initialise",LOG_VERBOSITY_INTERMEDIATE,
+			       "GUIDE","finished.");
 #endif
 	return TRUE;
 }
@@ -389,7 +393,10 @@ int Autoguider_Guide_Window_Set(int sx,int sy,int ex,int ey)
 	Guide_Data.Window.Y_End = ey;
 	/* update SDB values */
 	if(!Autoguider_CIL_SDB_Packet_Window_Set(sx,sy,ex,ey))
-		Autoguider_General_Error(); /* no need to fail */
+	{
+		Autoguider_General_Error("guide","autoguider_guide.c","Autoguider_Guide_Window_Set",
+					 LOG_VERBOSITY_INTERMEDIATE,"GUIDE"); /* no need to fail */
+	}
 	return TRUE;
 }
 
@@ -437,7 +444,6 @@ int Autoguider_Guide_Exposure_Length_Set(int exposure_length,int lock)
  * @see autoguider_flat.html#Autoguider_Flat_Set
  * @see autoguider_general.html#Autoguider_General_Log
  * @see autoguider_general.html#Autoguider_General_Log_Format
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_GUIDE
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  */
@@ -450,7 +456,8 @@ int Autoguider_Guide_On(void)
 	int retval;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Autoguider_Guide_On:started.");
+	Autoguider_General_Log("guide","autoguider_guide.c","Autoguider_Guide_On",LOG_VERBOSITY_TERSE,
+			       "GUIDE","started.");
 #endif
 	if(Autoguider_Guide_Is_Guiding() == TRUE)
 	{
@@ -467,7 +474,8 @@ int Autoguider_Guide_On(void)
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Autoguider_Guide_On:Getting Dimensions.");
+	Autoguider_General_Log("guide","autoguider_guide.c","Autoguider_Guide_On",LOG_VERBOSITY_VERBOSE,
+			       "GUIDE","Getting Dimensions.");
 #endif
 	/* get dimensions */
 	if(!Guide_Dimension_Config_Load())
@@ -490,16 +498,16 @@ int Autoguider_Guide_On(void)
 			return FALSE;
 		}
 #if AUTOGUIDER_DEBUG > 5
-		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-					      "Autoguider_Guide_On:Exposure Length set to default:%d ms.",
+		Autoguider_General_Log_Format("guide","autoguider_guide.c","Autoguider_Guide_On",LOG_VERBOSITY_VERBOSE,
+					      "GUIDE","Exposure Length set to default:%d ms.",
 					      Guide_Data.Exposure_Length);
 #endif
 	}
 	else
 	{
 #if AUTOGUIDER_DEBUG > 5
-		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-					      "Autoguider_Guide_On:Using current Exposure Length:%d ms.",
+		Autoguider_General_Log_Format("guide","autoguider_guide.c","Autoguider_Guide_On",LOG_VERBOSITY_VERBOSE,
+					      "GUIDE","Using current Exposure Length:%d ms.",
 					      Guide_Data.Exposure_Length);
 #endif
 	}
@@ -512,7 +520,10 @@ int Autoguider_Guide_On(void)
 		return FALSE;
 	/* update SDB */
 	if(!Autoguider_CIL_SDB_Packet_Exp_Time_Set(Guide_Data.Exposure_Length))
-		Autoguider_General_Error(); /* no need to fail */
+	{
+		Autoguider_General_Error("guide","autoguider_guide.c","Autoguider_Guide_On",
+					 LOG_VERBOSITY_INTERMEDIATE,"GUIDE"); /* no need to fail */
+	}
 	/* initialise thread quit variable */
 	Guide_Data.Quit_Guiding = FALSE;
 	/* initialise Guide ID */
@@ -531,7 +542,8 @@ int Autoguider_Guide_On(void)
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Autoguider_Guide_On:finished.");
+	Autoguider_General_Log("guide","autoguider_guide.c","Autoguider_Guide_On",LOG_VERBOSITY_TERSE,
+			       "GUIDE","finished.");
 #endif
 	return TRUE;
 }
@@ -560,9 +572,15 @@ int Autoguider_Guide_Off(void)
 	Guide_Data.Quit_Guiding = TRUE;
 	/* update SDB */
 	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
-		Autoguider_General_Error(); /* no need to fail */
+	{
+		Autoguider_General_Error("guide","autoguider_guide.c","Autoguider_Guide_Off",LOG_VERBOSITY_TERSE,
+					 "GUIDE"); /* no need to fail */
+	}
 	if(!Autoguider_CIL_SDB_Packet_Send())
-		Autoguider_General_Error(); /* no need to fail */
+	{
+		Autoguider_General_Error("guide","autoguider_guide.c","Autoguider_Guide_Off",LOG_VERBOSITY_TERSE,
+					 "GUIDE"); /* no need to fail */
+	}
 	return TRUE;
 }
 
@@ -737,7 +755,6 @@ int Autoguider_Guide_Get_Guide_Window_Tracking(void)
  * @see autoguider_field.html#Autoguider_Field_Get_Exposure_Length
  * @see autoguider_general.html#Autoguider_General_Log
  * @see autoguider_general.html#Autoguider_General_Log_Format
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_GUIDE
  * @see autoguider_object.html#Autoguider_Object_List_Get_Object
  * @see autoguider_object.html#Autoguider_Object_Struct
  */
@@ -751,7 +768,8 @@ int Autoguider_Guide_Set_Guide_Object(int index)
 	int min_exposure_length,max_exposure_length,retval;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Autoguider_Guide_Set_Guide_Object:started.");
+	Autoguider_General_Log("guide","autoguider_guide.c","Autoguider_Guide_Set_Guide_Object",LOG_VERBOSITY_TERSE,
+			       "GUIDE","started.");
 #endif
 	if(Autoguider_Guide_Is_Guiding() == TRUE)
 	{
@@ -837,7 +855,8 @@ int Autoguider_Guide_Set_Guide_Object(int index)
 		}
 		/* and actually do guide exposure length scaling */
 #if AUTOGUIDER_DEBUG > 5
-		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Autoguider_Guide_Set_Guide_Object:"
+		Autoguider_General_Log_Format("guide","autoguider_guide.c","Autoguider_Guide_Set_Guide_Object",
+					      LOG_VERBOSITY_TERSE,"GUIDE",
 				       "field exposure length =%d, target_counts = %d, integrated counts = %.2f, "
 				       "peak counts = %.2f, scale type = %s.",field_exposure_length,target_counts,
 				       object.Total_Counts,object.Peak_Counts,scale_type_string);
@@ -854,8 +873,9 @@ int Autoguider_Guide_Set_Guide_Object(int index)
 		if(scale_type_string != NULL)
 			free(scale_type_string);
 #if AUTOGUIDER_DEBUG > 5
-		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Autoguider_Guide_Set_Guide_Object:"
-				       "guide exposure length = %d.",guide_exposure_length);
+		Autoguider_General_Log_Format("guide","autoguider_guide.c","Autoguider_Guide_Set_Guide_Object",
+					      LOG_VERBOSITY_TERSE,"GUIDE",
+					      "guide exposure length = %d.",guide_exposure_length);
 #endif
 		if(guide_exposure_length < min_exposure_length)
 		{
@@ -866,14 +886,16 @@ int Autoguider_Guide_Set_Guide_Object(int index)
 			guide_exposure_length = max_exposure_length;
 		}
 #if AUTOGUIDER_DEBUG > 5
-		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Autoguider_Guide_Set_Guide_Object:"
-			       "best guide exposure length = %d.",guide_exposure_length);
+		Autoguider_General_Log_Format("guide","autoguider_guide.c","Autoguider_Guide_Set_Guide_Object",
+					      LOG_VERBOSITY_TERSE,"GUIDE",
+					      "best guide exposure length = %d.",guide_exposure_length);
 #endif
 		/* round guide exposure length to nearest available dark */
 		if(!Autoguider_Dark_Get_Exposure_Length_Nearest(&guide_exposure_length,&guide_exposure_index))
 			return FALSE;
 #if AUTOGUIDER_DEBUG > 5
-		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Autoguider_Guide_Set_Guide_Object:"
+		Autoguider_General_Log_Format("guide","autoguider_guide.c","Autoguider_Guide_Set_Guide_Object",
+					      LOG_VERBOSITY_TERSE,"GUIDE",
 					      "nearest guide exposure length = %d (index %d).",
 					      guide_exposure_length,guide_exposure_index);
 #endif
@@ -882,7 +904,8 @@ int Autoguider_Guide_Set_Guide_Object(int index)
 			return FALSE;
 	}/* end if exposure length not locked */
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Autoguider_Guide_Set_Guide_Object:finished.");
+	Autoguider_General_Log("guide","autoguider_guide.c","Autoguider_Guide_Set_Guide_Object",
+			       LOG_VERBOSITY_TERSE,"GUIDE","finished.");
 #endif
 	return TRUE;
 }
@@ -901,7 +924,6 @@ int Autoguider_Guide_Set_Guide_Object(int index)
  * @see #Autoguider_Guide_Window_Set
  * @see autoguider_general.html#Autoguider_General_Log
  * @see autoguider_general.html#Autoguider_General_Log_Format
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_GUIDE
  * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Integer
  */
 int Autoguider_Guide_Window_Set_From_XY(int ccd_x_position,int ccd_y_position)
@@ -909,8 +931,9 @@ int Autoguider_Guide_Window_Set_From_XY(int ccd_x_position,int ccd_y_position)
 	int retval,default_window_width,default_window_height,sx,sy,ex,ey;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-				      "Autoguider_Guide_Window_Set_From_XY(%d,%d):starteded.",
+	Autoguider_General_Log_Format("guide","autoguider_guide.c","Autoguider_Guide_Window_Set_From_XY",
+				      LOG_VERBOSITY_INTERMEDIATE,"GUIDE",
+				      "Guide Window Set From XY(%d,%d):started.",
 				      ccd_x_position,ccd_y_position);
 #endif
 	/* get default guide window size */
@@ -948,7 +971,8 @@ int Autoguider_Guide_Window_Set_From_XY(int ccd_x_position,int ccd_y_position)
 	if(!Autoguider_Guide_Window_Set(sx,sy,ex,ey))
 		return FALSE;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Autoguider_Guide_Window_Set_From_XY:finished.");
+	Autoguider_General_Log("guide","autoguider_guide.c","Autoguider_Guide_Window_Set_From_XY",
+			       LOG_VERBOSITY_INTERMEDIATE,"GUIDE","finished.");
 #endif
 	return TRUE;
 }
@@ -1129,7 +1153,6 @@ float Autoguider_Guide_Timecode_Scaling_Get(void)
  * @see autoguider_general.html#fdifftime
  * @see autoguider_general.html#Autoguider_General_Log
  * @see autoguider_general.html#Autoguider_General_Log_Format
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_GUIDE
  * @see ../ccd/cdocs/ccd_exposure.html#CCD_Exposure_Expose
  * @see ../ccd/cdocs/ccd_exposure.html#CCD_Exposure_Get_Exposure_Start_Time
  * @see ../ccd/cdocs/ccd_setup.html#CCD_Setup_Dimensions
@@ -1146,22 +1169,30 @@ static void *Guide_Thread(void *user_arg)
 	int retval;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:started.");
+	Autoguider_General_Log("guide","autoguider_guide.c","Guide_Thread",
+			       LOG_VERBOSITY_VERY_TERSE,"GUIDE","started.");
 #endif
 	/* set is guiding flag */
 	Guide_Data.Is_Guiding = TRUE;
 	/* update SDB */
 	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_GUIDEONBRIGHT))/* diddly bodge */
-		Autoguider_General_Error(); /* no need to fail */
+	{
+		Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+					 LOG_VERBOSITY_VERY_TERSE,"GUIDE"); /* no need to fail */
+	}
 	if(!Autoguider_CIL_SDB_Packet_Send())
-		Autoguider_General_Error(); /* no need to fail */
+	{
+		Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+					 LOG_VERBOSITY_VERY_TERSE,"GUIDE"); /* no need to fail */
+	}
 	/* reset frame number */
 	Guide_Data.Frame_Number = 0;
 	/* get loop start time for stats/guide packet */
 	clock_gettime(CLOCK_REALTIME,&loop_start_time);
 	/* setup dimensions at start of loop - can be changed if guide window tracking */
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:"
+	Autoguider_General_Log_Format("guide","autoguider_guide.c","Guide_Thread",
+				      LOG_VERBOSITY_VERY_TERSE,"GUIDE",
 	   "Calling CCD_Setup_Dimensions(ncols=%d,nrows=%d,binx=%d,biny=%d,window={xs=%d,ys=%d,xe=%d,ye=%d}).",
 				      Guide_Data.Unbinned_NCols,Guide_Data.Unbinned_NRows,
 				      Guide_Data.Bin_X,Guide_Data.Bin_Y,
@@ -1173,24 +1204,31 @@ static void *Guide_Thread(void *user_arg)
 	if(retval == FALSE)
 	{
 #if AUTOGUIDER_DEBUG > 1
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:"
-				       "Failed on CCD_Setup_Dimensions.");
+		Autoguider_General_Log("guide","autoguider_guide.c","Guide_Thread",
+				       LOG_VERBOSITY_VERY_TERSE,"GUIDE","Failed on CCD_Setup_Dimensions.");
 #endif
 		/* reset guiding flag */
 		Guide_Data.Is_Guiding = FALSE;
 		Autoguider_General_Error_Number = 711;
 		sprintf(Autoguider_General_Error_String,"Guide_Thread:CCD_Setup_Dimensions failed.");
-		Autoguider_General_Error();
+		Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",LOG_VERBOSITY_VERY_TERSE,"GUIDE");
 		/* update SDB */
 		if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
-			Autoguider_General_Error(); /* no need to fail */
+		{
+			Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+						 LOG_VERBOSITY_VERY_TERSE,"GUIDE"); /* no need to fail */
+		}
 		if(!Autoguider_CIL_SDB_Packet_Send())
-			Autoguider_General_Error(); /* no need to fail */
+		{
+			Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+						 LOG_VERBOSITY_VERY_TERSE,"GUIDE"); /* no need to fail */
+		}
 		return NULL;
 	}
 	/* ensure the buffer is the right size */
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:"
+	Autoguider_General_Log_Format("guide","autoguider_guide.c","Guide_Thread",
+				      LOG_VERBOSITY_VERY_TERSE,"GUIDE",
 	   "Calling Autoguider_Buffer_Set_Guide_Dimension(ncols=%d(%d-%d),nrows=%d(%d-%d),binx=%d,biny=%d).",
 				      Guide_Data.Window.X_End-Guide_Data.Window.X_Start,
 				      Guide_Data.Window.X_End,Guide_Data.Window.X_Start,
@@ -1204,17 +1242,25 @@ static void *Guide_Thread(void *user_arg)
 	if(retval == FALSE)
 	{
 #if AUTOGUIDER_DEBUG > 1
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:"
+		Autoguider_General_Log("guide","autoguider_guide.c","Guide_Thread",
+				       LOG_VERBOSITY_VERY_TERSE,"GUIDE",
 				       "Failed on Autoguider_Buffer_Set_Guide_Dimension.");
 #endif
 		/* reset guiding flag */
 		Guide_Data.Is_Guiding = FALSE;
-		Autoguider_General_Error();
+		Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+					 LOG_VERBOSITY_VERY_TERSE,"GUIDE");
 		/* update SDB */
 		if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
-			Autoguider_General_Error(); /* no need to fail */
+		{
+			Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+						 LOG_VERBOSITY_VERY_TERSE,"GUIDE"); /* no need to fail */
+		}
 		if(!Autoguider_CIL_SDB_Packet_Send())
-			Autoguider_General_Error(); /* no need to fail */
+		{
+			Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+						 LOG_VERBOSITY_VERY_TERSE,"GUIDE"); /* no need to fail */
+		}
 		return NULL;
 	}
 	/* open guide packet socket */
@@ -1222,21 +1268,30 @@ static void *Guide_Thread(void *user_arg)
 	if(retval == FALSE)
 	{
 #if AUTOGUIDER_DEBUG > 1
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:"
+		Autoguider_General_Log("guide","autoguider_guide.c","Guide_Thread",
+				       LOG_VERBOSITY_VERY_TERSE,"GUIDE",
 				       "Failed on Autoguider_CIL_Guide_Packet_Open.");
 #endif
 		/* reset guiding flag */
 		Guide_Data.Is_Guiding = FALSE;
-		Autoguider_General_Error();
+		Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+					 LOG_VERBOSITY_VERY_TERSE,"GUIDE");
 		/* update SDB */
 		if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
-			Autoguider_General_Error(); /* no need to fail */
+		{
+			Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+						 LOG_VERBOSITY_VERY_TERSE,"GUIDE"); /* no need to fail */
+		}
 		if(!Autoguider_CIL_SDB_Packet_Send())
-			Autoguider_General_Error(); /* no need to fail */
+		{
+			Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+						 LOG_VERBOSITY_VERY_TERSE,"GUIDE"); /* no need to fail */
+		}
 		return NULL;
 	}
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:starting guide loop.");
+	Autoguider_General_Log("guide","autoguider_guide.c","Guide_Thread",
+			       LOG_VERBOSITY_VERY_TERSE,"GUIDE","starting guide loop.");
 #endif
 	/* start guide loop */
 	while(Guide_Data.Quit_Guiding == FALSE)
@@ -1245,15 +1300,16 @@ static void *Guide_Thread(void *user_arg)
 		/* Use the buffer index _not_ used by the last completed field readout */
 		Guide_Data.In_Use_Buffer_Index = (!Guide_Data.Last_Buffer_Index);
 #if AUTOGUIDER_DEBUG > 9
-		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-					      "Guide_Thread:Locking raw guide buffer %d.",
-					      Guide_Data.In_Use_Buffer_Index);
+		Autoguider_General_Log_Format("guide","autoguider_guide.c","Guide_Thread",
+					      LOG_VERBOSITY_INTERMEDIATE,"GUIDE",
+					      "Locking raw guide buffer %d.",Guide_Data.In_Use_Buffer_Index);
 #endif
 		retval = Autoguider_Buffer_Raw_Guide_Lock(Guide_Data.In_Use_Buffer_Index,&buffer_ptr);
 		if(retval == FALSE)
 		{
 #if AUTOGUIDER_DEBUG > 1
-			Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:"
+			Autoguider_General_Log("guide","autoguider_guide.c","Guide_Thread",
+					       LOG_VERBOSITY_VERY_TERSE,"GUIDE",
 					       "Failed on Autoguider_Buffer_Raw_Guide_Lock.");
 #endif
 			/* reset guiding flag */
@@ -1263,27 +1319,36 @@ static void *Guide_Thread(void *user_arg)
 			Autoguider_General_Error_Number = 712;
 			sprintf(Autoguider_General_Error_String,"Guide_Thread:"
 				"Autoguider_Buffer_Raw_Guide_Lock failed.");
-			Autoguider_General_Error();
+			Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+						 LOG_VERBOSITY_VERY_TERSE,"GUIDE");
 			/* send tcs guide packet termination packet. */
 			Guide_Packet_Send(TRUE,Guide_Data.Loop_Cadence*Guide_Data.Timecode_Scaling_Factor);
 			/* close tcs guide packet socket */
 			Autoguider_CIL_Guide_Packet_Close();
 			/* update SDB */
 			if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
-				Autoguider_General_Error(); /* no need to fail */
+			{
+				Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+							 LOG_VERBOSITY_VERY_TERSE,"GUIDE"); /* no need to fail */
+			}
 			if(!Autoguider_CIL_SDB_Packet_Send())
-				Autoguider_General_Error(); /* no need to fail */
+			{
+				Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+							 LOG_VERBOSITY_VERY_TERSE,"GUIDE"); /* no need to fail */
+			}
 			return NULL;
 		}
 #if AUTOGUIDER_DEBUG > 9
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:raw guide buffer locked.");
+		Autoguider_General_Log("guide","autoguider_guide.c","Guide_Thread",
+				       LOG_VERBOSITY_INTERMEDIATE,"GUIDE","raw guide buffer locked.");
 #endif
 		/* do a guide exposure */
 		start_time.tv_sec = 0;
 		start_time.tv_nsec = 0;
 #if AUTOGUIDER_DEBUG > 9
-		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:"
-				      "Calling CCD_Exposure_Expose with exposure length %d ms.",
+		Autoguider_General_Log_Format("guide","autoguider_guide.c","Guide_Thread",
+					      LOG_VERBOSITY_VERY_TERSE,"GUIDE",
+					      "Calling CCD_Exposure_Expose with exposure length %d ms.",
 					      Guide_Data.Exposure_Length);
 #endif
 		retval = CCD_Exposure_Expose(TRUE,start_time,Guide_Data.Exposure_Length,buffer_ptr,
@@ -1291,8 +1356,8 @@ static void *Guide_Thread(void *user_arg)
 		if(retval == FALSE)
 		{
 #if AUTOGUIDER_DEBUG > 1
-			Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:"
-					       "Failed on CCD_Exposure_Expose.");
+			Autoguider_General_Log("guide","autoguider_guide.c","Guide_Thread",
+					       LOG_VERBOSITY_VERY_TERSE,"GUIDE","Failed on CCD_Exposure_Expose.");
 #endif
 			/* reset guiding flag */
 			Guide_Data.Is_Guiding = FALSE;
@@ -1302,54 +1367,73 @@ static void *Guide_Thread(void *user_arg)
 			Guide_Data.In_Use_Buffer_Index = -1;
 			Autoguider_General_Error_Number = 713;
 			sprintf(Autoguider_General_Error_String,"Guide_Thread:CCD_Exposure_Expose failed.");
-			Autoguider_General_Error();
+			Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+						 LOG_VERBOSITY_VERY_TERSE,"GUIDE");
 			/* send tcs guide packet termination packet. */
 			Guide_Packet_Send(TRUE,Guide_Data.Loop_Cadence*Guide_Data.Timecode_Scaling_Factor);
 			/* close tcs guide packet socket */
 			Autoguider_CIL_Guide_Packet_Close();
 			/* update SDB */
 			if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
-				Autoguider_General_Error(); /* no need to fail */
+			{
+				Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+							 LOG_VERBOSITY_VERY_TERSE,"GUIDE"); /* no need to fail */
+			}
 			if(!Autoguider_CIL_SDB_Packet_Send())
-				Autoguider_General_Error(); /* no need to fail */
+			{
+				Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+							 LOG_VERBOSITY_VERY_TERSE,"GUIDE"); /* no need to fail */
+			}
 			return NULL;
 		}
 		/* save the exposure length,start time and CCD temperature for this buffer 
 		** for future reference (FITS headers) */
 		if(!Autoguider_Buffer_Guide_Exposure_Length_Set(Guide_Data.In_Use_Buffer_Index,
 								Guide_Data.Exposure_Length))
-			Autoguider_General_Error();
+		{
+			Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+						 LOG_VERBOSITY_VERY_TERSE,"GUIDE");
+		}
 		retval = CCD_Exposure_Get_Exposure_Start_Time(&start_time);
 		if(retval == TRUE)
 		{
 			if(!Autoguider_Buffer_Guide_Exposure_Start_Time_Set(Guide_Data.In_Use_Buffer_Index,start_time))
-				Autoguider_General_Error();
+			{
+				Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+							 LOG_VERBOSITY_VERY_TERSE,"GUIDE");
+			}
 		}
 		retval = CCD_Temperature_Get(&current_temperature,&temperature_status);
 		if(retval)
 		{
 #if AUTOGUIDER_DEBUG > 9
-			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:"
-					      "current temperature is %.2f C.",current_temperature);
+			Autoguider_General_Log_Format("guide","autoguider_guide.c","Guide_Thread",
+						      LOG_VERBOSITY_VERY_VERBOSE,"GUIDE",
+						      "current temperature is %.2f C.",current_temperature);
 #endif
 			if(!Autoguider_Buffer_Guide_CCD_Temperature_Set(Guide_Data.In_Use_Buffer_Index,
 									current_temperature))
-				Autoguider_General_Error();
+			{
+				Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+							 LOG_VERBOSITY_VERY_TERSE,"GUIDE");
+			}
 		}
 #if AUTOGUIDER_DEBUG > 9
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:exposure completed.");
+		Autoguider_General_Log("guide","autoguider_guide.c","Guide_Thread",
+				       LOG_VERBOSITY_TERSE,"GUIDE","exposure completed.");
 #endif
 		/* unlock readout buffer */
 #if AUTOGUIDER_DEBUG > 9
-		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-					      "Guide_Thread:Unlocking guide buffer %d.",
-					      Guide_Data.In_Use_Buffer_Index);
+		Autoguider_General_Log_Format("guide","autoguider_guide.c","Guide_Thread",
+					      LOG_VERBOSITY_VERY_VERBOSE,"GUIDE",
+					      "Unlocking guide buffer %d.",Guide_Data.In_Use_Buffer_Index);
 #endif
 		retval = Autoguider_Buffer_Raw_Guide_Unlock(Guide_Data.In_Use_Buffer_Index);
 		if(retval == FALSE)
 		{
 #if AUTOGUIDER_DEBUG > 1
-			Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:"
+			Autoguider_General_Log("guide","autoguider_guide.c","Guide_Thread",
+					       LOG_VERBOSITY_VERY_TERSE,"GUIDE",
 					       "Failed on Autoguider_Buffer_Raw_Guide_Unlock.");
 #endif
 			/* reset guiding flag */
@@ -1359,16 +1443,23 @@ static void *Guide_Thread(void *user_arg)
 				"Autoguider_Buffer_Raw_Guide_Unlock failed.");
 			/* reset in use buffer index */
 			Guide_Data.In_Use_Buffer_Index = -1;
-			Autoguider_General_Error();
+			Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+						 LOG_VERBOSITY_VERY_TERSE,"GUIDE");
 			/* send tcs guide packet termination packet. */
 			Guide_Packet_Send(TRUE,Guide_Data.Loop_Cadence*Guide_Data.Timecode_Scaling_Factor);
 			/* close tcs guide packet socket */
 			Autoguider_CIL_Guide_Packet_Close();
 			/* update SDB */
 			if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
-				Autoguider_General_Error(); /* no need to fail */
+			{
+				Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+							 LOG_VERBOSITY_VERY_TERSE,"GUIDE"); /* no need to fail */
+			}
 			if(!Autoguider_CIL_SDB_Packet_Send())
-				Autoguider_General_Error(); /* no need to fail */
+			{
+				Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+							 LOG_VERBOSITY_VERY_TERSE,"GUIDE"); /* no need to fail */
+			}
 			return NULL;
 		}
 		/* reduce data */
@@ -1380,23 +1471,30 @@ static void *Guide_Thread(void *user_arg)
 		if(retval == FALSE)
 		{
 #if AUTOGUIDER_DEBUG > 1
-			Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:"
-					       "Failed on Guide_Reduce.");
+			Autoguider_General_Log("guide","autoguider_guide.c","Guide_Thread",
+					       LOG_VERBOSITY_VERY_TERSE,"GUIDE","Failed on Guide_Reduce.");
 #endif
 			/* reset guiding flag */
 			Guide_Data.Is_Guiding = FALSE;
 			/* reset in use buffer index */
 			Guide_Data.In_Use_Buffer_Index = -1;
-			Autoguider_General_Error();
+			Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+						 LOG_VERBOSITY_VERY_TERSE,"GUIDE");
 			/* send tcs guide packet termination packet. */
 			Guide_Packet_Send(TRUE,Guide_Data.Loop_Cadence*Guide_Data.Timecode_Scaling_Factor);
 			/* close tcs guide packet socket */
 			Autoguider_CIL_Guide_Packet_Close();
 			/* update SDB */
 			if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
-				Autoguider_General_Error(); /* no need to fail */
+			{
+				Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+							 LOG_VERBOSITY_VERY_TERSE,"GUIDE"); /* no need to fail */
+			}
 			if(!Autoguider_CIL_SDB_Packet_Send())
-				Autoguider_General_Error(); /* no need to fail */
+			{
+				Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+							 LOG_VERBOSITY_VERY_TERSE,"GUIDE"); /* no need to fail */
+			}
 			return NULL;
 		}
 		/* Do any necessary exposure length scaling */
@@ -1404,31 +1502,40 @@ static void *Guide_Thread(void *user_arg)
 		if(retval == FALSE)
 		{
 #if AUTOGUIDER_DEBUG > 1
-			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:"
-					       "Failed on Guide_Exposure_Length_Scale.");
+			Autoguider_General_Log_Format("guide","autoguider_guide.c","Guide_Thread",
+						      LOG_VERBOSITY_VERY_TERSE,"GUIDE",
+						      "Failed on Guide_Exposure_Length_Scale.");
 #endif
 			/* reset guiding flag */
 			Guide_Data.Is_Guiding = FALSE;
 			/* reset in use buffer index */
 			Guide_Data.In_Use_Buffer_Index = -1;
-			Autoguider_General_Error();
+			Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+						 LOG_VERBOSITY_VERY_TERSE,"GUIDE");
 			/* send tcs guide packet termination packet. */
 			Guide_Packet_Send(TRUE,Guide_Data.Loop_Cadence*Guide_Data.Timecode_Scaling_Factor);
 			/* close tcs guide packet socket */
 			Autoguider_CIL_Guide_Packet_Close();
 			/* update SDB */
 			if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
-				Autoguider_General_Error(); /* no need to fail */
+			{
+				Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+							 LOG_VERBOSITY_VERY_TERSE,"GUIDE"); /* no need to fail */
+			}
 			if(!Autoguider_CIL_SDB_Packet_Send())
-				Autoguider_General_Error(); /* no need to fail */
+			{
+				Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+							 LOG_VERBOSITY_VERY_TERSE,"GUIDE"); /* no need to fail */
+			}
 			return NULL;
 		}
 		/* get loop time for stats/guide packet */
 		clock_gettime(CLOCK_REALTIME,&current_time);
 		Guide_Data.Loop_Cadence = fdifftime(current_time,loop_start_time);
 #if AUTOGUIDER_DEBUG > 5
-		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-					      "Guide_Thread:Last loop took %.2f seconds.",Guide_Data.Loop_Cadence);
+		Autoguider_General_Log_Format("guide","autoguider_guide.c","Guide_Thread",
+					      LOG_VERBOSITY_INTERMEDIATE,"GUIDE",
+					      "Last loop took %.2f seconds.",Guide_Data.Loop_Cadence);
 #endif
 		clock_gettime(CLOCK_REALTIME,&loop_start_time);
 		/* send position update to TCS */
@@ -1436,23 +1543,31 @@ static void *Guide_Thread(void *user_arg)
 		if(retval == FALSE)
 		{
 #if AUTOGUIDER_DEBUG > 1
-			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:"
-					       "Failed on Guide_Packet_Send.");
+			Autoguider_General_Log_Format("guide","autoguider_guide.c","Guide_Thread",
+						      LOG_VERBOSITY_INTERMEDIATE,"GUIDE",
+						      "Failed on Guide_Packet_Send.");
 #endif
 			/* reset guiding flag */
 			Guide_Data.Is_Guiding = FALSE;
 			/* reset in use buffer index */
 			Guide_Data.In_Use_Buffer_Index = -1;
-			Autoguider_General_Error();
+			Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+						 LOG_VERBOSITY_VERY_TERSE,"GUIDE");
 			/* send tcs guide packet termination packet. */
 			Guide_Packet_Send(TRUE,Guide_Data.Loop_Cadence*Guide_Data.Timecode_Scaling_Factor);
 			/* close tcs guide packet socket */
 			Autoguider_CIL_Guide_Packet_Close();
 			/* update SDB */
 			if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
-				Autoguider_General_Error(); /* no need to fail */
+			{
+				Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+							 LOG_VERBOSITY_VERY_TERSE,"GUIDE"); /* no need to fail */
+			}
 			if(!Autoguider_CIL_SDB_Packet_Send())
-				Autoguider_General_Error(); /* no need to fail */
+			{
+				Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+							 LOG_VERBOSITY_VERY_TERSE,"GUIDE"); /* no need to fail */
+			}
 			return NULL;
 		}
 		/* Update SDB Guide Exposure time
@@ -1464,32 +1579,46 @@ static void *Guide_Thread(void *user_arg)
 		if(Guide_Data.Use_Cadence_For_SDB_Exp_Time)
 		{
 			if(!Autoguider_CIL_SDB_Packet_Exp_Time_Set((int)(Guide_Data.Loop_Cadence*1000.0)))
-				Autoguider_General_Error(); /* no need to fail */
+			{
+				Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+							 LOG_VERBOSITY_VERY_TERSE,"GUIDE"); /* no need to fail */
+			}
 			if(!Autoguider_CIL_SDB_Packet_Send())
-				Autoguider_General_Error(); /* no need to fail */
+			{
+				Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+							 LOG_VERBOSITY_VERY_TERSE,"GUIDE"); /* no need to fail */
+			}
 		}
 		/* Do any necessary guide window tracking */
 		retval = Guide_Window_Track();
 		if(retval == FALSE)
 		{
 #if AUTOGUIDER_DEBUG > 1
-			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:"
-					       "Failed on Guide_Window_Track.");
+			Autoguider_General_Log_Format("guide","autoguider_guide.c","Guide_Thread",
+						      LOG_VERBOSITY_VERY_TERSE,"GUIDE",
+						      "Failed on Guide_Window_Track.");
 #endif
 			/* reset guiding flag */
 			Guide_Data.Is_Guiding = FALSE;
 			/* reset in use buffer index */
 			Guide_Data.In_Use_Buffer_Index = -1;
-			Autoguider_General_Error();
+			Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+						 LOG_VERBOSITY_VERY_TERSE,"GUIDE");
 			/* send tcs guide packet termination packet. */
 			Guide_Packet_Send(TRUE,Guide_Data.Loop_Cadence*Guide_Data.Timecode_Scaling_Factor);
 			/* close tcs guide packet socket */
 			Autoguider_CIL_Guide_Packet_Close();
 			/* update SDB */
 			if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
-				Autoguider_General_Error(); /* no need to fail */
+			{
+				Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+							 LOG_VERBOSITY_VERY_TERSE,"GUIDE"); /* no need to fail */
+			}
 			if(!Autoguider_CIL_SDB_Packet_Send())
-				Autoguider_General_Error(); /* no need to fail */
+			{
+				Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+							 LOG_VERBOSITY_VERY_TERSE,"GUIDE"); /* no need to fail */
+			}
 			return NULL;
 		}
 		/* reset buffer indexs */
@@ -1497,7 +1626,8 @@ static void *Guide_Thread(void *user_arg)
 		Guide_Data.In_Use_Buffer_Index = -1;
 		Guide_Data.Frame_Number++;
 #if AUTOGUIDER_DEBUG > 9
-		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:"
+		Autoguider_General_Log_Format("guide","autoguider_guide.c","Guide_Thread",
+					      LOG_VERBOSITY_INTERMEDIATE,"GUIDE",
 					      "Guide buffer unlocked, last buffer now %d.",
 					      Guide_Data.Last_Buffer_Index);
 #endif
@@ -1508,17 +1638,24 @@ static void *Guide_Thread(void *user_arg)
 	if(retval == FALSE)
 	{
 #if AUTOGUIDER_DEBUG > 1
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:"
-				       "Failed on Guide_Packet_Send.");
+		Autoguider_General_Log("guide","autoguider_guide.c","Guide_Thread",
+				       LOG_VERBOSITY_VERY_TERSE,"GUIDE","Failed on Guide_Packet_Send.");
 #endif
-		Autoguider_General_Error();
+		Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+					 LOG_VERBOSITY_VERY_TERSE,"GUIDE");
 		/* close tcs guide packet socket */
 		Autoguider_CIL_Guide_Packet_Close();
        		/* update SDB */
 	       	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
-		       	Autoguider_General_Error(); /* no need to fail */
+		{
+		       	Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+				       LOG_VERBOSITY_VERY_TERSE,"GUIDE"); /* no need to fail */
+		}
 		if(!Autoguider_CIL_SDB_Packet_Send())
-			Autoguider_General_Error(); /* no need to fail */
+		{
+			Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+				       LOG_VERBOSITY_VERY_TERSE,"GUIDE"); /* no need to fail */
+		}
 		return NULL;
 	}
 	/* close guide packet socket */
@@ -1526,24 +1663,39 @@ static void *Guide_Thread(void *user_arg)
 	if(retval == FALSE)
 	{
 #if AUTOGUIDER_DEBUG > 1
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:"
+		Autoguider_General_Log("guide","autoguider_guide.c","Guide_Thread",
+				       LOG_VERBOSITY_VERY_TERSE,"GUIDE",
 				       "Failed on Autoguider_CIL_Guide_Packet_Close.");
 #endif
-		Autoguider_General_Error();
+		Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+					 LOG_VERBOSITY_VERY_TERSE,"GUIDE");
        		/* update SDB */
 	       	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
-		       	Autoguider_General_Error(); /* no need to fail */
+		{
+		       	Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+						 LOG_VERBOSITY_VERY_TERSE,"GUIDE"); /* no need to fail */
+		}
 		if(!Autoguider_CIL_SDB_Packet_Send())
-			Autoguider_General_Error(); /* no need to fail */
+		{
+			Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+						 LOG_VERBOSITY_VERY_TERSE,"GUIDE"); /* no need to fail */
+		}
 		return NULL;
 	}
        	/* update SDB */
 	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
-		Autoguider_General_Error(); /* no need to fail */
+	{
+		Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+					 LOG_VERBOSITY_VERY_TERSE,"GUIDE"); /* no need to fail */
+	}
 	if(!Autoguider_CIL_SDB_Packet_Send())
-		Autoguider_General_Error(); /* no need to fail */
+	{
+		Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+				       LOG_VERBOSITY_VERY_TERSE,"GUIDE"); /* no need to fail */
+	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Thread:finished.");
+	Autoguider_General_Log("guide","autoguider_guide.c","Guide_Thread",
+			       LOG_VERBOSITY_VERY_TERSE,"GUIDE","finished.");
 #endif
 	return NULL;
 }
@@ -1560,7 +1712,6 @@ static void *Guide_Thread(void *user_arg)
  * @see autoguider_flat.html#Autoguider_Flat_Field
  * @see autoguider_general.html#Autoguider_General_Log
  * @see autoguider_general.html#Autoguider_General_Log_Format
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_GUIDE
  * @see autoguider_object.html#Autoguider_Object_Detect
  */
 static int Guide_Reduce(void)
@@ -1569,15 +1720,16 @@ static int Guide_Reduce(void)
 	int retval,guide_width,guide_height;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Reduce:started.");
+	Autoguider_General_Log("guide","autoguider_guide.c","Guide_Reduce",
+			       LOG_VERBOSITY_TERSE,"GUIDE","started.");
 #endif
 	/* copy raw data to reduced data */
 	retval = Autoguider_Buffer_Raw_To_Reduced_Guide(Guide_Data.In_Use_Buffer_Index);
 	if(retval == FALSE)
 	{
 #if AUTOGUIDER_DEBUG > 5
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Reduce:"
-				       "Autoguider_Buffer_Raw_To_Reduced_Guide failed.");
+		Autoguider_General_Log("guide","autoguider_guide.c","Guide_Reduce",
+				       LOG_VERBOSITY_TERSE,"GUIDE","Autoguider_Buffer_Raw_To_Reduced_Guide failed.");
 #endif
 		return FALSE;
 	}
@@ -1586,9 +1738,10 @@ static int Guide_Reduce(void)
 	if(retval == FALSE)
 	{
 #if AUTOGUIDER_DEBUG > 5
-		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Reduce:"
-				       "Autoguider_Buffer_Reduced_Guide_Lock(%d) failed.",
-				       Guide_Data.In_Use_Buffer_Index);
+		Autoguider_General_Log_Format("guide","autoguider_guide.c","Guide_Reduce",
+					      LOG_VERBOSITY_TERSE,"GUIDE",
+					      "Autoguider_Buffer_Reduced_Guide_Lock(%d) failed.",
+					      Guide_Data.In_Use_Buffer_Index);
 #endif
 		return FALSE;
 	}
@@ -1602,8 +1755,8 @@ static int Guide_Reduce(void)
 		{
 			Autoguider_Buffer_Reduced_Guide_Unlock(Guide_Data.In_Use_Buffer_Index);
 #if AUTOGUIDER_DEBUG > 5
-			Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Reduce:"
-					       "Autoguider_Dark_Subtract failed.");
+			Autoguider_General_Log("guide","autoguider_guide.c","Guide_Reduce",
+					       LOG_VERBOSITY_TERSE,"GUIDE","Autoguider_Dark_Subtract failed.");
 #endif
 			return FALSE;
 		}
@@ -1611,8 +1764,8 @@ static int Guide_Reduce(void)
 	else
 	{
 #if AUTOGUIDER_DEBUG > 5
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Reduce:"
-				       "Did NOT subtract dark.");
+		Autoguider_General_Log("guide","autoguider_guide.c","Guide_Reduce",
+				       LOG_VERBOSITY_TERSE,"GUIDE","Did NOT subtract dark.");
 #endif
 	}
 	/* flat field */
@@ -1625,8 +1778,8 @@ static int Guide_Reduce(void)
 		{
 			Autoguider_Buffer_Reduced_Guide_Unlock(Guide_Data.In_Use_Buffer_Index);
 #if AUTOGUIDER_DEBUG > 5
-			Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Reduce:"
-					       "Autoguider_Flat_Field failed.");
+			Autoguider_General_Log("guide","autoguider_guide.c","Guide_Reduce",
+					       LOG_VERBOSITY_TERSE,"GUIDE","Autoguider_Flat_Field failed.");
 #endif
 			return FALSE;
 		}
@@ -1634,8 +1787,8 @@ static int Guide_Reduce(void)
 	else
 	{
 #if AUTOGUIDER_DEBUG > 5
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Reduce:"
-				       "Did NOT flat field.");
+		Autoguider_General_Log("guide","autoguider_guide.c","Guide_Reduce",
+					      LOG_VERBOSITY_TERSE,"GUIDE","Did NOT flat field.");
 #endif
 	}
 	/* object detect */
@@ -1650,8 +1803,8 @@ static int Guide_Reduce(void)
 		{
 			Autoguider_Buffer_Reduced_Guide_Unlock(Guide_Data.In_Use_Buffer_Index);
 #if AUTOGUIDER_DEBUG > 5
-			Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Reduce:"
-					       "Autoguider_Object_Detect failed.");
+			Autoguider_General_Log("guide","autoguider_guide.c","Guide_Reduce",
+					       LOG_VERBOSITY_TERSE,"GUIDE","Autoguider_Object_Detect failed.");
 #endif
 			return FALSE;
 		}
@@ -1659,8 +1812,8 @@ static int Guide_Reduce(void)
 	else
 	{
 #if AUTOGUIDER_DEBUG > 5
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Reduce:"
-				       "Did NOT object detect.");
+		Autoguider_General_Log("guide","autoguider_guide.c","Guide_Reduce",
+				       LOG_VERBOSITY_TERSE,"GUIDE","Did NOT object detect.");
 #endif
 	}
 	/* unlock reduction buffer */
@@ -1670,7 +1823,8 @@ static int Guide_Reduce(void)
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Reduce:finished.");
+	Autoguider_General_Log("guide","autoguider_guide.c","Guide_Reduce",LOG_VERBOSITY_VERY_TERSE,"GUIDE",
+			       "finished.");
 #endif
 	return TRUE;
 }
@@ -1711,7 +1865,6 @@ static int Guide_Reduce(void)
  * @see #Guide_Scaling_Config_Load
  * @see autoguider_general.html#Autoguider_General_Log
  * @see autoguider_general.html#Autoguider_General_Log_Format
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_GUIDE
  * @see autoguider_object.html#Autoguider_Object_List_Get_Count
  * @see autoguider_object.html#Autoguider_Object_List_Get_Object
  */
@@ -1721,14 +1874,15 @@ static int Guide_Exposure_Length_Scale(void)
 	int retval,object_count,guide_exposure_length,guide_exposure_index;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Exposure_Length_Scale:started.");
+	Autoguider_General_Log("guide","autoguider_guide.c","Guide_Exposure_Length_Scale",LOG_VERBOSITY_TERSE,"GUIDE",
+			       "started.");
 #endif
 	/* The exposure length is locked - we cannot change it! */
 	if(Guide_Data.Exposure_Length_Lock == TRUE)
 	{
 #if AUTOGUIDER_DEBUG > 9
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-				       "Guide_Exposure_Length_Scale:Exposure Length is locked.");
+		Autoguider_General_Log("guide","autoguider_guide.c","Guide_Exposure_Length_Scale",LOG_VERBOSITY_TERSE,
+				       "GUIDE","Exposure Length is locked.");
 #endif
 		return TRUE;
 	}
@@ -1736,8 +1890,8 @@ static int Guide_Exposure_Length_Scale(void)
 	if(Guide_Data.Exposure_Length_Scaling.Autoscale == FALSE)
 	{
 #if AUTOGUIDER_DEBUG > 9
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-				       "Guide_Exposure_Length_Scale:Exposure Length autoscale is false.");
+		Autoguider_General_Log("guide","autoguider_guide.c","Guide_Exposure_Length_Scale",LOG_VERBOSITY_TERSE,
+				       "GUIDE","Exposure Length autoscale is false.");
 #endif
 		return TRUE;
 	}
@@ -1745,18 +1899,19 @@ static int Guide_Exposure_Length_Scale(void)
 	if(Guide_Data.Do_Object_Detect == FALSE)
 	{
 #if AUTOGUIDER_DEBUG > 9
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-				       "Guide_Exposure_Length_Scale:Guide object detection is OFF.");
+		Autoguider_General_Log("guide","autoguider_guide.c","Guide_Exposure_Length_Scale",LOG_VERBOSITY_TERSE,
+				       "GUIDE","Guide object detection is OFF.");
 #endif
 		return TRUE;
 	}
 	/* how many objects found in guide frame */
 	if(!Autoguider_Object_List_Get_Count(&object_count))
 	{
-		Autoguider_General_Error();
+		Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+					 LOG_VERBOSITY_VERY_TERSE,"GUIDE");
 #if AUTOGUIDER_DEBUG > 9
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-				       "Guide_Exposure_Length_Scale:Failed to get object count.");
+		Autoguider_General_Log("guide","autoguider_guide.c","Guide_Exposure_Length_Scale",LOG_VERBOSITY_TERSE,
+				       "GUIDE","Failed to get object count.");
 #endif
 		return TRUE;/* don't stop guiding */
 	}
@@ -1765,8 +1920,9 @@ static int Guide_Exposure_Length_Scale(void)
 	{
 		/* too many objects - what do we do here! */
 #if AUTOGUIDER_DEBUG > 9
-		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-				       "Guide_Exposure_Length_Scale:More than one guide object (%d).",object_count);
+		Autoguider_General_Log_Format("guide","autoguider_guide.c","Guide_Exposure_Length_Scale",
+					      LOG_VERBOSITY_TERSE,"GUIDE",
+					      "More than one guide object (%d).",object_count);
 #endif
 		return TRUE;/* don't stop guiding */
 	}
@@ -1780,10 +1936,11 @@ static int Guide_Exposure_Length_Scale(void)
 		/* get first object */
 		if(!Autoguider_Object_List_Get_Object(0,&object))
 		{
-			Autoguider_General_Error();
+			Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
+						 LOG_VERBOSITY_VERY_TERSE,"GUIDE");
 #if AUTOGUIDER_DEBUG > 9
-			Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-					       "Guide_Exposure_Length_Scale:Failed to get object 0.");
+			Autoguider_General_Log("guide","autoguider_guide.c","Guide_Exposure_Length_Scale",
+					       LOG_VERBOSITY_TERSE,"GUIDE","Failed to get object 0.");
 #endif
 			return TRUE; /* don't stop guiding */
 		}
@@ -1793,8 +1950,9 @@ static int Guide_Exposure_Length_Scale(void)
 			if(object.Peak_Counts < Guide_Data.Exposure_Length_Scaling.Min_Peak_Counts)
 			{
 #if AUTOGUIDER_DEBUG > 9
-				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-				"Guide_Exposure_Length_Scale:Peak Counts %.2f < Min Peak Counts %d: "
+				Autoguider_General_Log_Format("guide","autoguider_guide.c",
+							      "Guide_Exposure_Length_Scale",LOG_VERBOSITY_TERSE,
+							      "GUIDE","Peak Counts %.2f < Min Peak Counts %d: "
 							      "Increasing scale index.",object.Peak_Counts,
 							      Guide_Data.Exposure_Length_Scaling.Min_Peak_Counts);
 #endif
@@ -1803,8 +1961,9 @@ static int Guide_Exposure_Length_Scale(void)
 			else if(object.Peak_Counts > Guide_Data.Exposure_Length_Scaling.Max_Peak_Counts)
 			{
 #if AUTOGUIDER_DEBUG > 9
-				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-				"Guide_Exposure_Length_Scale:Peak Counts %.2f > Max Peak Counts %d: "
+				Autoguider_General_Log_Format("guide","autoguider_guide.c",
+							      "Guide_Exposure_Length_Scale",LOG_VERBOSITY_TERSE,
+							      "GUIDE","Peak Counts %.2f > Max Peak Counts %d: "
 							      "Increasing scale index.",object.Peak_Counts,
 							      Guide_Data.Exposure_Length_Scaling.Max_Peak_Counts);
 #endif
@@ -1813,8 +1972,9 @@ static int Guide_Exposure_Length_Scale(void)
 			else
 			{
 #if AUTOGUIDER_DEBUG > 9
-				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-				"Guide_Exposure_Length_Scale:Peak Counts %.2f within range: "
+				Autoguider_General_Log_Format("guide","autoguider_guide.c",
+							      "Guide_Exposure_Length_Scale",LOG_VERBOSITY_TERSE,
+							      "GUIDE","Peak Counts %.2f within range: "
 							      "Reseting scale index.",object.Peak_Counts);
 #endif
 				Guide_Data.Exposure_Length_Scaling.Scale_Index = 0;
@@ -1825,8 +1985,9 @@ static int Guide_Exposure_Length_Scale(void)
 			if(object.Total_Counts < Guide_Data.Exposure_Length_Scaling.Min_Integrated_Counts)
 			{
 #if AUTOGUIDER_DEBUG > 9
-				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-				"Guide_Exposure_Length_Scale:Total Counts %.2f < Min Total Counts %d: "
+				Autoguider_General_Log_Format("guide","autoguider_guide.c",
+							      "Guide_Exposure_Length_Scale",LOG_VERBOSITY_TERSE,
+							      "GUIDE","Total Counts %.2f < Min Total Counts %d: "
 							      "Increasing scale index.",object.Total_Counts,
 							      Guide_Data.Exposure_Length_Scaling.Min_Integrated_Counts);
 #endif
@@ -1835,8 +1996,9 @@ static int Guide_Exposure_Length_Scale(void)
 			else if(object.Total_Counts > Guide_Data.Exposure_Length_Scaling.Max_Integrated_Counts)
 			{
 #if AUTOGUIDER_DEBUG > 9
-				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-				"Guide_Exposure_Length_Scale:Total Counts %.2f > Max Total Counts %d: "
+				Autoguider_General_Log_Format("guide","autoguider_guide.c",
+							      "Guide_Exposure_Length_Scale",LOG_VERBOSITY_TERSE,
+							      "GUIDE","Total Counts %.2f > Max Total Counts %d: "
 							      "Increasing scale index.",object.Total_Counts,
 							      Guide_Data.Exposure_Length_Scaling.Max_Integrated_Counts);
 #endif
@@ -1845,8 +2007,9 @@ static int Guide_Exposure_Length_Scale(void)
 			else
 			{
 #if AUTOGUIDER_DEBUG > 9
-				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-				"Guide_Exposure_Length_Scale:Total Counts %.2f in range: "
+				Autoguider_General_Log_Format("guide","autoguider_guide.c",
+							      "Guide_Exposure_Length_Scale",LOG_VERBOSITY_TERSE,
+							      "GUIDE","Total Counts %.2f in range: "
 							      "Reseting scale index.",object.Total_Counts);
 #endif
 				Guide_Data.Exposure_Length_Scaling.Scale_Index = 0;
@@ -1857,8 +2020,9 @@ static int Guide_Exposure_Length_Scale(void)
 	if(Guide_Data.Exposure_Length_Scaling.Scale_Index >= Guide_Data.Exposure_Length_Scaling.Scale_Count)
 	{
 #if AUTOGUIDER_DEBUG > 9
-		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-					      "Guide_Exposure_Length_Scale:Scale Index %d > Scale Count %d.",
+		Autoguider_General_Log_Format("guide","autoguider_guide.c",
+					      "Guide_Exposure_Length_Scale",LOG_VERBOSITY_TERSE,
+					      "GUIDE","Scale Index %d > Scale Count %d.",
 					      Guide_Data.Exposure_Length_Scaling.Scale_Index,
 					      Guide_Data.Exposure_Length_Scaling.Scale_Count);
 #endif
@@ -1867,9 +2031,9 @@ static int Guide_Exposure_Length_Scale(void)
 		/* recompute exposure length */
 		guide_exposure_length = Guide_Data.Exposure_Length;
 #if AUTOGUIDER_DEBUG > 9
-		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-					      "Guide_Exposure_Length_Scale:Current guide exposure length %d.",
-					      guide_exposure_length);
+		Autoguider_General_Log_Format("guide","autoguider_guide.c",
+					      "Guide_Exposure_Length_Scale",LOG_VERBOSITY_TERSE,
+					      "GUIDE","Current guide exposure length %d.",guide_exposure_length);
 #endif
 		if(object_count == 1)
 		{
@@ -1881,9 +2045,10 @@ static int Guide_Exposure_Length_Scale(void)
 				guide_exposure_length = (int)((float)guide_exposure_length * 
 				       (((float)Guide_Data.Exposure_Length_Scaling.Target_Counts)/object.Peak_Counts));
 #if AUTOGUIDER_DEBUG > 9
-				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-					      "Guide_Exposure_Length_Scale:Recomputed guide exposure length %d:"
-					      "scaled by %d/%.2f.",guide_exposure_length,
+				Autoguider_General_Log_Format("guide","autoguider_guide.c",
+							      "Guide_Exposure_Length_Scale",LOG_VERBOSITY_TERSE,
+							      "GUIDE","Recomputed guide exposure length %d:"
+							      "scaled by %d/%.2f.",guide_exposure_length,
 					      Guide_Data.Exposure_Length_Scaling.Target_Counts,object.Peak_Counts);
 #endif
 			}
@@ -1892,9 +2057,10 @@ static int Guide_Exposure_Length_Scale(void)
 				guide_exposure_length = (int)((float)guide_exposure_length * 
 				      (((float)Guide_Data.Exposure_Length_Scaling.Target_Counts)/object.Total_Counts));
 #if AUTOGUIDER_DEBUG > 9
-				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-					      "Guide_Exposure_Length_Scale:Recomputed guide exposure length %d:"
-					      "scaled by %d/%.2f.",guide_exposure_length,
+				Autoguider_General_Log_Format("guide","autoguider_guide.c",
+							      "Guide_Exposure_Length_Scale",LOG_VERBOSITY_TERSE,
+							      "GUIDE","Recomputed guide exposure length %d:"
+							      "scaled by %d/%.2f.",guide_exposure_length,
 					      Guide_Data.Exposure_Length_Scaling.Target_Counts,object.Total_Counts);
 #endif
 			}
@@ -1907,8 +2073,9 @@ static int Guide_Exposure_Length_Scale(void)
 				return FALSE;
 			}
 #if AUTOGUIDER_DEBUG > 9
-			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-				      "Guide_Exposure_Length_Scale:Current guide exposure length %d has index %d.",
+			Autoguider_General_Log_Format("guide","autoguider_guide.c","Guide_Exposure_Length_Scale",
+						      LOG_VERBOSITY_TERSE,"GUIDE",
+						      "Current guide exposure length %d has index %d.",
 						      guide_exposure_length,guide_exposure_index);
 #endif
 			guide_exposure_index++;
@@ -1917,8 +2084,10 @@ static int Guide_Exposure_Length_Scale(void)
 			if(guide_exposure_index >= Autoguider_Dark_Get_Exposure_Length_Count())
 			{
 #if AUTOGUIDER_DEBUG > 4
-				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-				    "Guide_Exposure_Length_Scale:guide exposure index %d greater than dark count %d: "
+				Autoguider_General_Log_Format("guide","autoguider_guide.c",
+							      "Guide_Exposure_Length_Scale",
+							      LOG_VERBOSITY_TERSE,"GUIDE",
+							      "guide exposure index %d greater than dark count %d: "
 				     "Autoguiding failed as no objects detected at longest exposure length.",
 					guide_exposure_index,Autoguider_Dark_Get_Exposure_Length_Count());
 #endif
@@ -1933,8 +2102,9 @@ static int Guide_Exposure_Length_Scale(void)
 			if(!Autoguider_Dark_Get_Exposure_Length_Index(guide_exposure_index,&guide_exposure_length))
 				return FALSE;
 #if AUTOGUIDER_DEBUG > 9
-			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-				      "Guide_Exposure_Length_Scale:New guide exposure length %d has index %d.",
+			Autoguider_General_Log_Format("guide","autoguider_guide.c","Guide_Exposure_Length_Scale",
+						      LOG_VERBOSITY_TERSE,"GUIDE",
+						      "New guide exposure length %d has index %d.",
 						      guide_exposure_length,guide_exposure_index);
 #endif
 		}
@@ -1942,9 +2112,9 @@ static int Guide_Exposure_Length_Scale(void)
 		if(!Autoguider_Dark_Get_Exposure_Length_Nearest(&guide_exposure_length,&guide_exposure_index))
 			return FALSE;
 #if AUTOGUIDER_DEBUG > 9
-		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-				      "Guide_Exposure_Length_Scale:New guide exposure length %d has index %d.",
-						      guide_exposure_length,guide_exposure_index);
+		Autoguider_General_Log_Format("guide","autoguider_guide.c","Guide_Exposure_Length_Scale",
+					      LOG_VERBOSITY_TERSE,"GUIDE","New guide exposure length %d has index %d.",
+					      guide_exposure_length,guide_exposure_index);
 #endif
 		/* set */
 		if(!Autoguider_Guide_Exposure_Length_Set(guide_exposure_length,FALSE))
@@ -1955,10 +2125,14 @@ static int Guide_Exposure_Length_Scale(void)
 			return FALSE;
 		/* update SDB */
 		if(!Autoguider_CIL_SDB_Packet_Exp_Time_Set(Guide_Data.Exposure_Length))
-			Autoguider_General_Error(); /* no need to fail */
+		{
+			Autoguider_General_Error("guide","autoguider_guide.c","Guide_Exposure_Length_Scale",
+						      LOG_VERBOSITY_TERSE,"GUIDE"); /* no need to fail */
+		}
 	}/* end if scale index >= scale count */
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Exposure_Length_Scale:finished.");
+	Autoguider_General_Log("guide","autoguider_guide.c","Guide_Exposure_Length_Scale",
+			       LOG_VERBOSITY_TERSE,"GUIDE","finished.");
 #endif
 	return TRUE;
 }
@@ -1986,7 +2160,6 @@ static int Guide_Exposure_Length_Scale(void)
  * @see autoguider_buffer.html#Autoguider_Buffer_Set_Guide_Dimension
  * @see autoguider_general.html#Autoguider_General_Log
  * @see autoguider_general.html#Autoguider_General_Log_Format
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_GUIDE
  * @see autoguider_object.html#Autoguider_Object_List_Get_Count
  * @see autoguider_object.html#Autoguider_Object_List_Get_Object
  * @see ../ccd/cdocs/ccd_setup.html#CCD_Setup_Dimensions
@@ -1997,14 +2170,15 @@ static int Guide_Window_Track(void)
 	int retval,object_count;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Window_Track:started.");
+	Autoguider_General_Log("guide","autoguider_guide.c","Guide_Window_Track",
+			       LOG_VERBOSITY_TERSE,"GUIDE","started.");
 #endif
 	/* if we are not object detecting, we have no objects to decide whether the object is near the edge */
 	if(Guide_Data.Do_Object_Detect == FALSE)
 	{
 #if AUTOGUIDER_DEBUG > 9
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-				       "Guide_Window_Track:Guide object detection is OFF.");
+		Autoguider_General_Log("guide","autoguider_guide.c","Guide_Window_Track",
+				       LOG_VERBOSITY_TERSE,"GUIDE","Guide object detection is OFF.");
 #endif
 		return TRUE;/* don't stop guiding */
 	}
@@ -2012,18 +2186,19 @@ static int Guide_Window_Track(void)
 	if(Guide_Data.Guide_Window_Tracking.Guide_Window_Tracking == FALSE)
 	{
 #if AUTOGUIDER_DEBUG > 9
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-				       "Guide_Window_Track:Guide window tracking is OFF.");
+		Autoguider_General_Log("guide","autoguider_guide.c","Guide_Window_Track",
+				       LOG_VERBOSITY_TERSE,"GUIDE","Guide window tracking is OFF.");
 #endif
 		return TRUE;/* don't stop guiding */
 	}
 	/* how many objects found in guide frame */
 	if(!Autoguider_Object_List_Get_Count(&object_count))
 	{
-		Autoguider_General_Error();
+		Autoguider_General_Error("guide","autoguider_guide.c","Guide_Window_Track",
+					 LOG_VERBOSITY_VERY_TERSE,"GUIDE");
 #if AUTOGUIDER_DEBUG > 9
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-				       "Guide_Window_Track:Failed to get object count.");
+		Autoguider_General_Log("guide","autoguider_guide.c","Guide_Window_Track",
+				       LOG_VERBOSITY_TERSE,"GUIDE","Failed to get object count.");
 #endif
 		return TRUE;/* don't stop guiding */
 	}
@@ -2032,8 +2207,9 @@ static int Guide_Window_Track(void)
 	{
 		/* too many objects - what do we do here! */
 #if AUTOGUIDER_DEBUG > 9
-		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-				       "Guide_Window_Track:More than one guide object (%d).",object_count);
+		Autoguider_General_Log_Format("guide","autoguider_guide.c","Guide_Window_Track",
+					      LOG_VERBOSITY_TERSE,"GUIDE","More than one guide object (%d).",
+					      object_count);
 #endif
 		return TRUE;/* don't stop guiding */
 	}
@@ -2041,8 +2217,8 @@ static int Guide_Window_Track(void)
 	{
 		/* no objects - what do we do here! */
 #if AUTOGUIDER_DEBUG > 9
-		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-				       "Guide_Window_Track:No guide object (%d).",object_count);
+		Autoguider_General_Log_Format("guide","autoguider_guide.c","Guide_Window_Track",
+					      LOG_VERBOSITY_TERSE,"GUIDE","No guide object (%d).",object_count);
 #endif
 		return TRUE;/* don't stop guiding */
 	}
@@ -2051,10 +2227,11 @@ static int Guide_Window_Track(void)
 		/* get first object */
 		if(!Autoguider_Object_List_Get_Object(0,&object))
 		{
-			Autoguider_General_Error();
+			Autoguider_General_Error("guide","autoguider_guide.c","Guide_Window_Track",
+						 LOG_VERBOSITY_TERSE,"GUIDE");
 #if AUTOGUIDER_DEBUG > 9
-			Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-					       "Guide_Window_Track:Failed to get object 0.");
+			Autoguider_General_Log("guide","autoguider_guide.c","Guide_Window_Track",
+					       LOG_VERBOSITY_TERSE,"GUIDE","Failed to get object 0.");
 #endif
 			return TRUE; /* don't stop guiding */
 		}
@@ -2081,8 +2258,9 @@ static int Guide_Window_Track(void)
 				return FALSE;
 			/* setup new CCD window dimensions */
 #if AUTOGUIDER_DEBUG > 5
-			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Window_Track:"
-				      "Calling CCD_Setup_Dimensions(ncols=%d,nrows=%d,binx=%d,biny=%d,"
+			Autoguider_General_Log_Format("guide","autoguider_guide.c","Guide_Window_Track",
+						      LOG_VERBOSITY_TERSE,"GUIDE",
+						      "Calling CCD_Setup_Dimensions(ncols=%d,nrows=%d,binx=%d,biny=%d,"
 						      "window={xs=%d,ys=%d,xe=%d,ye=%d}).",
 						      Guide_Data.Unbinned_NCols,Guide_Data.Unbinned_NRows,
 						      Guide_Data.Bin_X,Guide_Data.Bin_Y,
@@ -2100,7 +2278,8 @@ static int Guide_Window_Track(void)
 			}
 			/* ensure the buffer is the right size */
 #if AUTOGUIDER_DEBUG > 5
-			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Window_Track:"
+			Autoguider_General_Log_Format("guide","autoguider_guide.c","Guide_Window_Track",
+						      LOG_VERBOSITY_TERSE,"GUIDE",
 				  "Calling Autoguider_Buffer_Set_Guide_Dimension(ncols=%d(%d-%d),nrows=%d(%d-%d),"
 						      "binx=%d,biny=%d).",
 						      Guide_Data.Window.X_End-Guide_Data.Window.X_Start,
@@ -2119,7 +2298,8 @@ static int Guide_Window_Track(void)
 		}/* end if guide star too near window edge.*/
 	}/* end if one guide object detected */
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Window_Track:finished.");
+	Autoguider_General_Log("guide","autoguider_guide.c","Guide_Window_Track",
+			       LOG_VERBOSITY_TERSE,"GUIDE","finished.");
 #endif
 	return TRUE;
 }
@@ -2157,7 +2337,6 @@ static int Guide_Window_Track(void)
  * @see autoguider_general.html#Autoguider_General_Error
  * @see autoguider_general.html#Autoguider_General_Log
  * @see autoguider_general.html#Autoguider_General_Log_Format
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_GUIDE
  * @see autoguider_object.html#Autoguider_Object_List_Get_Count
  * @see autoguider_object.html#Autoguider_Object_List_Get_Nearest_Object
  * @see autoguider_object.htmlAutoguider_Object_List_Get_Object
@@ -2174,30 +2353,38 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 	float fwhm,guide_ellipticity,mag,guide_mag_const,exposure_length_s,counts_per_s,log_counts_per_s;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Packet_Send:started.");
+	Autoguider_General_Log("guide","autoguider_guide.c","Guide_Packet_Send",LOG_VERBOSITY_TERSE,"GUIDE",
+			       "started.");
 #endif
 	if(Guide_Data.Do_Object_Detect)
 	{
 		/* how many objects found in guide frame */
 		if(!Autoguider_Object_List_Get_Count(&object_count))
 		{
-			Autoguider_General_Error();
+			Autoguider_General_Error("guide","autoguider_guide.c","Guide_Packet_Send",LOG_VERBOSITY_TERSE,
+						 "GUIDE");
 			/* if count get failed send unreliable and return */
 			if(!Autoguider_CIL_Guide_Packet_Send(0.0f,0.0f,terminating,TRUE,timecode_secs,
 							     NGATCIL_TCS_GUIDE_PACKET_STATUS_FAILED))
-				Autoguider_General_Error();
+			{
+				Autoguider_General_Error("guide","autoguider_guide.c","Guide_Packet_Send",
+							 LOG_VERBOSITY_VERY_TERSE,"GUIDE");
+			}
 			return TRUE;
 		}
 #if AUTOGUIDER_DEBUG > 5
-		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-					      "Guide_Packet_Send:There are %d objects.",object_count);
+		Autoguider_General_Log_Format("guide","autoguider_guide.c","Guide_Packet_Send",LOG_VERBOSITY_VERBOSE,
+					      "GUIDE","There are %d objects.",object_count);
 #endif
 		/* if none send unreliable and return */
 		if(object_count < 1)
 		{
 			if(!Autoguider_CIL_Guide_Packet_Send(0.0f,0.0f,terminating,TRUE,timecode_secs,
 							     NGATCIL_TCS_GUIDE_PACKET_STATUS_FAILED))
-				Autoguider_General_Error();
+			{
+				Autoguider_General_Error("guide","autoguider_guide.c","Guide_Packet_Send",
+							 LOG_VERBOSITY_TERSE,"GUIDE");
+			}
 			return TRUE;
 		}
 		/* if object count > 1 select nearest object to initial guide object position */
@@ -2207,11 +2394,15 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 								      Guide_Data.Initial_Object_CCD_Y_Position,
 								      &object))
 			{
-				Autoguider_General_Error();
+				Autoguider_General_Error("guide","autoguider_guide.c","Guide_Packet_Send",
+							 LOG_VERBOSITY_TERSE,"GUIDE");
 				/* if object get nearest failed send unreliable and return */
 				if(!Autoguider_CIL_Guide_Packet_Send(0.0f,0.0f,terminating,TRUE,timecode_secs,
 								     NGATCIL_TCS_GUIDE_PACKET_STATUS_FAILED))
-					Autoguider_General_Error();
+				{
+					Autoguider_General_Error("guide","autoguider_guide.c","Guide_Packet_Send",
+								 LOG_VERBOSITY_TERSE,"GUIDE");
+				}
 				return TRUE;
 			}
 		}
@@ -2220,11 +2411,15 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 			/* get first object */
 			if(!Autoguider_Object_List_Get_Object(0,&object))
 			{
-				Autoguider_General_Error();
+				Autoguider_General_Error("guide","autoguider_guide.c","Guide_Packet_Send",
+							 LOG_VERBOSITY_TERSE,"GUIDE");
 				/* if object get failed send unreliable and return */
 				if(!Autoguider_CIL_Guide_Packet_Send(0.0f,0.0f,terminating,TRUE,timecode_secs,
 								     NGATCIL_TCS_GUIDE_PACKET_STATUS_FAILED))
-					Autoguider_General_Error();
+				{
+					Autoguider_General_Error("guide","autoguider_guide.c","Guide_Packet_Send",
+								 LOG_VERBOSITY_TERSE,"GUIDE");
+				}
 				return TRUE;
 			}
 		}
@@ -2275,8 +2470,9 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 			if(fabs((object.FWHM_X/object.FWHM_Y)-1.0f) > guide_ellipticity)
 			{
 #if AUTOGUIDER_DEBUG > 5
-				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-					 "Guide_Packet_Send:Detected FWHM limit:"
+				Autoguider_General_Log_Format("guide","autoguider_guide.c","Guide_Packet_Send",
+							      LOG_VERBOSITY_VERBOSE,"GUIDE",
+							      "Guide_Packet_Send:Detected FWHM limit:"
 							      "Object has fwhmx=%.2f,fwhmy=%.2f,ellipticity=%.2f.",
 							      object.FWHM_X,object.FWHM_Y,guide_ellipticity);
 #endif
@@ -2288,13 +2484,13 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 			reliability += (1<<1);
 		}
 #if AUTOGUIDER_DEBUG > 5
-		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-					      "Guide_Packet_Send:Object has %#x reliability.",reliability);
+		Autoguider_General_Log_Format("guide","autoguider_guide.c","Guide_Packet_Send",
+					      LOG_VERBOSITY_VERBOSE,"GUIDE","Object has %#x reliability.",reliability);
 #endif
 		status_char = '0'+reliability;
 #if AUTOGUIDER_DEBUG > 5
-		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-					      "Guide_Packet_Send:Object has status char %c.",status_char);
+		Autoguider_General_Log_Format("guide","autoguider_guide.c","Guide_Packet_Send",
+					      LOG_VERBOSITY_TERSE,"GUIDE","Object has status char %c.",status_char);
 #endif
 		/* calculate fwhm */
 		fwhm = ((object.FWHM_X + object.FWHM_Y)/2.0f);
@@ -2315,8 +2511,9 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 		{
 			status_char = NGATCIL_TCS_GUIDE_PACKET_STATUS_WINDOW;
 #if AUTOGUIDER_DEBUG > 5
-			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-					      "Guide_Packet_Send:Object (%.2f,%.2f) too near edge of window "
+			Autoguider_General_Log_Format("guide","autoguider_guide.c","Guide_Packet_Send",
+						      LOG_VERBOSITY_VERBOSE,"GUIDE",
+						      "Object (%.2f,%.2f) too near edge of window "
 						      "((%.2f,%.2f),(%.2f,%.2f)): status char now %c.",
 						      object.CCD_X_Position,object.CCD_Y_Position,
 						      Guide_Data.Window.X_Start,Guide_Data.Window.Y_Start,
@@ -2326,14 +2523,18 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 		/* send reliable guide packet */
 		if(!Autoguider_CIL_Guide_Packet_Send(object.CCD_X_Position,object.CCD_Y_Position,
 						     terminating,FALSE,timecode_secs,status_char))
-			Autoguider_General_Error();
+		{
+			Autoguider_General_Error("guide","autoguider_guide.c","Guide_Packet_Send",
+						 LOG_VERBOSITY_TERSE,"GUIDE");
+		}
 		/* update SDB mag */
 		/* ensure exposure length will not cause div by zero, log10 arg is +ve */
 		if((Guide_Data.Exposure_Length != 0)&&(object.Total_Counts > 0.0f))
 		{
 #if AUTOGUIDER_DEBUG > 5
-			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-					      "Guide_Packet_Send:Computing Magnitude using Const %f,"
+			Autoguider_General_Log_Format("guide","autoguider_guide.c","Guide_Packet_Send",
+						      LOG_VERBOSITY_VERBOSE,"GUIDE",
+						      "Computing Magnitude using Const %f,"
 						      "Exposure Length %d ms, Total Counts %f.",
 						      guide_mag_const,Guide_Data.Exposure_Length,object.Total_Counts);
 #endif
@@ -2341,41 +2542,50 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 			counts_per_s = object.Total_Counts/exposure_length_s;
 			log_counts_per_s = (float)log10((double)(counts_per_s));
 #if AUTOGUIDER_DEBUG > 9
-			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-					      "Guide_Packet_Send:Computing Magnitude using exposure_length_s=%f,"
+			Autoguider_General_Log_Format("guide","autoguider_guide.c","Guide_Packet_Send",
+						      LOG_VERBOSITY_VERBOSE,"GUIDE",
+						      "Computing Magnitude using exposure_length_s=%f,"
 						      "counts_per_s=%f, log_counts_per_s=%f.",
 						      exposure_length_s,counts_per_s,log_counts_per_s);
 #endif			
 			mag = guide_mag_const - (2.5f * log_counts_per_s);
 #if AUTOGUIDER_DEBUG > 5
-			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-					      "Guide_Packet_Send:Magnitude %f.",mag);
+			Autoguider_General_Log_Format("guide","autoguider_guide.c","Guide_Packet_Send",
+						      LOG_VERBOSITY_VERBOSE,"GUIDE","Magnitude %f.",mag);
 #endif
 		}
 		else
 		{
 #if AUTOGUIDER_DEBUG > 5
-			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-					      "Guide_Packet_Send:NOT Computing Magnitude:Argument out of range:"
+			Autoguider_General_Log_Format("guide","autoguider_guide.c","Guide_Packet_Send",
+						      LOG_VERBOSITY_VERBOSE,"GUIDE",
+						      "NOT Computing Magnitude:Argument out of range:"
 						      "Const %f,Exposure Length %d ms, Total Counts %f.",
 						      guide_mag_const,Guide_Data.Exposure_Length,object.Total_Counts);
 #endif
 			mag = 20.0f;
 		}
 		if(!Autoguider_CIL_SDB_Packet_Centroid_Set(object.CCD_X_Position,object.CCD_Y_Position,fwhm,mag))
-			Autoguider_General_Error(); /* no need to fail */
+		{
+			Autoguider_General_Error("guide","autoguider_guide.c","Guide_Packet_Send",
+						 LOG_VERBOSITY_TERSE,"GUIDE"); /* no need to fail */
+		}
 		if(!Autoguider_CIL_SDB_Packet_Send())
-			Autoguider_General_Error(); /* no need to fail */
+		{
+			Autoguider_General_Error("guide","autoguider_guide.c","Guide_Packet_Send",
+						 LOG_VERBOSITY_TERSE,"GUIDE"); /* no need to fail */
+		}
 	}/* end if object detection enabled */
 	else
 	{
 #if AUTOGUIDER_DEBUG > 1
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,
-				       "Guide_Packet_Send:Object Detection Off:Not sending packet.");
+		Autoguider_General_Log("guide","autoguider_guide.c","Guide_Packet_Send",
+				       LOG_VERBOSITY_VERBOSE,"GUIDE","Object Detection Off:Not sending packet.");
 #endif
 	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Packet_Send:finished.");
+	Autoguider_General_Log("guide","autoguider_guide.c","Guide_Packet_Send",
+			       LOG_VERBOSITY_TERSE,"GUIDE","finished.");
 #endif
 	return TRUE;
 }
@@ -2408,7 +2618,8 @@ static int Guide_Scaling_Config_Load(void)
 	int retval;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Scaling_Config_Load:starteed.");
+	Autoguider_General_Log("guide","autoguider_guide.c","Guide_Scaling_Config_Load",
+			       LOG_VERBOSITY_TERSE,"GUIDE","starteed.");
 #endif
 	retval = CCD_Config_Get_String("guide.counts.scale_type",&scale_type_string);
 	if(retval == FALSE)
@@ -2501,7 +2712,8 @@ static int Guide_Scaling_Config_Load(void)
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Scaling_Config_Load:finished.");
+	Autoguider_General_Log("guide","autoguider_guide.c","Guide_Scaling_Config_Load",
+			       LOG_VERBOSITY_TERSE,"GUIDE","finished.");
 #endif
 	return TRUE;
 }
@@ -2512,7 +2724,6 @@ static int Guide_Scaling_Config_Load(void)
  * @see autoguider_general.html#Autoguider_General_Error
  * @see autoguider_general.html#Autoguider_General_Log
  * @see autoguider_general.html#Autoguider_General_Log_Format
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_GUIDE
  * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Integer
  */
 static int Guide_Dimension_Config_Load(void)
@@ -2520,7 +2731,8 @@ static int Guide_Dimension_Config_Load(void)
 	int retval;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Dimension_Config_Load:starteed.");
+	Autoguider_General_Log("guide","autoguider_guide.c","Guide_Dimension_Config_Load",
+			       LOG_VERBOSITY_TERSE,"GUIDE","started.");
 #endif
 	/* nb this code is replicated in autoguider_buffer.c : Autoguider_Buffer_Initialise.
 	** We could perhaps only load from config once, and have getters in autoguider_buffer.c. */
@@ -2559,12 +2771,21 @@ static int Guide_Dimension_Config_Load(void)
 	Guide_Data.Binned_NCols = Guide_Data.Unbinned_NCols / Guide_Data.Bin_X;
 	Guide_Data.Binned_NRows = Guide_Data.Unbinned_NRows / Guide_Data.Bin_Y;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GUIDE,"Guide_Dimension_Config_Load:finished.");
+	Autoguider_General_Log("guide","autoguider_guide.c","Guide_Dimension_Config_Load",
+			       LOG_VERBOSITY_TERSE,"GUIDE","finished.");
 #endif
 	return TRUE;
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.37  2008/03/14 12:02:27  cjm
+** Added Initial_Object_CCD_X/Y_Position data to hold initial position of
+** object we are guiding upon.
+** Autoguider_Guide_Set_Guide_Object now sets these.
+** Guide_Packet_Send now uses Autoguider_Object_List_Get_Nearest_Object when multiple sources
+** are detected in the guide window to select the source nearest Initial_Object_CCD_X/Y_Position.
+** The guide packet is then sent back OK rather than failed.
+**
 ** Revision 1.36  2007/08/20 14:48:37  cjm
 ** Added math.h, so prototype of log10 is defined correctly.
 **

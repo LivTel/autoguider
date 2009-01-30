@@ -1,15 +1,17 @@
 /* autoguider.c
-** $Header: /home/cjm/cvs/autoguider/c/autoguider.c,v 1.6 2006-09-07 15:37:25 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider.c,v 1.7 2009-01-30 18:01:33 cjm Exp $
 */
 /**
  * Autoguider main program.
  * @author $Author: cjm $
- * @version $Revision: 1.6 $
+ * @version $Revision: 1.7 $
  */
 #include <signal.h> /* signal handling */
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+
+#include "log_udp.h"
 
 #include "command_server.h"
 
@@ -47,7 +49,7 @@
 /**
  * Revision control system identifier.
  */
-static char rcsid[] = "$Id: autoguider.c,v 1.6 2006-09-07 15:37:25 cjm Exp $";
+static char rcsid[] = "$Id: autoguider.c,v 1.7 2009-01-30 18:01:33 cjm Exp $";
 
 /* internal routines */
 static int Autoguider_Initialise_Signal(void);
@@ -78,7 +80,6 @@ static void Help(void);
  * @see autoguider_field.html#Autoguider_Field_Initialise
  * @see autoguider_flat.html#Autoguider_Flat_Initialise
  * @see autoguider_flat.html#Autoguider_Flat_Shutdown
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_GENERAL
  * @see autoguider_general.html#Autoguider_General_Log
  * @see autoguider_general.html#Autoguider_General_Get_Config_Filename
  * @see autoguider_guide.html#Autoguider_Guide_Initialise
@@ -97,23 +98,24 @@ int main(int argc, char *argv[])
 
 /* parse arguments */
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"main:Parsing Arguments.");
+	Autoguider_General_Log("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP","Parsing Arguments.");
 #endif
 	if(!Parse_Arguments(argc,argv))
 		return 1;
 	/* initialise signal handling */
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"main:Autoguider_Initialise_Signal.");
+	Autoguider_General_Log("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP",
+			       "Autoguider_Initialise_Signal.");
 #endif
 	retval = Autoguider_Initialise_Signal();
 	if(retval == FALSE)
 	{
-		Autoguider_General_Error();
+		Autoguider_General_Error("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP");
 		return 4;
 	}
 	/* initialise/load configuration */
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"main:CCD_Config_Load.");
+	Autoguider_General_Log("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP","CCD_Config_Load.");
 #endif
 	CCD_Config_Initialise();
 	retval = CCD_Config_Load(Autoguider_General_Get_Config_Filename());
@@ -122,223 +124,241 @@ int main(int argc, char *argv[])
 		Autoguider_General_Error_Number = 1;
 		sprintf(Autoguider_General_Error_String,"main:CCD_Config_Load(%s) failed.",
 			Autoguider_General_Get_Config_Filename());
-		Autoguider_General_Error();
+		Autoguider_General_Error("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP");
 		return 2;
 	}
 	/* set logging options */
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"main:Autoguider_Initialise_Logging.");
+	Autoguider_General_Log("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP",
+			       "Autoguider_Initialise_Logging.");
 #endif
 	retval = Autoguider_Initialise_Logging();
 	if(retval == FALSE)
 	{
-		Autoguider_General_Error();
+		Autoguider_General_Error("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP");
 		return 4;
 	}
 	/* initialise connection to the CCD */
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"main:Autoguider_Startup_CCD.");
+	Autoguider_General_Log("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP",
+			       "Autoguider_Startup_CCD.");
 #endif
 	retval = Autoguider_Startup_CCD();
 	if(retval == FALSE)
 	{
-		Autoguider_General_Error();
+		Autoguider_General_Error("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP");
 		return 3;
 	}
 	/* initialise field and guide buffers */
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"main:Autoguider_Buffer_Initialise.");
+	Autoguider_General_Log("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP",
+			       "Autoguider_Buffer_Initialise.");
 #endif
 	retval = Autoguider_Buffer_Initialise();
 	if(retval == FALSE)
 	{
-		Autoguider_General_Error();
+		Autoguider_General_Error("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP");
 		/* ensure CCD is warmed up */
 		Autoguider_Shutdown_CCD();
 		return 5;
 	}
 	/* initialise dark handling */
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"main:Autoguider_Dark_Initialise.");
+	Autoguider_General_Log("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP",
+			       "Autoguider_Dark_Initialise.");
 #endif
 	retval = Autoguider_Dark_Initialise();
 	if(retval == FALSE)
 	{
-		Autoguider_General_Error();
+		Autoguider_General_Error("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP");
 		/* ensure CCD is warmed up */
 		Autoguider_Shutdown_CCD();
 		return 5;
 	}
 	/* initialise flat handling */
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"main:Autoguider_Flat_Initialise.");
+	Autoguider_General_Log("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP",
+			       "Autoguider_Flat_Initialise.");
 #endif
 	retval = Autoguider_Flat_Initialise();
 	if(retval == FALSE)
 	{
-		Autoguider_General_Error();
+		Autoguider_General_Error("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP");
 		/* ensure CCD is warmed up */
 		Autoguider_Shutdown_CCD();
 		return 5;
 	}
 	/* initialise field variables - note no equivalent shutdown routine */
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"main:Autoguider_Field_Initialise.");
+	Autoguider_General_Log("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP",
+			       "Autoguider_Field_Initialise.");
 #endif
 	retval = Autoguider_Field_Initialise();
 	if(retval == FALSE)
 	{
-		Autoguider_General_Error();
+		Autoguider_General_Error("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP");
 		/* ensure CCD is warmed up */
 		Autoguider_Shutdown_CCD();
 		return 5;
 	}
 	/* initialise guide variables - note no equivalent shutdown routine */
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"main:Autoguider_Guide_Initialise.");
+	Autoguider_General_Log("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP",
+			       "Autoguider_Guide_Initialise.");
 #endif
 	retval = Autoguider_Guide_Initialise();
 	if(retval == FALSE)
 	{
-		Autoguider_General_Error();
+		Autoguider_General_Error("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP");
 		/* ensure CCD is warmed up */
 		Autoguider_Shutdown_CCD();
 		return 5;
 	}
 	/* initialise CIL command server/CIL SDB connection */
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"main:Autoguider_CIL_Server_Initialise.");
+	Autoguider_General_Log("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP",
+			       "Autoguider_CIL_Server_Initialise.");
 #endif
 	retval = Autoguider_CIL_Server_Initialise();
 	if(retval == FALSE)
 	{
-		Autoguider_General_Error();
+		Autoguider_General_Error("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP");
 		/* ensure CCD is warmed up */
 		Autoguider_Shutdown_CCD();
 		return 4;
 	}
 	/* start CIL command server */
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"main:Autoguider_CIL_Server_Start.");
+	Autoguider_General_Log("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP",
+			       "Autoguider_CIL_Server_Start.");
 #endif
 	retval = Autoguider_CIL_Server_Start();
 	if(retval == FALSE)
 	{
-		Autoguider_General_Error();
+		Autoguider_General_Error("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP");
 		/* ensure CCD is warmed up */
 		Autoguider_Shutdown_CCD();
 		return 4;
 	}
 	/* write IDLE (ready) to SDB. */
 	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
-		Autoguider_General_Error(); /* no need to fail */
+		Autoguider_General_Error("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP"); /* no need to fail */
 	if(!Autoguider_CIL_SDB_Packet_Send())
-		Autoguider_General_Error(); /* no need to fail */
+		Autoguider_General_Error("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP"); /* no need to fail */
 	/* initialise command server */
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"main:Autoguider_Server_Initialise.");
+	Autoguider_General_Log("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP",
+			       "Autoguider_Server_Initialise.");
 #endif
 	retval = Autoguider_Server_Initialise();
 	if(retval == FALSE)
 	{
-		Autoguider_General_Error();
+		Autoguider_General_Error("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP");
 		/* ensure CCD is warmed up */
 		Autoguider_Shutdown_CCD();
 		return 4;
 	}
 	/* start server */
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"main:Autoguider_Server_Start.");
+	Autoguider_General_Log("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP",
+			       "Autoguider_Server_Start.");
 #endif
 	retval = Autoguider_Server_Start();
 	if(retval == FALSE)
 	{
-		Autoguider_General_Error();
+		Autoguider_General_Error("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP");
 		/* ensure CCD is warmed up */
 		Autoguider_Shutdown_CCD();
 		return 4;
 	}
 	/* shutdown cil sdb connection */
 	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_OFF))
-		Autoguider_General_Error(); /* no need to fail */
+		Autoguider_General_Error("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP"); /* no need to fail */
 	if(!Autoguider_CIL_SDB_Packet_Send())
-		Autoguider_General_Error(); /* no need to fail */
+		Autoguider_General_Error("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP"); /* no need to fail */
 	/* shutdown cil server */
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"main:Autoguider_CIL_Server_Stop.");
+	Autoguider_General_Log("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP",
+			       "Autoguider_CIL_Server_Stop.");
 #endif
 	retval = Autoguider_CIL_Server_Stop();
 	if(retval == FALSE)
 	{
-		Autoguider_General_Error();
+		Autoguider_General_Error("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP");
 		/* ensure CCD is warmed up */
 		Autoguider_Shutdown_CCD();
 		return 4;
 	}
 	/* shutdown */
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"main:Autoguider_Shutdown_CCD");
+	Autoguider_General_Log("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP",
+			       "Autoguider_Shutdown_CCD");
 #endif
 	retval = Autoguider_Shutdown_CCD();
 	if(retval == FALSE)
 	{
-		Autoguider_General_Error();
+		Autoguider_General_Error("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP");
 		return 2;
 	}
 	/* object handling */
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"main:Autoguider_Object_Shutdown.");
+	Autoguider_General_Log("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP",
+			       "Autoguider_Object_Shutdown.");
 #endif
 	retval = Autoguider_Object_Shutdown();
 	if(retval == FALSE)
 	{
-		Autoguider_General_Error();
+		Autoguider_General_Error("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP");
 		return 6;
 	}
 	/* free flat handling */
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"main:Autoguider_Flat_Shutdown.");
+	Autoguider_General_Log("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP",
+			       "Autoguider_Flat_Shutdown.");
 #endif
 	retval = Autoguider_Flat_Shutdown();
 	if(retval == FALSE)
 	{
-		Autoguider_General_Error();
+		Autoguider_General_Error("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP");
 		return 6;
 	}
 	/* free dark handling */
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"main:Autoguider_Dark_Shutdown.");
+	Autoguider_General_Log("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP",
+			       "Autoguider_Dark_Shutdown.");
 #endif
 	retval = Autoguider_Dark_Shutdown();
 	if(retval == FALSE)
 	{
-		Autoguider_General_Error();
+		Autoguider_General_Error("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP");
 		return 6;
 	}
 	/* free buffers */
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"main:Autoguider_Buffer_Shutdown.");
+	Autoguider_General_Log("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP",
+			       "Autoguider_Buffer_Shutdown.");
 #endif
 	retval = Autoguider_Buffer_Shutdown();
 	if(retval == FALSE)
 	{
-		Autoguider_General_Error();
+		Autoguider_General_Error("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP");
 		return 6;
 	}
 	/* always call Config shutdown, which free config memory */
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"main:CCD_Config_Shutdown");
+	Autoguider_General_Log("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP","CCD_Config_Shutdown");
 #endif
 	retval = CCD_Config_Shutdown();
 	if(retval == FALSE)
 	{
 		Autoguider_General_Error_Number = 2;
-		sprintf(Autoguider_General_Error_String,"main:CCD_Config_Shutdown failed.");
-		Autoguider_General_Error();
+		sprintf(Autoguider_General_Error_String,"CCD_Config_Shutdown failed.");
+		Autoguider_General_Error("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP");
 		return 2;
 	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"main:autoguider completed.");
+	Autoguider_General_Log("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP",
+			       "autoguider completed.");
 #endif
 	return 0;
 }
@@ -367,55 +387,100 @@ static int Autoguider_Initialise_Signal(void)
 
 /**
  * Setup logging. Get directory name from config "logging.directory_name".
+ * Get UDP logging config. Setup log handlers for Autoguider software and subsystems, and libdprt_object.
  * @return The routine returns TRUE on success and FALSE on failure.
  * @see autoguider_general.html#Autoguider_General_Log_Set_Directory
- * @see autoguider_general.html#Autoguider_General_Set_Log_Handler_Function
+ * @see autoguider_general.html#Autoguider_General_Log_Set_UDP
+ * @see autoguider_general.html#Autoguider_General_Add_Log_Handler_Function
  * @see autoguider_general.html#Autoguider_General_Log_Handler_Log_Hourly_File
+ * @see autoguider_general.html#Autoguider_General_Log_Handler_Log_UDP
+ * @see autoguider_general.html#Autoguider_General_Call_Log_Handlers
  * @see autoguider_general.html#Autoguider_General_Set_Log_Filter_Function
- * @see autoguider_general.html#Autoguider_General_Log_Filter_Level_Bitwise
+ * @see autoguider_general.html#Autoguider_General_Log_Filter_Level_Absolute
  * @see ../ccd/cdocs/ccd_general.html#CCD_General_Set_Log_Handler_Function
+ * @see ../ccd/cdocs/ccd_general.html#CCD_General_Set_Log_Filter_Function
+ * @see ../ccd/cdocs/ccd_general.html#CCD_General_Log_Filter_Level_Absolute
+ * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Boolean
+ * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Integer
  * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_String
  * @see ../commandserver/cdocs/command_server.html#Command_Server_Set_Log_Handler_Function
  * @see ../commandserver/cdocs/command_server.html#Command_Server_Set_Log_Filter_Function
- * @see ../commandserver/cdocs/command_server.html#Command_Server_Log_Filter_Level_Bitwise
+ * @see ../commandserver/cdocs/command_server.html#Command_Server_Log_Filter_Level_Absolute
  * @see ../ngatcil/cdocs/ngatcil_general.html#NGATCil_General_Set_Log_Handler_Function
  * @see ../ngatcil/cdocs/ngatcil_general.html#NGATCil_General_Set_Log_Filter_Function
- * @see ../ngatcil/cdocs/ngatcil_general.html#NGATCil_General_Log_Filter_Level_Bitwise
+ * @see ../ngatcil/cdocs/ngatcil_general.html#NGATCil_General_Log_Filter_Level_Absolute
  * @see ../../libdprt/object/cdocs/object.html#Object_Set_Log_Handler_Function
  * @see ../../libdprt/object/cdocs/object.html#Object_Set_Log_Filter_Function
- * @see ../../libdprt/object/cdocs/object.html#Object_Log_Filter_Level_Bitwise
+ * @see ../../libdprt/object/cdocs/object.html#Object_Log_Filter_Level_Absolute
  */
 static int Autoguider_Initialise_Logging(void)
 {
 	char *log_directory = NULL;
-	int retval;
+	char *hostname = NULL;
+	int retval,port_number,active;
 
 	/* don't log yet - not fully setup yet */
-	retval = CCD_Config_Get_String("logging.directory_name",&log_directory);
-	if(retval == FALSE)
+	if(!CCD_Config_Get_String("logging.directory_name",&log_directory))
 	{
 		Autoguider_General_Error_Number = 17;
 		sprintf(Autoguider_General_Error_String,"Autoguider_Initialise_Logging:"
 			"Failed to get logging directory.");
 		return FALSE;
 	}
-	retval = Autoguider_General_Log_Set_Directory(log_directory);
-	if(retval == FALSE)
+	if(!Autoguider_General_Log_Set_Directory(log_directory))
+	{
+		if(log_directory != NULL)
+			free(log_directory);
 		return FALSE;
+	}
+	if(log_directory != NULL)
+		free(log_directory);
+	/* setup log_udp */
+	if(!CCD_Config_Get_Boolean("logging.udp.active",&active))
+	{
+		Autoguider_General_Error_Number = 20;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Initialise_Logging:"
+			"Failed to get log_udp active.");
+		return FALSE;
+	}
+	if(!CCD_Config_Get_Integer("logging.udp.port_number",&port_number))
+	{
+		Autoguider_General_Error_Number = 21;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Initialise_Logging:"
+			"Failed to get log_udp port_number.");
+		return FALSE;
+	}
+	if(!CCD_Config_Get_String("logging.udp.hostname",&hostname))
+	{
+		Autoguider_General_Error_Number = 22;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Initialise_Logging:"
+			"Failed to get log_udp hostname.");
+		return FALSE;
+	}
+	if(!Autoguider_General_Log_Set_UDP(active,hostname,port_number))
+	{
+		if(hostname != NULL)
+			free(hostname);
+		return FALSE;
+	}
+	if(hostname != NULL)
+		free(hostname);
 	/* Autoguider */
-	Autoguider_General_Set_Log_Handler_Function(Autoguider_General_Log_Handler_Log_Hourly_File);
-	Autoguider_General_Set_Log_Filter_Function(Autoguider_General_Log_Filter_Level_Bitwise);
+	Autoguider_General_Add_Log_Handler_Function(Autoguider_General_Log_Handler_Log_Hourly_File);
+	Autoguider_General_Add_Log_Handler_Function(Autoguider_General_Log_Handler_Log_UDP);
+	Autoguider_General_Set_Log_Filter_Function(Autoguider_General_Log_Filter_Level_Absolute);
 	/* CCD */
-	CCD_General_Set_Log_Handler_Function(Autoguider_General_Log_Handler_Log_Hourly_File);
+	CCD_General_Set_Log_Handler_Function(Autoguider_General_Call_Log_Handlers);
+	CCD_General_Set_Log_Filter_Function(CCD_General_Log_Filter_Level_Absolute);
 	/* setup command server logging */
-	Command_Server_Set_Log_Handler_Function(Autoguider_General_Log_Handler_Log_Hourly_File);
-	Command_Server_Set_Log_Filter_Function(Command_Server_Log_Filter_Level_Bitwise);
+	Command_Server_Set_Log_Handler_Function(Autoguider_General_Call_Log_Handlers);
+	Command_Server_Set_Log_Filter_Function(Command_Server_Log_Filter_Level_Absolute);
 	/* setup NGATCil logging */
-	NGATCil_General_Set_Log_Handler_Function(Autoguider_General_Log_Handler_Log_Hourly_File);
-	NGATCil_General_Set_Log_Filter_Function(NGATCil_General_Log_Filter_Level_Bitwise);
+	NGATCil_General_Set_Log_Handler_Function(Autoguider_General_Call_Log_Handlers);
+	NGATCil_General_Set_Log_Filter_Function(NGATCil_General_Log_Filter_Level_Absolute);
 	/* libdprt_object logging */
-	Object_Set_Log_Handler_Function(Autoguider_General_Log_Handler_Log_Hourly_File);
-	Object_Set_Log_Filter_Function(Object_Log_Filter_Level_Bitwise);
+	Object_Set_Log_Handler_Function(Autoguider_General_Call_Log_Handlers);
+	Object_Set_Log_Filter_Function(Object_Log_Filter_Level_Absolute);
 	return TRUE;
 }
 
@@ -448,7 +513,7 @@ static int Autoguider_Startup_CCD(void)
 
 	/* driver registration */
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"Autoguider_Startup_CCD:"
+	Autoguider_General_Log("CCD","autoguider.c","Autoguider_Startup_CCD",LOG_VERBOSITY_VERBOSE,"STARTUP",
 			       "Get driver registration data.");
 #endif
 	retval = CCD_Config_Get_String("ccd.driver.shared_library",&shared_library_name);
@@ -470,7 +535,8 @@ static int Autoguider_Startup_CCD(void)
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"Autoguider_Startup_CCD:Registering driver.");
+	Autoguider_General_Log("CCD","autoguider.c","Autoguider_Startup_CCD",LOG_VERBOSITY_VERBOSE,"STARTUP",
+			       "Registering driver.");
 #endif
 	retval = CCD_Driver_Register(shared_library_name,registration_function);
 	if(retval == FALSE)
@@ -489,11 +555,13 @@ static int Autoguider_Startup_CCD(void)
 		free(registration_function);
 	/* setup startup */
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"CCD_Setup_Initialise.");
+	Autoguider_General_Log("CCD","autoguider.c","Autoguider_Startup_CCD",LOG_VERBOSITY_VERBOSE,"STARTUP",
+			       "CCD_Setup_Initialise.");
 #endif
 	CCD_Setup_Initialise();
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"CCD_Setup_Startup.");
+	Autoguider_General_Log("CCD","autoguider.c","Autoguider_Startup_CCD",LOG_VERBOSITY_VERBOSE,"STARTUP",
+			       "CCD_Setup_Startup.");
 #endif
 	retval = CCD_Setup_Startup();
 	if(retval == FALSE)
@@ -512,8 +580,8 @@ static int Autoguider_Startup_CCD(void)
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"Setting target temperature to %.2f\n",
-				      target_temperature);
+	Autoguider_General_Log_Format("CCD","autoguider.c","Autoguider_Startup_CCD",LOG_VERBOSITY_VERBOSE,"STARTUP",
+				      "Setting target temperature to %.2f",target_temperature);
 #endif
 	retval = CCD_Temperature_Set(target_temperature);
 	if(retval == FALSE)
@@ -535,7 +603,8 @@ static int Autoguider_Startup_CCD(void)
 	if(cooler_on)
 	{
 #if AUTOGUIDER_DEBUG > 1
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"Turning cooler on.");
+		Autoguider_General_Log("CCD","autoguider.c","Autoguider_Startup_CCD",LOG_VERBOSITY_VERBOSE,"STARTUP",
+				       "Turning cooler on.");
 #endif
 		retval = CCD_Temperature_Cooler_On();
 		if(retval == FALSE)
@@ -549,7 +618,8 @@ static int Autoguider_Startup_CCD(void)
 	else
 	{
 #if AUTOGUIDER_DEBUG > 1
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"NOT turning cooler on");
+		Autoguider_General_Log("CCD","autoguider.c","Autoguider_Startup_CCD",LOG_VERBOSITY_VERBOSE,"STARTUP",
+				       "NOT turning cooler on");
 #endif
 	}
 	/* setup pause length in exposure loop */
@@ -562,7 +632,8 @@ static int Autoguider_Startup_CCD(void)
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"CCD_Exposure_Loop_Pause_Length_Set(%d).",ms);
+	Autoguider_General_Log_Format("CCD","autoguider.c","Autoguider_Startup_CCD",LOG_VERBOSITY_VERBOSE,"STARTUP",
+				      "CCD_Exposure_Loop_Pause_Length_Set(%d).",ms);
 #endif
 	retval = CCD_Exposure_Loop_Pause_Length_Set(ms);
 	if(retval == FALSE)
@@ -593,7 +664,8 @@ static int Autoguider_Shutdown_CCD(void)
 	int retval;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"Autoguider_Shutdown_CCD:started.");
+	Autoguider_General_Log("CCD","autoguider.c","Autoguider_Shutdown_CCD",LOG_VERBOSITY_VERBOSE,"SHUTDOWN",
+			       "started.");
 #endif
 	/* turn the cooler off */
 	retval = CCD_Config_Get_Boolean("ccd.temperature.cooler.off",&cooler_off);
@@ -607,7 +679,7 @@ static int Autoguider_Shutdown_CCD(void)
 	if(cooler_off)
 	{
 #if AUTOGUIDER_DEBUG > 1
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"Autoguider_Shutdown_CCD:"
+		Autoguider_General_Log("CCD","autoguider.c","Autoguider_Shutdown_CCD",LOG_VERBOSITY_VERBOSE,"SHUTDOWN",
 				       "Turning cooler off");
 #endif
 		retval = CCD_Temperature_Cooler_Off();
@@ -622,7 +694,7 @@ static int Autoguider_Shutdown_CCD(void)
 	else
 	{
 #if AUTOGUIDER_DEBUG > 1
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"Autoguider_Shutdown_CCD:"
+		Autoguider_General_Log("CCD","autoguider.c","Autoguider_Shutdown_CCD",LOG_VERBOSITY_VERBOSE,"SHUTDOWN",
 				       "NOT turning cooler off");
 #endif
 	}
@@ -650,14 +722,16 @@ static int Autoguider_Shutdown_CCD(void)
 				Autoguider_General_Error_Number = 14;
 				sprintf(Autoguider_General_Error_String,"Autoguider_Shutdown_CCD:"
 					"Failed to get temperature.");
-				Autoguider_General_Error();
-				fprintf(stdout,"Failed to read temperature whilst ramping to ambient.\n");
+				Autoguider_General_Error("CCD","autoguider.c","Autoguider_Shutdown_CCD",
+							 LOG_VERBOSITY_VERBOSE,"SHUTDOWN");
 				/* don't return FALSE - may cause CCD to warm up too quickly */
 			}
 #if AUTOGUIDER_DEBUG > 1
-			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"Autoguider_Shutdown_CCD:"
+			Autoguider_General_Log_Format("CCD","autoguider.c","Autoguider_Shutdown_CCD",
+						      LOG_VERBOSITY_VERBOSE,"SHUTDOWN",
 						      "Current Temperature:%lf.",current_temperature);
-			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"Autoguider_Shutdown_CCD:"
+			Autoguider_General_Log_Format("CCD","autoguider.c","Autoguider_Shutdown_CCD",
+						      LOG_VERBOSITY_VERBOSE,"SHUTDOWN",
 						      "Temperature Status:%s.",
 						      CCD_Temperature_Status_To_String(temperature_status));
 #endif
@@ -668,14 +742,14 @@ static int Autoguider_Shutdown_CCD(void)
 	else
 	{
 #if AUTOGUIDER_DEBUG > 1
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"Autoguider_Shutdown_CCD:"
+		Autoguider_General_Log("CCD","autoguider.c","Autoguider_Shutdown_CCD",LOG_VERBOSITY_VERBOSE,"SHUTDOWN",
 				       "NOT ramping to ambient.");
 #endif
 	}
 	/* setup shutdown */
 #if AUTOGUIDER_DEBUG > 1
-		Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"Autoguider_Shutdown_CCD:"
-				       "CCD_Setup_Shutdown");
+	Autoguider_General_Log("CCD","autoguider.c","Autoguider_Shutdown_CCD",LOG_VERBOSITY_VERBOSE,"SHUTDOWN",
+			       "CCD_Setup_Shutdown");
 #endif
 	retval = CCD_Setup_Shutdown();
 	if(retval == FALSE)
@@ -686,7 +760,8 @@ static int Autoguider_Shutdown_CCD(void)
 	}
 	/* driver shutdown */
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GENERAL,"Autoguider_Shutdown_CCD:CCD_Driver_Close");
+	Autoguider_General_Log("CCD","autoguider.c","Autoguider_Shutdown_CCD",LOG_VERBOSITY_VERBOSE,"SHUTDOWN",
+			       "CCD_Driver_Close");
 #endif
 	retval = CCD_Driver_Close();
 	if(retval == FALSE)
@@ -706,21 +781,16 @@ static void Help(void)
 	fprintf(stdout,"Autoguider:Help.\n");
 	fprintf(stdout,"autoguider \n");
 	fprintf(stdout,"\t[-co[nfig_filename] <filename>]\n");
-	fprintf(stdout,"\t[-[al|autoguider_log_level] <bit field>]\n");
-	fprintf(stdout,"\t[-[ccdl|ccd_log_level] <bit field>]\n");
-	fprintf(stdout,"\t[-[csl|command_server_log_level] <bit field>]\n");
-	fprintf(stdout,"\t[-[ncl|ngatcil_log_level] <bit field>]\n");
-	fprintf(stdout,"\t[-ol|-object_log_level] <bit field>]\n");
+	fprintf(stdout,"\t[-[al|autoguider_log_level] <verbosity>]\n");
+	fprintf(stdout,"\t[-[ccdl|ccd_log_level] <verbosity>]\n");
+	fprintf(stdout,"\t[-[csl|command_server_log_level] <verbosity>]\n");
+	fprintf(stdout,"\t[-[ncl|ngatcil_log_level] <verbosity>]\n");
+	fprintf(stdout,"\t[-ol|-object_log_level] <verbosity>]\n");
 	fprintf(stdout,"\t[-h[elp]]\n");
 	fprintf(stdout,"\n");
 	fprintf(stdout,"\t-help prints out this message and stops the program.\n");
 	fprintf(stdout,"\n");
 	fprintf(stdout,"\t<config filename> should be a valid configuration filename.\n");
-	fprintf(stdout,"\tAutoguider log levels defined in /home/dev/src/autoguider/include/autoguider_general.h.\n");
-	fprintf(stdout,"\tCCD log levels defined in /home/dev/src/autoguider/ccd/include/ccd_general.h.\n");
-	fprintf(stdout,"\tAndor CCD log levels defined in /home/dev/src/autoguider/ccd/andor/include/andor_general.h.\n");
-	fprintf(stdout,"\tCommand Server log levels defined in /home/dev/src/autoguider/commmand_server/include/command_server.h.\n");
-	fprintf(stdout,"\tNGATCil log levels defined in /home/dev/src/autoguider/ngatcil/include/ngatcil_general.h.\n");
 }
 
 /**
@@ -872,6 +942,9 @@ static int Parse_Arguments(int argc, char *argv[])
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.6  2006/09/07 15:37:25  cjm
+** Added CCD_Exposure_Loop_Pause_Length_Set call to Autoguider_Startup_CCD.
+**
 ** Revision 1.5  2006/08/29 13:55:42  cjm
 ** Added calls to set SDB AG_STATE.
 **

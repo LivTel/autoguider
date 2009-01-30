@@ -1,11 +1,11 @@
 /* ccd_temperature.c
 ** Autoguider CCD Library temperature routines
-** $Header: /home/cjm/cvs/autoguider/ccd/c/ccd_temperature.c,v 1.1 2006-06-01 15:27:37 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/c/ccd_temperature.c,v 1.2 2009-01-30 18:00:24 cjm Exp $
 */
 /**
  * Temperature routines for the autoguider CCD library.
  * @author Chris Mottram
- * @version $Revision: 1.1 $
+ * @version $Revision: 1.2 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -19,7 +19,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-
+#include "log_udp.h"
 #include "ccd_driver.h"
 #include "ccd_general.h"
 #include "ccd_temperature.h"
@@ -28,7 +28,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: ccd_temperature.c,v 1.1 2006-06-01 15:27:37 cjm Exp $";
+static char rcsid[] = "$Id: ccd_temperature.c,v 1.2 2009-01-30 18:00:24 cjm Exp $";
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -43,7 +43,6 @@ static char rcsid[] = "$Id: ccd_temperature.c,v 1.1 2006-06-01 15:27:37 cjm Exp 
  * @see ccd_driver.html#CCD_Driver_Function_Struct
  * @see ccd_general.html#CCD_General_Log_Format
  * @see ccd_general.html#CCD_General_Log
- * @see ccd_general.html#CCD_GENERAL_LOG_BIT_TEMPERATURE
  * @see ccd_general.html#CCD_CCD_General_Error_Number
  * @see ccd_general.html#CCD_CCD_General_Error_String
  */
@@ -53,7 +52,8 @@ int CCD_Temperature_Get(double *temperature,enum CCD_TEMPERATURE_STATUS *tempera
 	int retval;
 
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_TEMPERATURE,"CCD_Temperature_Get() started.");
+	CCD_General_Log("ccd","ccd_temperature.c","CCD_Temperature_Get",LOG_VERBOSITY_INTERMEDIATE,NULL,
+			"started.");
 #endif
 	/* get driver functions */
 	retval = CCD_Driver_Get_Functions(&functions);
@@ -71,7 +71,8 @@ int CCD_Temperature_Get(double *temperature,enum CCD_TEMPERATURE_STATUS *tempera
 	if(retval == FALSE)
 		return FALSE;
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_TEMPERATURE,"CCD_Temperature_Get() finished.");
+	CCD_General_Log("ccd","ccd_temperature.c","CCD_Temperature_Get",LOG_VERBOSITY_INTERMEDIATE,NULL,
+			"finished.");
 #endif
 	return TRUE;
 }
@@ -85,7 +86,6 @@ int CCD_Temperature_Get(double *temperature,enum CCD_TEMPERATURE_STATUS *tempera
  * @see ccd_driver.html#CCD_Driver_Function_Struct
  * @see ccd_general.html#CCD_General_Log_Format
  * @see ccd_general.html#CCD_General_Log
- * @see ccd_general.html#CCD_GENERAL_LOG_BIT_TEMPERATURE
  * @see ccd_general.html#CCD_CCD_General_Error_Number
  * @see ccd_general.html#CCD_CCD_General_Error_String
  */
@@ -95,7 +95,8 @@ int CCD_Temperature_Set(double target_temperature)
 	int retval;
 
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_TEMPERATURE,"CCD_Temperature_Set() started.");
+	CCD_General_Log("ccd","ccd_temperature.c","CCD_Temperature_Set",LOG_VERBOSITY_INTERMEDIATE,NULL,
+			"started.");
 #endif
 	/* get driver functions */
 	retval = CCD_Driver_Get_Functions(&functions);
@@ -113,7 +114,8 @@ int CCD_Temperature_Set(double target_temperature)
 	if(retval == FALSE)
 		return FALSE;
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_TEMPERATURE,"CCD_Temperature_Set() finished.");
+	CCD_General_Log("ccd","ccd_temperature.c","CCD_Temperature_Set",LOG_VERBOSITY_INTERMEDIATE,NULL,
+			"finished.");
 #endif
 	return TRUE;
 }
@@ -125,7 +127,6 @@ int CCD_Temperature_Set(double target_temperature)
  * @see ccd_driver.html#CCD_Driver_Function_Struct
  * @see ccd_general.html#CCD_General_Log_Format
  * @see ccd_general.html#CCD_General_Log
- * @see ccd_general.html#CCD_GENERAL_LOG_BIT_TEMPERATURE
  * @see ccd_general.html#CCD_CCD_General_Error_Number
  * @see ccd_general.html#CCD_CCD_General_Error_String
  */
@@ -135,7 +136,8 @@ int CCD_Temperature_Cooler_On(void)
 	int retval;
 
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_TEMPERATURE,"CCD_Temperature_Cooler_On() started.");
+	CCD_General_Log("ccd","ccd_temperature.c","CCD_Temperature_Cooler_On",LOG_VERBOSITY_INTERMEDIATE,NULL,
+			"started.");
 #endif
 	/* get driver functions */
 	retval = CCD_Driver_Get_Functions(&functions);
@@ -153,7 +155,8 @@ int CCD_Temperature_Cooler_On(void)
 	if(retval == FALSE)
 		return FALSE;
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_TEMPERATURE,"CCD_Temperature_Cooler_On() finished.");
+	CCD_General_Log("ccd","ccd_temperature.c","CCD_Temperature_Cooler_On",LOG_VERBOSITY_INTERMEDIATE,NULL,
+			"finished.");
 #endif
 	return TRUE;
 }
@@ -165,7 +168,6 @@ int CCD_Temperature_Cooler_On(void)
  * @see ccd_driver.html#CCD_Driver_Function_Struct
  * @see ccd_general.html#CCD_General_Log_Format
  * @see ccd_general.html#CCD_General_Log
- * @see ccd_general.html#CCD_GENERAL_LOG_BIT_TEMPERATURE
  * @see ccd_general.html#CCD_CCD_General_Error_Number
  * @see ccd_general.html#CCD_CCD_General_Error_String
  */
@@ -175,7 +177,8 @@ int CCD_Temperature_Cooler_Off(void)
 	int retval;
 
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_TEMPERATURE,"CCD_Temperature_Cooler_Off() started.");
+	CCD_General_Log("ccd","ccd_temperature.c","CCD_Temperature_Cooler_Off",LOG_VERBOSITY_INTERMEDIATE,NULL,
+			"started.");
 #endif
 	/* get driver functions */
 	retval = CCD_Driver_Get_Functions(&functions);
@@ -194,7 +197,8 @@ int CCD_Temperature_Cooler_Off(void)
 	if(retval == FALSE)
 		return FALSE;
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_TEMPERATURE,"CCD_Temperature_Cooler_Off() finished.");
+	CCD_General_Log("ccd","ccd_temperature.c","CCD_Temperature_Cooler_Off",LOG_VERBOSITY_INTERMEDIATE,NULL,
+			"finished.");
 #endif
 	return TRUE;
 }
@@ -228,4 +232,7 @@ char *CCD_Temperature_Status_To_String(enum CCD_TEMPERATURE_STATUS temperature_s
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2006/06/01 15:27:37  cjm
+** Initial revision
+**
 */

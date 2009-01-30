@@ -1,11 +1,11 @@
 /* autoguider_get_fits.c
 ** Autoguider get fits routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_get_fits.c,v 1.3 2007-01-30 17:35:24 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_get_fits.c,v 1.4 2009-01-30 18:01:33 cjm Exp $
 */
 /**
  * Routines to return an in-memory FITS image for the field or guide buffer.
  * @author Chris Mottram
- * @version $Revision: 1.3 $
+ * @version $Revision: 1.4 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -25,6 +25,7 @@
 #include <unistd.h>
 
 #include "fitsio.h"
+#include "log_udp.h"
 #ifdef SLALIB
 #include "slalib.h"
 #endif /* SLALIB */
@@ -53,7 +54,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_get_fits.c,v 1.3 2007-01-30 17:35:24 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_get_fits.c,v 1.4 2009-01-30 18:01:33 cjm Exp $";
 
 /* internal functions */
 static void Get_Fits_TimeSpec_To_Date_String(struct timespec time,char *time_string);
@@ -87,7 +88,6 @@ static int Get_Fits_TimeSpec_To_Mjd(struct timespec time,int leap_second_correct
  * @see autoguider_buffer.html#Autoguider_Buffer_Get_Guide_Binned_NRows
  * @see autoguider_guide.html#Autoguider_Guide_Get_Last_Buffer_Index
  * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_GET_FITS
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  */
@@ -101,7 +101,8 @@ int Autoguider_Get_Fits(int buffer_type,int buffer_state,void **buffer_ptr,size_
 	int buffer_index,retval,ncols,nrows;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GET_FITS,"Autoguider_Get_Fits:started.");
+	Autoguider_General_Log("get_fits","autoguider_get_fits.c","Autoguider_Get_Fits",LOG_VERBOSITY_INTERMEDIATE,
+			       "FITS","started.");
 #endif
 	/* check parameters */
 	if((buffer_type != AUTOGUIDER_GET_FITS_BUFFER_TYPE_FIELD) &&
@@ -132,9 +133,15 @@ int Autoguider_Get_Fits(int buffer_type,int buffer_state,void **buffer_ptr,size_
 	}
 	/* initialise fits header */
 	if(!Autoguider_Fits_Header_Initialise(&fits_header))
-		Autoguider_General_Error();
+	{
+		Autoguider_General_Error("get_fits","autoguider_get_fits.c","Autoguider_Get_Fits",
+					 LOG_VERBOSITY_INTERMEDIATE,"FITS");
+	}
 	if(!Autoguider_Get_Fits_Get_Header(buffer_type,buffer_state,&fits_header))
-		Autoguider_General_Error();
+	{
+		Autoguider_General_Error("get_fits","autoguider_get_fits.c","Autoguider_Get_Fits",
+					 LOG_VERBOSITY_INTERMEDIATE,"FITS");
+	}
 	/* pixel_length based on whether raw or reduced: raw is unsigned short, reduced is float */
 	if(buffer_state == AUTOGUIDER_GET_FITS_BUFFER_STATE_RAW)
 		pixel_length = sizeof(unsigned short);
@@ -268,7 +275,8 @@ int Autoguider_Get_Fits(int buffer_type,int buffer_state,void **buffer_ptr,size_
 
 	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GET_FITS,"Autoguider_Get_Fits:finished.");
+	Autoguider_General_Log("get_fits","autoguider_get_fits.c","Autoguider_Get_Fits",LOG_VERBOSITY_INTERMEDIATE,
+			       "FITS","finished.");
 #endif
 	return TRUE;
 }
@@ -293,7 +301,6 @@ int Autoguider_Get_Fits(int buffer_type,int buffer_state,void **buffer_ptr,size_
  * @see autoguider_fits_header.html#Autoguider_Fits_Header_Write_To_Fits
  * @see autoguider_fits_header.html#Autoguider_Fits_Header_Free
  * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_GET_FITS
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  */
@@ -307,7 +314,8 @@ int Autoguider_Get_Fits_From_Buffer(void **buffer_ptr,size_t *buffer_length,int 
 	int retval,bitpix,datatype,cfitsio_status=0;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GET_FITS,"Autoguider_Get_Fits_From_Buffer:started.");
+	Autoguider_General_Log("get_fits","autoguider_get_fits.c","Autoguider_Get_Fits_From_Buffer",
+			       LOG_VERBOSITY_INTERMEDIATE,"FITS","started.");
 #endif
 	/* check parameters */
 	if(buffer_ptr == NULL)
@@ -411,7 +419,10 @@ int Autoguider_Get_Fits_From_Buffer(void **buffer_ptr,size_t *buffer_length,int 
 	/* write the extra fits headers */
 	retval = Autoguider_Fits_Header_Write_To_Fits((*fits_header),fits_fp);
 	if(retval == FALSE) /* on failure, report error but continue. */
-		Autoguider_General_Error();
+	{
+		Autoguider_General_Error("get_fits","autoguider_get_fits.c","Autoguider_Get_Fits",
+					 LOG_VERBOSITY_INTERMEDIATE,"FITS");
+	}
 	/* ensure data we have written is in the actual data buffer, not CFITSIO's internal buffers */
 	/* closing the file ensures this. */ 
 	retval = fits_close_file(fits_fp,&cfitsio_status);
@@ -433,9 +444,13 @@ int Autoguider_Get_Fits_From_Buffer(void **buffer_ptr,size_t *buffer_length,int 
 	/* free fits headers */
 	retval = Autoguider_Fits_Header_Free(fits_header);
 	if(retval == FALSE) /* on failure, report error but continue. */
-		Autoguider_General_Error();
+	{
+		Autoguider_General_Error("get_fits","autoguider_get_fits.c","Autoguider_Get_Fits",
+					 LOG_VERBOSITY_INTERMEDIATE,"FITS");
+	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GET_FITS,"Autoguider_Get_Fits_From_Buffer:finished.");
+	Autoguider_General_Log("get_fits","autoguider_get_fits.c","Autoguider_Get_Fits_From_Buffer",
+			       LOG_VERBOSITY_INTERMEDIATE,"FITS","finished.");
 #endif
 	return TRUE;
 }
@@ -483,7 +498,8 @@ int Autoguider_Get_Fits_Get_Header(int buffer_type,int buffer_state,struct Fits_
 	int ccdwmode,ccdwxoff,ccdwyoff,ccdwxsiz,ccdwysiz,ccdstemp,ccdatemp;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GET_FITS,"Autoguider_Get_Fits_Get_Header:started.");
+	Autoguider_General_Log("get_fits","autoguider_get_fits.c","Autoguider_Get_Fits_Get_Header",
+			       LOG_VERBOSITY_INTERMEDIATE,"FITS","started.");
 #endif
 	/* check parameters */
 	if((buffer_type != AUTOGUIDER_GET_FITS_BUFFER_TYPE_FIELD) &&
@@ -538,12 +554,21 @@ int Autoguider_Get_Fits_Get_Header(int buffer_type,int buffer_state,struct Fits_
 			return FALSE;
 		}
 		if(!Autoguider_Buffer_Field_Exposure_Start_Time_Get(buffer_index,&start_time))
-			Autoguider_General_Error();
+		{
+			Autoguider_General_Error("get_fits","autoguider_get_fits.c","Autoguider_Get_Fits",
+						 LOG_VERBOSITY_INTERMEDIATE,"FITS");
+		}
 		if(!Autoguider_Buffer_Field_Exposure_Length_Get(buffer_index,&exposure_length_ms))
-			Autoguider_General_Error();
+		{
+			Autoguider_General_Error("get_fits","autoguider_get_fits.c","Autoguider_Get_Fits",
+						 LOG_VERBOSITY_INTERMEDIATE,"FITS");
+		}
 		/* temperature */
 		if(!Autoguider_Buffer_Field_CCD_Temperature_Get(buffer_index,&current_temperature))
-			Autoguider_General_Error();
+		{
+			Autoguider_General_Error("get_fits","autoguider_get_fits.c","Autoguider_Get_Fits",
+						 LOG_VERBOSITY_INTERMEDIATE,"FITS");
+		}
 	}
 	else if(buffer_type == AUTOGUIDER_GET_FITS_BUFFER_TYPE_GUIDE)
 	{
@@ -569,12 +594,21 @@ int Autoguider_Get_Fits_Get_Header(int buffer_type,int buffer_state,struct Fits_
 			return FALSE;
 		}
 		if(!Autoguider_Buffer_Guide_Exposure_Start_Time_Get(buffer_index,&start_time))
-			Autoguider_General_Error();
+		{
+			Autoguider_General_Error("get_fits","autoguider_get_fits.c","Autoguider_Get_Fits",
+						 LOG_VERBOSITY_INTERMEDIATE,"FITS");
+		}
 		if(!Autoguider_Buffer_Guide_Exposure_Length_Get(buffer_index,&exposure_length_ms))
-			Autoguider_General_Error();
+		{
+			Autoguider_General_Error("get_fits","autoguider_get_fits.c","Autoguider_Get_Fits",
+						 LOG_VERBOSITY_INTERMEDIATE,"FITS");
+		}
 		/* temperature */
 		if(!Autoguider_Buffer_Guide_CCD_Temperature_Get(buffer_index,&current_temperature))
-			Autoguider_General_Error();
+		{
+			Autoguider_General_Error("get_fits","autoguider_get_fits.c","Autoguider_Get_Fits",
+						 LOG_VERBOSITY_INTERMEDIATE,"FITS");
+		}
 	}/* end if buffer_type */
 	Autoguider_Fits_Header_Add_Int(fits_header,"CCDXIMSI",ccdximsi,
 				       "Size of binned imaging area (pixels)");
@@ -620,8 +654,8 @@ diddly modifiable programmable stuff TAGID/USERID/PROPID
 	/* CCDATEMP */
 	ccdatemp = (int)(current_temperature+CENTIGRADE_TO_KELVIN);
 #if AUTOGUIDER_DEBUG > 9
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_GET_FITS,"Autoguider_Get_Fits_Get_Header:"
-				      "ccdatemp is %.d K.",ccdatemp);
+	Autoguider_General_Log_Format("get_fits","autoguider_get_fits.c","Autoguider_Get_Fits_Get_Header",
+				      LOG_VERBOSITY_INTERMEDIATE,"FITS","ccdatemp is %.d K.",ccdatemp);
 #endif
 	Autoguider_Fits_Header_Add_Int(fits_header,"CCDATEMP",ccdatemp,
 					       "CCD Temperature at time of writing FITS header (Kelvin)");
@@ -633,7 +667,8 @@ diddly modifiable programmable stuff TAGID/USERID/PROPID
 		Autoguider_Fits_Header_Add_Int(fits_header,"CCDSTEMP",ccdstemp,"Target Temperature (Kelvin)");
 	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_GET_FITS,"Autoguider_Get_Fits_Get_Header:finished.");
+	Autoguider_General_Log("get_fits","autoguider_get_fits.c","Autoguider_Get_Fits_Get_Header",
+			       LOG_VERBOSITY_INTERMEDIATE,"FITS","finished.");
 #endif
 	return TRUE;
 }
@@ -777,6 +812,14 @@ static int Get_Fits_TimeSpec_To_Mjd(struct timespec time,int leap_second_correct
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.3  2007/01/30 17:35:24  cjm
+** Now calls Autoguider_Fits_Header_Initialise to initialise FITS
+** header properly.
+** Removed CCD_Temperature_Get calls - these do not work in the middle
+** of an aquisition (guide loop).
+** Added Autoguider_Buffer_Guide_CCD_Temperature_Get/Field calls
+** to get saved CCD Temperature instead.
+**
 ** Revision 1.2  2007/01/26 15:29:42  cjm
 ** Added Autoguider_Get_Fits_Get_Header and associated routines to populate
 ** FITS headers.

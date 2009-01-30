@@ -1,12 +1,12 @@
 /* ccd_driver.c
 ** Autoguider CCD Library driver routines
-** $Header: /home/cjm/cvs/autoguider/ccd/c/ccd_driver.c,v 1.1 2006-04-28 14:27:23 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/c/ccd_driver.c,v 1.2 2009-01-30 18:00:24 cjm Exp $
 */
 /**
  * Driver routines for the autoguider CCD library.
  * Sets up function pointers to driver routines from a loaded shared library.
  * @author Chris Mottram
- * @version $Revision: 1.1 $
+ * @version $Revision: 1.2 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -22,7 +22,7 @@
 #include <unistd.h>
 /* dynamic library loader */
 #include <dlfcn.h>
-
+#include "log_udp.h"
 #include "ccd_config.h"
 #include "ccd_driver.h"
 #include "ccd_general.h"
@@ -51,7 +51,7 @@ struct Driver_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: ccd_driver.c,v 1.1 2006-04-28 14:27:23 cjm Exp $";
+static char rcsid[] = "$Id: ccd_driver.c,v 1.2 2009-01-30 18:00:24 cjm Exp $";
 /**
  * Instance of the loaded driver.
  * @see #Driver_Struct
@@ -74,7 +74,7 @@ int CCD_Driver_Register(char *shared_library_name,char *registration_function)
 	int retval;
 
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_CONFIG,"CCD_Driver_Register() started.");
+	CCD_General_Log("ccd","ccd_driver.c","CCD_Driver_Register",LOG_VERBOSITY_TERSE,NULL,"started.");
 #endif
 	if(shared_library_name == NULL)
 	{
@@ -130,7 +130,7 @@ int CCD_Driver_Register(char *shared_library_name,char *registration_function)
 		return FALSE;
 	}
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_CONFIG,"CCD_Driver_Register() finished.");
+	CCD_General_Log("ccd","ccd_driver.c","CCD_Driver_Register",LOG_VERBOSITY_TERSE,NULL,"finished.");
 #endif
 	return TRUE;
 }
@@ -164,7 +164,7 @@ int CCD_Driver_Close(void)
 	int retval;
 
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_CONFIG,"CCD_Driver_Close() started.");
+	CCD_General_Log("ccd","ccd_driver.c","CCD_Driver_Close",LOG_VERBOSITY_VERBOSE,NULL,"started.");
 #endif
 	retval = dlclose(Driver_Data.Dynamic_Library_Handle);
 	if(retval != 0)
@@ -175,11 +175,14 @@ int CCD_Driver_Close(void)
 		return FALSE;
 	}
 #ifdef CCD_DEBUG
-	CCD_General_Log(CCD_GENERAL_LOG_BIT_CONFIG,"CCD_Driver_Close() finished.");
+	CCD_General_Log("ccd","ccd_driver.c","CCD_Driver_Close",LOG_VERBOSITY_VERBOSE,NULL,"finished.");
 #endif
 	return TRUE;
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2006/04/28 14:27:23  cjm
+** Initial revision
+**
 */
 

@@ -1,13 +1,13 @@
 /* autoguider_object.c
 ** Autoguider object detection routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_object.c,v 1.15 2008-03-14 12:04:01 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_object.c,v 1.16 2009-01-30 18:01:33 cjm Exp $
 */
 /**
  * Object detection routines for the autoguider program.
  * Uses libdprt_object.
  * Has it's own buffer, as Object_List_Get destroys the data within it's buffer argument.
  * @author Chris Mottram
- * @version $Revision: 1.15 $
+ * @version $Revision: 1.16 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -25,6 +25,8 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+
+#include "log_udp.h"
 
 #include "dprt_libfits.h"
 #include "object.h"
@@ -88,7 +90,7 @@ struct Object_Internal_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_object.c,v 1.15 2008-03-14 12:04:01 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_object.c,v 1.16 2009-01-30 18:01:33 cjm Exp $";
 /**
  * Instance of object data.
  * @see #Object_Internal_Struct
@@ -140,7 +142,6 @@ static int Object_Sort_Object_List_By_Total_Counts(const void *p1, const void *p
  * @see #Object_Buffer_Copy
  * @see #Object_Create_Object_List
  * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_OBJECT
  * @see autoguider_general.html#Autoguider_General_Mutex_Lock
  * @see autoguider_general.html#Autoguider_General_Mutex_Unlock
  * @see autoguider_general.html#Autoguider_General_Error_Number
@@ -150,7 +151,8 @@ int Autoguider_Object_Detect(float *buffer,int naxis1,int naxis2,int start_x,int
 			     int id,int frame_number)
 {
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Autoguider_Object_Detect:started.");
+	Autoguider_General_Log("object","autoguider_object.c","Autoguider_Object_Detect",LOG_VERBOSITY_TERSE,
+			       "OBJECT","started.");
 #endif
 	if(buffer == NULL)
 	{
@@ -167,7 +169,8 @@ int Autoguider_Object_Detect(float *buffer,int naxis1,int naxis2,int start_x,int
 	if(!Object_Create_Object_List(use_standard_deviation,start_x,start_y))
 		return FALSE;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Autoguider_Object_Detect:finished.");
+	Autoguider_General_Log("object","autoguider_object.c","Autoguider_Object_Detect",LOG_VERBOSITY_TERSE,
+			       "OBJECT","finished.");
 #endif
 	return TRUE;
 }
@@ -177,7 +180,6 @@ int Autoguider_Object_Detect(float *buffer,int naxis1,int naxis2,int start_x,int
  * @return The routine returns TRUE on success, and FALSE on failure.
  * @see #Object_Data
  * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_OBJECT
  * @see autoguider_general.html#Autoguider_General_Mutex_Lock
  * @see autoguider_general.html#Autoguider_General_Mutex_Unlock
  */
@@ -186,7 +188,8 @@ int Autoguider_Object_Shutdown(void)
 	int retval;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Autoguider_Object_Shutdown:started.");
+	Autoguider_General_Log("object","autoguider_object.c","Autoguider_Object_Shutdown",LOG_VERBOSITY_TERSE,
+			       "OBJECT","started.");
 #endif
 	/* image data */
 	/* lock mutex */
@@ -216,7 +219,8 @@ int Autoguider_Object_Shutdown(void)
 	if(retval == FALSE)
 		return FALSE;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Autoguider_Object_Shutdown:finished.");
+	Autoguider_General_Log("object","autoguider_object.c","Autoguider_Object_Shutdown",LOG_VERBOSITY_TERSE,
+			       "OBJECT","finished.");
 #endif
 	return TRUE;
 }
@@ -330,10 +334,10 @@ int Autoguider_Object_List_Get_Nearest_Object(float ccd_x_position,float ccd_y_p
 	if(retval == FALSE)
 		return FALSE;
 #if AUTOGUIDER_DEBUG > 7
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,
-				      "Autoguider_Object_List_Get_Nearest_Object:Selecting object nearest"
-				      " (%.2f,%.2f) from %d objects.",ccd_x_position,ccd_y_position,
-				      Object_Data.Object_Count);
+	Autoguider_General_Log_Format("object","autoguider_object.c",
+				      "Autoguider_Object_List_Get_Nearest_Object",LOG_VERBOSITY_TERSE,"OBJECT",
+				      "Selecting object nearest (%.2f,%.2f) from %d objects.",
+				      ccd_x_position,ccd_y_position,Object_Data.Object_Count);
 #endif
 	closest_distance = 999999.9f;
 	for(index = 0; index < Object_Data.Object_Count; index++)
@@ -346,9 +350,10 @@ int Autoguider_Object_List_Get_Nearest_Object(float ccd_x_position,float ccd_y_p
 		ysq = ydiff*ydiff;
 		distance = (float)sqrt((double)(xsq + ysq));
 #if AUTOGUIDER_DEBUG > 9
-		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,
-					      "Autoguider_Object_List_Get_Nearest_Object:Object index %d (%.2f,%.2f) "
-					      "is %.2f pixels away from (%.2f,%.2f).",index,
+		Autoguider_General_Log_Format("object","autoguider_object.c",
+					      "Autoguider_Object_List_Get_Nearest_Object",
+					      LOG_VERBOSITY_VERBOSE,"OBJECT",
+					     "Object index %d (%.2f,%.2f) is %.2f pixels away from (%.2f,%.2f).",index,
 					      Object_Data.Object_List[index].CCD_X_Position,
 					      Object_Data.Object_List[index].CCD_Y_Position,
 					      distance,ccd_x_position,ccd_y_position);
@@ -382,7 +387,6 @@ int Autoguider_Object_List_Get_Nearest_Object(float ccd_x_position,float ccd_y_p
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_OBJECT
  */
 int Autoguider_Object_Guide_Object_Get(enum COMMAND_AG_ON_TYPE on_type,float pixel_x,float pixel_y,
 				       int rank,int *selected_object_index)
@@ -398,7 +402,8 @@ int Autoguider_Object_Guide_Object_Get(enum COMMAND_AG_ON_TYPE on_type,float pix
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Autoguider_Object_Guide_Object_Get:started.");
+	Autoguider_General_Log("object","autoguider_object.c","Autoguider_Object_Guide_Object_Get",
+			       LOG_VERBOSITY_TERSE,"OBJECT","started.");
 #endif
 	/* lock mutex */
 	retval = Autoguider_General_Mutex_Lock(&(Object_Data.Object_List_Mutex));
@@ -427,9 +432,11 @@ int Autoguider_Object_Guide_Object_Get(enum COMMAND_AG_ON_TYPE on_type,float pix
 					max_total_counts = Object_Data.Object_List[index].Total_Counts;
 					(*selected_object_index) = index;
 #if AUTOGUIDER_DEBUG > 9
-					Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,
-						  "Autoguider_Object_Guide_Object_Get:Object index %d (%.2f,%.2f) "
-						  "is brightest so far (%.2f).",index,
+					Autoguider_General_Log_Format("object","autoguider_object.c",
+								      "Autoguider_Object_Guide_Object_Get",
+								      LOG_VERBOSITY_VERBOSE,"OBJECT",
+								      "Object index %d (%.2f,%.2f) "
+								      "is brightest so far (%.2f).",index,
 							       Object_Data.Object_List[index].CCD_X_Position,
 							       Object_Data.Object_List[index].CCD_Y_Position,
 							       Object_Data.Object_List[index].Total_Counts);
@@ -438,8 +445,9 @@ int Autoguider_Object_Guide_Object_Get(enum COMMAND_AG_ON_TYPE on_type,float pix
 				index++;
 			}/* end while */
 #if AUTOGUIDER_DEBUG > 5
-			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,
-					 "Autoguider_Object_Guide_Object_Get:Brightest Object index %d (%.2f,%.2f) "
+			Autoguider_General_Log_Format("object","autoguider_object.c",
+						      "Autoguider_Object_Guide_Object_Get",LOG_VERBOSITY_VERBOSE,
+						      "OBJECT","Brightest Object index %d (%.2f,%.2f) "
 						  "with total counts (%.2f).",(*selected_object_index),
 						 Object_Data.Object_List[(*selected_object_index)].CCD_X_Position,
 						 Object_Data.Object_List[(*selected_object_index)].CCD_Y_Position,
@@ -459,12 +467,14 @@ int Autoguider_Object_Guide_Object_Get(enum COMMAND_AG_ON_TYPE on_type,float pix
 				ysq = ydiff*ydiff;
 				distance = (float)sqrt((double)(xsq + ysq));
 #if AUTOGUIDER_DEBUG > 9
-				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,
-						  "Autoguider_Object_Guide_Object_Get:Object index %d (%.2f,%.2f) "
-						  "is %.2f pixels away from (%.2f,%.2f).",index,
-						       Object_Data.Object_List[index].CCD_X_Position,
-						       Object_Data.Object_List[index].CCD_Y_Position,
-						       distance,pixel_x,pixel_y);
+				Autoguider_General_Log_Format("object","autoguider_object.c",
+							      "Autoguider_Object_Guide_Object_Get",
+							      LOG_VERBOSITY_VERBOSE,"OBJECT",
+							      "Object index %d (%.2f,%.2f) "
+							      "is %.2f pixels away from (%.2f,%.2f).",index,
+							      Object_Data.Object_List[index].CCD_X_Position,
+							      Object_Data.Object_List[index].CCD_Y_Position,
+							      distance,pixel_x,pixel_y);
 #endif
 				if(distance <  closest_distance)
 				{
@@ -474,8 +484,9 @@ int Autoguider_Object_Guide_Object_Get(enum COMMAND_AG_ON_TYPE on_type,float pix
 				index++;
 			}/* end while */
 #if AUTOGUIDER_DEBUG > 5
-			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,
-					     "Autoguider_Object_Guide_Object_Get:Closest Object index %d (%.2f,%.2f) "
+			Autoguider_General_Log_Format("object","autoguider_object.c",
+						      "Autoguider_Object_Guide_Object_Get",LOG_VERBOSITY_VERBOSE,
+						      "OBJECT","Closest Object index %d (%.2f,%.2f) "
 					       "is %.2f pixels away from (%.2f,%.2f).",(*selected_object_index),
 					       Object_Data.Object_List[(*selected_object_index)].CCD_X_Position,
 					       Object_Data.Object_List[(*selected_object_index)].CCD_Y_Position,
@@ -528,7 +539,8 @@ int Autoguider_Object_Guide_Object_Get(enum COMMAND_AG_ON_TYPE on_type,float pix
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Autoguider_Object_Guide_Object_Get:finished.");
+	Autoguider_General_Log("object","autoguider_object.c","Autoguider_Object_Guide_Object_Get",
+			       LOG_VERBOSITY_TERSE,"OBJECT","finished.");
 #endif
 	return TRUE;
 }
@@ -600,9 +612,10 @@ int Autoguider_Object_List_Get_Object_List_String(char **object_list_string)
 			Object_Data.Object_List[i].Peak_Counts,is_stellar_string,
 			Object_Data.Object_List[i].FWHM_X,Object_Data.Object_List[i].FWHM_Y);
 #if AUTOGUIDER_DEBUG > 1
-		Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,
-					      "Autoguider_Object_List_Get_Object_List_String:"
-					      "index %d : '%s' (%d bytes).",i,buff,retval);
+		Autoguider_General_Log_Format("object","autoguider_object.c",
+					      "Autoguider_Object_List_Get_Object_List_String",
+					      LOG_VERBOSITY_VERBOSE,"OBJECT","index %d : '%s' (%d bytes).",
+					      i,buff,retval);
 #endif
 		if(!Autoguider_General_Add_String(object_list_string,buff))
 		{
@@ -634,7 +647,6 @@ int Autoguider_Object_List_Get_Object_List_String(char **object_list_string)
  * @return The routine returns TRUE on success, and FALSE on failure.
  * @see #Object_Data
  * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_OBJECT
  * @see autoguider_general.html#Autoguider_General_Mutex_Lock
  * @see autoguider_general.html#Autoguider_General_Mutex_Unlock
  * @see autoguider_general.html#Autoguider_General_Error_Number
@@ -645,7 +657,8 @@ static int Object_Buffer_Set(float *buffer,int naxis1,int naxis2)
 	int retval;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Buffer_Set:started.");
+	Autoguider_General_Log("object","autoguider_object.c","Object_Buffer_Set",LOG_VERBOSITY_TERSE,
+			       "OBJECT","started.");
 #endif
 	/* lock mutex */
 	retval = Autoguider_General_Mutex_Lock(&(Object_Data.Image_Data_Mutex));
@@ -658,8 +671,8 @@ static int Object_Buffer_Set(float *buffer,int naxis1,int naxis2)
 		if(Object_Data.Image_Data == NULL)
 		{
 #if AUTOGUIDER_DEBUG > 9
-			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,
-						      "Object_Buffer_Set:Allocating Image_Data (%d,%d).",
+			Autoguider_General_Log_Format("object","autoguider_object.c","Object_Buffer_Set",
+						      LOG_VERBOSITY_VERBOSE,"OBJECT","Allocating Image_Data (%d,%d).",
 						      naxis1,naxis2);
 #endif
 			Object_Data.Image_Data = (float *)malloc((naxis1*naxis2)*sizeof(float));
@@ -667,9 +680,9 @@ static int Object_Buffer_Set(float *buffer,int naxis1,int naxis2)
 		else
 		{
 #if AUTOGUIDER_DEBUG > 9
-			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,
-						      "Object_Buffer_Set:Reallocating Image_Data (%d,%d).",
-						      naxis1,naxis2);
+			Autoguider_General_Log_Format("object","autoguider_object.c","Object_Buffer_Set",
+						      LOG_VERBOSITY_VERBOSE,"OBJECT",
+						      "Reallocating Image_Data (%d,%d).",naxis1,naxis2);
 #endif
 			Object_Data.Image_Data = (float *)realloc(Object_Data.Image_Data,
 								  (naxis1*naxis2)*sizeof(float));
@@ -693,7 +706,8 @@ static int Object_Buffer_Set(float *buffer,int naxis1,int naxis2)
 	if(retval == FALSE)
 		return FALSE;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Buffer_Set:finished.");
+	Autoguider_General_Log("object","autoguider_object.c","Object_Buffer_Set",
+			       LOG_VERBOSITY_TERSE,"OBJECT","finished.");
 #endif
 	return TRUE;
 }
@@ -708,7 +722,6 @@ static int Object_Buffer_Set(float *buffer,int naxis1,int naxis2)
  * @return The routine returns TRUE on success, and FALSE on failure.
  * @see #Object_Data
  * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_OBJECT
  * @see autoguider_general.html#Autoguider_General_Mutex_Lock
  * @see autoguider_general.html#Autoguider_General_Mutex_Unlock
  * @see autoguider_general.html#Autoguider_General_Error_Number
@@ -719,7 +732,8 @@ static int Object_Buffer_Copy(float *buffer,int naxis1,int naxis2)
 	int retval;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Buffer_Copy:started.");
+	Autoguider_General_Log("object","autoguider_object.c","Object_Buffer_Copy",
+			       LOG_VERBOSITY_INTERMEDIATE,"OBJECT","started.");
 #endif
 	if((naxis1*naxis2) > Object_Data.Image_Data_Allocated_Pixel_Count)
 	{
@@ -741,7 +755,8 @@ static int Object_Buffer_Copy(float *buffer,int naxis1,int naxis2)
 	if(retval == FALSE)
 		return FALSE;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Buffer_Copy:finished.");
+	Autoguider_General_Log("object","autoguider_object.c","Object_Buffer_Copy",
+			       LOG_VERBOSITY_INTERMEDIATE,"OBJECT","finished.");
 #endif
 	return TRUE;
 }
@@ -762,7 +777,6 @@ static int Object_Buffer_Copy(float *buffer,int naxis1,int naxis2)
  * @see #Object_Set_Threshold
  * @see #Object_Sort_Object_List_By_Total_Counts
  * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_OBJECT
  * @see autoguider_general.html#Autoguider_General_Mutex_Lock
  * @see autoguider_general.html#Autoguider_General_Mutex_Unlock
  * @see autoguider_general.html#Autoguider_General_Error_Number
@@ -780,7 +794,8 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
 	float threshold,seeing;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Create_Object_List:started.");
+	Autoguider_General_Log("object","autoguider_object.c","Object_Create_Object_List",
+			       LOG_VERBOSITY_INTERMEDIATE,"OBJECT","started.");
 #endif
 	if(!AUTOGUIDER_GENERAL_IS_BOOLEAN(use_standard_deviation))
 	{
@@ -795,7 +810,8 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
 		return FALSE;
 	/* get median/threshold */
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Create_Object_List:Getting statistics.");
+	Autoguider_General_Log("object","autoguider_object.c","Object_Create_Object_List",
+			       LOG_VERBOSITY_VERBOSE,"OBJECT","Getting statistics.");
 #endif
 	if(!Object_Set_Threshold(use_standard_deviation,&threshold))
 	{
@@ -803,8 +819,8 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Create_Object_List:"
-			       "Starting object detection.");
+	Autoguider_General_Log("object","autoguider_object.c","Object_Create_Object_List",
+			       LOG_VERBOSITY_VERBOSE,"OBJECT","Starting object detection.");
 #endif
 	/*clock_gettime(CLOCK_REALTIME,&start_time);*/
 	/* diddly npix '8' should be a loaded property */
@@ -819,8 +835,8 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Create_Object_List:"
-			       "Object detection finished.");
+	Autoguider_General_Log("object","autoguider_object.c","Object_Create_Object_List",
+			       LOG_VERBOSITY_VERBOSE,"OBJECT","Object detection finished.");
 #endif
 	/* unlock image data mutex */
 	retval = Autoguider_General_Mutex_Unlock(&(Object_Data.Image_Data_Mutex));
@@ -832,8 +848,8 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
 		return FALSE;
 	/* copy objects to list */
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Create_Object_List:"
-			       "Counting number of detected objects.");
+	Autoguider_General_Log("object","autoguider_object.c","Object_Create_Object_List",
+			       LOG_VERBOSITY_VERBOSE,"OBJECT","Counting number of detected objects.");
 #endif
 	/* count number of detected objects */
 	Object_Data.Object_Count = 0;
@@ -844,8 +860,9 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
 		current_object_ptr = current_object_ptr->nextobject;
 	}
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Create_Object_List:"
-			       "We detected %d objects in the frame.",Object_Data.Object_Count);
+	Autoguider_General_Log_Format("object","autoguider_object.c","Object_Create_Object_List",
+				      LOG_VERBOSITY_VERBOSE,"OBJECT","We detected %d objects in the frame.",
+				      Object_Data.Object_Count);
 #endif
 	/* reallocate if there is not enough space */
 	if(Object_Data.Object_Count > Object_Data.Allocated_Object_Count)
@@ -853,9 +870,10 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
 		if(Object_Data.Object_List == NULL)
 		{
 #if AUTOGUIDER_DEBUG > 5
-			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Create_Object_List:"
-			       "Allocating Object_List from %d to %d.",Object_Data.Allocated_Object_Count,
-					      Object_Data.Object_Count);
+			Autoguider_General_Log_Format("object","autoguider_object.c","Object_Create_Object_List",
+						      LOG_VERBOSITY_VERBOSE,"OBJECT",
+					   "Allocating Object_List from %d to %d.",Object_Data.Allocated_Object_Count,
+					   Object_Data.Object_Count);
 #endif
 			Object_Data.Object_List = (struct Autoguider_Object_Struct*)malloc(Object_Data.Object_Count*
 								    sizeof(struct Autoguider_Object_Struct));
@@ -863,8 +881,9 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
 		else
 		{
 #if AUTOGUIDER_DEBUG > 5
-			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Create_Object_List:"
-			       "Reallocating Object_List from %d to %d.",Object_Data.Allocated_Object_Count,
+			Autoguider_General_Log_Format("object","autoguider_object.c","Object_Create_Object_List",
+			       LOG_VERBOSITY_VERBOSE,"OBJECT",
+				    "Reallocating Object_List from %d to %d.",Object_Data.Allocated_Object_Count,
 					      Object_Data.Object_Count);
 #endif
 			Object_Data.Object_List = (struct Autoguider_Object_Struct*)realloc(Object_Data.Object_List,
@@ -884,8 +903,8 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
 	}
 	/* and do the actual copy */
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Create_Object_List:"
-			       "Copying Objects to Object_List.");
+	Autoguider_General_Log("object","autoguider_object.c","Object_Create_Object_List",
+			       LOG_VERBOSITY_VERBOSE,"OBJECT","Copying Objects to Object_List.");
 #endif
 	current_object_ptr = object_list;
 	index = 0;
@@ -907,14 +926,15 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
 		{
 			if(index == 0)
 			{
-				Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,
-						              "Object_Create_Object_List:Id,Frame Number,Index,CCD X,"
+				Autoguider_General_Log_Format("object","autoguider_object.c",
+							      "Object_Create_Object_List",LOG_VERBOSITY_VERBOSE,
+							      "OBJECT","Id,Frame Number,Index,CCD X,"
 							      "CCD Y,Buffer X,Buffer Y,Total Counts,No of Pixels,"
 							      "Peak Counts,Is Stellar,FWHM X,FWHM Y");
 			}
-			Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,
-						      "Object_Create_Object_List:List "
-			  "%d,%d,%d,%6.2f,%6.2f,%6.2f,%6.2f,%6.2f,%6d,%6.2f,%s,%6.2f,%6.2f",
+			Autoguider_General_Log_Format("object","autoguider_object.c","Object_Create_Object_List",
+						      LOG_VERBOSITY_VERBOSE,"OBJECT",
+					     "List %d,%d,%d,%6.2f,%6.2f,%6.2f,%6.2f,%6.2f,%6d,%6.2f,%s,%6.2f,%6.2f",
 			  Object_Data.Id,Object_Data.Frame_Number,Object_Data.Object_List[index].Index,
 			  Object_Data.Object_List[index].CCD_X_Position,Object_Data.Object_List[index].CCD_Y_Position,
  			  Object_Data.Object_List[index].Buffer_X_Position,
@@ -931,8 +951,8 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
 	}
 	/* Free object library objects */
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Create_Object_List:"
-			       "Freeing object library objects.");
+	Autoguider_General_Log("object","autoguider_object.c","Object_Create_Object_List",
+			       LOG_VERBOSITY_VERBOSE,"OBJECT","Freeing object library objects.");
 #endif
 	if(!Object_List_Free(&object_list))
 	{
@@ -949,7 +969,8 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
 	if(retval == FALSE)
 		return FALSE;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Create_Object_List:finished.");
+	Autoguider_General_Log("object","autoguider_object.c","Object_Create_Object_List",
+			       LOG_VERBOSITY_TERSE,"OBJECT","finished.");
 #endif
 	return TRUE;
 }
@@ -974,7 +995,6 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
  * @see #Image_Data
  * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Float
  * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_OBJECT
  * @see autoguider_general.html#Autoguider_General_Mutex_Lock
  * @see autoguider_general.html#Autoguider_General_Mutex_Unlock
  * @see autoguider_general.html#Autoguider_General_Error_Number
@@ -987,7 +1007,8 @@ static int Object_Set_Threshold(int use_standard_deviation,float *threshold)
 	float total_value,difference_squared_total,tmp_float,variance,threhold_sigma;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Set_Threshold:started.");
+	Autoguider_General_Log("object","autoguider_object.c","Object_Set_Threshold",
+			       LOG_VERBOSITY_INTERMEDIATE,"OBJECT","started.");
 #endif
 	/* get a subset of image data into the Stats_List/Stats_Count */
 	Object_Fill_Stats_List();
@@ -995,7 +1016,8 @@ static int Object_Set_Threshold(int use_standard_deviation,float *threshold)
 	qsort(Object_Data.Stats_List,Object_Data.Stats_Count,sizeof(float),Object_Sort_Float_List);
 	Object_Data.Median = Object_Data.Stats_List[Object_Data.Stats_Count/2];
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Set_Threshold:"
+	Autoguider_General_Log_Format("object","autoguider_object.c","Object_Set_Threshold",
+				      LOG_VERBOSITY_INTERMEDIATE,"OBJECT",
 				      "Median pixel value %.2f.",Object_Data.Median);
 #endif
 	/* get object.threshold.stats.type to determine whether to use simple or sugma_clip stats. */
@@ -1053,13 +1075,15 @@ static int Object_Set_Threshold(int use_standard_deviation,float *threshold)
 	else
 		(*threshold) = Object_Data.Median;
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Set_Threshold:"
+	Autoguider_General_Log_Format("object","autoguider_object.c","Object_Set_Threshold",
+				      LOG_VERBOSITY_INTERMEDIATE,"OBJECT",
 			      "Using standard deviation = %d (%.2f), Threshold Sigma = %.2f, Threshold value %.2f.",
 				      use_standard_deviation,Object_Data.Background_Standard_Deviation,
 				      threhold_sigma,(*threshold));
 #endif
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Set_Threshold:finished.");
+	Autoguider_General_Log("object","autoguider_object.c","Object_Set_Threshold",
+			       LOG_VERBOSITY_INTERMEDIATE,"OBJECT","finished.");
 #endif
 	return TRUE;
 }
@@ -1070,7 +1094,6 @@ static int Object_Set_Threshold(int use_standard_deviation,float *threshold)
  * @see #Object_Data
  * @see #MAXIMUM_STATS_COUNT
  * @see autoguider_general.html#Autoguider_General_Log_Format
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_OBJECT
  */
 static void Object_Fill_Stats_List(void)
 {
@@ -1080,7 +1103,8 @@ static void Object_Fill_Stats_List(void)
 	pixel_count = (Object_Data.Binned_NCols*Object_Data.Binned_NRows);
 	Object_Data.Stats_Count = MIN(pixel_count,MAXIMUM_STATS_COUNT);
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Fill_Stats_List:"
+	Autoguider_General_Log_Format("object","autoguider_object.c","Object_Fill_Stats_List",
+				      LOG_VERBOSITY_INTERMEDIATE,"OBJECT",
 				      "Using %d pixels in Stats list.",Object_Data.Stats_Count);
 #endif
 	for(i=0;i<Object_Data.Stats_Count;i++)
@@ -1095,7 +1119,6 @@ static void Object_Fill_Stats_List(void)
  * These are stored into Object_Data.Mean / Object_Data.Background_Standard_Deviation.
  * @see #Object_Data
  * @see autoguider_general.html#Autoguider_General_Log_Format
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_OBJECT
  */
 static int Object_Get_Mean_Standard_Deviation_Simple(void)
 {
@@ -1111,8 +1134,8 @@ static int Object_Get_Mean_Standard_Deviation_Simple(void)
 	/* mean */
 	Object_Data.Mean = total_value/Object_Data.Stats_Count;
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Get_Mean_Standard_Deviation_Simple:"
-				      "Mean pixel value %.2f.",Object_Data.Mean);
+	Autoguider_General_Log_Format("object","autoguider_object.c","Object_Get_Mean_Standard_Deviation_Simple",
+				      LOG_VERBOSITY_INTERMEDIATE,"OBJECT","Mean pixel value %.2f.",Object_Data.Mean);
 #endif
 	/* standard deviation */
 	difference_squared_total = 0.0f;
@@ -1125,7 +1148,8 @@ static int Object_Get_Mean_Standard_Deviation_Simple(void)
 	/* background SD */
 	Object_Data.Background_Standard_Deviation = (float)sqrt(((double)variance));
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,"Object_Get_Mean_Standard_Deviation_Simple:"
+	Autoguider_General_Log_Format("object","autoguider_object.c","Object_Get_Mean_Standard_Deviation_Simple",
+				      LOG_VERBOSITY_INTERMEDIATE,"OBJECT",
 				      "Background Standard Deviation %.2f (variance %.2f).",
 				      Object_Data.Background_Standard_Deviation,variance);
 #endif
@@ -1153,8 +1177,8 @@ static int Object_Get_Mean_Standard_Deviation_Sigma_Reject(void)
 	retval = iterstat(Object_Data.Stats_List,Object_Data.Stats_Count,sigma_reject,&(Object_Data.Mean),
 			  &(Object_Data.Background_Standard_Deviation));
 #if AUTOGUIDER_DEBUG > 5
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_OBJECT,
-				      "Object_Get_Mean_Standard_Deviation_Sigma_Reject:"
+	Autoguider_General_Log_Format("object","autoguider_object.c","Object_Get_Mean_Standard_Deviation_Sigma_Reject",
+				      LOG_VERBOSITY_INTERMEDIATE,"OBJECT",
 				      "Mean = %.2f, Background Standard Deviation = %.2f, retval = %d.",
 				      Object_Data.Mean,Object_Data.Background_Standard_Deviation,retval);
 #endif
@@ -1198,6 +1222,11 @@ static int Object_Sort_Object_List_By_Total_Counts(const void *p1, const void *p
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.15  2008/03/14 12:04:01  cjm
+** Added Autoguider_Object_List_Get_Nearest_Object to return the
+** object nearest a certain pixel position. Used to fix
+** "multiple sources in the guide window" problem.
+**
 ** Revision 1.14  2007/09/26 17:12:59  cjm
 ** sp fix theshold -> threshold.
 **

@@ -1,11 +1,11 @@
 /* ngatcil_ags_sdb.c
 ** NGATCil AGS SDB CIL packet tranmitting/receiving routines.
-** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_ags_sdb.c,v 1.2 2006-08-29 14:07:57 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_ags_sdb.c,v 1.3 2009-01-30 18:00:52 cjm Exp $
 */
 /**
  * NGAT Cil library transmission of AGS SDB packets over UDP.
  * @author Chris Mottram
- * @version $Revision: 1.2 $
+ * @version $Revision: 1.3 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -20,7 +20,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-
+#include "log_udp.h"
 #include "ngatcil_ags_sdb.h"
 #include "ngatcil_general.h"
 #include "ngatcil_udp_raw.h"
@@ -584,7 +584,7 @@ typedef struct iAgsOidTable_s
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: ngatcil_ags_sdb.c,v 1.2 2006-08-29 14:07:57 cjm Exp $";
+static char rcsid[] = "$Id: ngatcil_ags_sdb.c,v 1.3 2009-01-30 18:00:52 cjm Exp $";
 
 /**
  * Internal data set of AGS OID's that can me modified and sent to the SDB.
@@ -652,7 +652,6 @@ static int AGS_SDB_Packet_To_Network_Byte_Order(struct NGATCil_AGS_SDB_Packet_St
  * @see ngatcil_general.html#NGATCil_General_Error_Number
  * @see ngatcil_general.html#NGATCil_General_Error_String
  * @see ngatcil_general.html#NGATCil_General_Log
- * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_AGS_SDB
  */
 int NGATCil_AGS_SDB_Initialise(void)
 {
@@ -661,7 +660,8 @@ int NGATCil_AGS_SDB_Initialise(void)
 	int oid_index;
 
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_AGS_SDB,"NGATCil_AGS_SDB_Initialise:started.");
+	NGATCil_General_Log("ngatcil","ngatcil_ags_sdb.c","NGATCil_AGS_SDB_Initialise",
+			    LOG_VERBOSITY_VERBOSE,NULL,"started.");
 #endif
 	clock_gettime(CLOCK_REALTIME,&current_time);
 	time_now.t_sec = current_time.tv_sec-TTL_TIMESTAMP_OFFSET;
@@ -671,7 +671,8 @@ int NGATCil_AGS_SDB_Initialise(void)
 		iAgsOidTable[oid_index].TimeStamp = time_now;
 	}
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_AGS_SDB,"NGATCil_AGS_SDB_Initialise:finished.");
+	NGATCil_General_Log("ngatcil","ngatcil_ags_sdb.c","NGATCil_AGS_SDB_Initialise",
+			    LOG_VERBOSITY_VERBOSE,NULL,"finished.");
 #endif
 	return TRUE;
 }
@@ -690,12 +691,12 @@ int NGATCil_AGS_SDB_Initialise(void)
  * @see ngatcil_general.html#NGATCil_General_Error_Number
  * @see ngatcil_general.html#NGATCil_General_Error_String
  * @see ngatcil_general.html#NGATCil_General_Log
- * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_AGS_SDB
  */
 int NGATCil_AGS_SDB_Remote_Host_Set(char *hostname,int port_number)
 {
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_AGS_SDB,"NGATCil_AGS_SDB_Remote_Host_Set:started.");
+	NGATCil_General_Log("ngatcil","ngatcil_ags_sdb.c","NGATCil_AGS_SDB_Remote_Host_Set",
+			    LOG_VERBOSITY_VERBOSE,NULL,"started.");
 #endif
 	if(hostname == NULL)
 	{
@@ -714,7 +715,8 @@ int NGATCil_AGS_SDB_Remote_Host_Set(char *hostname,int port_number)
 	strcpy(Remote_Hostname,hostname);
 	Remote_Port_Number = port_number;
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_AGS_SDB,"NGATCil_AGS_SDB_Remote_Host_Set:finished.");
+	NGATCil_General_Log("ngatcil","ngatcil_ags_sdb.c","NGATCil_AGS_SDB_Remote_Host_Set",
+			    LOG_VERBOSITY_VERBOSE,NULL,"finished.");
 #endif
 	return TRUE;
 }
@@ -735,7 +737,6 @@ int NGATCil_AGS_SDB_Remote_Host_Set(char *hostname,int port_number)
  * @see ngatcil_general.html#NGATCil_General_Error_Number
  * @see ngatcil_general.html#NGATCil_General_Error_String
  * @see ngatcil_general.html#NGATCil_General_Log
- * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_AGS_SDB
  */
 int NGATCil_AGS_SDB_Status_Send(int socket_id)
 {
@@ -744,7 +745,8 @@ int NGATCil_AGS_SDB_Status_Send(int socket_id)
 	int retval,oid_index,sdb_index,data_length,packet_length;
 
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_AGS_SDB,"NGATCil_AGS_SDB_Status_Send:started.");
+	NGATCil_General_Log("ngatcil","ngatcil_ags_sdb.c","NGATCil_AGS_SDB_Status_Send",
+			    LOG_VERBOSITY_VERBOSE,NULL,"started.");
 #endif
 	sdb_index = 0;
 	for ( oid_index = I_AGS_FIRST_DATUMID; oid_index <= I_AGS_FINAL_DATUMID; oid_index++ )
@@ -752,8 +754,9 @@ int NGATCil_AGS_SDB_Status_Send(int socket_id)
 		if(iAgsOidTable[oid_index].Changed == TRUE)
 		{
 #if NGATCIL_DEBUG > 5
-			NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_AGS_SDB,
-						   "NGATCil_AGS_SDB_Status_Send:Found changed OID %d at index %d.",
+			NGATCil_General_Log_Format("ngatcil","ngatcil_ags_sdb.c","NGATCil_AGS_SDB_Status_Send",
+						   LOG_VERBOSITY_VERBOSE,NULL,
+						   "Found changed OID %d at index %d.",
 						   iAgsOidTable[oid_index].Oid,oid_index);
 #endif
 			sdb_packet.Datums.Datum[sdb_index].SourceId          = E_CIL_AGS;
@@ -776,20 +779,20 @@ int NGATCil_AGS_SDB_Status_Send(int socket_id)
 		sdb_packet.Cil_Base.Timestamp_Nanoseconds = current_time.tv_nsec;
 		sdb_packet.Datums.NumElts = (Uint32_t)sdb_index;
 #if NGATCIL_DEBUG > 5
-		NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_AGS_SDB,
-					   "NGATCil_AGS_SDB_Status_Send:Found %d changed OIDs.",sdb_index);
+		NGATCil_General_Log_Format("ngatcil","ngatcil_ags_sdb.c","NGATCil_AGS_SDB_Status_Send",
+					   LOG_VERBOSITY_VERBOSE,NULL,"Found %d changed OIDs.",sdb_index);
 #endif
 		/* length of Datum data to submit */
 		data_length = sizeof(Int32_t) + (sdb_index * sizeof(eSdbDatum_t));
 #if NGATCIL_DEBUG > 5
-		NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_AGS_SDB,
-					   "NGATCil_AGS_SDB_Status_Send:Data length %d.",data_length);
+		NGATCil_General_Log_Format("ngatcil","ngatcil_ags_sdb.c","NGATCil_AGS_SDB_Status_Send",
+					   LOG_VERBOSITY_VERBOSE,NULL,"Data length %d.",data_length);
 #endif
 		/* packet has 7 int header (CilPrivate.h:I_CIL_HDRBLK_SIZE  28) */
 		packet_length = data_length + (7 * sizeof(int)); 
 #if NGATCIL_DEBUG > 5
-		NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_AGS_SDB,
-					   "NGATCil_AGS_SDB_Status_Send:Packet length %d.",packet_length);
+		NGATCil_General_Log_Format("ngatcil","ngatcil_ags_sdb.c","NGATCil_AGS_SDB_Status_Send",
+					   LOG_VERBOSITY_VERBOSE,NULL,"Packet length %d.",packet_length);
 #endif
 		/* change to network byte order */
 		if(!AGS_SDB_Packet_To_Network_Byte_Order(&sdb_packet,packet_length))
@@ -807,7 +810,8 @@ int NGATCil_AGS_SDB_Status_Send(int socket_id)
 		}
 	}
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_AGS_SDB,"NGATCil_AGS_SDB_Status_Send:finished.");
+	NGATCil_General_Log("ngatcil","ngatcil_ags_sdb.c","NGATCil_AGS_SDB_Status_Send",
+			    LOG_VERBOSITY_VERBOSE,NULL,"finished.");
 #endif
 	return TRUE;
 }
@@ -822,7 +826,6 @@ int NGATCil_AGS_SDB_Status_Send(int socket_id)
  * @see ngatcil_general.html#NGATCil_General_Error_Number
  * @see ngatcil_general.html#NGATCil_General_Error_String
  * @see ngatcil_general.html#NGATCil_General_Log
- * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_AGS_SDB
  */
 int NGATCil_AGS_SDB_Value_Set(eAgsDataId_t datum_id,int value)
 {
@@ -831,8 +834,9 @@ int NGATCil_AGS_SDB_Value_Set(eAgsDataId_t datum_id,int value)
 	Int32_t old_value;
 
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_AGS_SDB,
-				   "NGATCil_AGS_SDB_Value_Set:started: Setting OID %d to %d.",datum_id,value);
+	NGATCil_General_Log_Format("ngatcil","ngatcil_ags_sdb.c","NGATCil_AGS_SDB_Value_Set",
+				   LOG_VERBOSITY_VERBOSE,NULL,"started: Setting OID %d to %d.",
+				   datum_id,value);
 #endif
 	clock_gettime(CLOCK_REALTIME,&current_time);
 	time_now.t_sec = current_time.tv_sec-TTL_TIMESTAMP_OFFSET;
@@ -859,7 +863,8 @@ int NGATCil_AGS_SDB_Value_Set(eAgsDataId_t datum_id,int value)
 	iAgsOidTable[datum_id].Value = value;
 	iAgsOidTable[datum_id].TimeStamp = time_now;
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_AGS_SDB,"NGATCil_AGS_SDB_Value_Set:finished.");
+	NGATCil_General_Log("ngatcil","ngatcil_ags_sdb.c","NGATCil_AGS_SDB_Value_Set",
+			    LOG_VERBOSITY_VERBOSE,NULL,"finished.");
 #endif
 	return TRUE;
 }
@@ -881,7 +886,8 @@ static int AGS_SDB_Packet_To_Network_Byte_Order(struct NGATCil_AGS_SDB_Packet_St
 	int datum_count,i;
 
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_AGS_SDB,"AGS_SDB_Packet_To_Network_Byte_Order:started.");
+	NGATCil_General_Log("ngatcil","ngatcil_ags_sdb.c","AGS_SDB_Packet_To_Network_Byte_Order",
+			    LOG_VERBOSITY_VERBOSE,NULL,"started.");
 #endif
 	sdb_packet->Cil_Base.Source_Id             = htonl(sdb_packet->Cil_Base.Source_Id);
 	sdb_packet->Cil_Base.Dest_Id               = htonl(sdb_packet->Cil_Base.Dest_Id);
@@ -904,7 +910,8 @@ static int AGS_SDB_Packet_To_Network_Byte_Order(struct NGATCil_AGS_SDB_Packet_St
 		sdb_packet->Datums.Datum[i].Msrment.Value = htonl(sdb_packet->Datums.Datum[i].Msrment.Value);
 	}
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_AGS_SDB,"AGS_SDB_Packet_To_Network_Byte_Order:finished.");
+	NGATCil_General_Log("ngatcil","ngatcil_ags_sdb.c","AGS_SDB_Packet_To_Network_Byte_Order",
+			    LOG_VERBOSITY_VERBOSE,NULL,"finished.");
 #endif
 	return TRUE;
 }
@@ -927,19 +934,26 @@ static int AGS_SDB_Packet_Send_To(int socket_id,char *hostname,int port_number,
 	int retval;
 
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_AGS_SDB,
-		     "AGS_SDB_Packet_Send_To:started (socket_id=%d,hostname=%s,port_number=%d,Packet_length=%d).",
+	NGATCil_General_Log_Format("ngatcil","ngatcil_ags_sdb.c","AGS_SDB_Packet_Send_To",
+				   LOG_VERBOSITY_VERBOSE,NULL,
+				   "started (socket_id=%d,hostname=%s,port_number=%d,Packet_length=%d).",
 				   socket_id,hostname,port_number,packet_length);
 #endif
 	retval = NGATCil_UDP_Raw_Send_To(socket_id,hostname,port_number,(void*)&packet,packet_length);
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_AGS_SDB,"AGS_SDB_Packet_Send_To:finished.");
+	NGATCil_General_Log("ngatcil","ngatcil_ags_sdb.c","AGS_SDB_Packet_Send_To",
+			    LOG_VERBOSITY_VERBOSE,NULL,"finished.");
 #endif
 	return retval;
 }
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.2  2006/08/29 14:07:57  cjm
+** Rewritten using new Cil_Base element in packet structure.
+** Rewritten using Send_To rather than Send.
+** Now uses server socket Fd rather than random client socket.
+**
 ** Revision 1.1  2006/07/20 15:15:15  cjm
 ** Initial revision
 **

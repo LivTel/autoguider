@@ -1,11 +1,11 @@
 /* autoguider_general.c
 ** Autoguider general routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_general.c,v 1.4 2007-01-30 17:35:24 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_general.c,v 1.5 2009-01-30 18:01:33 cjm Exp $
 */
 /**
  * General routines (logging, errror etc) for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.4 $
+ * @version $Revision: 1.5 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -27,6 +27,10 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "log_create.h"
+#include "log_general.h"
+#include "log_udp.h"
+
 #include "command_server.h"
 
 #include "ngatcil_general.h"
@@ -37,11 +41,22 @@
 
 #include "autoguider_general.h"
 
+/* typedefs */
+/**
+ * typedef of a log handler function.
+ */
+typedef void (*Log_Handler_Function)(char *sub_system,char *source_filename,char *function,int level,char *category,
+			    char *message);
+
 /* hash defines */
 /**
  * Length of some filenames
  */
 #define AUTOGUIDER_GENERAL_FILENAME_LENGTH      (256)
+/**
+ * Number of log handlers in the log handler list.
+ */
+#define LOG_HANDLER_LIST_COUNT                  (5)
 
 /* external variables */
 /**
@@ -72,7 +87,13 @@ char Autoguider_General_Error_String[AUTOGUIDER_GENERAL_ERROR_STRING_LENGTH] = "
  * <dt>Error_Filename</dt> <dd>Filename to write error messages to.</dd>
  * <dt>Error_FP</dt> <dd>File pointer to write error messages to.</dd>
  * <dt>Config_Filename</dt> <dd>String containing the filename of the config file. Must be allocated before use.</dd>
+ * <dt>Log_UDP_Active</dt> <dd>A boolean, TRUE if we should send log records to the log server using UDP.</dd>
+ * <dt>Log_UDP_Hostname</dt> <dd>String containing the Hostname to send log_udp records to.</dd>
+ * <dt>Log_UDP_Port_Number</dt> <dd>The port number to send log_udp records to.</dd>
+ * <dt>Log_UDP_Socket_Id</dt> <dd>The socket_id of the opened socket to the log server..</dd>
  * </dl>
+ * @see #LOG_HANDLER_LIST_COUNT
+ * @see #Log_Handler_Function
  * @see #Autoguider_General_Log
  * @see #Autoguider_General_Set_Log_Filter_Level
  * @see #Autoguider_General_Log_Filter_Level_Absolute
@@ -80,8 +101,9 @@ char Autoguider_General_Error_String[AUTOGUIDER_GENERAL_ERROR_STRING_LENGTH] = "
  */
 struct General_Struct
 {
-	void (*Log_Handler)(int level,char *string);
-	int (*Log_Filter)(int level,char *string);
+	Log_Handler_Function Log_Handler_List[LOG_HANDLER_LIST_COUNT];
+	int (*Log_Filter)(char *sub_system,char *source_filename,char *function,int level,char *category,
+			  char *message);
 	int Log_Filter_Level;
 	char Log_Directory[AUTOGUIDER_GENERAL_FILENAME_LENGTH];
 	char Log_Filename[AUTOGUIDER_GENERAL_FILENAME_LENGTH];
@@ -89,18 +111,22 @@ struct General_Struct
 	char Error_Filename[AUTOGUIDER_GENERAL_FILENAME_LENGTH];
 	FILE *Error_Fp;
 	char *Config_Filename;
+	int Log_UDP_Active;
+	char Log_UDP_Hostname[AUTOGUIDER_GENERAL_FILENAME_LENGTH];
+	int Log_UDP_Port_Number;
+	int Log_UDP_Socket_Id;
 };
 
 /* internal data */
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_general.c,v 1.4 2007-01-30 17:35:24 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_general.c,v 1.5 2009-01-30 18:01:33 cjm Exp $";
 /**
  * The instance of General_Struct that contains local data for this module.
  * This is statically initialised to the following:
  * <dl>
- * <dt>Log_Handler</dt> <dd>NULL</dd>
+ * <dt>Log_Handler_List</dt> <dd>{NULL,NULL,NULL,NULL,NULL}</dd>
  * <dt>Log_Filter</dt> <dd>NULL</dd>
  * <dt>Log_Filter_Level</dt> <dd>0</dd>
  * <dt>Log_Directory</dt> <dd>NULL</dd>
@@ -109,12 +135,16 @@ static char rcsid[] = "$Id: autoguider_general.c,v 1.4 2007-01-30 17:35:24 cjm E
  * <dt>Log_Filename</dt> <dd>autoguider_error.txt</dd>
  * <dt>Error_FP</dt> <dd>NULL</dd>
  * <dt>Config_Filename</dt> <dd>NULL</dd>
+ * <dt>Log_UDP_Active</dt> <dd>FALSE</dd>
+ * <dt>Log_UDP_Hostname</dt> <dd>""</dd>
+ * <dt>Log_UDP_Port_Number</dt> <dd>0</dd>
+ * <dt>Log_UDP_Socket_Id</dt> <dd>0</dd>
  * </dl>
  * @see #General_Struct
  */
 static struct General_Struct General_Data = 
 {
-	NULL,NULL,0,"","autoguider_log.txt",NULL,"autoguider_error.txt",NULL,NULL
+        {NULL,NULL,NULL,NULL,NULL},NULL,0,"","autoguider_log.txt",NULL,"autoguider_error.txt",NULL,NULL,FALSE,"",0,-1
 };
 
 /* internal functions */
@@ -131,6 +161,12 @@ static void General_Log_Handler_Filename_To_Fp(char *log_filename,FILE **log_fp)
  * to print the error string and 
  * get a string copy of it, only one of the error routines can be called after an error has been generated .
  * A second call to one of these routines will generate a 'Error not found' error!.
+ * @param sub_system The sub system. Can be NULL.
+ * @param source_file The source filename. Can be NULL.
+ * @param function The function calling the log. Can be NULL.
+ * @param level At what level is the log message (TERSE/high level or VERBOSE/low level), 
+ *         a valid member of LOG_VERBOSITY.
+ * @param category What sort of information is the message. Designed to be used as a filter. Can be NULL.
  * @see #Autoguider_General_Get_Current_Time_String
  * @see #Autoguider_General_Error_Number
  * @see #Autoguider_General_Error_String
@@ -144,7 +180,7 @@ static void General_Log_Handler_Filename_To_Fp(char *log_filename,FILE **log_fp)
  * @see ../ccd/cdocs/ccd_general.html#CCD_General_Is_Error
  * @see ../ccd/cdocs/ccd_general.html#CCD_General_Error_To_String
  */
-void Autoguider_General_Error(void)
+void Autoguider_General_Error(char *sub_system,char *source_filename,char *function,int level,char *category)
 {
 	char buff[AUTOGUIDER_GENERAL_ERROR_STRING_LENGTH];
 	char time_string[32];
@@ -195,8 +231,8 @@ void Autoguider_General_Error(void)
 	{
 		found = TRUE;
 		Autoguider_General_Get_Current_Time_String(time_string,32);
-		fprintf(General_Data.Error_Fp,"%s Autoguider_General:Error(%d) : %s\n",time_string,
-			Autoguider_General_Error_Number,Autoguider_General_Error_String);
+		fprintf(General_Data.Error_Fp,"%s Autoguider_General:Error(%d) : %s:%s\n",time_string,
+			Autoguider_General_Error_Number,function,Autoguider_General_Error_String);
 		fflush(General_Data.Error_Fp);
 	}
 	if(!found)
@@ -212,13 +248,20 @@ void Autoguider_General_Error(void)
  * to print the error string and 
  * get a string copy of it, only one of the error routines can be called after libccd has generated an error.
  * A second call to one of these routines will generate a 'Error not found' error!.
+ * @param sub_system The sub system. Can be NULL.
+ * @param source_file The source filename. Can be NULL.
+ * @param function The function calling the log. Can be NULL.
+ * @param level At what level is the log message (TERSE/high level or VERBOSE/low level), 
+ *         a valid member of LOG_VERBOSITY.
+ * @param category What sort of information is the message. Designed to be used as a filter. Can be NULL.
  * @param error_string A character buffer big enough to store the longest possible error message. It is
  * recomended that it is at least 1024 bytes in size.
  * @see #Autoguider_General_Get_Current_Time_String
  * @see #Autoguider_General_Error_Number
  * @see #Autoguider_General_Error_String
  */
-void Autoguider_General_Error_To_String(char *error_string)
+void Autoguider_General_Error_To_String(char *sub_system,char *source_filename,char *function,int level,
+					char *category,char *error_string)
 {
 	char time_string[32];
 
@@ -226,8 +269,8 @@ void Autoguider_General_Error_To_String(char *error_string)
 	if(Autoguider_General_Error_Number != 0)
 	{
 		Autoguider_General_Get_Current_Time_String(time_string,32);
-		sprintf(error_string+strlen(error_string),"%s Autoguider_General:Error(%d) : %s\n",time_string,
-			Autoguider_General_Error_Number,Autoguider_General_Error_String);
+		sprintf(error_string+strlen(error_string),"%s Autoguider_General:Error(%d) : %s:%s\n",time_string,
+			Autoguider_General_Error_Number,function,Autoguider_General_Error_String);
 	}
 	if(strlen(error_string) == 0)
 	{
@@ -269,14 +312,19 @@ void Autoguider_General_Get_Current_Time_String(char *time_string,int string_len
  * and uses vsprintf to format them i.e. like fprintf. The General_Buff is used to hold the created string,
  * therefore the total length of the generated string should not be longer than AUTOGUIDER_GENERAL_ERROR_STRING_LENGTH.
  * Autoguider_General_Log is then called to handle the log message.
- * @param level An integer, used to decide whether this particular message has been selected for
- * 	logging or not.
+ * @param sub_system The sub system. Can be NULL.
+ * @param source_file The source filename. Can be NULL.
+ * @param function The function calling the log. Can be NULL.
+ * @param level At what level is the log message (TERSE/high level or VERBOSE/low level), 
+ *         a valid member of LOG_VERBOSITY.
+ * @param category What sort of information is the message. Designed to be used as a filter. Can be NULL.
  * @param format A string, with formatting statements the same as fprintf would use to determine the type
  * 	of the following arguments.
  * @see #Autoguider_General_Log
  * @see #AUTOGUIDER_GENERAL_ERROR_STRING_LENGTH
  */
-void Autoguider_General_Log_Format(int level,char *format,...)
+void Autoguider_General_Log_Format(char *sub_system,char *source_filename,char *function,int level,
+				   char *category,char *format,...)
 {
 	va_list ap;
 	char buff[AUTOGUIDER_GENERAL_ERROR_STRING_LENGTH];
@@ -286,45 +334,94 @@ void Autoguider_General_Log_Format(int level,char *format,...)
 	vsprintf(buff,format,ap);
 	va_end(ap);
 /* call the log routine to log the results */
-	Autoguider_General_Log(level,buff);
+	Autoguider_General_Log(sub_system,source_filename,function,level,category,buff);
 }
 
 /**
  * Routine to log a message to a defined logging mechanism. If the string or General_Data.Log_Handler are NULL
  * the routine does not log the message. If the General_Data.Log_Filter function pointer is non-NULL, the
  * message is passed to it to determoine whether to log the message.
- * @param level An integer, used to decide whether this particular message has been selected for
- * 	logging or not.
- * @param string The message to log.
+ * @param sub_system The sub system. Can be NULL.
+ * @param source_file The source filename. Can be NULL.
+ * @param function The function calling the log. Can be NULL.
+ * @param level At what level is the log message (TERSE/high level or VERBOSE/low level), 
+ *         a valid member of LOG_VERBOSITY.
+ * @param category What sort of information is the message. Designed to be used as a filter. Can be NULL.
+ * @param message The message to log.
  * @see #General_Data
+ * @see #LOG_HANDLER_LIST_COUNT
  */
-void Autoguider_General_Log(int level,char *string)
+void Autoguider_General_Log(char *sub_system,char *source_filename,char *function,int level,
+			    char *category,char *message)
 {
+	int i;
+
 /* If the string is NULL, don't log. */
-	if(string == NULL)
-		return;
-/* If there is no log handler, return */
-	if(General_Data.Log_Handler == NULL)
+	if(message == NULL)
 		return;
 /* If there's a log filter, check it returns TRUE for this message */
 	if(General_Data.Log_Filter != NULL)
 	{
-		if(General_Data.Log_Filter(level,string) == FALSE)
+		if(General_Data.Log_Filter(sub_system,source_filename,function,level,category,message) == FALSE)
 			return;
 	}
 /* We can log the message */
-	(*General_Data.Log_Handler)(level,string);
+	Autoguider_General_Call_Log_Handlers(sub_system,source_filename,function,level,category,message);
+
 }
 
 /**
- * Routine to set the General_Data.Log_Handler used by Autoguider_General_Log.
+ * Routine that goes through the General_Data.Log_Handler_List and invokes each non-null handler.
+ * @param sub_system The sub system. Can be NULL.
+ * @param source_file The source filename. Can be NULL.
+ * @param function The function calling the log. Can be NULL.
+ * @param level At what level is the log message (TERSE/high level or VERBOSE/low level), 
+ *         a valid member of LOG_VERBOSITY.
+ * @param category What sort of information is the message. Designed to be used as a filter. Can be NULL.
+ * @param message The message to log.
+ */
+void Autoguider_General_Call_Log_Handlers(char *sub_system,char *source_filename,char *function,int level,
+					  char *category,char *message)
+{
+	int i;
+
+	for(i=0;i<LOG_HANDLER_LIST_COUNT;i++)
+	{
+		if(General_Data.Log_Handler_List[i] != NULL)
+		{
+			(*(General_Data.Log_Handler_List[i]))(sub_system,source_filename,function,level,category,
+							      message);
+		}
+	}
+}
+
+/**
+ * Routine to add the log handler to the  the General_Data.Log_Handler_List used by Autoguider_General_Log.
  * @param log_fn A function pointer to a suitable handler.
+ * @return The routine returns TRUE on success and FALSE on failure.
+ * @see #LOG_HANDLER_LIST_COUNT
  * @see #General_Data
  * @see #Autoguider_General_Log
  */
-void Autoguider_General_Set_Log_Handler_Function(void (*log_fn)(int level,char *string))
+int Autoguider_General_Add_Log_Handler_Function(void (*log_fn)(char *sub_system,char *source_filename,
+						 char *function,int level,char *category,char *message))
 {
-	General_Data.Log_Handler = log_fn;
+	int index;
+
+	index = 0;
+	/* find empty index */
+	while((index < LOG_HANDLER_LIST_COUNT)&&(General_Data.Log_Handler_List[index] != NULL))
+		index++;
+	if(index == LOG_HANDLER_LIST_COUNT)
+	{
+		Autoguider_General_Error_Number = 113;
+		sprintf(Autoguider_General_Error_String,"Autoguider_General_Add_Log_Handler_Function:"
+			"Could not find empty entry in list for %p (%d).",log_fn,index);
+		return FALSE;
+	}
+	/* set empty index to be log fn */
+	General_Data.Log_Handler_List[index] = log_fn;
+	return TRUE;
 }
 
 /**
@@ -333,7 +430,8 @@ void Autoguider_General_Set_Log_Handler_Function(void (*log_fn)(int level,char *
  * @see #General_Data
  * @see #Autoguider_General_Log
  */
-void Autoguider_General_Set_Log_Filter_Function(int (*filter_fn)(int level,char *string))
+void Autoguider_General_Set_Log_Filter_Function(int (*filter_fn)(char *sub_system,char *source_filename,
+						char *function,int level,char *category,char *string))
 {
 	General_Data.Log_Filter = filter_fn;
 }
@@ -364,30 +462,72 @@ int Autoguider_General_Log_Set_Directory(char *directory)
 }
 
 /**
+ * Sets the contents of the General_Data fields used for log_udp calls.
+ * @param active Whether to send log_udp packets, a boolean.
+ * @param hostname The hostname to send the UDP packet to.
+ * @param port_number The port number to send the UDP packet to.
+ * @return The routine returns TRUE on success and FALSE on failure.
+ * @see #General_Data
+ * @see #AUTOGUIDER_GENERAL_FILENAME_LENGTH
+ */
+int Autoguider_General_Log_Set_UDP(int active,char *hostname,int port_number)
+{
+	General_Data.Log_UDP_Active = active;
+	if(hostname == NULL)
+	{
+		Autoguider_General_Error_Number = 111;
+		sprintf(Autoguider_General_Error_String,"Autoguider_General_Log_Set_UDP:hostname was NULL.");
+		return FALSE;
+	}
+	if(strlen(hostname) >= (AUTOGUIDER_GENERAL_FILENAME_LENGTH-1))
+	{
+		Autoguider_General_Error_Number = 112;
+		sprintf(Autoguider_General_Error_String,"Autoguider_General_Log_Set_UDP:"
+			"hostname was too long (%d vs %d).",strlen(hostname),AUTOGUIDER_GENERAL_FILENAME_LENGTH);
+		return FALSE;
+	}
+	strcpy(General_Data.Log_UDP_Hostname,hostname);
+	General_Data.Log_UDP_Port_Number = port_number;
+	return TRUE;
+}
+
+/**
  * A log handler to be used for the General_Data.Log_Handler function.
  * Just prints the message to stdout, terminated by a newline.
- * @param level The log level for this message.
- * @param string The log message to be logged. 
+ * @param sub_system The sub system. Can be NULL.
+ * @param source_file The source filename. Can be NULL.
+ * @param function The function calling the log. Can be NULL.
+ * @param level At what level is the log message (TERSE/high level or VERBOSE/low level), 
+ *         a valid member of LOG_VERBOSITY.
+ * @param category What sort of information is the message. Designed to be used as a filter. Can be NULL.
+ * @param message The log message to be logged. 
  */
-void Autoguider_General_Log_Handler_Stdout(int level,char *string)
+void Autoguider_General_Log_Handler_Stdout(char *sub_system,char *source_filename,char *function,int level,
+						  char *category,char *message)
 {
-	if(string == NULL)
+	if(message == NULL)
 		return;
-	fprintf(stdout,"%s\n",string);
+	fprintf(stdout,"%s:%s\n",function,message);
 }
 
 /**
  * A log handler to be used for the General_Data.Log_Handler function.
  * Prints the message to General_Data.Log_Fp, terminated by a newline, and thenflushes the stream.
- * @param level The log level for this message.
- * @param string The log message to be logged. 
+ * @param sub_system The sub system. Can be NULL.
+ * @param source_file The source filename. Can be NULL.
+ * @param function The function calling the log. Can be NULL.
+ * @param level At what level is the log message (TERSE/high level or VERBOSE/low level), 
+ *         a valid member of LOG_VERBOSITY.
+ * @param category What sort of information is the message. Designed to be used as a filter. Can be NULL.
+ * @param message The log message to be logged. 
  * @see #General_Data
  */
-void Autoguider_General_Log_Handler_Log_Fp(int level,char *string)
+void Autoguider_General_Log_Handler_Log_Fp(char *sub_system,char *source_filename,char *function,int level,
+						  char *category,char *message)
 {
-	if(string == NULL)
+	if(message == NULL)
 		return;
-	fprintf(General_Data.Log_Fp,"%s\n",string);
+	fprintf(General_Data.Log_Fp,"%s:%s\n",function,message);
 	fflush(General_Data.Log_Fp);
 }
 
@@ -395,23 +535,84 @@ void Autoguider_General_Log_Handler_Log_Fp(int level,char *string)
  * A log handler to be used for the General_Data.Log_Handler function.
  * First calls General_Log_Handler_Hourly_File_Set_Fp to open/check the right log file is open.
  * Prints the message to General_Data.Log_Fp, terminated by a newline, and then flushes the stream.
- * @param level The log level for this message.
+ * @param sub_system The sub system. Can be NULL.
+ * @param source_file The source filename. Can be NULL.
+ * @param function The function calling the log. Can be NULL.
+ * @param level At what level is the log message (TERSE/high level or VERBOSE/low level), 
+ *         a valid member of LOG_VERBOSITY.
+ * @param category What sort of information is the message. Designed to be used as a filter. Can be NULL.
  * @param string The log message to be logged. 
  * @see #Autoguider_General_Get_Current_Time_String
  * @see #General_Data
  * @see #General_Log_Handler_Log_Hourly_File_Set_Fp
  */
-void Autoguider_General_Log_Handler_Log_Hourly_File(int level,char *string)
+void Autoguider_General_Log_Handler_Log_Hourly_File(char *sub_system,char *source_filename,char *function,
+						    int level,char *category,char *message)
 {
 	char time_string[32];
 
-	if(string == NULL)
+	if(message == NULL)
 		return;
 	General_Log_Handler_Hourly_File_Set_Fp(General_Data.Log_Directory,"autoguider_log",General_Data.Log_Filename,
 					       &General_Data.Log_Fp);
 	Autoguider_General_Get_Current_Time_String(time_string,32);
-	fprintf(General_Data.Log_Fp,"%s : %s\n",time_string,string);
+	fprintf(General_Data.Log_Fp,"%s : %s:%s\n",time_string,function,message);
 	fflush(General_Data.Log_Fp);
+}
+
+/**
+ * A log handler to be used as a handler in the the General_Data.Log_Handler_List function.
+ * If General_Data.Log_UDP_Active is TRUE:
+ * <ul>
+ * <li>If the General_Data.Log_UDP_Socket_Id is less than 0, call Log_UDP_Open to open a socket.
+ * <li>Call Log_Create_Record to create a log record.
+ * <li>Call Log_UDP_Send to send the log record as a UDP packet.
+ * </ul>
+ * @param sub_system The sub system. Can be NULL.
+ * @param source_file The source filename. Can be NULL.
+ * @param function The function calling the log. Can be NULL.
+ * @param level At what level is the log message (TERSE/high level or VERBOSE/low level), 
+ *         a valid member of LOG_VERBOSITY.
+ * @param category What sort of information is the message. Designed to be used as a filter. Can be NULL.
+ * @param string The log message to be logged. 
+ * @see #General_Data
+ * @see ../../log_udp/cdocs/log_udp.html#Log_UDP_Open
+ * @see ../../log_udp/cdocs/log_udp.html#Log_UDP_Send
+ * @see ../../log_udp/cdocs/log_create.html#Log_Create_Record
+ * @see ../../log_udp/cdocs/log_general.htmlLog_General_Error
+ */
+void Autoguider_General_Log_Handler_Log_UDP(char *sub_system,char *source_filename,char *function,
+						    int level,char *category,char *message)
+{
+	struct Log_Record_Struct log_record;
+
+	if(General_Data.Log_UDP_Active)
+	{
+		/* if the socket is not already open, open it */
+		if(General_Data.Log_UDP_Socket_Id < 0)
+		{
+			if(!Log_UDP_Open(General_Data.Log_UDP_Hostname,General_Data.Log_UDP_Port_Number,
+					 &(General_Data.Log_UDP_Socket_Id)))
+			{
+				Log_General_Error();
+				General_Data.Log_UDP_Socket_Id = -1;
+			}
+		}
+		/* create a log record */
+		if(!Log_Create_Record("AUTOGUIDER",sub_system,source_filename,NULL,function,LOG_SEVERITY_INFO,
+				      level,category,message,&log_record))
+		{
+			Log_General_Error();
+		}
+		if(General_Data.Log_UDP_Socket_Id > 0)
+		{
+			if(!Log_UDP_Send(General_Data.Log_UDP_Socket_Id,log_record,0,NULL))
+			{
+				Log_General_Error();
+				General_Data.Log_UDP_Socket_Id = -1;
+			}
+		}
+	}
 }
 
 /**
@@ -425,26 +626,38 @@ void Autoguider_General_Set_Log_Filter_Level(int level)
 
 /**
  * A log message filter routine, to be used for the General_Data.Log_Filter function pointer.
- * @param level The log level of the message to be tested.
+ * @param sub_system The sub system. Can be NULL.
+ * @param source_file The source filename. Can be NULL.
+ * @param function The function calling the log. Can be NULL.
+ * @param level At what level is the log message (TERSE/high level or VERBOSE/low level), 
+ *         a valid member of LOG_VERBOSITY.
+ * @param category What sort of information is the message. Designed to be used as a filter. Can be NULL.
  * @param string The log message to be logged, not used in this filter. 
  * @return The routine returns TRUE if the level is less than or equal to the General_Data.Log_Filter_Level,
  * 	otherwise it returns FALSE.
  * @see #General_Data
  */
-int Autoguider_General_Log_Filter_Level_Absolute(int level,char *string)
+int Autoguider_General_Log_Filter_Level_Absolute(char *sub_system,char *source_filename,char *function,
+						 int level,char *category,char *message)
 {
 	return (level <= General_Data.Log_Filter_Level);
 }
 
 /**
  * A log message filter routine, to be used for the General_Data.Log_Filter function pointer.
- * @param level The log level of the message to be tested.
+ * @param sub_system The sub system. Can be NULL.
+ * @param source_file The source filename. Can be NULL.
+ * @param function The function calling the log. Can be NULL.
+ * @param level At what level is the log message (TERSE/high level or VERBOSE/low level), 
+ *         a valid member of LOG_VERBOSITY.
+ * @param category What sort of information is the message. Designed to be used as a filter. Can be NULL.
  * @param string The log message to be logged, not used in this filter. 
  * @return The routine returns TRUE if the level has bits set that are also set in the 
  * 	General_Data.Log_Filter_Level, otherwise it returns FALSE.
  * @see #General_Data
  */
-int Autoguider_General_Log_Filter_Level_Bitwise(int level,char *string)
+int Autoguider_General_Log_Filter_Level_Bitwise(char *sub_system,char *source_filename,char *function,
+						       int level,char *category,char *message)
 {
 	return ((level & General_Data.Log_Filter_Level) > 0);
 }
@@ -717,6 +930,11 @@ static void General_Log_Handler_Filename_To_Fp(char *log_filename,FILE **log_fp)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.4  2007/01/30 17:35:24  cjm
+** Fixed structure initialisation.
+** Added print when failing to open log_fp, will still cause a crash, but
+** print something to tell you what is going on first!
+**
 ** Revision 1.3  2007/01/10 11:27:21  cjm
 ** Added 1 to doy to 1st Jan is day 1.
 **

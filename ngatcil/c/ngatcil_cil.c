@@ -1,11 +1,11 @@
 /* ngatcil_cil.c
 ** NGATCil General CIL packet tranmitting/receiving routines.
-** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_cil.c,v 1.6 2006-08-29 14:07:57 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_cil.c,v 1.7 2009-01-30 18:00:52 cjm Exp $
 */
 /**
  * NGAT Cil library transmission/receiving of CIL packets over UDP.
  * @author Chris Mottram
- * @version $Revision: 1.6 $
+ * @version $Revision: 1.7 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -18,7 +18,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-
+#include "log_udp.h"
 #include "ngatcil_general.h"
 #include "ngatcil_udp_raw.h"
 #include "ngatcil_cil.h"
@@ -32,7 +32,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: ngatcil_cil.c,v 1.6 2006-08-29 14:07:57 cjm Exp $";
+static char rcsid[] = "$Id: ngatcil_cil.c,v 1.7 2009-01-30 18:00:52 cjm Exp $";
 /**
  * CIL packet sequence number.
  */
@@ -48,7 +48,6 @@ static int Sequence_Number = 0;
  * @see ngatcil_general.html#NGATCil_General_Error_Number
  * @see ngatcil_general.html#NGATCil_General_Error_String
  * @see ngatcil_general.html#NGATCil_General_Log
- * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_CIL
  */
 int NGATCil_Cil_Packet_Create(int source_id,int dest_id,int class,int service,int seq_num,int command,
 			      int status,int param1, int param2,struct NGATCil_Ags_Packet_Struct *packet)
@@ -56,7 +55,8 @@ int NGATCil_Cil_Packet_Create(int source_id,int dest_id,int class,int service,in
 	struct timespec current_time;
 
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Packet_Create:started.");
+	NGATCil_General_Log("ngatcil","ngatcil_cil.c","NGATCil_Cil_Packet_Create",LOG_VERBOSITY_VERBOSE,NULL,
+			    "started.");
 #endif
 	if(packet == NULL)
 	{
@@ -79,7 +79,8 @@ int NGATCil_Cil_Packet_Create(int source_id,int dest_id,int class,int service,in
 	packet->Param1 = htonl(param1);
 	packet->Param2 = htonl(param2);
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Packet_Create:finished.");
+	NGATCil_General_Log("ngatcil","ngatcil_cil.c","NGATCil_Cil_Packet_Create",LOG_VERBOSITY_VERBOSE,NULL,
+			    "finished.");
 #endif
 	return TRUE;
 }
@@ -100,12 +101,14 @@ int NGATCil_Cil_Packet_Send_To(int socket_id,char *hostname,int port_number,stru
 	int retval;
 
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Packet_Send_To:started.");
+	NGATCil_General_Log("ngatcil","ngatcil_cil.c","NGATCil_Cil_Packet_Send_To",LOG_VERBOSITY_VERBOSE,NULL,
+			    "started.");
 #endif
 	retval = NGATCil_UDP_Raw_Send_To(socket_id,hostname,port_number,(void*)&packet,
 				      sizeof(struct NGATCil_Ags_Packet_Struct));
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Packet_Send_To:finished.");
+	NGATCil_General_Log("ngatcil","ngatcil_cil.c","NGATCil_Cil_Packet_Send_To",LOG_VERBOSITY_VERBOSE,NULL,
+			    "finished.");
 #endif
 	return retval;
 }
@@ -124,7 +127,8 @@ int NGATCil_Cil_Packet_Recv(int socket_id,struct NGATCil_Ags_Packet_Struct *pack
 	int retval;
 
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Packet_Recv:started.");
+	NGATCil_General_Log("ngatcil","ngatcil_cil.c","NGATCil_Cil_Packet_Recv",LOG_VERBOSITY_VERBOSE,NULL,
+			    "started.");
 #endif
 	if(packet == NULL)
 	{
@@ -147,7 +151,8 @@ int NGATCil_Cil_Packet_Recv(int socket_id,struct NGATCil_Ags_Packet_Struct *pack
 	packet->Param1 = ntohl(packet->Param1);
 	packet->Param2 = ntohl(packet->Param2);
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Packet_Recv:finished.");
+	NGATCil_General_Log("ngatcil","ngatcil_cil.c","NGATCil_Cil_Packet_Recv",LOG_VERBOSITY_VERBOSE,NULL,
+			    "finished.");
 #endif
 	return TRUE;
 }
@@ -172,7 +177,6 @@ int NGATCil_Cil_Packet_Recv(int socket_id,struct NGATCil_Ags_Packet_Struct *pack
  * @see ngatcil_general.html#NGATCil_General_Error_Number
  * @see ngatcil_general.html#NGATCil_General_Error_String
  * @see ngatcil_general.html#NGATCil_General_Log
- * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_CIL
  */
 int NGATCil_Cil_Autoguide_On_Pixel_Send(int socket_id,char *hostname,int port_number,float pixel_x,float pixel_y,
 					int *sequence_number)
@@ -182,8 +186,8 @@ int NGATCil_Cil_Autoguide_On_Pixel_Send(int socket_id,char *hostname,int port_nu
 	int pixel_x_i,pixel_y_i,retval;
 
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_CIL,
-				   "NGATCil_Cil_Autoguide_On_Pixel_Send(%.2f,%.2f):started.",pixel_x,pixel_y);
+	NGATCil_General_Log_Format("ngatcil","ngatcil_cil.c","NGATCil_Cil_Autoguide_On_Pixel_Send",
+				   LOG_VERBOSITY_VERBOSE,NULL,"started(%.2f,%.2f).",pixel_x,pixel_y);
 #endif
 	if(sequence_number == NULL)
 	{
@@ -235,8 +239,8 @@ int NGATCil_Cil_Autoguide_On_Pixel_Send(int socket_id,char *hostname,int port_nu
 	if(retval == FALSE)
 		return FALSE;
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_CIL,
-				   "NGATCil_Cil_Autoguide_On_Pixel_Send:sequence ID %d:finished.",(*sequence_number));
+	NGATCil_General_Log_Format("ngatcil","ngatcil_cil.c","NGATCil_Cil_Autoguide_On_Pixel_Send",
+				   LOG_VERBOSITY_VERBOSE,NULL,"sequence ID %d:finished.",(*sequence_number));
 #endif
 	return TRUE;
 }
@@ -257,13 +261,13 @@ int NGATCil_Cil_Autoguide_On_Pixel_Send(int socket_id,char *hostname,int port_nu
  * @see ngatcil_general.html#NGATCil_General_Error_Number
  * @see ngatcil_general.html#NGATCil_General_Error_String
  * @see ngatcil_general.html#NGATCil_General_Log
- * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_CIL
  */
 int NGATCil_Cil_Autoguide_On_Pixel_Parse(struct NGATCil_Ags_Packet_Struct packet,float *pixel_x,float *pixel_y,
 					 int *sequence_number)
 {
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Autoguide_On_Pixel_Parse:started.");
+	NGATCil_General_Log("ngatcil","ngatcil_cil.c","NGATCil_Cil_Autoguide_On_Pixel_Parse",
+			    LOG_VERBOSITY_VERBOSE,NULL,"started.");
 #endif
 	if(pixel_x == NULL)
 	{
@@ -308,8 +312,8 @@ int NGATCil_Cil_Autoguide_On_Pixel_Parse(struct NGATCil_Ags_Packet_Struct packet
 	(*pixel_y) = ((float)(packet.Param2))/1000.0f;
 	(*sequence_number) = packet.Cil_Base.Seq_Num;
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_CIL,
-				   "NGATCil_Cil_Autoguide_On_Pixel_Parse:(%.2f,%.2f,%d):finished.",
+	NGATCil_General_Log_Format("ngatcil","ngatcil_cil.c","NGATCil_Cil_Autoguide_On_Pixel_Parse",
+				   LOG_VERBOSITY_VERBOSE,NULL,"finished(%.2f,%.2f,%d).",
 				   (*pixel_x),(*pixel_y),(*sequence_number));
 #endif
 	return TRUE;
@@ -338,7 +342,6 @@ int NGATCil_Cil_Autoguide_On_Pixel_Parse(struct NGATCil_Ags_Packet_Struct packet
  * @see ngatcil_general.html#NGATCil_General_Error_Number
  * @see ngatcil_general.html#NGATCil_General_Error_String
  * @see ngatcil_general.html#NGATCil_General_Log
- * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_CIL
  */
 int NGATCil_Cil_Autoguide_On_Pixel_Reply_Send(int socket_id,char *hostname,int port_number,float pixel_x,float pixel_y,
 					      int status,int sequence_number)
@@ -348,8 +351,8 @@ int NGATCil_Cil_Autoguide_On_Pixel_Reply_Send(int socket_id,char *hostname,int p
 	int pixel_x_i,pixel_y_i,retval;
 
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_CIL,
-				   "NGATCil_Cil_Autoguide_On_Pixel_Reply_Send(%.2f,%.2f,%#x,%d):started.",
+	NGATCil_General_Log_Format("ngatcil","ngatcil_cil.c","NGATCil_Cil_Autoguide_On_Pixel_Reply_Send",
+				   LOG_VERBOSITY_VERBOSE,NULL,"started(%.2f,%.2f,%#x,%d).",
 				   pixel_x,pixel_y,status,sequence_number);
 #endif
 	if((pixel_x < 0.0f) || (pixel_x > 1023.0f))
@@ -383,7 +386,8 @@ int NGATCil_Cil_Autoguide_On_Pixel_Reply_Send(int socket_id,char *hostname,int p
 	if(retval == FALSE)
 		return FALSE;
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Autoguide_On_Pixel_Reply_Send:finished.");
+	NGATCil_General_Log("ngatcil","ngatcil_cil.c","NGATCil_Cil_Autoguide_On_Pixel_Reply_Send",
+			    LOG_VERBOSITY_VERBOSE,NULL,"finished.");
 #endif
 	return TRUE;
 }
@@ -405,13 +409,13 @@ int NGATCil_Cil_Autoguide_On_Pixel_Reply_Send(int socket_id,char *hostname,int p
  * @see ngatcil_general.html#NGATCil_General_Error_Number
  * @see ngatcil_general.html#NGATCil_General_Error_String
  * @see ngatcil_general.html#NGATCil_General_Log
- * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_CIL
  */
 int NGATCil_Cil_Autoguide_On_Pixel_Reply_Parse(struct NGATCil_Ags_Packet_Struct packet,float *pixel_x,float *pixel_y,
 					       int *status,int *sequence_number)
 {
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Autoguide_On_Pixel_Reply_Parse:started.");
+	NGATCil_General_Log("ngatcil","ngatcil_cil.c","NGATCil_Cil_Autoguide_On_Pixel_Reply_Parse",
+			    LOG_VERBOSITY_VERBOSE,NULL,"started.");
 #endif
 	if(pixel_x == NULL)
 	{
@@ -465,8 +469,8 @@ int NGATCil_Cil_Autoguide_On_Pixel_Reply_Parse(struct NGATCil_Ags_Packet_Struct 
 	(*pixel_y) = ((float)(packet.Param2))/1000.0f;
 	(*sequence_number) = packet.Cil_Base.Seq_Num;
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_CIL,
-				   "NGATCil_Cil_Autoguide_On_Pixel_Reply_Parse:(%#x,%.2f,%.2f,%d):finished.",
+	NGATCil_General_Log_Format("ngatcil","ngatcil_cil.c","NGATCil_Cil_Autoguide_On_Pixel_Reply_Parse",
+				   LOG_VERBOSITY_VERBOSE,NULL,"finished(%#x,%.2f,%.2f,%d).",
 				   (*status),(*pixel_x),(*pixel_y),(*sequence_number));
 #endif
 	return TRUE;
@@ -486,12 +490,12 @@ int NGATCil_Cil_Autoguide_On_Pixel_Reply_Parse(struct NGATCil_Ags_Packet_Struct 
  * @see ngatcil_general.html#NGATCil_General_Error_Number
  * @see ngatcil_general.html#NGATCil_General_Error_String
  * @see ngatcil_general.html#NGATCil_General_Log
- * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_CIL
  */
 int NGATCil_Cil_Autoguide_On_Brightest_Parse(struct NGATCil_Ags_Packet_Struct packet,int *sequence_number)
 {
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Autoguide_On_Brightest_Parse:started.");
+	NGATCil_General_Log("ngatcil","ngatcil_cil.c","NGATCil_Cil_Autoguide_On_Brightest_Parse",
+			    LOG_VERBOSITY_VERBOSE,NULL,"started.");
 #endif
 	if(sequence_number == NULL)
 	{
@@ -523,9 +527,8 @@ int NGATCil_Cil_Autoguide_On_Brightest_Parse(struct NGATCil_Ags_Packet_Struct pa
 	}
 	(*sequence_number) = packet.Cil_Base.Seq_Num;
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_CIL,
-				   "NGATCil_Cil_Autoguide_On_Brightest_Parse:(%.2f,%.2f,%d):finished.",
-				   (*sequence_number));
+	NGATCil_General_Log_Format("ngatcil","ngatcil_cil.c","NGATCil_Cil_Autoguide_On_Brightest_Parse",
+				   LOG_VERBOSITY_VERBOSE,NULL,"finished(%d).",(*sequence_number));
 #endif
 	return TRUE;
 }
@@ -551,7 +554,6 @@ int NGATCil_Cil_Autoguide_On_Brightest_Parse(struct NGATCil_Ags_Packet_Struct pa
  * @see ngatcil_general.html#NGATCil_General_Error_Number
  * @see ngatcil_general.html#NGATCil_General_Error_String
  * @see ngatcil_general.html#NGATCil_General_Log
- * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_CIL
  */
 int NGATCil_Cil_Autoguide_On_Brightest_Reply_Send(int socket_id,char *hostname,int port_number,int status,
 						  int sequence_number)
@@ -561,9 +563,8 @@ int NGATCil_Cil_Autoguide_On_Brightest_Reply_Send(int socket_id,char *hostname,i
 	int retval;
 
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_CIL,
-				   "NGATCil_Cil_Autoguide_On_Brightest_Reply_Send(%#x,%d):started.",
-				   status,sequence_number);
+	NGATCil_General_Log_Format("ngatcil","ngatcil_cil.c","NGATCil_Cil_Autoguide_On_Brightest_Reply_Send",
+				   LOG_VERBOSITY_VERBOSE,NULL,"started(%#x,%d).",status,sequence_number);
 #endif
 	retval = NGATCil_Cil_Packet_Create(E_CIL_AGS,E_CIL_TCS,E_CIL_RSP_CLASS,E_AGS_CMD,sequence_number,
 					   E_AGS_GUIDE_ON_BRIGHTEST,status,0,0,&packet);
@@ -574,7 +575,8 @@ int NGATCil_Cil_Autoguide_On_Brightest_Reply_Send(int socket_id,char *hostname,i
 	if(retval == FALSE)
 		return FALSE;
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Autoguide_On_Brightest_Reply_Send:finished.");
+	NGATCil_General_Log("ngatcil","ngatcil_cil.c","NGATCil_Cil_Autoguide_On_Brightest_Reply_Send",
+			    LOG_VERBOSITY_VERBOSE,NULL,"finished.");
 #endif
 	return TRUE;
 }
@@ -594,12 +596,12 @@ int NGATCil_Cil_Autoguide_On_Brightest_Reply_Send(int socket_id,char *hostname,i
  * @see ngatcil_general.html#NGATCil_General_Error_Number
  * @see ngatcil_general.html#NGATCil_General_Error_String
  * @see ngatcil_general.html#NGATCil_General_Log
- * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_CIL
  */
 int NGATCil_Cil_Autoguide_On_Rank_Parse(struct NGATCil_Ags_Packet_Struct packet,int *rank,int *sequence_number)
 {
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Autoguide_On_Rank_Parse:started.");
+	NGATCil_General_Log("ngatcil","ngatcil_cil.c","NGATCil_Cil_Autoguide_On_Rank_Parse",
+			    LOG_VERBOSITY_VERBOSE,NULL,"started.");
 #endif
 	if(sequence_number == NULL)
 	{
@@ -638,9 +640,9 @@ int NGATCil_Cil_Autoguide_On_Rank_Parse(struct NGATCil_Ags_Packet_Struct packet,
 	(*sequence_number) = packet.Cil_Base.Seq_Num;
 	(*rank) = packet.Param1;
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_CIL,
-				   "NGATCil_Cil_Autoguide_On_Rank_Parse:(%.2f,%.2f,%d,%d):finished.",
-				   (*rank),(*sequence_number));
+	NGATCil_General_Log_Format("ngatcil","ngatcil_cil.c","NGATCil_Cil_Autoguide_On_Rank_Parse",
+				   LOG_VERBOSITY_VERBOSE,NULL,
+				   "finished(%d,%d).",(*rank),(*sequence_number));
 #endif
 	return TRUE;
 }
@@ -667,7 +669,6 @@ int NGATCil_Cil_Autoguide_On_Rank_Parse(struct NGATCil_Ags_Packet_Struct packet,
  * @see ngatcil_general.html#NGATCil_General_Error_Number
  * @see ngatcil_general.html#NGATCil_General_Error_String
  * @see ngatcil_general.html#NGATCil_General_Log
- * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_CIL
  */
 int NGATCil_Cil_Autoguide_On_Rank_Reply_Send(int socket_id,char *hostname,int port_number,int rank,int status,
 					     int sequence_number)
@@ -677,9 +678,8 @@ int NGATCil_Cil_Autoguide_On_Rank_Reply_Send(int socket_id,char *hostname,int po
 	int retval;
 
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_CIL,
-				   "NGATCil_Cil_Autoguide_On_Rank_Reply_Send(%d,%#x,%d):started.",
-				   rank,status,sequence_number);
+	NGATCil_General_Log_Format("ngatcil","ngatcil_cil.c","NGATCil_Cil_Autoguide_On_Rank_Reply_Send",
+				   LOG_VERBOSITY_VERBOSE,NULL,"started(%d,%#x,%d).",rank,status,sequence_number);
 #endif
 	retval = NGATCil_Cil_Packet_Create(E_CIL_AGS,E_CIL_TCS,E_CIL_RSP_CLASS,E_AGS_CMD,sequence_number,
 					   E_AGS_GUIDE_ON_RANK,status,rank,0,&packet);
@@ -690,7 +690,8 @@ int NGATCil_Cil_Autoguide_On_Rank_Reply_Send(int socket_id,char *hostname,int po
 	if(retval == FALSE)
 		return FALSE;
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Autoguide_On_Brightest_Reply_Send:finished.");
+	NGATCil_General_Log("ngatcil","ngatcil_cil.c","NGATCil_Cil_Autoguide_On_Rank_Reply_Send",
+			    LOG_VERBOSITY_VERBOSE,NULL,"finished.");
 #endif
 	return TRUE;
 }
@@ -713,7 +714,6 @@ int NGATCil_Cil_Autoguide_On_Rank_Reply_Send(int socket_id,char *hostname,int po
  * @see ngatcil_general.html#NGATCil_General_Error_Number
  * @see ngatcil_general.html#NGATCil_General_Error_String
  * @see ngatcil_general.html#NGATCil_General_Log
- * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_CIL
  */
 int NGATCil_Cil_Autoguide_Off_Send(int socket_id,char *hostname,int port_number,int *sequence_number)
 {
@@ -722,7 +722,8 @@ int NGATCil_Cil_Autoguide_Off_Send(int socket_id,char *hostname,int port_number,
 	int retval;
 
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Autoguide_Off_Send:started.");
+	NGATCil_General_Log("ngatcil","ngatcil_cil.c","NGATCil_Cil_Autoguide_Off_Send",
+			    LOG_VERBOSITY_VERBOSE,NULL,"started.");
 #endif
 	if(sequence_number == NULL)
 	{
@@ -752,8 +753,8 @@ int NGATCil_Cil_Autoguide_Off_Send(int socket_id,char *hostname,int port_number,
 	if(retval == FALSE)
 		return FALSE;
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Autoguide_Off_Send:(%d):finished.",
-				   (*sequence_number));
+	NGATCil_General_Log_Format("ngatcil","ngatcil_cil.c","NGATCil_Cil_Autoguide_Off_Send",
+				   LOG_VERBOSITY_VERBOSE,NULL,"finished(%d).",(*sequence_number));
 #endif
 	return TRUE;
 }
@@ -773,12 +774,12 @@ int NGATCil_Cil_Autoguide_Off_Send(int socket_id,char *hostname,int port_number,
  * @see ngatcil_general.html#NGATCil_General_Error_Number
  * @see ngatcil_general.html#NGATCil_General_Error_String
  * @see ngatcil_general.html#NGATCil_General_Log
- * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_CIL
  */
 int NGATCil_Cil_Autoguide_Off_Parse(struct NGATCil_Ags_Packet_Struct packet,int *status,int *sequence_number)
 {
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Autoguide_Off_Parse:started.");
+	NGATCil_General_Log("ngatcil","ngatcil_cil.c","NGATCil_Cil_Autoguide_Off_Parse",
+			    LOG_VERBOSITY_VERBOSE,NULL,"started.");
 #endif
 	if(status == NULL)
 	{
@@ -816,8 +817,8 @@ int NGATCil_Cil_Autoguide_Off_Parse(struct NGATCil_Ags_Packet_Struct packet,int 
 	(*status) = packet.Status;
 	(*sequence_number) = packet.Cil_Base.Seq_Num;
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Autoguide_Off_Parse:(%#x,%d):finished.",
-				   (*status),(*sequence_number));
+	NGATCil_General_Log_Format("ngatcil","ngatcil_cil.c","NGATCil_Cil_Autoguide_Off_Parse",
+				   LOG_VERBOSITY_VERBOSE,NULL,"finished(%#x,%d).",(*status),(*sequence_number));
 #endif
 	return TRUE;
 }
@@ -842,7 +843,6 @@ int NGATCil_Cil_Autoguide_Off_Parse(struct NGATCil_Ags_Packet_Struct packet,int 
  * @see ngatcil_general.html#NGATCil_General_Error_Number
  * @see ngatcil_general.html#NGATCil_General_Error_String
  * @see ngatcil_general.html#NGATCil_General_Log
- * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_CIL
  */
 int NGATCil_Cil_Autoguide_Off_Reply_Send(int socket_id,char *hostname,int port_number,int status,int sequence_number)
 {
@@ -851,8 +851,8 @@ int NGATCil_Cil_Autoguide_Off_Reply_Send(int socket_id,char *hostname,int port_n
 	int retval;
 
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_CIL,
-				   "NGATCil_Cil_Autoguide_Off_Reply_Send(%#x,%d):started.",status,sequence_number);
+	NGATCil_General_Log_Format("ngatcil","ngatcil_cil.c","NGATCil_Cil_Autoguide_Off_Reply_Send",
+				   LOG_VERBOSITY_VERBOSE,NULL,"started(%#x,%d).",status,sequence_number);
 #endif
 	retval = NGATCil_Cil_Packet_Create(E_CIL_AGS,E_CIL_TCS,E_CIL_RSP_CLASS,E_AGS_CMD,sequence_number,
 					   E_AGS_GUIDE_OFF,status,0,0,&packet);
@@ -863,7 +863,8 @@ int NGATCil_Cil_Autoguide_Off_Reply_Send(int socket_id,char *hostname,int port_n
 	if(retval == FALSE)
 		return FALSE;
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Autoguide_Off_Reply_Send:finished.");
+	NGATCil_General_Log("ngatcil","ngatcil_cil.c","NGATCil_Cil_Autoguide_Off_Reply_Send",
+			    LOG_VERBOSITY_VERBOSE,NULL,"finished.");
 #endif
 	return TRUE;
 }
@@ -883,12 +884,12 @@ int NGATCil_Cil_Autoguide_Off_Reply_Send(int socket_id,char *hostname,int port_n
  * @see ngatcil_general.html#NGATCil_General_Error_Number
  * @see ngatcil_general.html#NGATCil_General_Error_String
  * @see ngatcil_general.html#NGATCil_General_Log
- * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_CIL
  */
 int NGATCil_Cil_Autoguide_Off_Reply_Parse(struct NGATCil_Ags_Packet_Struct packet,int *status,int *sequence_number)
 {
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_CIL,"NGATCil_Cil_Autoguide_Off_Reply_Parse:started.");
+	NGATCil_General_Log("ngatcil","ngatcil_cil.c","NGATCil_Cil_Autoguide_Off_Reply_Parse",
+			    LOG_VERBOSITY_VERBOSE,NULL,"started.");
 #endif
 	if(sequence_number == NULL)
 	{
@@ -928,9 +929,8 @@ int NGATCil_Cil_Autoguide_Off_Reply_Parse(struct NGATCil_Ags_Packet_Struct packe
 	(*status) = packet.Status;
 	(*sequence_number) = packet.Cil_Base.Seq_Num;
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_CIL,
-				   "NGATCil_Cil_Autoguide_Off_Reply_Parse:(%#x,%d):finished.",
-				   (*status),(*sequence_number));
+	NGATCil_General_Log_Format("ngatcil","ngatcil_cil.c","NGATCil_Cil_Autoguide_Off_Reply_Parse",
+				   LOG_VERBOSITY_VERBOSE,NULL,"finished(%#x,%d).",(*status),(*sequence_number));
 #endif
 	return TRUE;
 }
@@ -940,6 +940,9 @@ int NGATCil_Cil_Autoguide_Off_Reply_Parse(struct NGATCil_Ags_Packet_Struct packe
 ** ---------------------------------------------------------------------------- */
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.6  2006/08/29 14:07:57  cjm
+** Rewritten using new Cil_Base element in packet structure.
+**
 ** Revision 1.5  2006/07/20 15:15:27  cjm
 ** Removed eCilNames (and put in header).
 **

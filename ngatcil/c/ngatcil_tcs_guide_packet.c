@@ -1,11 +1,11 @@
 /* ngatcil_tcs_guide_packet.c
 ** NGATCil TCS guide packet tranmitting/receiving routines.
-** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_tcs_guide_packet.c,v 1.4 2006-06-21 14:06:44 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_tcs_guide_packet.c,v 1.5 2009-01-30 18:00:52 cjm Exp $
 */
 /**
  * NGAT Cil library transmission/receiving of TCS guide packets over UDP.
  * @author Chris Mottram
- * @version $Revision: 1.4 $
+ * @version $Revision: 1.5 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -18,7 +18,7 @@
 
 #include <stdio.h>
 #include <string.h>
-
+#include "log_udp.h"
 #include "ngatcil_general.h"
 #include "ngatcil_udp_raw.h"
 #include "ngatcil_tcs_guide_packet.h"
@@ -31,7 +31,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: ngatcil_tcs_guide_packet.c,v 1.4 2006-06-21 14:06:44 cjm Exp $";
+static char rcsid[] = "$Id: ngatcil_tcs_guide_packet.c,v 1.5 2009-01-30 18:00:52 cjm Exp $";
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -49,19 +49,19 @@ static char rcsid[] = "$Id: ngatcil_tcs_guide_packet.c,v 1.4 2006-06-21 14:06:44
  * @see ngatcil_general.html#NGATCil_General_Error_Number
  * @see ngatcil_general.html#NGATCil_General_Error_String
  * @see ngatcil_general.html#NGATCil_General_Log
- * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_TCS_GUIDE_PACKET
  */
 int NGATCil_TCS_Guide_Packet_Open_Default(int *socket_id)
 {
 	int retval;
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_TCS_GUIDE_PACKET,"NGATCil_TCS_Guide_Packet_Open_Default:started.");
+	NGATCil_General_Log("ngatcil","ngatcil_tcs_guide_packet.c","NGATCil_TCS_Guide_Packet_Open_Default",
+			    LOG_VERBOSITY_VERBOSE,NULL,"started.");
 #endif
 	retval = NGATCil_UDP_Open(NGATCIL_TCS_GUIDE_PACKET_TCC_DEFAULT,NGATCIL_TCS_GUIDE_PACKET_PORT_DEFAULT,
 				  socket_id);
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_TCS_GUIDE_PACKET,
-			    "NGATCil_TCS_Guide_Packet_Open_Default:finished.");
+	NGATCil_General_Log("ngatcil","ngatcil_tcs_guide_packet.c","NGATCil_TCS_Guide_Packet_Open_Default",
+			    LOG_VERBOSITY_VERBOSE,NULL,"finished.");
 #endif
 	return retval;
 }
@@ -101,11 +101,10 @@ int NGATCil_TCS_Guide_Packet_Open_Default(int *socket_id)
  * @see ngatcil_general.html#NGATCil_General_Error_Number
  * @see ngatcil_general.html#NGATCil_General_Error_String
  * @see ngatcil_general.html#NGATCil_General_Log
- * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_TCS_GUIDE_PACKET
  */
 int NGATCil_TCS_Guide_Packet_Send(int socket_id,float x_pos,float y_pos,
-					 int timecode_terminating,int timecode_unreliable,
-					 float timecode_secs,char status_char)
+				  int timecode_terminating,int timecode_unreliable,
+				  float timecode_secs,char status_char)
 {
 	char packet_buff[35];
 	char x_pos_buff[9];
@@ -115,7 +114,8 @@ int NGATCil_TCS_Guide_Packet_Send(int socket_id,float x_pos,float y_pos,
 	int retval,i,checksum;
 
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_TCS_GUIDE_PACKET,"NGATCil_TCS_Guide_Packet_Send:started.");
+	NGATCil_General_Log("ngatcil","ngatcil_tcs_guide_packet.c","NGATCil_TCS_Guide_Packet_Send",
+			    LOG_VERBOSITY_VERBOSE,NULL,"started.");
 #endif
 	/* check parameters */
 	if(!NGATCIL_GENERAL_IS_BOOLEAN(timecode_terminating))
@@ -170,8 +170,8 @@ int NGATCil_TCS_Guide_Packet_Send(int socket_id,float x_pos,float y_pos,
 	else
 		x_pos_buff[0] = '-';
 #if NGATCIL_DEBUG > 5
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_TCS_GUIDE_PACKET,"NGATCil_TCS_Guide_Packet_Send:"
-				   "x_pos_buff = %s.",x_pos_buff);
+	NGATCil_General_Log_Format("ngatcil","ngatcil_tcs_guide_packet.c","NGATCil_TCS_Guide_Packet_Send",
+				   LOG_VERBOSITY_VERBOSE,NULL,"x_pos_buff = %s.",x_pos_buff);
 #endif
 	/* y pos */
 	sprintf(y_pos_buff+1,"%07.2f",fabs(y_pos));
@@ -180,8 +180,8 @@ int NGATCil_TCS_Guide_Packet_Send(int socket_id,float x_pos,float y_pos,
 	else
 		y_pos_buff[0] = '-';
 #if NGATCIL_DEBUG > 5
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_TCS_GUIDE_PACKET,"NGATCil_TCS_Guide_Packet_Send:"
-				   "y_pos_buff = %s.",y_pos_buff);
+	NGATCil_General_Log_Format("ngatcil","ngatcil_tcs_guide_packet.c","NGATCil_TCS_Guide_Packet_Send",
+				   LOG_VERBOSITY_VERBOSE,NULL,"y_pos_buff = %s.",y_pos_buff);
 #endif
 	/* timecode */
 	if(timecode_terminating)
@@ -197,8 +197,8 @@ int NGATCil_TCS_Guide_Packet_Send(int socket_id,float x_pos,float y_pos,
 				timecode_buff[0] = '0';
 	}
 #if NGATCIL_DEBUG > 5
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_TCS_GUIDE_PACKET,"NGATCil_TCS_Guide_Packet_Send:"
-				   "timecode_buff = %s.",timecode_buff);
+	NGATCil_General_Log_Format("ngatcil","ngatcil_tcs_guide_packet.c","NGATCil_TCS_Guide_Packet_Send",
+				   LOG_VERBOSITY_VERBOSE,NULL,"timecode_buff = %s.",timecode_buff);
 #endif
 	/* packet (up to checksum) */
 	retval = sprintf(packet_buff,"%s %s %s %c ",x_pos_buff,y_pos_buff,timecode_buff,status_char);
@@ -210,7 +210,8 @@ int NGATCil_TCS_Guide_Packet_Send(int socket_id,float x_pos,float y_pos,
 		return FALSE;
 	}
 #if NGATCIL_DEBUG > 5
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_TCS_GUIDE_PACKET,"NGATCil_TCS_Guide_Packet_Send:"
+	NGATCil_General_Log_Format("ngatcil","ngatcil_tcs_guide_packet.c","NGATCil_TCS_Guide_Packet_Send",
+				   LOG_VERBOSITY_VERBOSE,NULL,
 				   "packet_buff (without checksum) = '%s'.",packet_buff);
 #endif
 	/* compute checksum */
@@ -220,18 +221,19 @@ int NGATCil_TCS_Guide_Packet_Send(int socket_id,float x_pos,float y_pos,
 		checksum += (int)(packet_buff[i]);
 	}
 #if NGATCIL_DEBUG > 5
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_TCS_GUIDE_PACKET,"NGATCil_TCS_Guide_Packet_Send:"
-				   "checksum = %d.",checksum);
+	NGATCil_General_Log_Format("ngatcil","ngatcil_tcs_guide_packet.c","NGATCil_TCS_Guide_Packet_Send",
+				   LOG_VERBOSITY_VERBOSE,NULL,"checksum = %d.",checksum);
 #endif
 	sprintf(checksum_buff,"%04d",checksum);
 #if NGATCIL_DEBUG > 9
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_TCS_GUIDE_PACKET,"NGATCil_TCS_Guide_Packet_Send:"
-				   "checksum_buff = '%s'.",checksum_buff);
+	NGATCil_General_Log_Format("ngatcil","ngatcil_tcs_guide_packet.c","NGATCil_TCS_Guide_Packet_Send",
+				   LOG_VERBOSITY_VERBOSE,NULL,"checksum_buff = '%s'.",checksum_buff);
 #endif
 	strcat(packet_buff,checksum_buff);
 	strcat(packet_buff,"\r");
 #if NGATCIL_DEBUG > 5
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_TCS_GUIDE_PACKET,"NGATCil_TCS_Guide_Packet_Send:"
+	NGATCil_General_Log_Format("ngatcil","ngatcil_tcs_guide_packet.c","NGATCil_TCS_Guide_Packet_Send",
+				   LOG_VERBOSITY_VERBOSE,NULL,
 				   "packet_buff (with checksum) = '%s' (length %d).",
 				   NGATCil_TCS_Guide_Packet_To_String(packet_buff,strlen(packet_buff)),
 				   strlen(packet_buff));
@@ -241,7 +243,8 @@ int NGATCil_TCS_Guide_Packet_Send(int socket_id,float x_pos,float y_pos,
 	if(retval == FALSE)
 		return FALSE;
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_TCS_GUIDE_PACKET,"NGATCil_TCS_Guide_Packet_Send:finished.");
+	NGATCil_General_Log("ngatcil","ngatcil_tcs_guide_packet.c","NGATCil_TCS_Guide_Packet_Send",
+			    LOG_VERBOSITY_VERBOSE,NULL,"finished.");
 #endif
 	return TRUE;
 }
@@ -273,7 +276,6 @@ int NGATCil_TCS_Guide_Packet_Send(int socket_id,float x_pos,float y_pos,
  * @see ngatcil_general.html#NGATCil_General_Error_Number
  * @see ngatcil_general.html#NGATCil_General_Error_String
  * @see ngatcil_general.html#NGATCil_General_Log
- * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_TCS_GUIDE_PACKET
  */
 int NGATCil_TCS_Guide_Packet_Recv(int socket_id,float *x_pos,float *y_pos,
 					 int *timecode_terminating,int *timecode_unreliable,
@@ -283,7 +285,8 @@ int NGATCil_TCS_Guide_Packet_Recv(int socket_id,float *x_pos,float *y_pos,
 	int retval,computed_checksum,checksum;
 
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_TCS_GUIDE_PACKET,"NGATCil_TCS_Guide_Packet_Recv:started.");
+	NGATCil_General_Log("ngatcil","ngatcil_tcs_guide_packet.c","NGATCil_TCS_Guide_Packet_Recv",
+			    LOG_VERBOSITY_VERBOSE,NULL,"started.");
 #endif
 	/* check parameters */
 	if(x_pos == NULL)
@@ -329,9 +332,9 @@ int NGATCil_TCS_Guide_Packet_Recv(int socket_id,float *x_pos,float *y_pos,
 	/* terminate packet_buff (as a string) properly */
 	packet_buff[34] = '\0';
 #if NGATCIL_DEBUG > 5
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_TCS_GUIDE_PACKET,
-				   "NGATCil_TCS_Guide_Packet_Recv:received '%s'.",
-				   NGATCil_TCS_Guide_Packet_To_String(packet_buff,strlen(packet_buff)));
+	NGATCil_General_Log_Format("ngatcil","ngatcil_tcs_guide_packet.c","NGATCil_TCS_Guide_Packet_Recv",
+				   LOG_VERBOSITY_VERBOSE,NULL,
+			       "received '%s'.",NGATCil_TCS_Guide_Packet_To_String(packet_buff,strlen(packet_buff)));
 #endif
 	/* parse packet */
 	retval = NGATCil_TCS_Guide_Packet_Parse(packet_buff,35,x_pos,y_pos,timecode_terminating,
@@ -339,7 +342,8 @@ int NGATCil_TCS_Guide_Packet_Recv(int socket_id,float *x_pos,float *y_pos,
 	if(retval == FALSE)
 		return FALSE;
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_TCS_GUIDE_PACKET,"NGATCil_TCS_Guide_Packet_Recv:finished.");
+	NGATCil_General_Log("ngatcil","ngatcil_tcs_guide_packet.c","NGATCil_TCS_Guide_Packet_Recv",
+			    LOG_VERBOSITY_VERBOSE,NULL,"finished.");
 #endif
 	return TRUE;
 }
@@ -374,7 +378,6 @@ int NGATCil_TCS_Guide_Packet_Recv(int socket_id,float *x_pos,float *y_pos,
  * @see ngatcil_general.html#NGATCil_General_Error_Number
  * @see ngatcil_general.html#NGATCil_General_Error_String
  * @see ngatcil_general.html#NGATCil_General_Log
- * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_TCS_GUIDE_PACKET
  */
 int NGATCil_TCS_Guide_Packet_Parse(void *packet_buff,int packet_buff_length,float *x_pos,float *y_pos,
 				   int *timecode_terminating,int *timecode_unreliable,
@@ -384,7 +387,8 @@ int NGATCil_TCS_Guide_Packet_Parse(void *packet_buff,int packet_buff_length,floa
 	int retval,computed_checksum,checksum,i;
 
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_TCS_GUIDE_PACKET,"NGATCil_TCS_Guide_Packet_Parse:started.");
+	NGATCil_General_Log("ngatcil","ngatcil_tcs_guide_packet.c","NGATCil_TCS_Guide_Packet_Parse",
+			    LOG_VERBOSITY_VERBOSE,NULL,"started.");
 #endif
 	/* check parameters */
 	if(packet_buff == NULL)
@@ -440,8 +444,8 @@ int NGATCil_TCS_Guide_Packet_Parse(void *packet_buff,int packet_buff_length,floa
 	packet_buff_string = (char *)packet_buff;
 	packet_buff_string[34] = '\0';
 #if NGATCIL_DEBUG > 5
-	NGATCil_General_Log_Format(NGATCIL_GENERAL_LOG_BIT_TCS_GUIDE_PACKET,
-				   "NGATCil_TCS_Guide_Packet_Parse:received '%s'.",
+	NGATCil_General_Log_Format("ngatcil","ngatcil_tcs_guide_packet.c","NGATCil_TCS_Guide_Packet_Parse",
+				   LOG_VERBOSITY_VERBOSE,NULL,"received '%s'.",
 				   NGATCil_TCS_Guide_Packet_To_String(packet_buff_string,strlen(packet_buff_string)));
 #endif
 	retval = sscanf(packet_buff_string,"%f %f %f %c %d\r",x_pos,y_pos,timecode_secs,status_char,&checksum);
@@ -485,7 +489,8 @@ int NGATCil_TCS_Guide_Packet_Parse(void *packet_buff,int packet_buff_length,floa
 		return FALSE;
 	}
 #if NGATCIL_DEBUG > 1
-	NGATCil_General_Log(NGATCIL_GENERAL_LOG_BIT_TCS_GUIDE_PACKET,"NGATCil_TCS_Guide_Packet_Parse:finished.");
+	NGATCil_General_Log("ngatcil","ngatcil_tcs_guide_packet.c","NGATCil_TCS_Guide_Packet_Parse",
+			    LOG_VERBOSITY_VERBOSE,NULL,"finished.");
 #endif
 	return TRUE;
 }
@@ -522,6 +527,9 @@ char *NGATCil_TCS_Guide_Packet_To_String(void *packet_buff,int packet_buff_lengt
 ** ---------------------------------------------------------------------------- */
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.4  2006/06/21 14:06:44  cjm
+** Added information on status char.
+**
 ** Revision 1.3  2006/06/12 19:25:53  cjm
 ** Comment change.
 **

@@ -1,11 +1,11 @@
 /* autoguider_buffer.c
 ** Autoguider buffer routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_buffer.c,v 1.3 2007-01-30 17:35:24 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_buffer.c,v 1.4 2009-01-30 18:01:33 cjm Exp $
 */
 /**
  * Buffer routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.3 $
+ * @version $Revision: 1.4 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -23,6 +23,8 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+
+#include "log_udp.h"
 
 #include "ccd_config.h"
 #include "ccd_general.h"
@@ -99,7 +101,7 @@ struct Buffer_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_buffer.c,v 1.3 2007-01-30 17:35:24 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_buffer.c,v 1.4 2009-01-30 18:01:33 cjm Exp $";
 /**
  * Instance of buffer data.
  * @see #Buffer_Struct
@@ -144,7 +146,6 @@ static int Buffer_One_Reduced_Copy(struct Buffer_One_Struct *data,int index,floa
  * @return The routine returns TRUE on success, and FALSE on failure.
  * @see #Buffer_Data
  * @see autoguider.general.html#Autoguider_General_Log
- * @see autoguider.general.html#AUTOGUIDER_GENERAL_LOG_BIT_BUFFER
  * @see autoguider.general.html#Autoguider_General_Error_Number
  * @see autoguider.general.html#Autoguider_General_Error_String
  * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Integer
@@ -154,7 +155,8 @@ int Autoguider_Buffer_Initialise(void)
 	int retval,ncols,nrows,x_bin,y_bin;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,"Autoguider_Buffer_Initialise:started.");
+	Autoguider_General_Log("buffer","autoguider_buffer.c","Autoguider_Buffer_Initialise",
+			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","started.");
 #endif
 	/* get default config */
 	/* field */
@@ -213,7 +215,8 @@ int Autoguider_Buffer_Initialise(void)
 	if(retval == FALSE)
 		return FALSE;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,"Autoguider_Buffer_Initialise:finished.");
+	Autoguider_General_Log("buffer","autoguider_buffer.c","Autoguider_Buffer_Initialise",
+			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","finished.");
 #endif
 	return TRUE;
 }
@@ -231,7 +234,6 @@ int Autoguider_Buffer_Initialise(void)
  * @see autoguider.general.html#Autoguider_General_Mutex_Lock
  * @see autoguider.general.html#Autoguider_General_Mutex_Unlock
  * @see autoguider.general.html#Autoguider_General_Log
- * @see autoguider.general.html#AUTOGUIDER_GENERAL_LOG_BIT_BUFFER
  * @see autoguider.general.html#Autoguider_General_Error_Number
  * @see autoguider.general.html#Autoguider_General_Error_String
  */
@@ -240,7 +242,8 @@ int Autoguider_Buffer_Set_Field_Dimension(int ncols,int nrows,int x_bin,int y_bi
 	int i,retval;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,"Autoguider_Buffer_Set_Field_Dimension:started.");
+	Autoguider_General_Log("buffer","autoguider_buffer.c","Autoguider_Buffer_Set_Field_Dimension",
+			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","started.");
 #endif
 	Buffer_Data.Field.Unbinned_NCols = ncols;
 	Buffer_Data.Field.Unbinned_NRows = nrows;
@@ -312,7 +315,8 @@ int Autoguider_Buffer_Set_Field_Dimension(int ncols,int nrows,int x_bin,int y_bi
 			return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,"Autoguider_Buffer_Set_Field_Dimension:finished.");
+	Autoguider_General_Log("buffer","autoguider_buffer.c","Autoguider_Buffer_Set_Field_Dimension",
+			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","finished.");
 #endif
 	return TRUE;
 }
@@ -329,7 +333,6 @@ int Autoguider_Buffer_Set_Field_Dimension(int ncols,int nrows,int x_bin,int y_bi
  * @see autoguider.general.html#Autoguider_General_Mutex_Lock
  * @see autoguider.general.html#Autoguider_General_Mutex_Unlock
  * @see autoguider.general.html#Autoguider_General_Log
- * @see autoguider.general.html#AUTOGUIDER_GENERAL_LOG_BIT_BUFFER
  * @see autoguider.general.html#Autoguider_General_Error_Number
  * @see autoguider.general.html#Autoguider_General_Error_String
  */
@@ -338,7 +341,8 @@ int Autoguider_Buffer_Set_Guide_Dimension(int ncols,int nrows,int x_bin,int y_bi
 	int i,retval;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,"Autoguider_Buffer_Set_Guide_Dimension:started.");
+	Autoguider_General_Log("buffer","autoguider_buffer.c","Autoguider_Buffer_Set_Guide_Dimension",
+			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","started.");
 #endif
 	Buffer_Data.Guide.Unbinned_NCols = ncols;
 	Buffer_Data.Guide.Unbinned_NRows = nrows;
@@ -410,7 +414,8 @@ int Autoguider_Buffer_Set_Guide_Dimension(int ncols,int nrows,int x_bin,int y_bi
 			return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,"Autoguider_Buffer_Set_Guide_Dimension:finished.");
+	Autoguider_General_Log("buffer","autoguider_buffer.c","Autoguider_Buffer_Set_Guide_Dimension",
+			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","finished.");
 #endif
 	return TRUE;
 }
@@ -674,7 +679,6 @@ int Autoguider_Buffer_Reduced_Guide_Copy(int index,float *buffer_ptr,size_t buff
  * @see #Buffer_One_Reduced_Lock
  * @see #Buffer_One_Reduced_Unlock
  * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_BUFFER
  */
 int Autoguider_Buffer_Raw_To_Reduced_Field(int index)
 {
@@ -685,7 +689,8 @@ int Autoguider_Buffer_Raw_To_Reduced_Field(int index)
 	int pixel_count,i;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,"Autoguider_Buffer_Raw_To_Reduced_Field:started.");
+	Autoguider_General_Log("buffer","autoguider_buffer.c","Autoguider_Buffer_Raw_To_Reduced_Field",
+			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","started.");
 #endif
 	if(!Buffer_One_Raw_Lock(&(Buffer_Data.Field),index,&raw_buffer_ptr))
 		return FALSE;
@@ -718,7 +723,8 @@ int Autoguider_Buffer_Raw_To_Reduced_Field(int index)
         if(!Buffer_One_Raw_Unlock(&(Buffer_Data.Field),index))
 		return FALSE;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,"Autoguider_Buffer_Raw_To_Reduced_Field:finished.");
+	Autoguider_General_Log("buffer","autoguider_buffer.c","Autoguider_Buffer_Raw_To_Reduced_Field",
+			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","finished.");
 #endif
 	return TRUE;
 }
@@ -734,7 +740,6 @@ int Autoguider_Buffer_Raw_To_Reduced_Field(int index)
  * @see #Buffer_One_Reduced_Lock
  * @see #Buffer_One_Reduced_Unlock
  * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_BUFFER
  */
 int Autoguider_Buffer_Raw_To_Reduced_Guide(int index)
 {
@@ -743,7 +748,8 @@ int Autoguider_Buffer_Raw_To_Reduced_Guide(int index)
 	int pixel_count,i;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,"Autoguider_Buffer_Raw_To_Reduced_Guide:started.");
+	Autoguider_General_Log("buffer","autoguider_buffer.c","Autoguider_Buffer_Raw_To_Reduced_Guide",
+			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","started.");
 #endif
 	if(!Buffer_One_Raw_Lock(&(Buffer_Data.Guide),index,&raw_buffer_ptr))
 		return FALSE;
@@ -765,7 +771,8 @@ int Autoguider_Buffer_Raw_To_Reduced_Guide(int index)
         if(!Buffer_One_Raw_Unlock(&(Buffer_Data.Guide),index))
 		return FALSE;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,"Autoguider_Buffer_Raw_To_Reduced_Guide:finished.");
+	Autoguider_General_Log("buffer","autoguider_buffer.c","Autoguider_Buffer_Raw_To_Reduced_Guide",
+			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","finished.");
 #endif
 	return TRUE;
 }
@@ -778,15 +785,14 @@ int Autoguider_Buffer_Raw_To_Reduced_Guide(int index)
  * @see #Buffer_Data
  * @see #AUTOGUIDER_BUFFER_COUNT
  * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_BUFFER
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  */
 int Autoguider_Buffer_Field_Exposure_Start_Time_Set(int index,struct timespec start_time)
 {
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
-			       "Autoguider_Buffer_Field_Exposure_Start_Time_Set:started.");
+	Autoguider_General_Log("buffer","autoguider_buffer.c","Autoguider_Buffer_Field_Exposure_Start_Time_Set",
+			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","started.");
 #endif
 	if((index < 0)||(index >= AUTOGUIDER_BUFFER_COUNT))
 	{
@@ -797,8 +803,8 @@ int Autoguider_Buffer_Field_Exposure_Start_Time_Set(int index,struct timespec st
 	}
 	Buffer_Data.Field.Exposure_Start_Time_List[index] = start_time;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
-			       "Autoguider_Buffer_Field_Exposure_Start_Time_Set:finished.");
+	Autoguider_General_Log("buffer","autoguider_buffer.c","Autoguider_Buffer_Field_Exposure_Start_Time_Set",
+			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","finished.");
 #endif
 	return TRUE;
 }
@@ -811,15 +817,14 @@ int Autoguider_Buffer_Field_Exposure_Start_Time_Set(int index,struct timespec st
  * @see #Buffer_Data
  * @see #AUTOGUIDER_BUFFER_COUNT
  * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_BUFFER
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  */
 int Autoguider_Buffer_Field_Exposure_Start_Time_Get(int index,struct timespec *start_time)
 {
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
-			       "Autoguider_Buffer_Field_Exposure_Start_Time_Get:started.");
+	Autoguider_General_Log("buffer","autoguider_buffer.c","Autoguider_Buffer_Field_Exposure_Start_Time_Get",
+			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","started.");
 #endif
 	if((index < 0)||(index >= AUTOGUIDER_BUFFER_COUNT))
 	{
@@ -837,8 +842,8 @@ int Autoguider_Buffer_Field_Exposure_Start_Time_Get(int index,struct timespec *s
 	}
 	(*start_time) = Buffer_Data.Field.Exposure_Start_Time_List[index];
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
-			       "Autoguider_Buffer_Field_Exposure_Start_Time_Get:finished.");
+	Autoguider_General_Log("buffer","autoguider_buffer.c","Autoguider_Buffer_Field_Exposure_Start_Time_Get",
+			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","finished.");
 #endif
 	return TRUE;
 }
@@ -851,15 +856,14 @@ int Autoguider_Buffer_Field_Exposure_Start_Time_Get(int index,struct timespec *s
  * @see #Buffer_Data
  * @see #AUTOGUIDER_BUFFER_COUNT
  * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_BUFFER
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  */
 int Autoguider_Buffer_Field_Exposure_Length_Set(int index,int exposure_length_ms)
 {
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
-			       "Autoguider_Buffer_Field_Exposure_Length_Set:started.");
+	Autoguider_General_Log("buffer","autoguider_buffer.c","Autoguider_Buffer_Field_Exposure_Length_Set",
+			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","started.");
 #endif
 	if((index < 0)||(index >= AUTOGUIDER_BUFFER_COUNT))
 	{
@@ -870,8 +874,8 @@ int Autoguider_Buffer_Field_Exposure_Length_Set(int index,int exposure_length_ms
 	}
 	Buffer_Data.Field.Exposure_Length_List[index] = exposure_length_ms;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
-			       "Autoguider_Buffer_Field_Exposure_Length_Set:finished.");
+	Autoguider_General_Log("buffer","autoguider_buffer.c","Autoguider_Buffer_Field_Exposure_Length_Set",
+			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","finished.");
 #endif
 	return TRUE;
 }
@@ -884,15 +888,14 @@ int Autoguider_Buffer_Field_Exposure_Length_Set(int index,int exposure_length_ms
  * @see #Buffer_Data
  * @see #AUTOGUIDER_BUFFER_COUNT
  * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_BUFFER
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  */
 int Autoguider_Buffer_Field_Exposure_Length_Get(int index,int *exposure_length_ms)
 {
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
-			       "Autoguider_Buffer_Field_Exposure_Length_Get:started.");
+	Autoguider_General_Log("buffer","autoguider_buffer.c","Autoguider_Buffer_Field_Exposure_Length_Get",
+			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","started.");
 #endif
 	if((index < 0)||(index >= AUTOGUIDER_BUFFER_COUNT))
 	{
@@ -910,8 +913,8 @@ int Autoguider_Buffer_Field_Exposure_Length_Get(int index,int *exposure_length_m
 	}
 	(*exposure_length_ms) = Buffer_Data.Field.Exposure_Length_List[index];
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
-			       "Autoguider_Buffer_Field_Exposure_Length_Get:finished.");
+	Autoguider_General_Log("buffer","autoguider_buffer.c","Autoguider_Buffer_Field_Exposure_Length_Get",
+			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","finished.");
 #endif
 	return TRUE;
 }
@@ -924,15 +927,16 @@ int Autoguider_Buffer_Field_Exposure_Length_Get(int index,int *exposure_length_m
  * @see #Buffer_Data
  * @see #AUTOGUIDER_BUFFER_COUNT
  * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_BUFFER
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  */
 int Autoguider_Buffer_Field_CCD_Temperature_Set(int index,double current_ccd_temperature)
 {
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
-		  "Autoguider_Buffer_Field_CCD_Temperature_Set(%d,%.2f):started.",index,current_ccd_temperature);
+	Autoguider_General_Log_Format("buffer","autoguider_buffer.c","Autoguider_Buffer_Field_CCD_Temperature_Set",
+				      LOG_VERBOSITY_VERY_VERBOSE,"BUFFER",
+				      "Autoguider_Buffer_Field_CCD_Temperature_Set(%d,%.2f):started.",
+				      index,current_ccd_temperature);
 #endif
 	if((index < 0)||(index >= AUTOGUIDER_BUFFER_COUNT))
 	{
@@ -943,8 +947,8 @@ int Autoguider_Buffer_Field_CCD_Temperature_Set(int index,double current_ccd_tem
 	}
 	Buffer_Data.Field.CCD_Temperature_List[index] = current_ccd_temperature;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
-			       "Autoguider_Buffer_Field_CCD_Temperature_Set:finished.");
+	Autoguider_General_Log("buffer","autoguider_buffer.c","Autoguider_Buffer_Field_CCD_Temperature_Set",
+			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","finished.");
 #endif
 	return TRUE;
 }
@@ -957,15 +961,14 @@ int Autoguider_Buffer_Field_CCD_Temperature_Set(int index,double current_ccd_tem
  * @see #Buffer_Data
  * @see #AUTOGUIDER_BUFFER_COUNT
  * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_BUFFER
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  */
 int Autoguider_Buffer_Field_CCD_Temperature_Get(int index,double *current_ccd_temperature)
 {
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
-			       "Autoguider_Buffer_Field_CCD_Temperature_Get:started.");
+	Autoguider_General_Log("buffer","autoguider_buffer.c","Autoguider_Buffer_Field_CCD_Temperature_Get",
+			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","started.");
 #endif
 	if((index < 0)||(index >= AUTOGUIDER_BUFFER_COUNT))
 	{
@@ -983,8 +986,10 @@ int Autoguider_Buffer_Field_CCD_Temperature_Get(int index,double *current_ccd_te
 	}
 	(*current_ccd_temperature) = Buffer_Data.Field.CCD_Temperature_List[index];
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
-		 "Autoguider_Buffer_Field_CCD_Temperature_Get(%d,%.2f):finished.",index,(*current_ccd_temperature));
+	Autoguider_General_Log_Format("buffer","autoguider_buffer.c","Autoguider_Buffer_Field_CCD_Temperature_Get",
+				      LOG_VERBOSITY_VERY_VERBOSE,"BUFFER",
+				      "Autoguider_Buffer_Field_CCD_Temperature_Get(%d,%.2f):finished.",
+				      index,(*current_ccd_temperature));
 #endif
 	return TRUE;
 }
@@ -997,15 +1002,14 @@ int Autoguider_Buffer_Field_CCD_Temperature_Get(int index,double *current_ccd_te
  * @see #Buffer_Data
  * @see #AUTOGUIDER_BUFFER_COUNT
  * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_BUFFER
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  */
 int Autoguider_Buffer_Guide_Exposure_Start_Time_Set(int index,struct timespec start_time)
 {
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
-			       "Autoguider_Buffer_Guide_Exposure_Start_Time_Set:started.");
+	Autoguider_General_Log("buffer","autoguider_buffer.c","Autoguider_Buffer_Guide_Exposure_Start_Time_Set",
+			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","started.");
 #endif
 	if((index < 0)||(index >= AUTOGUIDER_BUFFER_COUNT))
 	{
@@ -1016,8 +1020,8 @@ int Autoguider_Buffer_Guide_Exposure_Start_Time_Set(int index,struct timespec st
 	}
 	Buffer_Data.Guide.Exposure_Start_Time_List[index] = start_time;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
-			       "Autoguider_Buffer_Guide_Exposure_Start_Time_Set:finished.");
+	Autoguider_General_Log("buffer","autoguider_buffer.c","Autoguider_Buffer_Guide_Exposure_Start_Time_Set",
+			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","finished.");
 #endif
 	return TRUE;
 }
@@ -1030,15 +1034,14 @@ int Autoguider_Buffer_Guide_Exposure_Start_Time_Set(int index,struct timespec st
  * @see #Buffer_Data
  * @see #AUTOGUIDER_BUFFER_COUNT
  * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_BUFFER
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  */
 int Autoguider_Buffer_Guide_Exposure_Start_Time_Get(int index,struct timespec *start_time)
 {
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
-			       "Autoguider_Buffer_Guide_Exposure_Start_Time_Get:started.");
+	Autoguider_General_Log("buffer","autoguider_buffer.c","Autoguider_Buffer_Guide_Exposure_Start_Time_Get",
+			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","started.");
 #endif
 	if((index < 0)||(index >= AUTOGUIDER_BUFFER_COUNT))
 	{
@@ -1056,8 +1059,8 @@ int Autoguider_Buffer_Guide_Exposure_Start_Time_Get(int index,struct timespec *s
 	}
 	(*start_time) = Buffer_Data.Guide.Exposure_Start_Time_List[index];
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
-			       "Autoguider_Buffer_Guide_Exposure_Start_Time_Get:finished.");
+	Autoguider_General_Log("buffer","autoguider_buffer.c","Autoguider_Buffer_Guide_Exposure_Start_Time_Get",
+			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","finished.");
 #endif
 	return TRUE;
 }
@@ -1070,15 +1073,14 @@ int Autoguider_Buffer_Guide_Exposure_Start_Time_Get(int index,struct timespec *s
  * @see #Buffer_Data
  * @see #AUTOGUIDER_BUFFER_COUNT
  * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_BUFFER
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  */
 int Autoguider_Buffer_Guide_Exposure_Length_Set(int index,int exposure_length_ms)
 {
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
-			       "Autoguider_Buffer_Guide_Exposure_Length_Set:started.");
+	Autoguider_General_Log("buffer","autoguider_buffer.c","Autoguider_Buffer_Guide_Exposure_Length_Set",
+			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","started.");
 #endif
 	if((index < 0)||(index >= AUTOGUIDER_BUFFER_COUNT))
 	{
@@ -1089,8 +1091,8 @@ int Autoguider_Buffer_Guide_Exposure_Length_Set(int index,int exposure_length_ms
 	}
 	Buffer_Data.Guide.Exposure_Length_List[index] = exposure_length_ms;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
-			       "Autoguider_Buffer_Guide_Exposure_Length_Set:finished.");
+	Autoguider_General_Log("buffer","autoguider_buffer.c","Autoguider_Buffer_Guide_Exposure_Length_Set",
+			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","finished.");
 #endif
 	return TRUE;
 }
@@ -1103,15 +1105,14 @@ int Autoguider_Buffer_Guide_Exposure_Length_Set(int index,int exposure_length_ms
  * @see #Buffer_Data
  * @see #AUTOGUIDER_BUFFER_COUNT
  * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_BUFFER
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  */
 int Autoguider_Buffer_Guide_Exposure_Length_Get(int index,int *exposure_length_ms)
 {
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
-			       "Autoguider_Buffer_Guide_Exposure_Length_Get:started.");
+	Autoguider_General_Log("buffer","autoguider_buffer.c","Autoguider_Buffer_Guide_Exposure_Length_Get",
+			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","started.");
 #endif
 	if((index < 0)||(index >= AUTOGUIDER_BUFFER_COUNT))
 	{
@@ -1129,8 +1130,8 @@ int Autoguider_Buffer_Guide_Exposure_Length_Get(int index,int *exposure_length_m
 	}
 	(*exposure_length_ms) = Buffer_Data.Guide.Exposure_Length_List[index];
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
-			       "Autoguider_Buffer_Guide_Exposure_Length_Get:finished.");
+	Autoguider_General_Log("buffer","autoguider_buffer.c","Autoguider_Buffer_Guide_Exposure_Length_Get",
+			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","finished.");
 #endif
 	return TRUE;
 }
@@ -1143,15 +1144,16 @@ int Autoguider_Buffer_Guide_Exposure_Length_Get(int index,int *exposure_length_m
  * @see #Buffer_Data
  * @see #AUTOGUIDER_BUFFER_COUNT
  * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_BUFFER
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  */
 int Autoguider_Buffer_Guide_CCD_Temperature_Set(int index,double current_ccd_temperature)
 {
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
-		  "Autoguider_Buffer_Guide_CCD_Temperature_Set(%d,%.2f):started.",index,current_ccd_temperature);
+	Autoguider_General_Log_Format("buffer","autoguider_buffer.c","Autoguider_Buffer_Guide_CCD_Temperature_Set",
+				      LOG_VERBOSITY_VERY_VERBOSE,"BUFFER",
+				      "Autoguider_Buffer_Guide_CCD_Temperature_Set(%d,%.2f):started.",
+				      index,current_ccd_temperature);
 #endif
 	if((index < 0)||(index >= AUTOGUIDER_BUFFER_COUNT))
 	{
@@ -1162,8 +1164,8 @@ int Autoguider_Buffer_Guide_CCD_Temperature_Set(int index,double current_ccd_tem
 	}
 	Buffer_Data.Guide.CCD_Temperature_List[index] = current_ccd_temperature;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
-			       "Autoguider_Buffer_Guide_CCD_Temperature_Set:finished.");
+	Autoguider_General_Log("buffer","autoguider_buffer.c","Autoguider_Buffer_Guide_CCD_Temperature_Set",
+			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","finished.");
 #endif
 	return TRUE;
 }
@@ -1176,15 +1178,14 @@ int Autoguider_Buffer_Guide_CCD_Temperature_Set(int index,double current_ccd_tem
  * @see #Buffer_Data
  * @see #AUTOGUIDER_BUFFER_COUNT
  * @see autoguider_general.html#Autoguider_General_Log
- * @see autoguider_general.html#AUTOGUIDER_GENERAL_LOG_BIT_BUFFER
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  */
 int Autoguider_Buffer_Guide_CCD_Temperature_Get(int index,double *current_ccd_temperature)
 {
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
-			       "Autoguider_Buffer_Guide_CCD_Temperature_Get:started.");
+	Autoguider_General_Log("buffer","autoguider_buffer.c","Autoguider_Buffer_Guide_CCD_Temperature_Get",
+			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","started.");
 #endif
 	if((index < 0)||(index >= AUTOGUIDER_BUFFER_COUNT))
 	{
@@ -1202,8 +1203,10 @@ int Autoguider_Buffer_Guide_CCD_Temperature_Get(int index,double *current_ccd_te
 	}
 	(*current_ccd_temperature) = Buffer_Data.Guide.CCD_Temperature_List[index];
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,
-		 "Autoguider_Buffer_Guide_CCD_Temperature_Get(%d,%.2f):finished.",index,(*current_ccd_temperature));
+	Autoguider_General_Log_Format("buffer","autoguider_buffer.c","Autoguider_Buffer_Guide_CCD_Temperature_Get",
+				      LOG_VERBOSITY_VERY_VERBOSE,"BUFFER",
+				      "Autoguider_Buffer_Guide_CCD_Temperature_Get(%d,%.2f):finished.",
+				      index,(*current_ccd_temperature));
 #endif
 	return TRUE;
 }
@@ -1221,7 +1224,8 @@ int Autoguider_Buffer_Shutdown(void)
 	int i,retval;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,"Autoguider_Buffer_Shutdown:started.");
+	Autoguider_General_Log("buffer","autoguider_buffer.c","Autoguider_Buffer_Shutdown",
+			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","started.");
 #endif
 	for(i=0;i < AUTOGUIDER_BUFFER_COUNT; i++)
 	{
@@ -1281,7 +1285,8 @@ int Autoguider_Buffer_Shutdown(void)
 			return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,"Autoguider_Buffer_Shutdown:finished.");
+	Autoguider_General_Log("buffer","autoguider_buffer.c","Autoguider_Buffer_Shutdown",
+			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","finished.");
 #endif
 	return TRUE;
 }
@@ -1299,7 +1304,6 @@ int Autoguider_Buffer_Shutdown(void)
  * @see autoguider.general.html#Autoguider_General_Mutex_Lock
  * @see autoguider.general.html#Autoguider_General_Mutex_Unlock
  * @see autoguider.general.html#Autoguider_General_Log
- * @see autoguider.general.html#AUTOGUIDER_GENERAL_LOG_BIT_BUFFER
  * @see autoguider.general.html#Autoguider_General_Error_Number
  * @see autoguider.general.html#Autoguider_General_Error_String
  */
@@ -1308,8 +1312,8 @@ static int Buffer_One_Raw_Lock(struct Buffer_One_Struct *data,int index,unsigned
 	int retval;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,"Buffer_One_Raw_Lock(%d):started.",
-				      index);
+	Autoguider_General_Log_Format("buffer","autoguider_buffer.c","Buffer_One_Raw_Lock",
+				      LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","started for index %d.",index);
 #endif
 	if((index < 0)||(index >= AUTOGUIDER_BUFFER_COUNT))
 	{
@@ -1325,19 +1329,20 @@ static int Buffer_One_Raw_Lock(struct Buffer_One_Struct *data,int index,unsigned
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,"Buffer_One_Raw_Lock(%d):"
-				      "Locking mutex.",index);
+	Autoguider_General_Log_Format("buffer","autoguider_buffer.c","Buffer_One_Raw_Lock",
+				      LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","Locking mutex %d.",index);
 #endif
 	retval = Autoguider_General_Mutex_Lock(&(data->Raw_Mutex_List[index]));
 	if(retval == FALSE)
 		return FALSE;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,"Buffer_One_Raw_Lock(%d):"
-				      "Mutex locked.",index);
+	Autoguider_General_Log_Format("buffer","autoguider_buffer.c","Buffer_One_Raw_Lock",
+				      LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","Mutex %d locked.",index);
 #endif
 	(*buffer_ptr) = data->Raw_Buffer_List[index];
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,"Buffer_One_Raw_Lock:finished.");
+	Autoguider_General_Log("buffer","autoguider_buffer.c","Buffer_One_Raw_Lock",
+			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","finished.");
 #endif
 	return TRUE;
 }
@@ -1350,7 +1355,6 @@ static int Buffer_One_Raw_Lock(struct Buffer_One_Struct *data,int index,unsigned
  * @see autoguider.general.html#Autoguider_General_Mutex_Lock
  * @see autoguider.general.html#Autoguider_General_Mutex_Unlock
  * @see autoguider.general.html#Autoguider_General_Log
- * @see autoguider.general.html#AUTOGUIDER_GENERAL_LOG_BIT_BUFFER
  * @see autoguider.general.html#Autoguider_General_Error_Number
  * @see autoguider.general.html#Autoguider_General_Error_String
  */
@@ -1359,8 +1363,8 @@ static int Buffer_One_Raw_Unlock(struct Buffer_One_Struct *data,int index)
 	int retval;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,"Buffer_One_Raw_Unlock(%d):started.",
-				      index);
+	Autoguider_General_Log_Format("buffer","autoguider_buffer.c","Buffer_One_Raw_Unlock",
+				      LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","started for index %d.",index);
 #endif
 	if((index < 0)||(index >= AUTOGUIDER_BUFFER_COUNT))
 	{
@@ -1370,18 +1374,19 @@ static int Buffer_One_Raw_Unlock(struct Buffer_One_Struct *data,int index)
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,"Buffer_One_Raw_Unlock(%d):"
-				      "Unlocking mutex.",index);
+	Autoguider_General_Log_Format("buffer","autoguider_buffer.c","Buffer_One_Raw_Unlock",
+				      LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","Unlocking mutex %d.",index);
 #endif
 	retval = Autoguider_General_Mutex_Unlock(&(data->Raw_Mutex_List[index]));
 	if(retval == FALSE)
 		return FALSE;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,"Buffer_One_Raw_Unlock(%d):"
-				      "Mutex unlocked.",index);
+	Autoguider_General_Log_Format("buffer","autoguider_buffer.c","Buffer_One_Raw_Unlock",
+				      LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","Mutex %d unlocked.",index);
 #endif
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,"Buffer_One_Raw_Unlock:finished.");
+	Autoguider_General_Log("buffer","autoguider_buffer.c","Buffer_One_Raw_Unlock",
+			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","finished.");
 #endif
 	return TRUE;
 }
@@ -1402,7 +1407,8 @@ static int Buffer_One_Raw_Copy(struct Buffer_One_Struct *data,int index,unsigned
 	int retval;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,"Buffer_One_Raw_Copy(%d):started.",index);
+	Autoguider_General_Log_Format("buffer","autoguider_buffer.c","Buffer_One_Raw_Copy",
+				      LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","started for index %d.",index);
 #endif
 	if((index < 0)||(index >= AUTOGUIDER_BUFFER_COUNT))
 	{
@@ -1427,15 +1433,15 @@ static int Buffer_One_Raw_Copy(struct Buffer_One_Struct *data,int index,unsigned
 	}
 	/* lock mutex */
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,"Buffer_One_Raw_Copy(%d):"
-				      "Locking mutex.",index);
+	Autoguider_General_Log_Format("buffer","autoguider_buffer.c","Buffer_One_Raw_Copy",
+				      LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","Locking mutex %d.",index);
 #endif
 	retval = Autoguider_General_Mutex_Lock(&(data->Raw_Mutex_List[index]));
 	if(retval == FALSE)
 		return FALSE;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,"Buffer_One_Raw_Copy(%d):"
-				      "Mutex locked.",index);
+	Autoguider_General_Log_Format("buffer","autoguider_buffer.c","Buffer_One_Raw_Copy",
+				      LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","Mutex %d locked.",index);
 #endif
 	/* do copy */
 	memcpy(buffer_ptr,data->Raw_Buffer_List[index],
@@ -1445,11 +1451,12 @@ static int Buffer_One_Raw_Copy(struct Buffer_One_Struct *data,int index,unsigned
 	if(retval == FALSE)
 		return FALSE;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,"Buffer_One_Raw_Copy(%d):"
-				      "Mutex unlocked.",index);
+	Autoguider_General_Log_Format("buffer","autoguider_buffer.c","Buffer_One_Raw_Copy",
+				      LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","Mutex %d unlocked.",index);
 #endif
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,"Buffer_One_Raw_Copy:finished.");
+	Autoguider_General_Log("buffer","autoguider_buffer.c","Buffer_One_Raw_Copy",
+			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","finished.");
 #endif
 	return TRUE;
 }
@@ -1464,7 +1471,6 @@ static int Buffer_One_Raw_Copy(struct Buffer_One_Struct *data,int index,unsigned
  * @see autoguider.general.html#Autoguider_General_Mutex_Lock
  * @see autoguider.general.html#Autoguider_General_Mutex_Unlock
  * @see autoguider.general.html#Autoguider_General_Log
- * @see autoguider.general.html#AUTOGUIDER_GENERAL_LOG_BIT_BUFFER
  * @see autoguider.general.html#Autoguider_General_Error_Number
  * @see autoguider.general.html#Autoguider_General_Error_String
  */
@@ -1473,8 +1479,8 @@ static int Buffer_One_Reduced_Lock(struct Buffer_One_Struct *data,int index,floa
 	int retval;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,"Buffer_One_Reduced_Lock(%d):started.",
-				      index);
+	Autoguider_General_Log_Format("buffer","autoguider_buffer.c","Buffer_One_Reduced_Lock",
+				      LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","started for index %d.",index);
 #endif
 	if((index < 0)||(index >= AUTOGUIDER_BUFFER_COUNT))
 	{
@@ -1490,19 +1496,20 @@ static int Buffer_One_Reduced_Lock(struct Buffer_One_Struct *data,int index,floa
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,"Buffer_One_Reduced_Lock(%d):"
-				      "Locking mutex.",index);
+	Autoguider_General_Log_Format("buffer","autoguider_buffer.c","Buffer_One_Reduced_Lock",
+				      LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","Locking mutex %d.",index);
 #endif
 	retval = Autoguider_General_Mutex_Lock(&(data->Reduced_Mutex_List[index]));
 	if(retval == FALSE)
 		return FALSE;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,"Buffer_One_Reduced_Lock(%d):"
-				      "Mutex locked.",index);
+	Autoguider_General_Log_Format("buffer","autoguider_buffer.c","Buffer_One_Reduced_Lock",
+				      LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","Mutex %d locked.",index);
 #endif
 	(*buffer_ptr) = data->Reduced_Buffer_List[index];
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,"Buffer_One_Reduced_Lock:finished.");
+	Autoguider_General_Log("buffer","autoguider_buffer.c","Buffer_One_Reduced_Lock",
+			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","finished.");
 #endif
 	return TRUE;
 }
@@ -1515,7 +1522,6 @@ static int Buffer_One_Reduced_Lock(struct Buffer_One_Struct *data,int index,floa
  * @see autoguider.general.html#Autoguider_General_Mutex_Lock
  * @see autoguider.general.html#Autoguider_General_Mutex_Unlock
  * @see autoguider.general.html#Autoguider_General_Log
- * @see autoguider.general.html#AUTOGUIDER_GENERAL_LOG_BIT_BUFFER
  * @see autoguider.general.html#Autoguider_General_Error_Number
  * @see autoguider.general.html#Autoguider_General_Error_String
  */
@@ -1524,8 +1530,8 @@ static int Buffer_One_Reduced_Unlock(struct Buffer_One_Struct *data,int index)
 	int retval;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,"Buffer_One_Reduced_Unlock(%d):started.",
-				      index);
+	Autoguider_General_Log_Format("buffer","autoguider_buffer.c","Buffer_One_Reduced_Unlock",
+				      LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","started for index %d.",index);
 #endif
 	if((index < 0)||(index >= AUTOGUIDER_BUFFER_COUNT))
 	{
@@ -1535,18 +1541,19 @@ static int Buffer_One_Reduced_Unlock(struct Buffer_One_Struct *data,int index)
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,"Buffer_One_Reduced_Unlock(%d):"
-				      "Unlocking mutex.",index);
+	Autoguider_General_Log_Format("buffer","autoguider_buffer.c","Buffer_One_Reduced_Unlock",
+				      LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","Unlocking mutex %d.",index);
 #endif
 	retval = Autoguider_General_Mutex_Unlock(&(data->Reduced_Mutex_List[index]));
 	if(retval == FALSE)
 		return FALSE;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,"Buffer_One_Reduced_Unlock(%d):"
-				      "Mutex unlocked.",index);
+	Autoguider_General_Log_Format("buffer","autoguider_buffer.c","Buffer_One_Reduced_Unlock",
+				      LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","Mutex %d unlocked.",index);
 #endif
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,"Buffer_One_Reduced_Unlock:finished.");
+	Autoguider_General_Log("buffer","autoguider_buffer.c","Buffer_One_Reduced_Unlock",
+			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","finished.");
 #endif
 	return TRUE;
 }
@@ -1567,7 +1574,8 @@ static int Buffer_One_Reduced_Copy(struct Buffer_One_Struct *data,int index,floa
 	int retval;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,"Buffer_One_Reduced_Copy(%d):started.",index);
+	Autoguider_General_Log_Format("buffer","autoguider_buffer.c","Buffer_One_Reduced_Copy",
+				      LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","started for index %d.",index);
 #endif
 	if((index < 0)||(index >= AUTOGUIDER_BUFFER_COUNT))
 	{
@@ -1592,15 +1600,15 @@ static int Buffer_One_Reduced_Copy(struct Buffer_One_Struct *data,int index,floa
 	}
 	/* lock mutex */
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,"Buffer_One_Reduced_Copy(%d):"
-				      "Locking mutex.",index);
+	Autoguider_General_Log_Format("buffer","autoguider_buffer.c","Buffer_One_Reduced_Copy",
+				      LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","Locking mutex %d.",index);
 #endif
 	retval = Autoguider_General_Mutex_Lock(&(data->Reduced_Mutex_List[index]));
 	if(retval == FALSE)
 		return FALSE;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,"Buffer_One_Reduced_Copy(%d):"
-				      "Mutex locked.",index);
+	Autoguider_General_Log_Format("buffer","autoguider_buffer.c","Buffer_One_Reduced_Copy",
+				      LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","Mutex %d locked.",index);
 #endif
 	/* do copy */
 	memcpy(buffer_ptr,data->Reduced_Buffer_List[index],
@@ -1610,17 +1618,21 @@ static int Buffer_One_Reduced_Copy(struct Buffer_One_Struct *data,int index,floa
 	if(retval == FALSE)
 		return FALSE;
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log_Format(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,"Buffer_One_Reduced_Copy(%d):"
-				      "Mutex unlocked.",index);
+	Autoguider_General_Log_Format("buffer","autoguider_buffer.c","Buffer_One_Reduced_Copy",
+				      LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","Mutex %d unlocked.",index);
 #endif
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log(AUTOGUIDER_GENERAL_LOG_BIT_BUFFER,"Buffer_One_Reduced_Copy:finished.");
+	Autoguider_General_Log("buffer","autoguider_buffer.c","Buffer_One_Reduced_Copy",
+			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","finished.");
 #endif
 	return TRUE;
 }
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.3  2007/01/30 17:35:24  cjm
+** Added CCD temperature getters/setters for FITS headers support.
+**
 ** Revision 1.2  2007/01/26 15:29:42  cjm
 ** Added routines to store and retrieve exposure start times and exposure lengths for the buffers.
 **
