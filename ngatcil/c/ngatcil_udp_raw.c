@@ -1,11 +1,11 @@
 /* ngatcil_udp_raw.c
 ** NGATCil UDP raw transmission routines
-** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_udp_raw.c,v 1.7 2009-02-02 11:02:45 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_udp_raw.c,v 1.8 2009-02-02 15:05:31 cjm Exp $
 */
 /**
  * NGAT Cil library raw UDP packet transmission.
  * @author Chris Mottram
- * @version $Revision: 1.7 $
+ * @version $Revision: 1.8 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -53,7 +53,7 @@ struct UDP_Raw_Server_Context_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: ngatcil_udp_raw.c,v 1.7 2009-02-02 11:02:45 cjm Exp $";
+static char rcsid[] = "$Id: ngatcil_udp_raw.c,v 1.8 2009-02-02 15:05:31 cjm Exp $";
 
 /* internal function declaration */
 static void *UDP_Raw_Server_Thread(void *);
@@ -537,7 +537,7 @@ static void *UDP_Raw_Server_Thread(void *arg)
 
 #if NGATCIL_DEBUG > 1
 	NGATCil_General_Log("ngatcil","ngatcil_udp_raw.c","UDP_Raw_Server_Thread",
-			    LOG_VERBOSITY_VERBOSE,NULL,"started.");
+			    LOG_VERBOSITY_VERY_VERBOSE,NULL,"started.");
 #endif
 	server_context = (struct UDP_Raw_Server_Context_Struct *)arg;
 	if(server_context == NULL)
@@ -548,7 +548,7 @@ static void *UDP_Raw_Server_Thread(void *arg)
 	}
 #if NGATCIL_DEBUG > 1
 	NGATCil_General_Log_Format("ngatcil","ngatcil_udp_raw.c","UDP_Raw_Server_Thread",
-				   LOG_VERBOSITY_VERBOSE,NULL,"listening on socket %d.",
+				   LOG_VERBOSITY_VERY_VERBOSE,NULL,"listening on socket %d.",
 				   server_context->Socket_Id);
 #endif
 	/* allocate recv buffer */
@@ -566,7 +566,7 @@ static void *UDP_Raw_Server_Thread(void *arg)
 	{
 #if NGATCIL_DEBUG > 9
 		NGATCil_General_Log_Format("ngatcil","ngatcil_udp_raw.c","UDP_Raw_Server_Thread",
-					   LOG_VERBOSITY_VERBOSE,NULL,
+					   LOG_VERBOSITY_VERY_VERBOSE,NULL,
 					   "Waiting for UDP packet on socket %d.",server_context->Socket_Id);
 #endif
 		current_client_length = sizeof(client);
@@ -579,7 +579,7 @@ static void *UDP_Raw_Server_Thread(void *arg)
 			done = TRUE;
 #if NGATCIL_DEBUG > 9
 			NGATCil_General_Log_Format("ngatcil","ngatcil_udp_raw.c","UDP_Raw_Server_Thread",
-						   LOG_VERBOSITY_VERBOSE,NULL,"Terminating:"
+						   LOG_VERBOSITY_VERY_VERBOSE,NULL,"Terminating:"
 						   "recvfrom returned %d (%d:%s).",recv_message_length,socket_errno,
 						   strerror(socket_errno));
 #endif
@@ -590,7 +590,7 @@ static void *UDP_Raw_Server_Thread(void *arg)
 			{
 #if NGATCIL_DEBUG > 9
 				NGATCil_General_Log_Format("ngatcil","ngatcil_udp_raw.c","UDP_Raw_Server_Thread",
-							   LOG_VERBOSITY_VERBOSE,NULL,
+							   LOG_VERBOSITY_VERY_VERBOSE,NULL,
 							   "Detected short packet (%d vs %d).",recv_message_length,
 							   server_context->Message_Length);
 #endif
@@ -601,7 +601,7 @@ static void *UDP_Raw_Server_Thread(void *arg)
 #if NGATCIL_DEBUG > 3
 					NGATCil_General_Log_Format("ngatcil","ngatcil_udp_raw.c",
 								   "UDP_Raw_Server_Thread",
-								   LOG_VERBOSITY_VERBOSE,NULL,
+								   LOG_VERBOSITY_VERY_VERBOSE,NULL,
 								   "Zero length packet:"
 								   "socket closed?:quiting server thread.");
 #endif
@@ -612,7 +612,7 @@ static void *UDP_Raw_Server_Thread(void *arg)
 			{
 #if NGATCIL_DEBUG > 9
 				NGATCil_General_Log("ngatcil","ngatcil_udp_raw.c","UDP_Raw_Server_Thread",
-						    LOG_VERBOSITY_VERBOSE,NULL,
+						    LOG_VERBOSITY_VERY_VERBOSE,NULL,
 						    "Translating packet contents from network to host byte order.");
 #endif
 				int_message_ptr = (int*)message_buff;
@@ -629,7 +629,7 @@ static void *UDP_Raw_Server_Thread(void *arg)
 				{
 #if NGATCIL_DEBUG > 3
 					NGATCil_General_Log("ngatcil","ngatcil_udp_raw.c","UDP_Raw_Server_Thread",
-							    LOG_VERBOSITY_VERBOSE,NULL,
+							    LOG_VERBOSITY_VERY_VERBOSE,NULL,
 							 "Packet received but Connection Handler appears to be NULL.");
 #endif
 				}
@@ -638,7 +638,7 @@ static void *UDP_Raw_Server_Thread(void *arg)
 			{
 #if NGATCIL_DEBUG > 3
 				NGATCil_General_Log_Format("ngatcil","ngatcil_udp_raw.c","UDP_Raw_Server_Thread",
-							   LOG_VERBOSITY_VERBOSE,NULL,
+							   LOG_VERBOSITY_VERY_VERBOSE,NULL,
 							   "Packet received with non-word number of bytes %d.",
 							   recv_message_length);
 #endif
@@ -647,7 +647,7 @@ static void *UDP_Raw_Server_Thread(void *arg)
 	}/* while */
 #if NGATCIL_DEBUG > 1
 	NGATCil_General_Log_Format("ngatcil","ngatcil_udp_raw.c","UDP_Raw_Server_Thread",
-				   LOG_VERBOSITY_VERBOSE,NULL,"shutdown on socket %d.",
+				   LOG_VERBOSITY_VERY_VERBOSE,NULL,"shutdown on socket %d.",
 				   server_context->Socket_Id);
 #endif
 	shutdown(server_context->Socket_Id,SHUT_RDWR);
@@ -655,13 +655,16 @@ static void *UDP_Raw_Server_Thread(void *arg)
 	free(message_buff);
 #if NGATCIL_DEBUG > 1
 	NGATCil_General_Log_Format("ngatcil","ngatcil_udp_raw.c","UDP_Raw_Server_Thread",
-				   LOG_VERBOSITY_VERBOSE,NULL,"finished.");
+				   LOG_VERBOSITY_VERY_VERBOSE,NULL,"finished.");
 #endif
 	return NULL;
 }
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.7  2009/02/02 11:02:45  cjm
+** Removed old comments.
+**
 ** Revision 1.6  2009/01/30 18:00:52  cjm
 ** Changed log messges to use log_udp verbosity (absolute) rather than bitwise.
 **
