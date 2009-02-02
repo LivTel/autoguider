@@ -1,6 +1,6 @@
 #!/bin/csh
-# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_make_deployment,v 1.12 2007-11-23 21:28:57 cjm Exp $
-# Version: $Revision: 1.12 $
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_make_deployment,v 1.13 2009-02-02 12:01:35 cjm Exp $
+# Version: $Revision: 1.13 $
 # By $Author: cjm $
 # Make a deployment tar file.
 # This contains:
@@ -169,7 +169,7 @@ echo "${java_class_dir_count} Java class directories copied with ${java_class_fi
 #
 echo "Copying C libraries..."
 # libdprt_libfits.so 
-set clib_list = "libcfitsio.so libdprt_object.so libngatastro.so libautoguider_commandserver.so libautoguider_ccd_general.so libautoguider_ccd_andor.so libautoguider_ngatcil.so libestar_config.so"
+set clib_list = "libcfitsio.so libdprt_object.so libngatastro.so libautoguider_commandserver.so libautoguider_ccd_general.so libautoguider_ccd_andor.so libautoguider_ngatcil.so libestar_config.so liblog_udp.so"
 set clib_count = 0
 foreach clib ( ${clib_list} )
 	echo "C Library : ${clib}"
@@ -391,6 +391,9 @@ echo "Download ${deployment_tar}.gz autoguider_tar_install icc_cshrc icc_cshrc_e
 echo "Deployment ready."
 #
 # $Log: not supported by cvs2svn $
+# Revision 1.12  2007/11/23 21:28:57  cjm
+# Fixed iboot - added directory.
+#
 # Revision 1.11  2007/11/23 21:18:48  cjm
 # Added iboot dir.
 #
