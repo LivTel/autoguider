@@ -1,11 +1,11 @@
 /* ngatcil_udp_raw.c
 ** NGATCil UDP raw transmission routines
-** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_udp_raw.c,v 1.6 2009-01-30 18:00:52 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_udp_raw.c,v 1.7 2009-02-02 11:02:45 cjm Exp $
 */
 /**
  * NGAT Cil library raw UDP packet transmission.
  * @author Chris Mottram
- * @version $Revision: 1.6 $
+ * @version $Revision: 1.7 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -53,7 +53,7 @@ struct UDP_Raw_Server_Context_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: ngatcil_udp_raw.c,v 1.6 2009-01-30 18:00:52 cjm Exp $";
+static char rcsid[] = "$Id: ngatcil_udp_raw.c,v 1.7 2009-02-02 11:02:45 cjm Exp $";
 
 /* internal function declaration */
 static void *UDP_Raw_Server_Thread(void *);
@@ -71,7 +71,6 @@ static void *UDP_Raw_Server_Thread(void *);
  * @see ngatcil_general.html#NGATCil_General_Error_Number
  * @see ngatcil_general.html#NGATCil_General_Error_String
  * @see ngatcil_general.html#NGATCil_General_Log
- * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_UDP_RAW
  */
 int NGATCil_UDP_Open(char *hostname,int port_number,int *socket_id)
 {
@@ -162,7 +161,6 @@ int NGATCil_UDP_Open(char *hostname,int port_number,int *socket_id)
  * @see ngatcil_general.html#NGATCil_General_Error_Number
  * @see ngatcil_general.html#NGATCil_General_Error_String
  * @see ngatcil_general.html#NGATCil_General_Log
- * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_UDP_RAW
  */
 int NGATCil_UDP_Raw_To_Network_Byte_Order(void *message_buff,size_t message_buff_len)
 {
@@ -211,7 +209,6 @@ int NGATCil_UDP_Raw_To_Network_Byte_Order(void *message_buff,size_t message_buff
  * @see ngatcil_general.html#NGATCil_General_Error_Number
  * @see ngatcil_general.html#NGATCil_General_Error_String
  * @see ngatcil_general.html#NGATCil_General_Log
- * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_UDP_RAW
  */
 int NGATCil_UDP_Raw_Send(int socket_id,void *message_buff,size_t message_buff_len)
 {
@@ -263,7 +260,6 @@ int NGATCil_UDP_Raw_Send(int socket_id,void *message_buff,size_t message_buff_le
  * @see ngatcil_general.html#NGATCil_General_Error_Number
  * @see ngatcil_general.html#NGATCil_General_Error_String
  * @see ngatcil_general.html#NGATCil_General_Log
- * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_UDP_RAW
  */
 int NGATCil_UDP_Raw_Send_To(int socket_fd,char *hostname,int port_number,void *message_buff,size_t message_buff_len)
 {
@@ -350,7 +346,6 @@ int NGATCil_UDP_Raw_Send_To(int socket_fd,char *hostname,int port_number,void *m
  * @see ngatcil_general.html#NGATCil_General_Error_Number
  * @see ngatcil_general.html#NGATCil_General_Error_String
  * @see ngatcil_general.html#NGATCil_General_Log
- * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_UDP_RAW
  */
 int NGATCil_UDP_Raw_Recv(int socket_id,void *message_buff,size_t message_buff_len)
 {
@@ -397,7 +392,6 @@ int NGATCil_UDP_Raw_Recv(int socket_id,void *message_buff,size_t message_buff_le
  * @see ngatcil_general.html#NGATCil_General_Error_Number
  * @see ngatcil_general.html#NGATCil_General_Error_String
  * @see ngatcil_general.html#NGATCil_General_Log
- * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_UDP_RAW
  */
 int NGATCil_UDP_Close(int socket_id)
 {
@@ -436,7 +430,6 @@ int NGATCil_UDP_Close(int socket_id)
  * @see ngatcil_general.html#NGATCil_General_Error_Number
  * @see ngatcil_general.html#NGATCil_General_Error_String
  * @see ngatcil_general.html#NGATCil_General_Log
- * @see ngatcil_general.html#NGATCIL_GENERAL_LOG_BIT_UDP_RAW
  */
 int NGATCil_UDP_Server_Start(int port_number,size_t message_length,int *socket_id,
 			     int (*connection_handler)(int socket_id,void *message_buff,int message_length))
@@ -669,6 +662,9 @@ static void *UDP_Raw_Server_Thread(void *arg)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.6  2009/01/30 18:00:52  cjm
+** Changed log messges to use log_udp verbosity (absolute) rather than bitwise.
+**
 ** Revision 1.5  2006/08/29 14:07:57  cjm
 ** Added NGATCil_UDP_Raw_To_Network_Byte_Order.
 ** Added NGATCil_UDP_Raw_Send_To.
