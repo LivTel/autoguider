@@ -1,11 +1,11 @@
 /* autoguider_command.c
 ** Autoguider command routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_command.c,v 1.13 2009-01-30 18:01:33 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_command.c,v 1.14 2009-04-29 10:54:43 cjm Exp $
 */
 /**
  * Command routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.13 $
+ * @version $Revision: 1.14 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -46,7 +46,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_command.c,v 1.13 2009-01-30 18:01:33 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_command.c,v 1.14 2009-04-29 10:54:43 cjm Exp $";
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -346,7 +346,7 @@ int Autoguider_Command_Autoguide_On(enum COMMAND_AG_ON_TYPE on_type,float pixel_
 		/* save of the failed Field image if configured to do so. */
 		if(Autoguider_Field_Get_Save_FITS_Failed())
 		{
-			if(!Autoguider_Field_Save_FITS(FALSE))
+			if(!Autoguider_Field_Save_FITS(FALSE,-1))
 			{
 				Autoguider_General_Error("command","autoguider_command.c",
 							 "Autoguider_Command_Autoguide_On",
@@ -377,7 +377,7 @@ int Autoguider_Command_Autoguide_On(enum COMMAND_AG_ON_TYPE on_type,float pixel_
 		/* save of the failed Field image if configured to do so. */
 		if(Autoguider_Field_Get_Save_FITS_Failed())
 		{
-			if(!Autoguider_Field_Save_FITS(FALSE))
+			if(!Autoguider_Field_Save_FITS(FALSE,-1))
 			{
 				Autoguider_General_Error("command","autoguider_command.c",
 							 "Autoguider_Command_Autoguide_On",
@@ -409,7 +409,7 @@ int Autoguider_Command_Autoguide_On(enum COMMAND_AG_ON_TYPE on_type,float pixel_
 		/* save of the failed Field image if configured to do so. */
 		if(Autoguider_Field_Get_Save_FITS_Failed())
 		{
-			if(!Autoguider_Field_Save_FITS(FALSE))
+			if(!Autoguider_Field_Save_FITS(FALSE,-1))
 			{
 				Autoguider_General_Error("command","autoguider_command.c",
 							 "Autoguider_Command_Autoguide_On",
@@ -421,7 +421,7 @@ int Autoguider_Command_Autoguide_On(enum COMMAND_AG_ON_TYPE on_type,float pixel_
 	/* save the successful field image if configured to do so */
 	if(Autoguider_Field_Get_Save_FITS_Successful())
 	{
-		if(!Autoguider_Field_Save_FITS(TRUE))
+		if(!Autoguider_Field_Save_FITS(TRUE,selected_object_index))
 		{
 			Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Autoguide_On",
 						 LOG_VERBOSITY_TERSE,"COMMAND");
@@ -1764,7 +1764,7 @@ int Autoguider_Command_Get_Fits(char *command_string,void **buffer_ptr,size_t *b
 		return FALSE;
 	}
 	/* get FITS in memory buffer */
-	retval = Autoguider_Get_Fits(buffer_type,buffer_state,buffer_ptr,buffer_length);
+	retval = Autoguider_Get_Fits(buffer_type,buffer_state,-1,buffer_ptr,buffer_length);
 	if(retval == FALSE)
 	{
 		return FALSE;
@@ -1860,6 +1860,9 @@ int Autoguider_Command_Log_Level(char *command_string,char **reply_string)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.13  2009/01/30 18:01:33  cjm
+** Changed log messges to use log_udp verbosity (absolute) rather than bitwise.
+**
 ** Revision 1.12  2007/11/05 18:24:32  cjm
 ** Added calls to Autoguider_Field_Get_Save_FITS_Failed, Autoguider_Field_Get_Save_FITS_Successful and
 ** Autoguider_Field_Save_FITS to save the field image in a FITS file if configured to do so.
