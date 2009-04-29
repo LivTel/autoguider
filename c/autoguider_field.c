@@ -1,11 +1,11 @@
 /* autoguider_field.c
 ** Autoguider field routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_field.c,v 1.14 2009-01-30 18:01:33 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_field.c,v 1.15 2009-04-29 10:55:28 cjm Exp $
 */
 /**
  * Field routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.14 $
+ * @version $Revision: 1.15 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -128,7 +128,7 @@ struct Field_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_field.c,v 1.14 2009-01-30 18:01:33 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_field.c,v 1.15 2009-04-29 10:55:28 cjm Exp $";
 /**
  * Instance of field data.
  * @see #Field_Struct
@@ -1151,12 +1151,14 @@ int Autoguider_Field_Get_Save_FITS_Successful(void)
  * Autoguider_Get_Fits uses Last_Buffer_Index. 
  * @param successful A boolean, if TRUE this field operation was successful (we have found a suitable guide star),
  *        otherwise it was a failed field.
+ * @param object_index The index in the object list of the selected object to be used for guiding.
+ *        This can be -1 if no guide star was found.
  * @return The routine returns TRUE on success and FALSE on failure.
  * @see #Field_Data
  * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_String
  * @see autoguider_get_fits.html#Autoguider_Get_Fits
  */
-int Autoguider_Field_Save_FITS(int successful)
+int Autoguider_Field_Save_FITS(int successful,int object_index)
 {
 	FILE *fp = NULL;
 	int retval,my_errno;
@@ -1190,7 +1192,7 @@ int Autoguider_Field_Save_FITS(int successful)
 	** Autoguider_Get_Fits uses Autoguider_Field_Get_Last_Buffer_Index, 
 	** so ensure Last_Buffer_Index is set right. */
 	retval = Autoguider_Get_Fits(AUTOGUIDER_GET_FITS_BUFFER_TYPE_FIELD,AUTOGUIDER_GET_FITS_BUFFER_STATE_REDUCED,
-				     &buffer_ptr,&buffer_length);
+				     object_index,&buffer_ptr,&buffer_length);
 	if(retval == FALSE)
 	{
 		if(directory_name != NULL)
@@ -1815,6 +1817,9 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.14  2009/01/30 18:01:33  cjm
+** Changed log messges to use log_udp verbosity (absolute) rather than bitwise.
+**
 ** Revision 1.13  2007/11/05 18:23:35  cjm
 ** Removed Field_Save_FITS from Autoguider_Field.
 ** New Autoguider_Field_Save_FITS is externally accessible, and Save_FITS_Failed and Save_FITS_Successful

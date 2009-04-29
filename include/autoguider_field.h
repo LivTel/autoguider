@@ -1,5 +1,5 @@
 /* autoguider_field.h
-** $Header: /home/cjm/cvs/autoguider/include/autoguider_field.h,v 1.5 2007-11-05 18:18:18 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/include/autoguider_field.h,v 1.6 2009-04-29 10:55:39 cjm Exp $
 */
 #ifndef AUTOGUIDER_FIELD_H
 #define AUTOGUIDER_FIELD_H
@@ -23,10 +23,14 @@ extern int Autoguider_Field_Get_Bin_X(void);
 extern int Autoguider_Field_Get_Bin_Y(void);
 extern int Autoguider_Field_Get_Save_FITS_Failed(void);
 extern int Autoguider_Field_Get_Save_FITS_Successful(void);
-extern int Autoguider_Field_Save_FITS(int successful);
+extern int Autoguider_Field_Save_FITS(int successful,int object_index);
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.5  2007/11/05 18:18:18  cjm
+** Added: Autoguider_Field_Get_Save_FITS_Failed, Autoguider_Field_Get_Save_FITS_Successful, Autoguider_Field_Save_FITS.
+** This allows Field FITS images to be saved from autoguider_command.c.
+**
 ** Revision 1.4  2007/01/26 18:03:46  cjm
 ** Added dimension getters.
 **
