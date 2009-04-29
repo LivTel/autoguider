@@ -1,11 +1,11 @@
 /* autoguider_get_fits.c
 ** Autoguider get fits routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_get_fits.c,v 1.4 2009-01-30 18:01:33 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_get_fits.c,v 1.5 2009-04-29 10:57:51 cjm Exp $
 */
 /**
  * Routines to return an in-memory FITS image for the field or guide buffer.
  * @author Chris Mottram
- * @version $Revision: 1.4 $
+ * @version $Revision: 1.5 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -40,6 +40,7 @@
 #include "autoguider_general.h"
 #include "autoguider_get_fits.h"
 #include "autoguider_guide.h"
+#include "autoguider_object.h"
 
 #include "ccd_temperature.h"
 #include "ccd_setup.h"
@@ -54,9 +55,11 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_get_fits.c,v 1.4 2009-01-30 18:01:33 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_get_fits.c,v 1.5 2009-04-29 10:57:51 cjm Exp $";
 
 /* internal functions */
+static int Get_Fits_Get_Header(int buffer_type,int buffer_state,int object_index,
+			struct Fits_Header_Struct *fits_header);
 static void Get_Fits_TimeSpec_To_Date_String(struct timespec time,char *time_string);
 static void Get_Fits_TimeSpec_To_Date_Obs_String(struct timespec time,char *time_string);
 static void Get_Fits_TimeSpec_To_UtStart_String(struct timespec time,char *time_string);
@@ -69,12 +72,14 @@ static int Get_Fits_TimeSpec_To_Mjd(struct timespec time,int leap_second_correct
  * Create an in memory FITS image from the specified buffer.
  * @param buffer_type Which buffer to get the latest image from (field or guide).
  * @param buffer_state Whether to get the raw or reduced data.
+ * @param object_index The index in the object list of the guide star. This can be -1 if no guide star was
+ *        selected. Used for FITS header information.
  * @return The routine returns TRUE on success and FALSE on failure.
  * @see #AUTOGUIDER_GET_FITS_BUFFER_TYPE_FIELD
  * @see #AUTOGUIDER_GET_FITS_BUFFER_TYPE_GUIDE
  * @see #AUTOGUIDER_GET_FITS_BUFFER_STATE_RAW
  * @see #AUTOGUIDER_GET_FITS_BUFFER_STATE_REDUCED
- * @see #Autoguider_Get_Fits_Get_Header
+ * @see #Get_Fits_Get_Header
  * @see #Autoguider_Get_Fits_From_Buffer
  * @see autoguider_buffer.html#Autoguider_Buffer_Get_Field_Pixel_Count
  * @see autoguider_buffer.html#Autoguider_Buffer_Raw_Field_Copy
@@ -91,7 +96,7 @@ static int Get_Fits_TimeSpec_To_Mjd(struct timespec time,int leap_second_correct
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  */
-int Autoguider_Get_Fits(int buffer_type,int buffer_state,void **buffer_ptr,size_t *buffer_length)
+int Autoguider_Get_Fits(int buffer_type,int buffer_state,int object_index,void **buffer_ptr,size_t *buffer_length)
 {
 	struct Fits_Header_Struct fits_header;
 	fitsfile *fits_fp = NULL;
@@ -137,7 +142,7 @@ int Autoguider_Get_Fits(int buffer_type,int buffer_state,void **buffer_ptr,size_
 		Autoguider_General_Error("get_fits","autoguider_get_fits.c","Autoguider_Get_Fits",
 					 LOG_VERBOSITY_INTERMEDIATE,"FITS");
 	}
-	if(!Autoguider_Get_Fits_Get_Header(buffer_type,buffer_state,&fits_header))
+	if(!Get_Fits_Get_Header(buffer_type,buffer_state,object_index,&fits_header))
 	{
 		Autoguider_General_Error("get_fits","autoguider_get_fits.c","Autoguider_Get_Fits",
 					 LOG_VERBOSITY_INTERMEDIATE,"FITS");
@@ -455,10 +460,15 @@ int Autoguider_Get_Fits_From_Buffer(void **buffer_ptr,size_t *buffer_length,int 
 	return TRUE;
 }
 
+/* ----------------------------------------------------------------------------
+** 		internal functions 
+** ---------------------------------------------------------------------------- */
 /**
  * Routine to fill in a FITS header for the specified buffer type and buffer state.
  * @param buffer_type Which buffer to get the latest image from (field or guide).
  * @param buffer_state Whether to get the raw or reduced data.
+ * @param object_index The index in the object list of the guide star. This can be -1 if no guide star was
+ *        selected. Used for FITS header information.
  * @return The routine returns TRUE on success and FALSE on failure.
  * @see #AUTOGUIDER_GET_FITS_BUFFER_TYPE_FIELD
  * @see #AUTOGUIDER_GET_FITS_BUFFER_TYPE_GUIDE
@@ -484,11 +494,15 @@ int Autoguider_Get_Fits_From_Buffer(void **buffer_ptr,size_t *buffer_length,int 
  * @see autoguider_guide.html#Autoguider_Guide_Binned_NCols_Get
  * @see autoguider_guide.html#Autoguider_Guide_Binned_NRows_Get
  * @see autoguider_guide.html#Autoguider_Guide_Window_Get
+ * @see autoguider_object.html#Autoguider_Object_Struct
+ * @see autoguider_object.html#Autoguider_Object_List_Get_Object
  * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Double
  * @see ../ccd/cdocs/ccd_setup.html#CCD_Setup_Window_Struct
  */
-int Autoguider_Get_Fits_Get_Header(int buffer_type,int buffer_state,struct Fits_Header_Struct *fits_header)
+static int Get_Fits_Get_Header(int buffer_type,int buffer_state,int object_index,
+				   struct Fits_Header_Struct *fits_header)
 {
+	struct Autoguider_Object_Struct object;
 	struct CCD_Setup_Window_Struct window;
 	struct timespec start_time;
 	char date_string[32];
@@ -498,7 +512,7 @@ int Autoguider_Get_Fits_Get_Header(int buffer_type,int buffer_state,struct Fits_
 	int ccdwmode,ccdwxoff,ccdwyoff,ccdwxsiz,ccdwysiz,ccdstemp,ccdatemp;
 
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log("get_fits","autoguider_get_fits.c","Autoguider_Get_Fits_Get_Header",
+	Autoguider_General_Log("get_fits","autoguider_get_fits.c","Get_Fits_Get_Header",
 			       LOG_VERBOSITY_INTERMEDIATE,"FITS","started.");
 #endif
 	/* check parameters */
@@ -506,7 +520,7 @@ int Autoguider_Get_Fits_Get_Header(int buffer_type,int buffer_state,struct Fits_
 	   (buffer_type != AUTOGUIDER_GET_FITS_BUFFER_TYPE_GUIDE))
 	{
 		Autoguider_General_Error_Number = 618;
-		sprintf(Autoguider_General_Error_String,"Autoguider_Get_Fits_Get_Header:Illegal buffer type %d.",
+		sprintf(Autoguider_General_Error_String,"Get_Fits_Get_Header:Illegal buffer type %d.",
 			buffer_type);
 		return FALSE;
 	}
@@ -514,14 +528,14 @@ int Autoguider_Get_Fits_Get_Header(int buffer_type,int buffer_state,struct Fits_
 	   (buffer_state != AUTOGUIDER_GET_FITS_BUFFER_STATE_REDUCED))
 	{
 		Autoguider_General_Error_Number = 619;
-		sprintf(Autoguider_General_Error_String,"Autoguider_Get_Fits_Get_Header:Illegal buffer state %d.",
+		sprintf(Autoguider_General_Error_String,"Get_Fits_Get_Header:Illegal buffer state %d.",
 			buffer_state);
 		return FALSE;
 	}
 	if(fits_header == NULL)
 	{
 		Autoguider_General_Error_Number = 620;
-		sprintf(Autoguider_General_Error_String,"Autoguider_Get_Fits_Get_Header:fits_header was NULL.");
+		sprintf(Autoguider_General_Error_String,"Get_Fits_Get_Header:fits_header was NULL.");
 		return FALSE;
 	}
 	/* Field or Guide? */
@@ -549,7 +563,7 @@ int Autoguider_Get_Fits_Get_Header(int buffer_type,int buffer_state,struct Fits_
 		if(buffer_index < 0)
 		{
 			Autoguider_General_Error_Number = 621;
-			sprintf(Autoguider_General_Error_String,"Autoguider_Get_Fits_Get_Header:"
+			sprintf(Autoguider_General_Error_String,"Get_Fits_Get_Header:"
 				"buffer_index less than 0.");
 			return FALSE;
 		}
@@ -589,7 +603,7 @@ int Autoguider_Get_Fits_Get_Header(int buffer_type,int buffer_state,struct Fits_
 		if(buffer_index < 0)
 		{
 			Autoguider_General_Error_Number = 622;
-			sprintf(Autoguider_General_Error_String,"Autoguider_Get_Fits_Get_Header:"
+			sprintf(Autoguider_General_Error_String,"Get_Fits_Get_Header:"
 				"buffer_index less than 0.");
 			return FALSE;
 		}
@@ -654,7 +668,7 @@ diddly modifiable programmable stuff TAGID/USERID/PROPID
 	/* CCDATEMP */
 	ccdatemp = (int)(current_temperature+CENTIGRADE_TO_KELVIN);
 #if AUTOGUIDER_DEBUG > 9
-	Autoguider_General_Log_Format("get_fits","autoguider_get_fits.c","Autoguider_Get_Fits_Get_Header",
+	Autoguider_General_Log_Format("get_fits","autoguider_get_fits.c","Get_Fits_Get_Header",
 				      LOG_VERBOSITY_INTERMEDIATE,"FITS","ccdatemp is %.d K.",ccdatemp);
 #endif
 	Autoguider_Fits_Header_Add_Int(fits_header,"CCDATEMP",ccdatemp,
@@ -666,16 +680,43 @@ diddly modifiable programmable stuff TAGID/USERID/PROPID
 		ccdstemp = (int)(target_temperature+CENTIGRADE_TO_KELVIN);
 		Autoguider_Fits_Header_Add_Int(fits_header,"CCDSTEMP",ccdstemp,"Target Temperature (Kelvin)");
 	}
+	/* object data if applicable */
+	if(object_index > -1)
+	{
+		if(Autoguider_Object_List_Get_Object(object_index,&object))
+		{
+			Autoguider_Fits_Header_Add_Int(fits_header,"GOBIND1",object_index,"Guide Object Index");
+			Autoguider_Fits_Header_Add_Int(fits_header,"GOBIND2",object.Index,"Guide Object Index");
+			Autoguider_Fits_Header_Add_Float(fits_header,"GOBCCDX",object.CCD_X_Position,
+							 "Guide Object X position (CCD)");
+			Autoguider_Fits_Header_Add_Float(fits_header,"GOBCCDY",object.CCD_Y_Position,
+							 "Guide Object Y position (CCD)");
+			Autoguider_Fits_Header_Add_Float(fits_header,"GOBBUFX",object.Buffer_X_Position,
+							 "Guide Object X position (Buffer)");
+			Autoguider_Fits_Header_Add_Float(fits_header,"GOBBUFY",object.Buffer_Y_Position,
+							 "Guide Object Y position (Buffer)");
+			Autoguider_Fits_Header_Add_Float(fits_header,"GOBTOTC",object.Total_Counts,
+							 "Guide Object Total Counts");
+			Autoguider_Fits_Header_Add_Int(fits_header,"GOBPIXC",object.Pixel_Count,
+							 "Guide Object number of Pixels");
+			Autoguider_Fits_Header_Add_Float(fits_header,"GOBPEAKC",object.Peak_Counts,
+							 "Guide Object Peak Counts");
+			Autoguider_Fits_Header_Add_Logical(fits_header,"GOBSTAR",object.Is_Stellar,
+							 "Guide Object Is Stellar flag");
+			if(object.Is_Stellar)
+			{
+				Autoguider_Fits_Header_Add_Float(fits_header,"GOBFWHM",object.FWHM_X,
+							 "Guide Object FWHM (pixels)");
+			}
+		}
+	}
 #if AUTOGUIDER_DEBUG > 1
-	Autoguider_General_Log("get_fits","autoguider_get_fits.c","Autoguider_Get_Fits_Get_Header",
+	Autoguider_General_Log("get_fits","autoguider_get_fits.c","Get_Fits_Get_Header",
 			       LOG_VERBOSITY_INTERMEDIATE,"FITS","finished.");
 #endif
 	return TRUE;
 }
 
-/* ----------------------------------------------------------------------------
-** 		internal functions 
-** ---------------------------------------------------------------------------- */
 /**
  * Routine to convert a timespec structure to a DATE sytle string to put into a FITS header.
  * This uses gmtime and strftime to format the string. The resultant string is of the form:
@@ -812,6 +853,9 @@ static int Get_Fits_TimeSpec_To_Mjd(struct timespec time,int leap_second_correct
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.4  2009/01/30 18:01:33  cjm
+** Changed log messges to use log_udp verbosity (absolute) rather than bitwise.
+**
 ** Revision 1.3  2007/01/30 17:35:24  cjm
 ** Now calls Autoguider_Fits_Header_Initialise to initialise FITS
 ** header properly.
