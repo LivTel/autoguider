@@ -1,13 +1,13 @@
 /* autoguider_object.c
 ** Autoguider object detection routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_object.c,v 1.16 2009-01-30 18:01:33 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_object.c,v 1.17 2009-06-12 13:41:25 cjm Exp $
 */
 /**
  * Object detection routines for the autoguider program.
  * Uses libdprt_object.
  * Has it's own buffer, as Object_List_Get destroys the data within it's buffer argument.
  * @author Chris Mottram
- * @version $Revision: 1.16 $
+ * @version $Revision: 1.17 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -90,7 +90,7 @@ struct Object_Internal_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_object.c,v 1.16 2009-01-30 18:01:33 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_object.c,v 1.17 2009-06-12 13:41:25 cjm Exp $";
 /**
  * Instance of object data.
  * @see #Object_Internal_Struct
@@ -784,6 +784,8 @@ static int Object_Buffer_Copy(float *buffer,int naxis1,int naxis2)
  * @see ../../libdprt/object/cdocs/object.html#Object_List_Get
  * @see ../../libdprt/object/cdocs/object.html#Object_Get_Error_Number
  * @see ../../libdprt/object/cdocs/object.html#Object_Warning
+ * @see ../../libdprt/object/cdocs/object.html#Object_Stellar_Ellipticity_Limit_Set
+ * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Float
  */
 static int Object_Create_Object_List(int use_standard_deviation,int start_x,int start_y)
 {
@@ -791,7 +793,7 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
 	Object *current_object_ptr = NULL;
 	struct timespec start_time,stop_time;
 	int retval,seeing_flag,index;
-	float threshold,seeing;
+	float ellipticity,threshold,seeing;
 
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log("object","autoguider_object.c","Object_Create_Object_List",
@@ -808,6 +810,20 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
 	retval = Autoguider_General_Mutex_Lock(&(Object_Data.Image_Data_Mutex));
 	if(retval == FALSE)
 		return FALSE;
+	/* get/set ellipticity/is_stellar threshold */
+	if(!CCD_Config_Get_Float("object.ellipticity.limit",&ellipticity))
+	{
+		Autoguider_General_Error_Number = 1022;
+		sprintf(Autoguider_General_Error_String,"Object_Create_Object_List:"
+			"Failed to load config:'object.ellipticity.limit'.");
+		Autoguider_General_Mutex_Unlock(&(Object_Data.Image_Data_Mutex));
+		return FALSE;
+	}
+	if(!Object_Stellar_Ellipticity_Limit_Set(ellipticity))
+	{
+		Autoguider_General_Mutex_Unlock(&(Object_Data.Image_Data_Mutex));
+		return FALSE;
+	}
 	/* get median/threshold */
 #if AUTOGUIDER_DEBUG > 5
 	Autoguider_General_Log("object","autoguider_object.c","Object_Create_Object_List",
@@ -1222,6 +1238,9 @@ static int Object_Sort_Object_List_By_Total_Counts(const void *p1, const void *p
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.16  2009/01/30 18:01:33  cjm
+** Changed log messges to use log_udp verbosity (absolute) rather than bitwise.
+**
 ** Revision 1.15  2008/03/14 12:04:01  cjm
 ** Added Autoguider_Object_List_Get_Nearest_Object to return the
 ** object nearest a certain pixel position. Used to fix
