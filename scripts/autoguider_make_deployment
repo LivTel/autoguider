@@ -1,6 +1,6 @@
 #!/bin/csh
-# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_make_deployment,v 1.16 2009-04-29 11:27:35 cjm Exp $
-# Version: $Revision: 1.16 $
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_make_deployment,v 1.17 2010-02-15 15:51:43 cjm Exp $
+# Version: $Revision: 1.17 $
 # By $Author: cjm $
 # Make a deployment tar file.
 # This contains:
@@ -168,7 +168,7 @@ echo "${java_class_dir_count} Java class directories copied with ${java_class_fi
 # C libraries
 #
 echo "Copying C libraries..."
-set clib_list = "libcfitsio.so libdprt_object.so libdprt_libfits.so libngatastro.so libautoguider_commandserver.so libautoguider_ccd_general.so libautoguider_ccd_andor.so libautoguider_ngatcil.so libestar_config.so liblog_udp.so"
+set clib_list = "libcfitsio.so libdprt_object.so libdprt_libfits.so libccd_dprt.so liblt_filenames.so libngatastro.so libautoguider_commandserver.so libautoguider_ccd_general.so libautoguider_ccd_andor.so libautoguider_ngatcil.so libestar_config.so liblog_udp.so"
 set clib_count = 0
 foreach clib ( ${clib_list} )
 	echo "C Library : ${clib}"
@@ -390,6 +390,9 @@ echo "Download ${deployment_tar}.gz autoguider_tar_install icc_cshrc icc_cshrc_e
 echo "Deployment ready."
 #
 # $Log: not supported by cvs2svn $
+# Revision 1.16  2009/04/29 11:27:35  cjm
+# Added back in libdprt_libfits.so.
+#
 # Revision 1.15  2009/03/16 11:43:05  cjm
 # Added log_udp/test directory.
 #
