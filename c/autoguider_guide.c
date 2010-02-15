@@ -1,11 +1,11 @@
 /* autoguider_guide.c
 ** Autoguider guide routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.38 2009-01-30 18:01:33 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.39 2010-02-15 11:49:04 cjm Exp $
 */
 /**
  * Guide routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.38 $
+ * @version $Revision: 1.39 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -188,7 +188,7 @@ struct Guide_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_guide.c,v 1.38 2009-01-30 18:01:33 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_guide.c,v 1.39 2010-02-15 11:49:04 cjm Exp $";
 /**
  * Instance of guide data.
  * @see #Guide_Struct
@@ -2520,6 +2520,11 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 						      Guide_Data.Window.X_End,Guide_Data.Window.Y_End,status_char);
 #endif
 		}
+		/* reset status char to '0' here.
+		** This was assumed to be a warning. However, the TCS sets the AGSTATE UNLOCKED
+		** when the status char is non-zero. This causes the RCS to issue another  "autoguider on"
+		** even when the current guide loop is still running. */
+		status_char = '0';
 		/* send reliable guide packet */
 		if(!Autoguider_CIL_Guide_Packet_Send(object.CCD_X_Position,object.CCD_Y_Position,
 						     terminating,FALSE,timecode_secs,status_char))
@@ -2778,6 +2783,9 @@ static int Guide_Dimension_Config_Load(void)
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.38  2009/01/30 18:01:33  cjm
+** Changed log messges to use log_udp verbosity (absolute) rather than bitwise.
+**
 ** Revision 1.37  2008/03/14 12:02:27  cjm
 ** Added Initial_Object_CCD_X/Y_Position data to hold initial position of
 ** object we are guiding upon.
