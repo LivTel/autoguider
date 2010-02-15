@@ -1,4 +1,4 @@
-# $Header: /home/cjm/cvs/autoguider/c/Makefile,v 1.8 2009-01-30 18:01:53 cjm Exp $
+# $Header: /home/cjm/cvs/autoguider/c/Makefile,v 1.9 2010-02-15 15:51:41 cjm Exp $
 
 include ../../Makefile.common
 include ../commandserver/Makefile.common
@@ -38,8 +38,10 @@ OBJECT_CFLAGS		= -I${LT_SRC_HOME}/libdprt/object/include
 OBJECT_LDFLAGS		= -ldprt_object
 
 # libdprt_libfits.a (iterstat used in autoguider_object.c)
+# Today, dprt_libfits requires ccd_dprt for 'buf_base_filename'
+# ccd_dprt requires lt_filenames
 ITERSTAT_CFLAGS		= -I${LT_SRC_HOME}/libdprt/ccd_imager
-ITERSTAT_LDFLAGS	= -ldprt_libfits
+ITERSTAT_LDFLAGS	= -ldprt_libfits -lccd_dprt -llt_filenames
 
 # SLALIB link information - used only for calculating MJD in get_fits at the moment
 #MJD_CFLAGS 		= -DSLALIB=1 -I${LT_SRC_HOME}/astrometry/include
