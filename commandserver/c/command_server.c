@@ -1,11 +1,11 @@
 /* Command_Server source file
- * $Header: /home/cjm/cvs/autoguider/commandserver/c/command_server.c,v 1.8 2009-01-30 15:38:55 cjm Exp $
+ * $Header: /home/cjm/cvs/autoguider/commandserver/c/command_server.c,v 1.9 2010-03-05 14:50:41 cjm Exp $
  */
 
 /**
  * Routines to support a simple one command text over socket command server.
  * @author Chris Mottram,LJMU
- * @revision $Revision: 1.8 $
+ * @revision $Revision: 1.9 $
  */
 
 /**
@@ -234,7 +234,7 @@ static void *Command_Server_Server_Connection_Thread (void *user_arg);
 /**
  * Revision Control System identifier.
  */
-static const char rcsid[] = "$Id: command_server.c,v 1.8 2009-01-30 15:38:55 cjm Exp $";
+static const char rcsid[] = "$Id: command_server.c,v 1.9 2010-03-05 14:50:41 cjm Exp $";
 
 
 /*===========================================================================*/
@@ -584,6 +584,9 @@ int Command_Server_Start_Server(unsigned short *port,void (*connection_callback)
 			continue;
 		}
 		/* accept connection */
+		/* adlen is a value/result parameter, it should initially contain the size of the structure 
+		** pointed to by addr (connection_context->Connection_Handle->Address) */
+		adlen = sizeof(struct sockaddr_in);
 		connection_context->Connection_Handle->Socket_fd =
 			accept((*server_context)->Listener_Handle->Socket_fd,
 				(struct sockaddr *)&(connection_context->Connection_Handle->Address),
@@ -1436,6 +1439,9 @@ static void Get_Current_Time(char *time_string,int string_length)
 
 /*
  * $Log: not supported by cvs2svn $
+ * Revision 1.8  2009/01/30 15:38:55  cjm
+ * Changed log messges to use log_udp verbosity (absolute) rather than bitwise.
+ *
  * Revision 1.7  2006/10/19 10:15:09  cjm
  * Changed COMMAND_SERVER_DEBUG to be integer based to give more granular control of logging.
  *
