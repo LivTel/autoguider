@@ -1,0 +1,10 @@
+#!/bin/csh
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_log_get_temperature,v 1.1 2010-07-20 12:22:38 cjm Exp $
+# Extract autoguider temperatures from autoguider_log files.
+# Of the form:
+# autoguider_log_201_3.txt:20-07-2010T03:57:42.177 +0000 : Andor_Temperature_Get:GetTemperatureF returned (2.90,20037).
+#grep GetTemperatureF $* | sed "s/autoguider_log_.*.txt:\(??-??-????T??:??:??.???\) +0000 : Andor_Temperature_Get:GetTemperatureF returned (\(.*\),\(.*\))./\1,\2,\3/"
+grep GetTemperatureF $* | sed "s/autoguider_log_.*.txt:\(.*\) +0000 : Andor_Temperature_Get:GetTemperatureF returned (\(.*\),\(.*\))./\1,\2,\3/"
+#
+# $Log: not supported by cvs2svn $
+#
