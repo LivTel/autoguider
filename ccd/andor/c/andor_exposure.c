@@ -1,11 +1,11 @@
 /* andor_exposure.c
 ** Autoguider Andor CCD Library exposure routines
-** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_exposure.c,v 1.10 2009-01-30 15:41:14 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_exposure.c,v 1.11 2010-07-29 09:51:43 cjm Exp $
 */
 /**
  * Exposure routines for the Andor autoguider CCD library.
  * @author Chris Mottram
- * @version $Revision: 1.10 $
+ * @version $Revision: 1.11 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -18,6 +18,7 @@
 
 #include <errno.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
@@ -26,7 +27,9 @@
 #include "log_udp.h"
 #include "ccd_exposure.h"
 #include "ccd_general.h"
+#include "ccd_temperature.h"
 #include "andor_setup.h"
+#include "andor_temperature.h"
 #include "andor_exposure.h"
 
 /* hash defines */
@@ -61,7 +64,7 @@ struct Exposure_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: andor_exposure.c,v 1.10 2009-01-30 15:41:14 cjm Exp $";
+static char rcsid[] = "$Id: andor_exposure.c,v 1.11 2010-07-29 09:51:43 cjm Exp $";
 /**
  * Data holding the current status of ccd_exposure.
  * @see #Exposure_Struct
@@ -324,6 +327,26 @@ int Andor_Exposure_Expose(int open_shutter,struct timespec start_time,int exposu
 			CCD_General_Error_Number = 1110;
 			sprintf(CCD_General_Error_String,"Andor_Exposure_Expose:"
 				"Timeout (Andor library stuck in DRV_ACQUIRING).");
+			CCD_General_Log_Format("ccd","andor_exposure.c","Andor_Exposure_Expose",
+					       LOG_VERBOSITY_VERY_TERSE,NULL,
+					       "Timeout (Andor library stuck in DRV_ACQUIRING).");
+			/* new code to fix DRV_ACQUIRING bug.
+			** The bug appears in the Andor library according to bug #1141, so we
+			** turn the cooler off to warm the CCD and exit */
+			/* This new code seemed to kill the AG however, so I've commented it out */
+			/*
+			**CCD_General_Log_Format("ccd","andor_exposure.c","Andor_Exposure_Expose",
+			**		       LOG_VERBOSITY_VERY_TERSE,NULL,
+			**		       "Andor library stuck in DRV_ACQUIRING: turning off cooler");
+			**if(!Andor_Temperature_Cooler_Off())
+			**	CCD_General_Error();
+			**CCD_General_Log_Format("ccd","andor_exposure.c","Andor_Exposure_Expose",
+			**		       LOG_VERBOSITY_VERY_TERSE,NULL,
+			**		       "Andor library stuck in DRV_ACQUIRING: "
+			**		       "exiting autoguider process to force library restart");
+			**sleep(1);
+			**exit(1);
+			*/
 			return FALSE;
 		}
 	}
@@ -440,6 +463,9 @@ int Andor_Exposure_Loop_Pause_Length_Set(int ms)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.10  2009/01/30 15:41:14  cjm
+** Changed log messges to use log_udp verbosity (absolute) rather than bitwise.
+**
 ** Revision 1.9  2007/10/15 18:03:06  cjm
 ** Reversed fdifftime arguments so elapsed time is positive...
 ** This means timeout code will now actually fire (probably not work though!).
