@@ -1,8 +1,10 @@
 /* ccd_general.h
-** $Header: /home/cjm/cvs/autoguider/ccd/include/ccd_general.h,v 1.2 2009-01-30 18:00:36 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/include/ccd_general.h,v 1.3 2010-07-29 09:53:03 cjm Exp $
 */
 #ifndef CCD_GENERAL_H
 #define CCD_GENERAL_H
+
+#include <time.h>
 
 /* hash defines */
 /**
@@ -63,6 +65,8 @@ extern int CCD_General_Is_Error(void);
 
 /* routine used by other modules error code */
 extern void CCD_General_Get_Current_Time_String(char *time_string,int string_length);
+/* time format */
+extern int CCD_General_Get_Time_String(struct timespec time,char *time_string,int string_length);
 
 /* logging routines */
 extern void CCD_General_Log_Format(char *sub_system,char *source_filename,char *function,int level,
@@ -83,6 +87,9 @@ extern int CCD_General_Log_Filter_Level_Bitwise(char *sub_system,char *source_fi
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.2  2009/01/30 18:00:36  cjm
+** Removed log bits.
+**
 ** Revision 1.1  2006/06/01 15:27:58  cjm
 ** Initial revision
 **

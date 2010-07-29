@@ -1,11 +1,11 @@
 /* ccd_general.c
 ** Autoguider CCD Library general routines
-** $Header: /home/cjm/cvs/autoguider/ccd/c/ccd_general.c,v 1.2 2009-01-30 18:00:24 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/c/ccd_general.c,v 1.3 2010-07-29 09:52:43 cjm Exp $
 */
 /**
  * General routines (logging, errror etc) for the autoguider CCD library.
  * @author SDSU, Chris Mottram
- * @version $Revision: 1.2 $
+ * @version $Revision: 1.3 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -66,7 +66,7 @@ struct General_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: ccd_general.c,v 1.2 2009-01-30 18:00:24 cjm Exp $";
+static char rcsid[] = "$Id: ccd_general.c,v 1.3 2010-07-29 09:52:43 cjm Exp $";
 /**
  * The instance of General_Struct that contains local data for this module.
  * This is statically initialised to the following:
@@ -169,6 +169,36 @@ void CCD_General_Get_Current_Time_String(char *time_string,int string_length)
 	}
 	else
 		strncpy(time_string,"Unknown time",string_length);
+}
+
+/**
+ * Convert the specified time to a string. The string is returned in the format
+ * 2000-01-01T13:59:59.123', or the string "Unknown time" if the routine failed.
+ * The time is in UTC.
+ * @param time_string The string to fill with the current time.
+ * @param string_length The length of the buffer passed in. It is recommended the length is at least 20 characters.
+ * @see #CCD_GENERAL_ONE_MILLISECOND_NS
+ */
+int CCD_General_Get_Time_String(struct timespec time,char *time_string,int string_length)
+{
+	struct tm *utc_time = NULL;
+	char ms_buff[5];
+
+	if(string_length < 20)
+	{
+		return FALSE;
+	}
+	/* get utc time from time seconds */
+	utc_time = gmtime(&(time.tv_sec));
+	strftime(time_string,string_length,"%Y-%m-%dT%H:%M:%S",utc_time);
+	/* get fractional ms from nsec */
+	sprintf(ms_buff,".%03ld",(time.tv_nsec/CCD_GENERAL_ONE_MILLISECOND_NS));
+	/* if we have room in the buffer, concatenate */
+	if((strlen(time_string)+strlen(ms_buff)+1) < string_length)
+	{
+		strcat(time_string,ms_buff);
+	}
+	return TRUE;
 }
 
 /**
@@ -325,6 +355,9 @@ int CCD_General_Log_Filter_Level_Bitwise(char *sub_system,char *source_filename,
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.2  2009/01/30 18:00:24  cjm
+** Changed log messges to use log_udp verbosity (absolute) rather than bitwise.
+**
 ** Revision 1.1  2006/06/01 15:27:37  cjm
 ** Initial revision
 **
