@@ -1,11 +1,11 @@
 /* autoguider_command.c
 ** Autoguider command routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_command.c,v 1.14 2009-04-29 10:54:43 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_command.c,v 1.15 2010-07-29 09:53:33 cjm Exp $
 */
 /**
  * Command routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.14 $
+ * @version $Revision: 1.15 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -46,7 +46,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_command.c,v 1.14 2009-04-29 10:54:43 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_command.c,v 1.15 2010-07-29 09:53:33 cjm Exp $";
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -568,16 +568,20 @@ int Autoguider_Command_Config_Load(char *command_string,char **reply_string)
  * @see autoguider_object.html#Autoguider_Object_List_Get_Count
  * @see autoguider_object.html#Autoguider_Object_List_Get_Object_List_String
  * @see ../ccd/cdocs/ccd_general.html#CCD_General_Error
+ * @see ../ccd/cdocs/ccd_general.html#CCD_General_Get_Time_String
  * @see ../ccd/cdocs/ccd_setup.html#CCD_Setup_Window_Struct
  * @see ../ccd/cdocs/ccd_temperature.html#CCD_Temperature_Get
+ * @see ../ccd/cdocs/ccd_general.html#CCD_Temperature_Cached_Temperature_Get
  */
 int Autoguider_Command_Status(char *command_string,char **reply_string)
 {
-	double current_temperature;
+	double temperature;
 	enum CCD_TEMPERATURE_STATUS temperature_status;
 	struct CCD_Setup_Window_Struct window;
+	struct timespec temperature_time_stamp;
 	char type_string[65];
 	char element_string[65];
+	char time_string[32];
 	char buff[256];
 	char *object_list_string = NULL;
 	double dvalue;
@@ -617,7 +621,7 @@ int Autoguider_Command_Status(char *command_string,char **reply_string)
 		Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Status",
 				       LOG_VERBOSITY_TERSE,"COMMAND","temperature status detected.");
 #endif
-		retval = CCD_Temperature_Get(&current_temperature,&temperature_status);
+		retval = CCD_Temperature_Get(&temperature,&temperature_status);
 		if(retval == FALSE)
 		{
 			Autoguider_General_Error_Number = 302;
@@ -625,15 +629,18 @@ int Autoguider_Command_Status(char *command_string,char **reply_string)
 				"CCD_Temperature_Get failed.");
 			Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Status",
 						 LOG_VERBOSITY_TERSE,"COMMAND");
-			if(!Autoguider_General_Add_String(reply_string,"1 Failed to get current temperature status."))
-				return FALSE;
-			return TRUE;
+			/* get last cached temperature instead */
+			CCD_Temperature_Cached_Temperature_Get(&temperature,&temperature_status,
+							       &temperature_time_stamp);
 		}
+		else /* set the temperature time stamp to be now */
+			clock_gettime(CLOCK_REALTIME,&(temperature_time_stamp));
 		if(strcmp(element_string,"get") == 0)
 		{
 			if(!Autoguider_General_Add_String(reply_string,"0 "))
 				return FALSE;
-			sprintf(buff,"%.2f",current_temperature);
+			CCD_General_Get_Time_String(temperature_time_stamp,time_string,31);
+			sprintf(buff,"%s %.2f",time_string,temperature);
 			if(!Autoguider_General_Add_String(reply_string,buff))
 				return FALSE;
 			return TRUE;
@@ -642,8 +649,10 @@ int Autoguider_Command_Status(char *command_string,char **reply_string)
 		{
 			if(!Autoguider_General_Add_String(reply_string,"0 "))
 				return FALSE;
-			if(!Autoguider_General_Add_String(reply_string,
-							  CCD_Temperature_Status_To_String(temperature_status)))
+			CCD_General_Get_Time_String(temperature_time_stamp,time_string,31);
+			sprintf(buff,"%s %s",time_string,temperature,
+				CCD_Temperature_Status_To_String(temperature_status));
+			if(!Autoguider_General_Add_String(reply_string,buff))
 				return FALSE;
 			return TRUE;
 		}
@@ -1860,6 +1869,10 @@ int Autoguider_Command_Log_Level(char *command_string,char **reply_string)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.14  2009/04/29 10:54:43  cjm
+** Change to Autoguider_Field_Save_FITS calls to allow saving of guide star FITS header information.
+** Also Autoguider_Get_Fits calls for the same reason.
+**
 ** Revision 1.13  2009/01/30 18:01:33  cjm
 ** Changed log messges to use log_udp verbosity (absolute) rather than bitwise.
 **
