@@ -1,5 +1,5 @@
 // Command.java
-// $Header: /home/cjm/cvs/autoguider/java/ngat/autoguider/command/Command.java,v 1.1 2009-01-30 18:01:58 cjm Exp $
+// $Header: /home/cjm/cvs/autoguider/java/ngat/autoguider/command/Command.java,v 1.2 2010-07-29 09:21:17 cjm Exp $
 package ngat.autoguider.command;
 
 import java.io.*;
@@ -13,14 +13,14 @@ import ngat.net.TelnetConnectionListener;
  * The Command class is the base class for sending a command and getting a reply from the
  * LJMU autoguider control system. This is a telnet - type socket interaction.
  * @author Chris Mottram
- * @version $Revision: 1.1 $
+ * @version $Revision: 1.2 $
  */
 public class Command implements Runnable, TelnetConnectionListener
 {
 	/**
 	 * Revision Control System id string, showing the version of the Class.
 	 */
-	public final static String RCSID = new String("$Id: Command.java,v 1.1 2009-01-30 18:01:58 cjm Exp $");
+	public final static String RCSID = new String("$Id: Command.java,v 1.2 2010-07-29 09:21:17 cjm Exp $");
 	/**
 	 * ngat.net.TelnetConnection instance.
 	 */
@@ -160,6 +160,7 @@ public class Command implements Runnable, TelnetConnectionListener
 	 * @see #telnetConnection
 	 * @see #commandString
 	 * @see #commandFinished
+	 * @see #parseReplyString
 	 */
 	public void sendCommand() throws Exception
 	{
@@ -172,16 +173,16 @@ public class Command implements Runnable, TelnetConnectionListener
 		telnetConnection.sendLine(commandString);
 		thread.join();
 		telnetConnection.close();
+		parseReplyString();
 		commandFinished = true;
 	}
 
 	/**
 	 * TelnetConnectionListener interface implementation.
 	 * Called for each line of text read by the TelnetConnection instance.
-	 * The string is copied/appended to the replyString, and parseReplyString is called to parse it.
+	 * The string is copied/appended to the replyString.
 	 * @param line The string read from the TelnetConnection.
 	 * @see #replyString
-	 * @see #parseReplyString
 	 */
 	public void lineRead(String line)
 	{
@@ -189,7 +190,6 @@ public class Command implements Runnable, TelnetConnectionListener
 			replyString = line;
 		else
 			replyString = new String(replyString+line);
-		parseReplyString();
 	}
 
 	/**
@@ -198,17 +198,24 @@ public class Command implements Runnable, TelnetConnectionListener
 	 * @see #parsedReplyString
 	 * @see #parsedReplyOk
 	 */
-	public void parseReplyString()
+	public void parseReplyString() throws Exception
 	{
 		int sindex;
 		String okString = null;
 
+		if(replyString == null)
+		{
+			throw new Exception(this.getClass().getName()+
+					    ":parseReplyString:Reply string to command '"+commandString+"'was null.");
+		}
 		sindex = replyString.indexOf(' ');
 		if(sindex < 0)
 		{
 			parsedReplyString = null;
 			parsedReplyOk = false;
-			return;
+			throw new Exception(this.getClass().getName()+
+					    ":parseReplyString:Failed to detect space between error code and data in:"+
+					    replyString);
 		}
 		okString = replyString.substring(0,sindex);
 		parsedReplyString = replyString.substring(sindex+1);
@@ -314,4 +321,7 @@ public class Command implements Runnable, TelnetConnectionListener
 }
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1  2009/01/30 18:01:58  cjm
+// Initial revision
+//
 //

@@ -1,5 +1,5 @@
 // StatusObjectListCommand.java
-// $Header: /home/cjm/cvs/autoguider/java/ngat/autoguider/command/StatusObjectListCommand.java,v 1.1 2009-01-30 18:01:58 cjm Exp $
+// $Header: /home/cjm/cvs/autoguider/java/ngat/autoguider/command/StatusObjectListCommand.java,v 1.2 2010-07-29 09:21:17 cjm Exp $
 package ngat.autoguider.command;
 
 import java.io.*;
@@ -11,14 +11,14 @@ import java.util.*;
  * The "status object list" command is an extension of the Command, and returns 
  * a list of objects detected by the object detection software on the autoguider CCD.
  * @author Chris Mottram
- * @version $Revision: 1.1 $
+ * @version $Revision: 1.2 $
  */
 public class StatusObjectListCommand extends Command implements Runnable
 {
 	/**
 	 * Revision Control System id string, showing the version of the Class.
 	 */
-	public final static String RCSID = new String("$Id: StatusObjectListCommand.java,v 1.1 2009-01-30 18:01:58 cjm Exp $");	/**
+	public final static String RCSID = new String("$Id: StatusObjectListCommand.java,v 1.2 2010-07-29 09:21:17 cjm Exp $");	/**
 	 * The command to send to the autoguider.
 	 */
 	public final static String COMMAND_STRING = new String("status object list");
@@ -74,7 +74,7 @@ public class StatusObjectListCommand extends Command implements Runnable
 	 * @see StatusObjectListObject#parse
 	 * @link http://ltdevsrv.livjm.ac.uk/~dev/autoguider/cdocs/autoguider_object.html#Autoguider_Object_List_Get_Object_List_String
 	 */
-	public void parseReplyString()
+	public void parseReplyString() throws Exception
 	{
 		StatusObjectListObject object = null;
 		StringTokenizer lineTokeniser = null;
@@ -232,4 +232,7 @@ public class StatusObjectListCommand extends Command implements Runnable
 }
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1  2009/01/30 18:01:58  cjm
+// Initial revision
+//
 //

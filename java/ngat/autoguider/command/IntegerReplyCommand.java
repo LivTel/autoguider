@@ -1,5 +1,5 @@
 // IntegerReplyCommand.java
-// $Header: /home/cjm/cvs/autoguider/java/ngat/autoguider/command/IntegerReplyCommand.java,v 1.1 2009-01-30 18:01:58 cjm Exp $
+// $Header: /home/cjm/cvs/autoguider/java/ngat/autoguider/command/IntegerReplyCommand.java,v 1.2 2010-07-29 09:21:17 cjm Exp $
 package ngat.autoguider.command;
 
 import java.io.*;
@@ -15,14 +15,14 @@ import ngat.net.TelnetConnectionListener;
  * LJMU autoguider control system. This is a telnet - type socket interaction. IntegerReplyCommand expects the reply
  * to be '&lt;n&gt; &lt;m&gt;' where &lt;n&gt; is the reply status and &lt;m&gt; is an integer value. 
  * @author Chris Mottram
- * @version $Revision: 1.1 $
+ * @version $Revision: 1.2 $
  */
 public class IntegerReplyCommand extends Command implements Runnable, TelnetConnectionListener
 {
 	/**
 	 * Revision Control System id string, showing the version of the Class.
 	 */
-	public final static String RCSID = new String("$Id: IntegerReplyCommand.java,v 1.1 2009-01-30 18:01:58 cjm Exp $");	/**
+	public final static String RCSID = new String("$Id: IntegerReplyCommand.java,v 1.2 2010-07-29 09:21:17 cjm Exp $");	/**
 	 * The parsed reply string, parsed into an integer.
 	 */
 	protected int parsedReplyInteger = 0;
@@ -53,11 +53,12 @@ public class IntegerReplyCommand extends Command implements Runnable, TelnetConn
 
 	/**
 	 * Parse a string returned from the autoguider over the telnet connection.
+	 * @exception Exception Thrown if a parse error occurs.
 	 * @see #replyString
 	 * @see #parsedReplyString
 	 * @see #parsedReplyOk
 	 */
-	public void parseReplyString()
+	public void parseReplyString() throws Exception
 	{
 		super.parseReplyString();
 		if(parsedReplyOk == false)
@@ -73,6 +74,8 @@ public class IntegerReplyCommand extends Command implements Runnable, TelnetConn
 		{
 			parsedReplyOk = false;
 			parsedReplyInteger = 0;
+			throw new Exception(this.getClass().getName()+
+					    ":parseReplyString:Failed to parse integer data:"+parsedReplyString);
 		}
 	}
 
@@ -89,4 +92,7 @@ public class IntegerReplyCommand extends Command implements Runnable, TelnetConn
 
 //
 // $Log: not supported by cvs2svn $
+// Revision 1.1  2009/01/30 18:01:58  cjm
+// Initial revision
+//
 //
