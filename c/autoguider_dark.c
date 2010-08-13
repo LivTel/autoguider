@@ -1,11 +1,11 @@
 /* autoguider_dark.c
 ** Autoguider dark routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_dark.c,v 1.3 2009-01-30 18:01:33 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_dark.c,v 1.4 2010-08-13 08:49:33 cjm Exp $
 */
 /**
  * Dark routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.3 $
+ * @version $Revision: 1.4 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -73,7 +73,7 @@ struct Dark_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_dark.c,v 1.3 2009-01-30 18:01:33 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_dark.c,v 1.4 2010-08-13 08:49:33 cjm Exp $";
 /**
  * Instance of dark data.
  * @see #Dark_Struct
@@ -453,9 +453,7 @@ int Autoguider_Dark_Subtract(float *buffer_ptr,int pixel_count,int ncols,int nro
 			}
 #endif
 			(*current_buffer_ptr) -= (*current_dark_ptr);
-			/* range check ? */
-			if((*current_buffer_ptr) < 0.0f)
-				(*current_buffer_ptr) = 0.0f;
+			/* no range checking is performed here. See Fault 1716 for details. */
 			current_buffer_ptr++;
 			current_dark_ptr++;
 		}
@@ -834,6 +832,9 @@ static int Dark_Exposure_Length_List_Initialise(void)
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.3  2009/01/30 18:01:33  cjm
+** Changed log messges to use log_udp verbosity (absolute) rather than bitwise.
+**
 ** Revision 1.2  2006/08/29 14:35:38  cjm
 ** Changed limits detection in Autoguider_Dark_Subtract, so you can have
 ** X-End/Y-End at last pixel inclusive, and it doesn't trigger an error.
