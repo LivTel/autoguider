@@ -1,0 +1,17 @@
+#!/bin/csh
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_get_process_stats,v 1.1 2010-09-13 14:14:08 cjm Exp $
+#ps wwwwwaux
+#USER       PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+#root      1982  0.4  0.6  90100  3164 ?        Sl   13:31   0:03 ./autoguider -co autoguider.properties -autoguider_log_level 5 -ccd_log_level 5 -command_server_log_level 5 -object_log_level 5 -ngatcil_log_level 5
+# PID,CPU,MEM,VSZ,RSS,START,TIME
+# $2 "," $3 "," $4 "," $5 "," $6 "," $9 "," $10 ","
+set filename = /icc/log/process_stats_`date +"%Y_%m_%d"`.txt
+set time_string = `date +"%Y-%m-%dT%H:%M:%S"`
+set data = `ps wwwwwaux | awk '$11 ~ /.\/autoguider/ { print $2 "," $3 "," $4 "," $5 "," $6 "," $9 "," $10  }'`
+if ( ! -e ${filename}  ) then
+	echo "Date,PID,CPU,MEM,VSZ,RSS,START,TIME" > ${filename}
+endif
+echo "${time_string},${data}" >> ${filename}
+#
+# $Log: not supported by cvs2svn $
+#
