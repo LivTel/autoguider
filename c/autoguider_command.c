@@ -1,11 +1,11 @@
 /* autoguider_command.c
 ** Autoguider command routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_command.c,v 1.15 2010-07-29 09:53:33 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_command.c,v 1.16 2011-06-23 11:02:00 cjm Exp $
 */
 /**
  * Command routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.15 $
+ * @version $Revision: 1.16 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -46,7 +46,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_command.c,v 1.15 2010-07-29 09:53:33 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_command.c,v 1.16 2011-06-23 11:02:00 cjm Exp $";
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -650,7 +650,7 @@ int Autoguider_Command_Status(char *command_string,char **reply_string)
 			if(!Autoguider_General_Add_String(reply_string,"0 "))
 				return FALSE;
 			CCD_General_Get_Time_String(temperature_time_stamp,time_string,31);
-			sprintf(buff,"%s %s",time_string,temperature,
+			sprintf(buff,"%s %.2f %s",time_string,temperature,
 				CCD_Temperature_Status_To_String(temperature_status));
 			if(!Autoguider_General_Add_String(reply_string,buff))
 				return FALSE;
@@ -1869,6 +1869,13 @@ int Autoguider_Command_Log_Level(char *command_string,char **reply_string)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.15  2010/07/29 09:53:33  cjm
+** CHanged "status temperature get" command.
+** If CCD_Temperature_Get fails (because we are acquiring an image),
+** we call CCD_Temperature_Cached_Temperature_Get to get the last
+** known temperature and return that.
+** "status temperature get" return string has changed to include a timestamp.
+**
 ** Revision 1.14  2009/04/29 10:54:43  cjm
 ** Change to Autoguider_Field_Save_FITS calls to allow saving of guide star FITS header information.
 ** Also Autoguider_Get_Fits calls for the same reason.
