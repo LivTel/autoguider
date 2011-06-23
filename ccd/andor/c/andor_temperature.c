@@ -1,11 +1,11 @@
 /* andor_temperature.c
 ** Autoguder Andor CCD Library temperature routines
-** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_temperature.c,v 1.5 2009-01-30 15:41:14 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_temperature.c,v 1.6 2011-06-23 13:23:05 cjm Exp $
 */
 /**
  * Temperature routines for the Andor autoguider CCD library.
  * @author Chris Mottram
- * @version $Revision: 1.5 $
+ * @version $Revision: 1.6 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -31,7 +31,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: andor_temperature.c,v 1.5 2009-01-30 15:41:14 cjm Exp $";
+static char rcsid[] = "$Id: andor_temperature.c,v 1.6 2011-06-23 13:23:05 cjm Exp $";
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -47,6 +47,7 @@ static char rcsid[] = "$Id: andor_temperature.c,v 1.5 2009-01-30 15:41:14 cjm Ex
 int Andor_Temperature_Get(double *temperature,enum CCD_TEMPERATURE_STATUS *temperature_status)
 {
 	unsigned int andor_retval;
+	int min_temp,max_temp;
 	float temperature_f;
 
 #ifdef ANDOR_DEBUG
@@ -108,6 +109,18 @@ int Andor_Temperature_Get(double *temperature,enum CCD_TEMPERATURE_STATUS *tempe
 #ifdef ANDOR_DEBUG
 	CCD_General_Log_Format("ccd","andor_temperature.c","Andor_Temperature_Get",LOG_VERBOSITY_VERBOSE,NULL,
 			       "returned (%.2f,%d).",(*temperature),(*temperature_status));
+	andor_retval = GetTemperatureRange(&min_temp,&max_temp);
+	if(andor_retval == DRV_SUCCESS)
+	{
+		CCD_General_Log_Format("ccd","andor_temperature.c","Andor_Temperature_Get",LOG_VERBOSITY_VERBOSE,NULL,
+				       "GetTemperatureRange returned (%d,%d).",min_temp,max_temp);
+	}
+	else
+	{
+		CCD_General_Log_Format("ccd","andor_temperature.c","Andor_Temperature_Get",LOG_VERBOSITY_VERBOSE,NULL,
+				       "GetTemperatureRange failed with error %s(%u).",
+				       Andor_General_ErrorCode_To_String(andor_retval),andor_retval);
+	}
 	CCD_General_Log("ccd","andor_temperature.c","Andor_Temperature_Get",LOG_VERBOSITY_VERBOSE,NULL,
 			"finished.");
 #endif
@@ -201,6 +214,9 @@ int Andor_Temperature_Cooler_Off(void)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.5  2009/01/30 15:41:14  cjm
+** Changed log messges to use log_udp verbosity (absolute) rather than bitwise.
+**
 ** Revision 1.4  2007/01/30 16:28:24  cjm
 ** Added error return in Andor_Temperature_Get when GetTemperatureF returns DRV_ACQUIRING, because the
 ** temperature returned in that state is -999.
