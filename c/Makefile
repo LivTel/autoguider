@@ -1,4 +1,4 @@
-# $Header: /home/cjm/cvs/autoguider/c/Makefile,v 1.9 2010-02-15 15:51:41 cjm Exp $
+# $Header: /home/cjm/cvs/autoguider/c/Makefile,v 1.10 2011-09-07 11:03:27 cjm Exp $
 
 include ../../Makefile.common
 include ../commandserver/Makefile.common
@@ -92,7 +92,7 @@ $(DOCS): $(SRCS)
 $(DOCS) : $(SRCS)
 
 depend:
-	makedepend -p$(BINDIR)/ -- $(CFLAGS) -- $(SRCS)
+	makedepend $(MAKEDEPENDFLAGS) -p$(BINDIR)/ -- $(CFLAGS) -- $(SRCS)
 
 clean:
 	$(RM) $(RM_OPTIONS) $(EXES) $(OBJS) $(TIDY_OPTIONS)
