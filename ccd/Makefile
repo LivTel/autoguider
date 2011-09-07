@@ -1,10 +1,10 @@
 # Makefile
-# $Header: /home/cjm/cvs/autoguider/ccd/Makefile,v 1.1 2006-06-01 15:28:03 cjm Exp $
+# $Header: /home/cjm/cvs/autoguider/ccd/Makefile,v 1.2 2011-09-07 12:13:06 cjm Exp $
 
 include ../../Makefile.common
 include ../Makefile.common
 
-DIRS = andor c test 
+DIRS = c andor test 
 top:
 	@for i in $(DIRS); \
 	do \
@@ -51,4 +51,7 @@ backup: checkin
 	$(RM) $(RM_OPTIONS) $(TIDY_OPTIONS)
 #
 # $Log: not supported by cvs2svn $
+# Revision 1.1  2006/06/01 15:28:03  cjm
+# Initial revision
+#
 #
