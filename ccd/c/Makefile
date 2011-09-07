@@ -1,4 +1,4 @@
-# $Header: /home/cjm/cvs/autoguider/ccd/c/Makefile,v 1.2 2009-01-30 18:00:43 cjm Exp $
+# $Header: /home/cjm/cvs/autoguider/ccd/c/Makefile,v 1.3 2011-09-07 11:02:45 cjm Exp $
 
 include ../../../Makefile.common
 include ../../Makefile.common
@@ -61,10 +61,10 @@ $(DOCS): $(SRCS)
 $(DOCS) : $(SRCS)
 
 depend:
-	makedepend -p$(BINDIR)/ -- $(CFLAGS) -- $(SRCS)
+	makedepend $(MAKEDEPENDFLAGS) -p$(BINDIR)/ -- $(CFLAGS) -- $(SRCS)
 
 clean:
-	$(RM) $(RM_OPTIONS) $(EXES) $(OBJS) $(TIDY_OPTIONS)
+	$(RM) $(RM_OPTIONS) $(EXES) $(OBJS) $(LT_LIB_HOME)/$(CCD_LIBRARYNAME).so $(TIDY_OPTIONS)
 
 tidy:
 	$(RM) $(RM_OPTIONS) $(TIDY_OPTIONS)
