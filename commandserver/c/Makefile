@@ -1,4 +1,4 @@
-# $Header: /home/cjm/cvs/autoguider/commandserver/c/Makefile,v 1.7 2009-01-30 15:40:26 cjm Exp $
+# $Header: /home/cjm/cvs/autoguider/commandserver/c/Makefile,v 1.8 2011-09-07 11:05:34 cjm Exp $
 
 include ../../../Makefile.common
 include ../../Makefile.common
@@ -49,10 +49,10 @@ $(DOCS): $(SRCS)
 $(DOCS) : $(SRCS)
 
 depend:
-	makedepend -p$(BINDIR)/ -- $(CFLAGS) -- $(SRCS)
+	makedepend $(MAKEDEPENDFLAGS) -p$(BINDIR)/ -- $(CFLAGS) -- $(SRCS)
 
 clean:
-	$(RM) $(RM_OPTIONS) $(EXES) $(OBJS) $(TIDY_OPTIONS)
+	$(RM) $(RM_OPTIONS) $(EXES) $(OBJS) $(LT_LIB_HOME)/$(LIBRARYNAME).so $(TIDY_OPTIONS)
 
 tidy:
 	$(RM) $(RM_OPTIONS) $(TIDY_OPTIONS)
@@ -70,6 +70,9 @@ checkout:
 
 #
 # $Log: not supported by cvs2svn $
+# Revision 1.7  2009/01/30 15:40:26  cjm
+# Added log_udp include file.
+#
 # Revision 1.6  2006/10/19 10:15:07  cjm
 # Changed COMMAND_SERVER_DEBUG to be integer based to give more granular control of logging.
 #
@@ -80,24 +83,17 @@ checkout:
 /home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/arpa/inet.h
 /home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/features.h
 /home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/sys/cdefs.h
+/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/bits/wordsize.h
 /home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/gnu/stubs.h
+/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/gnu/stubs-32.h
 /home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/netinet/in.h
 /home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/stdint.h
 /home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/bits/wchar.h
-/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/bits/wordsize.h
-/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/bits/types.h
-/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stddef.h
-/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/bits/typesizes.h
-/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/bits/socket.h
-/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/limits.h
-/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/limits.h
-/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/bits/posix1_lim.h
-/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/bits/local_lim.h
-/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/linux/limits.h
-/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/bits/posix2_lim.h
-/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/bits/xopen_lim.h
-/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/bits/stdio_lim.h
+/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/sys/socket.h
+/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/sys/uio.h
 /home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/sys/types.h
+/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/bits/types.h
+/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/bits/typesizes.h
 /home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/time.h
 /home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/endian.h
 /home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/bits/endian.h
@@ -107,29 +103,35 @@ checkout:
 /home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/bits/time.h
 /home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/sys/sysmacros.h
 /home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/bits/pthreadtypes.h
-/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/bits/sched.h
+/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/bits/uio.h
+/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/bits/socket.h
+/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/limits.h
+/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/bits/posix1_lim.h
+/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/bits/local_lim.h
+/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/linux/limits.h
+/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/bits/posix2_lim.h
+/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/bits/xopen_lim.h
+/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/bits/stdio_lim.h
 /home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/bits/sockaddr.h
 /home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/asm/socket.h
 /home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/asm/sockios.h
 /home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/bits/in.h
 /home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/bits/byteswap.h
-/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/sys/socket.h
-/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/sys/uio.h
-/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/bits/uio.h
 /home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/netinet/tcp.h
 /home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/errno.h
 /home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/bits/errno.h
 /home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/linux/errno.h
 /home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/asm/errno.h
+/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/asm-generic/errno.h
+/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/asm-generic/errno-base.h
 /home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/netdb.h
 /home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/rpc/netdb.h
 /home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/bits/netdb.h
 /home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/pthread.h
 /home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/sched.h
+/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/bits/sched.h
 /home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/signal.h
-/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/bits/initspin.h
-/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/bits/sigthread.h
-/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/lib/gcc-lib/i386-redhat-linux/3.2.2/include/stdarg.h
+/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/bits/setjmp.h
 /home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/stdlib.h
 /home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/bits/waitflags.h
 /home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/bits/waitstatus.h
@@ -146,4 +148,5 @@ checkout:
 /home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/bits/environments.h
 /home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/bits/confname.h
 /home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /usr/include/getopt.h
+/home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /home/dev/src/log_udp/include/log_udp.h
 /home/dev/bin/autoguider/commandserver/c/i386-linux/command_server.o: /home/dev/src/autoguider/commandserver/include/command_server.h
