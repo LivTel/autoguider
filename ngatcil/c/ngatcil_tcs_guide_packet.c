@@ -1,11 +1,11 @@
 /* ngatcil_tcs_guide_packet.c
 ** NGATCil TCS guide packet tranmitting/receiving routines.
-** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_tcs_guide_packet.c,v 1.5 2009-01-30 18:00:52 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_tcs_guide_packet.c,v 1.6 2011-09-08 09:21:11 cjm Exp $
 */
 /**
  * NGAT Cil library transmission/receiving of TCS guide packets over UDP.
  * @author Chris Mottram
- * @version $Revision: 1.5 $
+ * @version $Revision: 1.6 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -16,6 +16,7 @@
  */
 #define _POSIX_C_SOURCE 199309L
 
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 #include "log_udp.h"
@@ -31,7 +32,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: ngatcil_tcs_guide_packet.c,v 1.5 2009-01-30 18:00:52 cjm Exp $";
+static char rcsid[] = "$Id: ngatcil_tcs_guide_packet.c,v 1.6 2011-09-08 09:21:11 cjm Exp $";
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -527,6 +528,9 @@ char *NGATCil_TCS_Guide_Packet_To_String(void *packet_buff,int packet_buff_lengt
 ** ---------------------------------------------------------------------------- */
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.5  2009/01/30 18:00:52  cjm
+** Changed log messges to use log_udp verbosity (absolute) rather than bitwise.
+**
 ** Revision 1.4  2006/06/21 14:06:44  cjm
 ** Added information on status char.
 **
