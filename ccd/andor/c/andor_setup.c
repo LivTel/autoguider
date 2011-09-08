@@ -1,11 +1,11 @@
 /* andor_setup.c
 ** Autoguider Andor CCD Library setup routines
-** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_setup.c,v 1.3 2009-01-30 15:41:14 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_setup.c,v 1.4 2011-09-08 09:20:29 cjm Exp $
 */
 /**
  * Setup routines for the Andor autoguider CCD library.
  * @author Chris Mottram
- * @version $Revision: 1.3 $
+ * @version $Revision: 1.4 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -19,6 +19,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
 /* andor CCD library */
@@ -60,7 +61,7 @@ struct Setup_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: andor_setup.c,v 1.3 2009-01-30 15:41:14 cjm Exp $";
+static char rcsid[] = "$Id: andor_setup.c,v 1.4 2011-09-08 09:20:29 cjm Exp $";
 
 /**
  * Instance of the setup data.
@@ -183,11 +184,11 @@ int Andor_Setup_Startup(void)
 	andor_retval = Initialize(config_directory);
 	if(andor_retval != DRV_SUCCESS)
 	{
-		if(config_directory != NULL)
-			free(config_directory);
 		CCD_General_Error_Number = 1001;
 		sprintf(CCD_General_Error_String,"Andor_Setup_Startup: Initialize(%s) failed %s(%u).",
 			config_directory,Andor_General_ErrorCode_To_String(andor_retval),andor_retval);
+		if(config_directory != NULL)
+			free(config_directory);
 		return FALSE;
 	}
 	/* free config directory */
@@ -479,6 +480,9 @@ int Andor_Setup_Allocate_Image_Buffer(void **buffer,size_t *buffer_length)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.3  2009/01/30 15:41:14  cjm
+** *** empty log message ***
+**
 ** Revision 1.2  2006/04/10 15:51:23  cjm
 ** Comment fix.
 **
