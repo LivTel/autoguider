@@ -1,10 +1,10 @@
 /* test_raw_send.c
-** $Header: /home/cjm/cvs/autoguider/ngatcil/test/test_raw_send.c,v 1.1 2006-08-29 14:15:44 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ngatcil/test/test_raw_send.c,v 1.2 2011-09-08 09:22:24 cjm Exp $
 */
 /**
  * Test a raw packet over UDP.
  * @author Chris Mottram
- * @version $Revision: 1.1 $
+ * @version $Revision: 1.2 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -18,6 +18,7 @@
 #include <errno.h>
 #include <netdb.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <arpa/inet.h>
@@ -73,7 +74,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: test_raw_send.c,v 1.1 2006-08-29 14:15:44 cjm Exp $";
+static char rcsid[] = "$Id: test_raw_send.c,v 1.2 2011-09-08 09:22:24 cjm Exp $";
 /**
  * File descriptor of the UDP socket.
  */
@@ -613,4 +614,7 @@ static void Help(void)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2006/08/29 14:15:44  cjm
+** Initial revision
+**
 */
