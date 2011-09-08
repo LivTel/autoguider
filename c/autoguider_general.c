@@ -1,11 +1,11 @@
 /* autoguider_general.c
 ** Autoguider general routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_general.c,v 1.5 2009-01-30 18:01:33 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_general.c,v 1.6 2011-09-08 09:23:39 cjm Exp $
 */
 /**
  * General routines (logging, errror etc) for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.5 $
+ * @version $Revision: 1.6 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -23,6 +23,7 @@
 #include <pthread.h> /* mutex */
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
@@ -121,7 +122,7 @@ struct General_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_general.c,v 1.5 2009-01-30 18:01:33 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_general.c,v 1.6 2011-09-08 09:23:39 cjm Exp $";
 /**
  * The instance of General_Struct that contains local data for this module.
  * This is statically initialised to the following:
@@ -930,6 +931,9 @@ static void General_Log_Handler_Filename_To_Fp(char *log_filename,FILE **log_fp)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.5  2009/01/30 18:01:33  cjm
+** Changed log messges to use log_udp verbosity (absolute) rather than bitwise.
+**
 ** Revision 1.4  2007/01/30 17:35:24  cjm
 ** Fixed structure initialisation.
 ** Added print when failing to open log_fp, will still cause a crash, but

@@ -1,11 +1,11 @@
 /* autoguider_buffer.c
 ** Autoguider buffer routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_buffer.c,v 1.4 2009-01-30 18:01:33 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_buffer.c,v 1.5 2011-09-08 09:23:39 cjm Exp $
 */
 /**
  * Buffer routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.4 $
+ * @version $Revision: 1.5 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -20,6 +20,7 @@
 #include <pthread.h> /* mutex */
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
@@ -101,7 +102,7 @@ struct Buffer_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_buffer.c,v 1.4 2009-01-30 18:01:33 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_buffer.c,v 1.5 2011-09-08 09:23:39 cjm Exp $";
 /**
  * Instance of buffer data.
  * @see #Buffer_Struct
@@ -1630,6 +1631,9 @@ static int Buffer_One_Reduced_Copy(struct Buffer_One_Struct *data,int index,floa
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.4  2009/01/30 18:01:33  cjm
+** Changed log messges to use log_udp verbosity (absolute) rather than bitwise.
+**
 ** Revision 1.3  2007/01/30 17:35:24  cjm
 ** Added CCD temperature getters/setters for FITS headers support.
 **

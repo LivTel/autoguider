@@ -1,11 +1,11 @@
 /* ngatcil_general.c
 ** NGATCil general routines
-** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_general.c,v 1.2 2009-01-30 18:00:52 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_general.c,v 1.3 2011-09-08 09:21:11 cjm Exp $
 */
 /**
  * General routines (logging, errror etc) for the NGAT Cil library.
  * @author Chris Mottram
- * @version $Revision: 1.2 $
+ * @version $Revision: 1.3 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -19,6 +19,7 @@
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
@@ -69,7 +70,7 @@ struct General_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: ngatcil_general.c,v 1.2 2009-01-30 18:00:52 cjm Exp $";
+static char rcsid[] = "$Id: ngatcil_general.c,v 1.3 2011-09-08 09:21:11 cjm Exp $";
 
 /**
  * The instance of General_Struct that contains local data for this module.
@@ -423,6 +424,9 @@ int NGATCil_General_Int_List_Sort(const void *f,const void *s)
 ** ---------------------------------------------------------------------------- */
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.2  2009/01/30 18:00:52  cjm
+** Changed log messges to use log_udp verbosity (absolute) rather than bitwise.
+**
 ** Revision 1.1  2006/06/01 15:28:06  cjm
 ** Initial revision
 **

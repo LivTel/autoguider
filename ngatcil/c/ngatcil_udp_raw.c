@@ -1,11 +1,11 @@
 /* ngatcil_udp_raw.c
 ** NGATCil UDP raw transmission routines
-** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_udp_raw.c,v 1.8 2009-02-02 15:05:31 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_udp_raw.c,v 1.9 2011-09-08 09:21:11 cjm Exp $
 */
 /**
  * NGAT Cil library raw UDP packet transmission.
  * @author Chris Mottram
- * @version $Revision: 1.8 $
+ * @version $Revision: 1.9 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -20,6 +20,7 @@
 #include <netdb.h>
 #include <pthread.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <arpa/inet.h>
@@ -53,7 +54,7 @@ struct UDP_Raw_Server_Context_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: ngatcil_udp_raw.c,v 1.8 2009-02-02 15:05:31 cjm Exp $";
+static char rcsid[] = "$Id: ngatcil_udp_raw.c,v 1.9 2011-09-08 09:21:11 cjm Exp $";
 
 /* internal function declaration */
 static void *UDP_Raw_Server_Thread(void *);
@@ -662,6 +663,9 @@ static void *UDP_Raw_Server_Thread(void *arg)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.8  2009/02/02 15:05:31  cjm
+** Increased verbosity of UDP_Raw_Server_Thread.
+**
 ** Revision 1.7  2009/02/02 11:02:45  cjm
 ** Removed old comments.
 **

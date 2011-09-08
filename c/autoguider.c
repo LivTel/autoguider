@@ -1,13 +1,14 @@
 /* autoguider.c
-** $Header: /home/cjm/cvs/autoguider/c/autoguider.c,v 1.7 2009-01-30 18:01:33 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider.c,v 1.8 2011-09-08 09:23:39 cjm Exp $
 */
 /**
  * Autoguider main program.
  * @author $Author: cjm $
- * @version $Revision: 1.7 $
+ * @version $Revision: 1.8 $
  */
 #include <signal.h> /* signal handling */
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
@@ -49,7 +50,7 @@
 /**
  * Revision control system identifier.
  */
-static char rcsid[] = "$Id: autoguider.c,v 1.7 2009-01-30 18:01:33 cjm Exp $";
+static char rcsid[] = "$Id: autoguider.c,v 1.8 2011-09-08 09:23:39 cjm Exp $";
 
 /* internal routines */
 static int Autoguider_Initialise_Signal(void);
@@ -942,6 +943,9 @@ static int Parse_Arguments(int argc, char *argv[])
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.7  2009/01/30 18:01:33  cjm
+** Changed log messges to use log_udp verbosity (absolute) rather than bitwise.
+**
 ** Revision 1.6  2006/09/07 15:37:25  cjm
 ** Added CCD_Exposure_Loop_Pause_Length_Set call to Autoguider_Startup_CCD.
 **
