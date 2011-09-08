@@ -1,6 +1,6 @@
 #!/bin/csh
-# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_make_deployment,v 1.18 2010-07-20 12:22:59 cjm Exp $
-# Version: $Revision: 1.18 $
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_make_deployment,v 1.19 2011-09-08 09:20:19 cjm Exp $
+# Version: $Revision: 1.19 $
 # By $Author: cjm $
 # Make a deployment tar file.
 # This contains:
@@ -70,7 +70,7 @@ endif
 #
 echo "Creating directory structure..."
 set dir_count = 0
-set dir_list = "${deployment_dir} ${deployment_dir}/${init_d_dir} ${deployment_icc_dir} ${deployment_bin_dir} ${deployment_dir}/icc/tmp ${deployment_dir}/icc/tmp/log_archive ${deployment_dir}/icc/log ${deployment_icc_dir}/config ${deployment_icc_dir}/dprt/dark ${deployment_icc_dir}/dprt/flat ${deployment_bin_dir}/scripts ${deployment_bin_dir}/autoguider/scripts ${deployment_bin_dir}/autoguider/c/${HOSTTYPE} ${deployment_bin_dir}/autoguider/commandserver/test/${HOSTTYPE} ${deployment_bin_dir}/autoguider/ccd/andor/test/${HOSTTYPE} ${deployment_bin_dir}/autoguider/andor/examples/console/cooling ${deployment_bin_dir}/autoguider/andor/examples/console/image ${deployment_bin_dir}/autoguider/ngatcil/test/${HOSTTYPE} ${deployment_bin_dir}/ics_util/c/${HOSTTYPE} ${deployment_bin_dir}/iboot/${HOSTTYPE} ${deployment_bin_dir}/ccd/misc/${HOSTTYPE} ${deployment_bin_dir}/javalib ${deployment_bin_dir}/lib/${HOSTTYPE} ${deployment_bin_dir}/autoguider/test ${deployment_bin_dir}/libdprt/object/test/${HOSTTYPE} ${deployment_bin_dir}/log_udp/test/${HOSTTYPE} ${deployment_bin_dir}/autobooter/java ${deployment_bin_dir}/autoguider/java/gui"
+set dir_list = "${deployment_dir} ${deployment_dir}/${init_d_dir} ${deployment_icc_dir} ${deployment_bin_dir} ${deployment_dir}/icc/tmp ${deployment_dir}/icc/tmp/log_archive ${deployment_dir}/icc/log ${deployment_icc_dir}/config ${deployment_icc_dir}/dprt/dark ${deployment_icc_dir}/dprt/flat ${deployment_bin_dir}/scripts ${deployment_bin_dir}/autoguider/scripts ${deployment_bin_dir}/autoguider/c/${HOSTTYPE} ${deployment_bin_dir}/autoguider/commandserver/test/${HOSTTYPE} ${deployment_bin_dir}/autoguider/ccd/andor/test/${HOSTTYPE} ${deployment_bin_dir}/andor/examples/console/cooling ${deployment_bin_dir}/andor/examples/console/image ${deployment_bin_dir}/autoguider/ngatcil/test/${HOSTTYPE} ${deployment_bin_dir}/ics_util/c/${HOSTTYPE} ${deployment_bin_dir}/iboot/${HOSTTYPE} ${deployment_bin_dir}/ccd/misc/${HOSTTYPE} ${deployment_bin_dir}/javalib ${deployment_bin_dir}/lib/${HOSTTYPE} ${deployment_bin_dir}/autoguider/test ${deployment_bin_dir}/libdprt/object/test/${HOSTTYPE} ${deployment_bin_dir}/log_udp/test/${HOSTTYPE} ${deployment_bin_dir}/autobooter/java ${deployment_bin_dir}/autoguider/java/gui"
 # ${deployment_bin_dir}/autoguider/andor/examples/common  
 foreach dir ( ${dir_list} )
 	mkdir -p ${dir}
@@ -175,8 +175,8 @@ foreach clib ( ${clib_list} )
 # copy clib to deployment location
 	if( -r ${dev_bin_dir}/lib/${HOSTTYPE}/${clib} ) then
 	    cp ${dev_bin_dir}/lib/${HOSTTYPE}/${clib} ${deployment_bin_dir}/lib/${HOSTTYPE}/
-	else if( -r ${dev_bin_dir}/estar/lib/${clib} ) then
-	    cp ${dev_bin_dir}/estar/lib/${clib} ${deployment_bin_dir}/lib/${HOSTTYPE}/
+	else if( -r ${dev_bin_dir}/estar/lib/${HOSTTYPE}/${clib} ) then
+	    cp ${dev_bin_dir}/estar/lib/${HOSTTYPE}/${clib} ${deployment_bin_dir}/lib/${HOSTTYPE}/
 	else
 	    echo "Copy failed: Could not find ${clib} in ${dev_bin_dir}/lib/${HOSTTYPE} or ${dev_bin_dir}/estar/lib/."
 	    exit 5
@@ -206,7 +206,7 @@ echo "${clib_count} C libraries copied."
 # C programs
 #
 echo "Copying C program directories..."
-set dir_list = "autoguider/c/${HOSTTYPE} autoguider/commandserver/test/${HOSTTYPE} autoguider/ngatcil/test/${HOSTTYPE} autoguider/ccd/andor/test/${HOSTTYPE} autoguider/andor/examples/console/cooling autoguider/andor/examples/console/image ics_util/c/${HOSTTYPE} iboot/${HOSTTYPE} ccd/misc/${HOSTTYPE} libdprt/object/test/${HOSTTYPE} log_udp/test/${HOSTTYPE}"
+set dir_list = "autoguider/c/${HOSTTYPE} autoguider/commandserver/test/${HOSTTYPE} autoguider/ngatcil/test/${HOSTTYPE} autoguider/ccd/andor/test/${HOSTTYPE} andor/examples/console/cooling andor/examples/console/image ics_util/c/${HOSTTYPE} iboot/${HOSTTYPE} ccd/misc/${HOSTTYPE} libdprt/object/test/${HOSTTYPE} log_udp/test/${HOSTTYPE}"
 set dir_count = 0
 set file_count = 0
 # clean out deployment_tmp_dir
@@ -257,7 +257,7 @@ echo "${dir_count} C test program directories copied, containg ${file_count} C t
 # Scripts
 #
 echo "Copying scripts..."
-set file_list = "bin/scripts/configure_tai_data.csh bin/scripts/delete_log_files.csh bin/scripts/killhup.csh bin/scripts/fuser_check bin/autoguider/scripts/autoguider_field bin/autoguider/scripts/autoguider_get_exposure_lengths bin/autoguider/scripts/autoguider_get_guide_frames bin/autoguider/scripts/autoguider_get_guide_frames_cron bin/autoguider/scripts/autoguider_get_guide_packets bin/autoguider/scripts/autoguider_get_guide_packets_with_time bin/autoguider/scripts/autoguider_get_object_list bin/autoguider/scripts/autoguider_guide bin/autoguider/scripts/autoguider_guide_packets_graph bin/autoguider/scripts/autoguider_guide_packets_to_csv bin/autoguider/scripts/autoguider_make_dark bin/autoguider/scripts/autoguider_make_dark_list bin/autoguider/scripts/autoguider_make_flat bin/autoguider/scripts/autoguider_object_list_graph bin/autoguider/scripts/autoguider_object_list_to_csv bin/autoguider/scripts/autoguider_rm_guide_frames_cron bin/autoguider/scripts/autoguider_rm_field_frames_cron bin/autoguider/scripts/csv2gnuplot.sh bin/autoguider/scripts/print_line.awk bin/autoguider/java/gui/arse bin/autoguider/scripts/autoguider_temperature_to_csv bin/autoguider/scripts/autoguider_log_get_temperature"
+set file_list = "bin/scripts/configure_tai_data.csh bin/scripts/delete_log_files.csh bin/scripts/killhup.csh bin/scripts/fuser_check bin/autoguider/scripts/autoguider_field bin/autoguider/scripts/autoguider_get_exposure_lengths bin/autoguider/scripts/autoguider_get_guide_frames bin/autoguider/scripts/autoguider_get_guide_frames_cron bin/autoguider/scripts/autoguider_get_guide_packets bin/autoguider/scripts/autoguider_get_guide_packets_with_time bin/autoguider/scripts/autoguider_get_object_list bin/autoguider/scripts/autoguider_get_process_stats bin/autoguider/scripts/autoguider_guide bin/autoguider/scripts/autoguider_guide_packets_graph bin/autoguider/scripts/autoguider_guide_packets_to_csv bin/autoguider/scripts/autoguider_make_dark bin/autoguider/scripts/autoguider_make_dark_list bin/autoguider/scripts/autoguider_make_flat bin/autoguider/scripts/autoguider_object_list_graph bin/autoguider/scripts/autoguider_object_list_to_csv bin/autoguider/scripts/autoguider_rm_guide_frames_cron bin/autoguider/scripts/autoguider_rm_field_frames_cron bin/autoguider/scripts/csv2gnuplot.sh bin/autoguider/scripts/print_line.awk bin/autoguider/java/gui/arse bin/autoguider/scripts/autoguider_temperature_to_csv bin/autoguider/scripts/autoguider_log_get_temperature"
 #bin/scripts/autoguider_reboot bin/scripts/autoguider_engineering_mode bin/scripts/${HOSTTYPE}.random.awk bin/ccs_gui/java/icsgui bin/scripts/dprt_reduce_data
 set file_count = 0
 cd ${dev_dir}
@@ -390,6 +390,9 @@ echo "Download ${deployment_tar}.gz autoguider_tar_install icc_cshrc icc_cshrc_e
 echo "Deployment ready."
 #
 # $Log: not supported by cvs2svn $
+# Revision 1.18  2010/07/20 12:22:59  cjm
+# Added autoguider_temperature_to_csv / autoguider_log_get_temperature.
+#
 # Revision 1.17  2010/02/15 15:51:43  cjm
 # libccd_dprt.so liblt_filenames.so now required by libdprt_libfits.so.
 #
