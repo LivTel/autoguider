@@ -1,11 +1,11 @@
 /* autoguider_cil.c
 ** Autoguider CIL server routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_cil.c,v 1.12 2009-01-30 18:01:33 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_cil.c,v 1.13 2011-09-08 09:23:39 cjm Exp $
 */
 /**
  * Autoguider CIL Server routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.12 $
+ * @version $Revision: 1.13 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -39,7 +39,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_cil.c,v 1.12 2009-01-30 18:01:33 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_cil.c,v 1.13 2011-09-08 09:23:39 cjm Exp $";
 /**
  * UDP CIL port to wait for TCS commands on.
  * @see ../cdocs/ngatcil_cil.html#NGATCIL_CIL_AGS_PORT_DEFAULT
@@ -91,6 +91,8 @@ static int Autoguider_CIL_Server_Connection_Callback(int socket_id,void* message
 static int CIL_Command_TCS_Process(struct NGATCil_Cil_Packet_Struct cil_packet,void *message_buff,
 				   size_t message_length);
 static int CIL_Command_CHB_Process(struct NGATCil_Cil_Packet_Struct cil_packet,void *message_buff,
+				   size_t message_length);
+static int CIL_Command_SDB_Process(struct NGATCil_Cil_Packet_Struct cil_packet,void *message_buff,
 				   size_t message_length);
 static int CIL_Command_MCP_Process(struct NGATCil_Cil_Packet_Struct cil_packet,void *message_buff,
 				   size_t message_length);
@@ -835,7 +837,10 @@ int Autoguider_CIL_SDB_Packet_Send_Get(void)
  * @param message_buff A pointer to the memory holding the CIL message.
  * @param message_length The length of message_buff in bytes.
  * @return The routine returns TRUE if successfull, and FALSE if an error occurs.
+ * @see #CIL_Command_CHB_Process
+ * @see #CIL_Command_MCP_Process
  * @see #CIL_Command_TCS_Process
+ * @see #CIL_Command_SDB_Process
  * @see ../ngatcil/cdocs/ngatcil_cil.html#E_CIL_CMD_CLASS
  * @see ../ngatcil/cdocs/ngatcil_cil.html#E_AGS_CMD
  * @see ../ngatcil/cdocs/ngatcil_cil.html#E_AGS_BAD_CMD
@@ -914,12 +919,20 @@ static int Autoguider_CIL_Server_Connection_Callback(int socket_id,void* message
 			        "Autoguider_CIL_Server_Connection_Callback",LOG_VERBOSITY_VERY_VERBOSE,"CIL",
 				"SDB reply received (not processed yet).");
 #endif
+			if(!CIL_Command_SDB_Process(cil_packet,message_buff,message_length))
+			{
+				Autoguider_General_Error("cil","autoguider_cil.c",
+							 "Autoguider_CIL_Server_Connection_Callback",
+							 LOG_VERBOSITY_INTERMEDIATE,"CIL");
+				return FALSE;
+			}
 			break;
 		default:
 #if AUTOGUIDER_DEBUG > 1
 			Autoguider_General_Log_Format("cil","autoguider_cil.c",
 			        "Autoguider_CIL_Server_Connection_Callback",LOG_VERBOSITY_VERY_VERBOSE,"CIL",
-				"Source_Id %d not supported yet.",cil_packet.Source_Id);
+				"Packet not supported yet:Source_Id = %d,Dest_Id = %d,Class = %d,Service = %d .",
+				cil_packet.Source_Id,cil_packet.Dest_Id,cil_packet.Class,cil_packet.Service);
 #endif
 			break;
 	}
@@ -996,7 +1009,34 @@ static int CIL_Command_CHB_Process(struct NGATCil_Cil_Packet_Struct cil_packet,v
 					      CIL_CHB_Count);
 	}
 #endif
+	return TRUE;
+}
 
+/**
+ * Routine to process an SDB CIL packet (probably a reply to an SDB update previously sent by the autoguider).
+ * @param cil_packet The parsed generic CIL header.
+ * @param message_buff A pointer to the memory holding the CIL message.
+ * @param message_length The length of message_buff in bytes.
+ * @return The routine returns TRUE if successfull, and FALSE if an error occurs.
+ * @see #CIL_UDP_Socket_Fd
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#Autoguider_General_Log_Format
+ */
+static int CIL_Command_SDB_Process(struct NGATCil_Cil_Packet_Struct cil_packet,void *message_buff,
+				   size_t message_length)
+{
+	
+#if AUTOGUIDER_DEBUG > 5
+	Autoguider_General_Log_Format("cil","autoguider_cil.c","CIL_Command_SDB_Process",LOG_VERBOSITY_VERY_VERBOSE,
+				      "CIL","SDB reply received.");
+#endif
+#if AUTOGUIDER_DEBUG > 5
+	Autoguider_General_Log_Format("cil","autoguider_cil.c","CIL_Command_SDB_Process",LOG_VERBOSITY_VERY_VERBOSE,
+				      "CIL","SDB Packet:Source Id=%d, Dest_Id = %d, Class = %d, Service = %d, "
+				      "Seq_Num = %d, Timestamp secs = %d.",cil_packet.Source_Id,cil_packet.Dest_Id,
+				      cil_packet.Class,cil_packet.Service,cil_packet.Seq_Num,
+				      cil_packet.Timestamp_Seconds);
+#endif
 	return TRUE;
 }
 
@@ -1028,6 +1068,11 @@ static int CIL_Command_MCP_Process(struct NGATCil_Cil_Packet_Struct cil_packet,v
 	switch(cil_packet.Service)
 	{
 		 case E_MCP_SHUTDOWN:
+#if AUTOGUIDER_DEBUG > 9
+			Autoguider_General_Log_Format("cil","autoguider_cil.c",
+			        "CIL_Command_MCP_Process",LOG_VERBOSITY_VERY_VERBOSE,"CIL",
+				"Ignoring MCP Shutdown request.");
+#endif
 			 break;
 		case E_MCP_ACTIVATE:
 #if AUTOGUIDER_DEBUG > 9
@@ -1692,6 +1737,9 @@ static int CIL_Command_End_Session_Reply_Send(struct NGATCil_Ags_Packet_Struct c
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.12  2009/01/30 18:01:33  cjm
+** Changed log messges to use log_udp verbosity (absolute) rather than bitwise.
+**
 ** Revision 1.11  2008/12/09 17:25:55  cjm
 ** Added completed reply to safe state request, to stop SAFE STATE failing on ECI.
 **
