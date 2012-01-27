@@ -1,11 +1,11 @@
 /* autoguider_general.c
 ** Autoguider general routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_general.c,v 1.6 2011-09-08 09:23:39 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_general.c,v 1.7 2012-01-27 15:31:10 cjm Exp $
 */
 /**
  * General routines (logging, errror etc) for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.6 $
+ * @version $Revision: 1.7 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -122,7 +122,7 @@ struct General_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_general.c,v 1.6 2011-09-08 09:23:39 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_general.c,v 1.7 2012-01-27 15:31:10 cjm Exp $";
 /**
  * The instance of General_Struct that contains local data for this module.
  * This is statically initialised to the following:
@@ -831,6 +831,9 @@ char *Autoguider_General_Get_Config_Filename(void)
 ** ---------------------------------------------------------------------------- */
 /**
  * Set up a log/error file FP correctly.
+ * Bear in mind another thread may be logging to (*log_fp) whilst we are trying to close it and open a new one.
+ * We try and minimise segmentation violations on NULL logging file poiners by opening the new one first and then 
+ * assigning it atomically, before closing the old one.
  * @param directory The directory.
  * @param basename The basename, either "autoguider_log"/"autoguider_error".
  * @param log_filename A string pointer to fill with the current/new log/error filename.
@@ -839,6 +842,7 @@ char *Autoguider_General_Get_Config_Filename(void)
  */
 static void General_Log_Handler_Hourly_File_Set_Fp(char *directory,char *basename,char *log_filename,FILE **log_fp)
 {
+	FILE *old_log_fp = NULL;
 	char new_filename[AUTOGUIDER_GENERAL_FILENAME_LENGTH];
 
 	if((*log_fp) == NULL)
@@ -851,11 +855,14 @@ static void General_Log_Handler_Hourly_File_Set_Fp(char *directory,char *basenam
 		General_Log_Handler_Get_Hourly_Filename(directory,basename,new_filename);
 		if(strcmp(new_filename,log_filename) != 0)
 		{
-			fflush(*log_fp);
-			fclose(*log_fp);
-			(*log_fp) = NULL;
+			/* save current file pointer to close later */
+			old_log_fp = (*log_fp);
+			/* generate and create new log filename */
 			strcpy(log_filename,new_filename);
 			General_Log_Handler_Filename_To_Fp(log_filename,log_fp);
+			/* close old file pointer */
+			fflush(old_log_fp);
+			fclose(old_log_fp);
 		}
 	}
 }
@@ -931,6 +938,9 @@ static void General_Log_Handler_Filename_To_Fp(char *log_filename,FILE **log_fp)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.6  2011/09/08 09:23:39  cjm
+** Added #include <stdlib.h> for malloc under newer kernels.
+**
 ** Revision 1.5  2009/01/30 18:01:33  cjm
 ** Changed log messges to use log_udp verbosity (absolute) rather than bitwise.
 **
