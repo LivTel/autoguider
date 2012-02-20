@@ -1,11 +1,11 @@
 /* Command_Server source file
- * $Header: /home/cjm/cvs/autoguider/commandserver/c/command_server.c,v 1.10 2010-07-01 14:39:13 cjm Exp $
+ * $Header: /home/cjm/cvs/autoguider/commandserver/c/command_server.c,v 1.11 2012-02-20 10:26:51 cjm Exp $
  */
 
 /**
  * Routines to support a simple one command text over socket command server.
  * @author Chris Mottram,LJMU
- * @revision $Revision: 1.10 $
+ * @revision $Revision: 1.11 $
  */
 
 /**
@@ -234,7 +234,7 @@ static void *Command_Server_Server_Connection_Thread (void *user_arg);
 /**
  * Revision Control System identifier.
  */
-static const char rcsid[] = "$Id: command_server.c,v 1.10 2010-07-01 14:39:13 cjm Exp $";
+static const char rcsid[] = "$Id: command_server.c,v 1.11 2012-02-20 10:26:51 cjm Exp $";
 
 
 /*===========================================================================*/
@@ -310,11 +310,11 @@ int Command_Server_Open_Client(char *hostname,int port,Command_Server_Handle_T *
 	{
 #if COMMAND_SERVER_DEBUG > 0
 		Command_Server_Log_Format("command server","command_server.c","Command_Server_Open_Client",
-				   LOG_VERBOSITY_INTERMEDIATE,NULL,"failed to gethostbyname for %s.",hostname);
+					  LOG_VERBOSITY_INTERMEDIATE,NULL,"failed to gethostbyname for %s.",hostname);
 #endif
 		Command_Server_Error_Number = 46;
 		sprintf(Command_Server_Error_String,
-			 "Command_Server_Open_Client: gethostbyname returned NULL for hostname '%s'.",hostname);
+			"Command_Server_Open_Client: gethostbyname returned NULL for hostname '%s'.",hostname);
 		return(FALSE);
 	}
 	strcpy(host_ip,inet_ntoa(*(struct in_addr *)(host->h_addr_list[0])));
@@ -601,6 +601,18 @@ int Command_Server_Start_Server(unsigned short *port,void (*connection_callback)
 			accept((*server_context)->Listener_Handle->Socket_fd,
 				(struct sockaddr *)&(connection_context->Connection_Handle->Address),
 				(socklen_t *)&adlen);
+		if(connection_context->Connection_Handle->Socket_fd < 0)
+		{
+			i = errno;
+			Command_Server_Error_Number = 23;
+			sprintf(Command_Server_Error_String,
+				"Command_Server_Start_Server: "
+				"Accept on listener socket fd %d returned illegal fd %d, errno %d (%s).",
+				(*server_context)->Listener_Handle->Socket_fd,
+				connection_context->Connection_Handle->Socket_fd,i,strerror(i));
+			Command_Server_Error();
+			continue;
+		}
 #if COMMAND_SERVER_DEBUG > 0
 		Command_Server_Log_Format("command server","command_server.c","Command_Server_Start_Server",
 					  LOG_VERBOSITY_INTERMEDIATE,NULL,"connection accepted: "
@@ -789,8 +801,8 @@ int Command_Server_Read_Message(Command_Server_Handle_T handle,char **message)
 		{
 			read_errno = errno;
 			Command_Server_Error_Number = 42;
-			sprintf(Command_Server_Error_String,"Command_Server_Read_Message: read error(%d,%d,%s).",
-				 bytes_read,total_bytes_read,strerror(read_errno));
+			sprintf(Command_Server_Error_String,"Command_Server_Read_Message: read error(%d,%d,%d,%s).",
+				handle->Socket_fd,bytes_read,total_bytes_read,strerror(read_errno));
 			return(FALSE);
 		}
 #if COMMAND_SERVER_DEBUG > 7
@@ -1449,6 +1461,9 @@ static void Get_Current_Time(char *time_string,int string_length)
 
 /*
  * $Log: not supported by cvs2svn $
+ * Revision 1.10  2010/07/01 14:39:13  cjm
+ * Added test for gethostbyname returning NULL in Command_Server_Open_Client.
+ *
  * Revision 1.9  2010/03/05 14:50:41  cjm
  * Set adlen before calling accept. Apparently the addrlen argument is a value-
  * result parameter and should be set to the size of the structure passed into addr
