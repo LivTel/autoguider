@@ -1,6 +1,6 @@
 #!/bin/csh
-# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_make_deployment,v 1.19 2011-09-08 09:20:19 cjm Exp $
-# Version: $Revision: 1.19 $
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_make_deployment,v 1.20 2012-03-05 11:33:09 cjm Exp $
+# Version: $Revision: 1.20 $
 # By $Author: cjm $
 # Make a deployment tar file.
 # This contains:
@@ -168,7 +168,8 @@ echo "${java_class_dir_count} Java class directories copied with ${java_class_fi
 # C libraries
 #
 echo "Copying C libraries..."
-set clib_list = "libcfitsio.so libdprt_object.so libdprt_libfits.so libccd_dprt.so liblt_filenames.so libngatastro.so libautoguider_commandserver.so libautoguider_ccd_general.so libautoguider_ccd_andor.so libautoguider_ngatcil.so libestar_config.so liblog_udp.so"
+set clib_list = "libcfitsio.so libdprt_object.so libdprt_libfits.so liblt_filenames.so libngatastro.so libautoguider_commandserver.so libautoguider_ccd_general.so libautoguider_ccd_andor.so libautoguider_ngatcil.so libestar_config.so liblog_udp.so"
+# libccd_dprt.so 
 set clib_count = 0
 foreach clib ( ${clib_list} )
 	echo "C Library : ${clib}"
@@ -390,6 +391,9 @@ echo "Download ${deployment_tar}.gz autoguider_tar_install icc_cshrc icc_cshrc_e
 echo "Deployment ready."
 #
 # $Log: not supported by cvs2svn $
+# Revision 1.19  2011/09/08 09:20:19  cjm
+# Lots os changes.
+#
 # Revision 1.18  2010/07/20 12:22:59  cjm
 # Added autoguider_temperature_to_csv / autoguider_log_get_temperature.
 #
