@@ -1,5 +1,5 @@
 /* autoguider_field.h
-** $Header: /home/cjm/cvs/autoguider/include/autoguider_field.h,v 1.6 2009-04-29 10:55:39 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/include/autoguider_field.h,v 1.7 2012-03-07 14:51:45 cjm Exp $
 */
 #ifndef AUTOGUIDER_FIELD_H
 #define AUTOGUIDER_FIELD_H
@@ -8,6 +8,7 @@ extern int Autoguider_Field_Initialise(void);
 extern int Autoguider_Field_Exposure_Length_Set(int ms,int lock);
 extern int Autoguider_Field(void);
 extern int Autoguider_Field_Expose(void);
+extern void Autoguider_Field_SDB_State_Failed_Then_Idle_Set(void);
 extern int Autoguider_Field_Is_Fielding(void);
 extern int Autoguider_Field_Get_Last_Buffer_Index(void);
 extern int Autoguider_Field_Set_Do_Dark_Subtract(int doit);
@@ -27,6 +28,9 @@ extern int Autoguider_Field_Save_FITS(int successful,int object_index);
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.6  2009/04/29 10:55:39  cjm
+** Change to Autoguider_Field_Save_FITS calls to allow saving of guide star FITS header information.
+**
 ** Revision 1.5  2007/11/05 18:18:18  cjm
 ** Added: Autoguider_Field_Get_Save_FITS_Failed, Autoguider_Field_Get_Save_FITS_Successful, Autoguider_Field_Save_FITS.
 ** This allows Field FITS images to be saved from autoguider_command.c.
