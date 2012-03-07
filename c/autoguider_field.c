@@ -1,11 +1,11 @@
 /* autoguider_field.c
 ** Autoguider field routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_field.c,v 1.15 2009-04-29 10:55:28 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_field.c,v 1.16 2012-03-07 14:57:55 cjm Exp $
 */
 /**
  * Field routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.15 $
+ * @version $Revision: 1.16 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -128,7 +128,7 @@ struct Field_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_field.c,v 1.15 2009-04-29 10:55:28 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_field.c,v 1.16 2012-03-07 14:57:55 cjm Exp $";
 /**
  * Instance of field data.
  * @see #Field_Struct
@@ -306,6 +306,7 @@ int Autoguider_Field_Exposure_Length_Set(int exposure_length,int lock)
  * @see #Field_Reduce
  * @see #Field_Set_Dimensions
  * @see #Field_Check_Done
+ * @see #Autoguider_Field_SDB_State_Failed_Then_Idle_Set(
  * @see autoguider_buffer.html#Autoguider_Buffer_Raw_Field_Lock
  * @see autoguider_buffer.html#Autoguider_Buffer_Raw_Field_Unlock
  * @see autoguider_buffer.html#Autoguider_Buffer_Get_Field_Pixel_Count
@@ -377,7 +378,7 @@ int Autoguider_Field(void)
 	if(!Field_Set_Dimensions())
 	{
 		/* update SDB */
-		Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE);
+		Autoguider_Field_SDB_State_Failed_Then_Idle_Set();
 		/* reset fielding flag */
 		Field_Data.Is_Fielding = FALSE;
 		return FALSE;
@@ -393,7 +394,7 @@ int Autoguider_Field(void)
 	if(retval == FALSE)
 	{
 		/* update SDB */
-		Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE);
+		Autoguider_Field_SDB_State_Failed_Then_Idle_Set();
 		/* reset fielding flag */
 		Field_Data.Is_Fielding = FALSE;
 		Autoguider_General_Error_Number = 504;
@@ -411,7 +412,7 @@ int Autoguider_Field(void)
 		if(retval == FALSE)
 		{
 			/* update SDB */
-			Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE);
+			Autoguider_Field_SDB_State_Failed_Then_Idle_Set();
 			/* reset fielding flag */
 			Field_Data.Is_Fielding = FALSE;
 			Autoguider_General_Error_Number = 505;
@@ -439,7 +440,7 @@ int Autoguider_Field(void)
 	if(!Autoguider_Dark_Get_Exposure_Length_Nearest(&Field_Data.Exposure_Length,&dark_exposure_length_index))
 	{
 		/* update SDB */
-		Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE);
+		Autoguider_Field_SDB_State_Failed_Then_Idle_Set();
 		/* reset fielding flag */
 		Field_Data.Is_Fielding = FALSE;
 		return FALSE;
@@ -455,7 +456,7 @@ int Autoguider_Field(void)
 	if(retval == FALSE)
 	{
 		/* update SDB */
-		Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE);
+		Autoguider_Field_SDB_State_Failed_Then_Idle_Set();
 		/* reset fielding flag */
 		Field_Data.Is_Fielding = FALSE;
 		return FALSE;
@@ -485,7 +486,7 @@ int Autoguider_Field(void)
 		if(retval == FALSE)
 		{
 			/* update SDB */
-			Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE);
+			Autoguider_Field_SDB_State_Failed_Then_Idle_Set();
 			/* reset fielding flag */
 			Field_Data.Is_Fielding = FALSE;
 			return FALSE;
@@ -503,7 +504,7 @@ int Autoguider_Field(void)
 		if(retval == FALSE)
 		{
 			/* update SDB */
-			Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE);
+			Autoguider_Field_SDB_State_Failed_Then_Idle_Set();
 			/* reset fielding flag */
 			Field_Data.Is_Fielding = FALSE;
 			/* reset in use buffer index */
@@ -530,7 +531,7 @@ int Autoguider_Field(void)
 		if(retval == FALSE)
 		{
 			/* update SDB */
-			Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE);
+			Autoguider_Field_SDB_State_Failed_Then_Idle_Set();
 			/* reset fielding flag */
 			Field_Data.Is_Fielding = FALSE;
 			/* attempt buffer unlock, and reset in use index */
@@ -547,7 +548,7 @@ int Autoguider_Field(void)
 								Field_Data.Exposure_Length))
 		{
 			Autoguider_General_Error("field","autoguider_field.c","Autoguider_Field",
-				      LOG_VERBOSITY_VERBOSE,"FIELD");
+						 LOG_VERBOSITY_VERBOSE,"FIELD");
 		}
 		retval = CCD_Exposure_Get_Exposure_Start_Time(&start_time);
 		if(retval == TRUE)
@@ -555,7 +556,7 @@ int Autoguider_Field(void)
 			if(!Autoguider_Buffer_Field_Exposure_Start_Time_Set(Field_Data.In_Use_Buffer_Index,start_time))
 			{
 				Autoguider_General_Error("field","autoguider_field.c","Autoguider_Field",
-				      LOG_VERBOSITY_VERBOSE,"FIELD");
+							 LOG_VERBOSITY_VERBOSE,"FIELD");
 			}
 		}
 		retval = CCD_Temperature_Get(&current_temperature,&temperature_status);
@@ -587,7 +588,7 @@ int Autoguider_Field(void)
 		if(retval == FALSE)
 		{
 			/* update SDB */
-			Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE);
+			Autoguider_Field_SDB_State_Failed_Then_Idle_Set();
 			/* reset fielding flag */
 			Field_Data.Is_Fielding = FALSE;
 			Autoguider_General_Error_Number = 508;
@@ -605,7 +606,7 @@ int Autoguider_Field(void)
 		if(retval == FALSE)
 		{
 			/* update SDB */
-			Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE);
+			Autoguider_Field_SDB_State_Failed_Then_Idle_Set();
 			/* reset fielding flag */
 			Field_Data.Is_Fielding = FALSE;
 			/* to facilitate save failed FITS :- Field_Data.Last_Buffer_Index set to in use buffer index */
@@ -627,7 +628,7 @@ int Autoguider_Field(void)
 		if(!Field_Check_Done(&done,&dark_exposure_length_index))
 		{
 			/* update SDB */
-			Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE);
+			Autoguider_Field_SDB_State_Failed_Then_Idle_Set();
 			/* reset fielding flag */
 			Field_Data.Is_Fielding = FALSE;
 			return FALSE;
@@ -940,6 +941,42 @@ int Autoguider_Field_Expose(void)
 			       LOG_VERBOSITY_TERSE,"FIELD","finished.");
 #endif
 	return TRUE;
+}
+
+/**
+ * Method to set the SDB AGG State, firstly to FAILED, to indicate the field loop failed to find a guide star,
+ * and then IDLE, to indicate the autoguider is again available for autoguiding.
+ * Any errors are logged.
+ * @see autoguider_cil.html#Autoguider_CIL_SDB_Packet_State_Set
+ */ 
+void Autoguider_Field_SDB_State_Failed_Then_Idle_Set(void)
+{
+	/* update SDB FAILED*/
+	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_FAILED))
+	{
+		Autoguider_General_Error("field","autoguider_field.c",
+					 "Autoguider_Field_SDB_State_Failed_Then_Idle_Set",
+					 LOG_VERBOSITY_VERBOSE,"FIELD"); /* no need to fail */
+	}
+	if(!Autoguider_CIL_SDB_Packet_Send())
+	{
+		Autoguider_General_Error("field","autoguider_field.c",
+					 "Autoguider_Field_SDB_State_Failed_Then_Idle_Set",
+					 LOG_VERBOSITY_VERBOSE,"FIELD"); /* no need to fail */
+	}
+	/* update SDB IDLE */
+	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
+	{
+		Autoguider_General_Error("field","autoguider_field.c",
+					 "Autoguider_Field_SDB_State_Failed_Then_Idle_Set",
+					 LOG_VERBOSITY_VERBOSE,"FIELD"); /* no need to fail */
+	}
+	if(!Autoguider_CIL_SDB_Packet_Send())
+	{
+		Autoguider_General_Error("field","autoguider_field.c",
+					 "Autoguider_Field_SDB_State_Failed_Then_Idle_Set",
+					 LOG_VERBOSITY_VERBOSE,"FIELD"); /* no need to fail */
+	}
 }
 
 /**
@@ -1817,6 +1854,9 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.15  2009/04/29 10:55:28  cjm
+** Change to Autoguider_Field_Save_FITS calls to allow saving of guide star FITS header information.
+**
 ** Revision 1.14  2009/01/30 18:01:33  cjm
 ** Changed log messges to use log_udp verbosity (absolute) rather than bitwise.
 **
