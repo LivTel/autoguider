@@ -1,11 +1,11 @@
 /* ngatcil_udp_raw.c
 ** NGATCil UDP raw transmission routines
-** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_udp_raw.c,v 1.11 2012-03-05 11:20:50 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_udp_raw.c,v 1.12 2012-03-07 11:07:52 cjm Exp $
 */
 /**
  * NGAT Cil library raw UDP packet transmission.
  * @author Chris Mottram
- * @version $Revision: 1.11 $
+ * @version $Revision: 1.12 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -58,11 +58,11 @@ struct UDP_Raw_Server_Context_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: ngatcil_udp_raw.c,v 1.11 2012-03-05 11:20:50 cjm Exp $";
+static char rcsid[] = "$Id: ngatcil_udp_raw.c,v 1.12 2012-03-07 11:07:52 cjm Exp $";
 
 /* internal function declaration */
 static void *UDP_Raw_Server_Thread(void *);
-static int Get_Host_By_Name(const char *name,in_addr_t *host_addr_zero);
+static int Get_Host_By_Name(const char *name,struct in_addr *inaddr);
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -83,6 +83,7 @@ int NGATCil_UDP_Open(char *hostname,int port_number,int *socket_id)
 {
 	int socket_errno,retval;
 	unsigned short int network_port_number;
+	struct in_addr inaddr;
 	in_addr_t saddr;
 	struct hostent *host_entry;
 	struct sockaddr_in server;
@@ -122,7 +123,7 @@ int NGATCil_UDP_Open(char *hostname,int port_number,int *socket_id)
 					   hostname);
 #endif
 		/* try getting by hostname instead */
-		if(!Get_Host_By_Name(hostname,&saddr))
+		if(!Get_Host_By_Name(hostname,&inaddr))
 		{
 			shutdown((*socket_id),SHUT_RDWR);
 			(*socket_id) = 0;
@@ -131,6 +132,7 @@ int NGATCil_UDP_Open(char *hostname,int port_number,int *socket_id)
 				hostname);
 			return FALSE;
 		}
+		saddr = inaddr.s_addr;
 	}
 	/* set up server socket */
 	memset((char *) &server,0,sizeof(server));
@@ -270,6 +272,7 @@ int NGATCil_UDP_Raw_Send(int socket_id,void *message_buff,size_t message_buff_le
 int NGATCil_UDP_Raw_Send_To(int socket_fd,char *hostname,int port_number,void *message_buff,size_t message_buff_len)
 {
 	int retval,send_errno;
+	struct in_addr inaddr;
 	in_addr_t saddr;
 	struct sockaddr_in to_addr;
 	struct hostent *host_entry;
@@ -304,13 +307,14 @@ int NGATCil_UDP_Raw_Send_To(int socket_fd,char *hostname,int port_number,void *m
 					   "inet_addr didn't work:trying gethostbyname(%s).",hostname);
 #endif
 		/* try getting by hostname instead */
-		if(!Get_Host_By_Name(hostname,&saddr))
+		if(!Get_Host_By_Name(hostname,&inaddr))
 		{
 			NGATCil_General_Error_Number = 121;
 			sprintf(NGATCil_General_Error_String,
 				"NGATCil_UDP_Raw_Send_To:Failed to get host address from (%s).",hostname);
 			return FALSE;
 		}
+		saddr = inaddr.s_addr;
 	}
 	/* Formulate the socket address */
 	to_addr.sin_family = AF_INET;
@@ -676,12 +680,11 @@ static void *UDP_Raw_Server_Thread(void *arg)
  * in the process can lead to the pointers returned from the first call being freed leading to SIGSEGV.
  * This routine wraps gethostbyname_r, the re-entrant version of that routine.
  * @param name The hostname to translate. This should be allocated, zero-terminated and non-null.
- * @param host_addr_zero The address of a in_addr_t (actually an unsigned 32 bit int in Linux).
- *       On return filled with a null-terminated, network byte ordered copy of the first hostent host address
- *       list entry returned by gethostbyname_r. NULL can be returned on failure.
+ * @param inaddr The address of a struct in_addr, filled by the first entry returned by gethostbyname_r. 
+ *        NULL can be returned on failure.
  * @return The routine returns TRUE on success and FALSE on failure.
  */
-static int Get_Host_By_Name(const char *name,in_addr_t *host_addr_zero)
+static int Get_Host_By_Name(const char *name,struct in_addr *inaddr)
 {
 	struct hostent hostbuf,*hp = NULL;
 	size_t hstbuflen;
@@ -696,10 +699,10 @@ static int Get_Host_By_Name(const char *name,in_addr_t *host_addr_zero)
 		sprintf(NGATCil_General_Error_String,"Get_Host_By_Name:name was NULL.");
 		return FALSE;
 	}
-	if(host_addr_zero == NULL)
+	if(inaddr == NULL)
 	{
 		NGATCil_General_Error_Number = 127;
-		sprintf(NGATCil_General_Error_String,"Get_Host_By_Name:host_addr_zero was NULL.");
+		sprintf(NGATCil_General_Error_String,"Get_Host_By_Name:inaddr was NULL.");
 		return FALSE;
 	}
 #if NGATCIL_DEBUG > 5
@@ -760,21 +763,27 @@ static int Get_Host_By_Name(const char *name,in_addr_t *host_addr_zero)
 		return FALSE;
 	}
 	/* copy result */
-	(*host_addr_zero) = (in_addr_t)(hp->h_addr_list[0]);
+	(*inaddr) = *(struct in_addr *)(hp->h_addr_list[0]);
 	/* free buffer*/
 	if(tmphstbuf != NULL)
 		free(tmphstbuf);
 #if NGATCIL_DEBUG > 5
 	NGATCil_General_Log_Format("ngatcil","ngatcil_udp_raw.c","Get_Host_By_Name",LOG_VERBOSITY_VERY_VERBOSE,NULL,
 				   "Get_Host_By_Name(%s) Finished and returned %u.%u.%u.%u (network byte ordered).",
-				   name,((*host_addr_zero)&0xff),(((*host_addr_zero)>>8)&0xff),
-				   (((*host_addr_zero)>>16)&0xff),(((*host_addr_zero)>>24)&0xff));
+				   name,((*inaddr).s_addr&0xff),(((*inaddr).s_addr>>8)&0xff),
+				   (((*inaddr).s_addr>>16)&0xff),(((*inaddr).s_addr>>24)&0xff));
 #endif /* NGATCIL_DEBUG */
 	return TRUE;
 }
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.11  2012/03/05 11:20:50  cjm
+** Changed the way Get_Host_By_Name works, it now returns an in_addr_t.
+** Got rid of handling the results of gethostbyname_r as a string, as
+** handling of the null terminator may cause buffer overflows (as the NULL terminator
+** does not really exist).
+**
 ** Revision 1.10  2012/01/26 15:28:43  cjm
 ** Swapped gethostbyname to Get_Host_By_Name.
 **
