@@ -1,11 +1,11 @@
 /* autoguider_command.c
 ** Autoguider command routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_command.c,v 1.16 2011-06-23 11:02:00 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_command.c,v 1.17 2012-03-07 14:56:26 cjm Exp $
 */
 /**
  * Command routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.16 $
+ * @version $Revision: 1.17 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -46,7 +46,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_command.c,v 1.16 2011-06-23 11:02:00 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_command.c,v 1.17 2012-03-07 14:56:26 cjm Exp $";
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -320,6 +320,7 @@ int Autoguider_Command_Autoguide(char *command_string,char **reply_string)
  * @see autoguider_cil.html#Autoguider_CIL_SDB_Packet_State_Set
  * @see autoguider_cil.html#Autoguider_CIL_SDB_Packet_Send
  * @see autoguider_field.html#Autoguider_Field
+ * @see autoguider_field.html#Autoguider_Field_SDB_State_Failed_Then_Idle_Set
  * @see autoguider_field.html#Autoguider_Field_Save_FITS
  * @see autoguider_field.html#Autoguider_Field_Get_Save_FITS_Failed
  * @see autoguider_field.html#Autoguider_Field_Get_Save_FITS_Successful
@@ -343,6 +344,7 @@ int Autoguider_Command_Autoguide_On(enum COMMAND_AG_ON_TYPE on_type,float pixel_
 	retval = Autoguider_Field();
 	if(retval == FALSE)
 	{
+		/* SDB should already have been updated by Autoguider_Field in this case. */
 		/* save of the failed Field image if configured to do so. */
 		if(Autoguider_Field_Get_Save_FITS_Failed())
 		{
@@ -364,16 +366,7 @@ int Autoguider_Command_Autoguide_On(enum COMMAND_AG_ON_TYPE on_type,float pixel_
 	if(retval == FALSE)
 	{
 		/* update SDB */
-		if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
-		{
-			Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Autoguide_On",
-						 LOG_VERBOSITY_TERSE,"COMMAND"); /* no need to fail */
-		}
-		if(!Autoguider_CIL_SDB_Packet_Send())
-		{
-			Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Autoguide_On",
-						 LOG_VERBOSITY_TERSE,"COMMAND"); /* no need to fail */
-		}
+		Autoguider_Field_SDB_State_Failed_Then_Idle_Set();
 		/* save of the failed Field image if configured to do so. */
 		if(Autoguider_Field_Get_Save_FITS_Failed())
 		{
@@ -396,16 +389,7 @@ int Autoguider_Command_Autoguide_On(enum COMMAND_AG_ON_TYPE on_type,float pixel_
 	if(retval == FALSE)
 	{
 		/* update SDB */
-		if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
-		{
-			Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Autoguide_On",
-						 LOG_VERBOSITY_TERSE,"COMMAND"); /* no need to fail */
-		}
-		if(!Autoguider_CIL_SDB_Packet_Send())
-		{
-			Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Autoguide_On",
-						 LOG_VERBOSITY_TERSE,"COMMAND"); /* no need to fail */
-		}
+		Autoguider_Field_SDB_State_Failed_Then_Idle_Set();
 		/* save of the failed Field image if configured to do so. */
 		if(Autoguider_Field_Get_Save_FITS_Failed())
 		{
@@ -436,16 +420,7 @@ int Autoguider_Command_Autoguide_On(enum COMMAND_AG_ON_TYPE on_type,float pixel_
 	if(retval == FALSE)
 	{
 		/* update SDB */
-		if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
-		{
-			Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Autoguide_On",
-						 LOG_VERBOSITY_TERSE,"COMMAND"); /* no need to fail */
-		}
-		if(!Autoguider_CIL_SDB_Packet_Send())
-		{
-			Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Autoguide_On",
-						 LOG_VERBOSITY_TERSE,"COMMAND"); /* no need to fail */
-		}
+		Autoguider_Field_SDB_State_Failed_Then_Idle_Set();
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 1
@@ -1869,6 +1844,9 @@ int Autoguider_Command_Log_Level(char *command_string,char **reply_string)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.16  2011/06/23 11:02:00  cjm
+** Fixed dodgy sprintf in "status temperature status" command.
+**
 ** Revision 1.15  2010/07/29 09:53:33  cjm
 ** CHanged "status temperature get" command.
 ** If CCD_Temperature_Get fails (because we are acquiring an image),
