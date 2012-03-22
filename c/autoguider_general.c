@@ -1,11 +1,11 @@
 /* autoguider_general.c
 ** Autoguider general routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_general.c,v 1.7 2012-01-27 15:31:10 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_general.c,v 1.8 2012-03-22 11:05:33 cjm Exp $
 */
 /**
  * General routines (logging, errror etc) for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.7 $
+ * @version $Revision: 1.8 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -85,8 +85,10 @@ char Autoguider_General_Error_String[AUTOGUIDER_GENERAL_ERROR_STRING_LENGTH] = "
  * <dt>Log_Directory</dt> <dd>Directory to write log messages to.</dd>
  * <dt>Log_Filename</dt> <dd>Filename to write log messages to.</dd>
  * <dt>Log_FP</dt> <dd>File pointer to write log messages to.</dd>
+ * <dt>Log_Fp_Mutex</dt> <dd>Mutex to lock whilst writing to, or changing, Log_Fp.</dd>
  * <dt>Error_Filename</dt> <dd>Filename to write error messages to.</dd>
  * <dt>Error_FP</dt> <dd>File pointer to write error messages to.</dd>
+ * <dt>Error_Fp_Mutex</dt> <dd>Mutex to lock whilst writing to, or changing, Error_Fp.</dd>
  * <dt>Config_Filename</dt> <dd>String containing the filename of the config file. Must be allocated before use.</dd>
  * <dt>Log_UDP_Active</dt> <dd>A boolean, TRUE if we should send log records to the log server using UDP.</dd>
  * <dt>Log_UDP_Hostname</dt> <dd>String containing the Hostname to send log_udp records to.</dd>
@@ -109,8 +111,10 @@ struct General_Struct
 	char Log_Directory[AUTOGUIDER_GENERAL_FILENAME_LENGTH];
 	char Log_Filename[AUTOGUIDER_GENERAL_FILENAME_LENGTH];
 	FILE *Log_Fp;
+	pthread_mutex_t Log_Fp_Mutex;
 	char Error_Filename[AUTOGUIDER_GENERAL_FILENAME_LENGTH];
 	FILE *Error_Fp;
+	pthread_mutex_t Error_Fp_Mutex;
 	char *Config_Filename;
 	int Log_UDP_Active;
 	char Log_UDP_Hostname[AUTOGUIDER_GENERAL_FILENAME_LENGTH];
@@ -122,7 +126,7 @@ struct General_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_general.c,v 1.7 2012-01-27 15:31:10 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_general.c,v 1.8 2012-03-22 11:05:33 cjm Exp $";
 /**
  * The instance of General_Struct that contains local data for this module.
  * This is statically initialised to the following:
@@ -133,8 +137,10 @@ static char rcsid[] = "$Id: autoguider_general.c,v 1.7 2012-01-27 15:31:10 cjm E
  * <dt>Log_Directory</dt> <dd>NULL</dd>
  * <dt>Log_Filename</dt> <dd>autoguider_log.txt</dd>
  * <dt>Log_FP</dt> <dd>NULL</dd>
+ * <dtLog_Fp_Mutex</dt> <dd>PTHREAD_MUTEX_INITIALIZER</dd>
  * <dt>Log_Filename</dt> <dd>autoguider_error.txt</dd>
  * <dt>Error_FP</dt> <dd>NULL</dd>
+ * <dt>Error_FP_Mutex</dt> <dd>PTHREAD_MUTEX_INITIALIZER</dd>
  * <dt>Config_Filename</dt> <dd>NULL</dd>
  * <dt>Log_UDP_Active</dt> <dd>FALSE</dd>
  * <dt>Log_UDP_Hostname</dt> <dd>""</dd>
@@ -145,7 +151,8 @@ static char rcsid[] = "$Id: autoguider_general.c,v 1.7 2012-01-27 15:31:10 cjm E
  */
 static struct General_Struct General_Data = 
 {
-        {NULL,NULL,NULL,NULL,NULL},NULL,0,"","autoguider_log.txt",NULL,"autoguider_error.txt",NULL,NULL,FALSE,"",0,-1
+        {NULL,NULL,NULL,NULL,NULL},NULL,0,"","autoguider_log.txt",NULL,PTHREAD_MUTEX_INITIALIZER,
+	"autoguider_error.txt",NULL,PTHREAD_MUTEX_INITIALIZER,NULL,FALSE,"",0,-1
 };
 
 /* internal functions */
@@ -162,6 +169,9 @@ static void General_Log_Handler_Filename_To_Fp(char *log_filename,FILE **log_fp)
  * to print the error string and 
  * get a string copy of it, only one of the error routines can be called after an error has been generated .
  * A second call to one of these routines will generate a 'Error not found' error!.
+ * The General_Data.Error_Fp_Mutex is locked before potentially being changed by calling 
+ * General_Log_Handler_Hourly_File_Set_Fp, and remains locked whilst being written to, and ir unlocked
+ * at the end of the function.
  * @param sub_system The sub system. Can be NULL.
  * @param source_file The source filename. Can be NULL.
  * @param function The function calling the log. Can be NULL.
@@ -171,6 +181,8 @@ static void General_Log_Handler_Filename_To_Fp(char *log_filename,FILE **log_fp)
  * @see #Autoguider_General_Get_Current_Time_String
  * @see #Autoguider_General_Error_Number
  * @see #Autoguider_General_Error_String
+ * @see #Autoguider_General_Mutex_Lock
+ * @see #Autoguider_General_Mutex_Unlock
  * @see #General_Data
  * @see ../../libdprt/object/cdocs/object.html#Object_Get_Error_Number
  * @see ../../libdprt/object/cdocs/object.html#Object_Error_To_String
@@ -187,6 +199,13 @@ void Autoguider_General_Error(char *sub_system,char *source_filename,char *funct
 	char time_string[32];
 	int found = FALSE;
 
+	/* lock mutex */
+	if(!Autoguider_General_Mutex_Lock(&(General_Data.Error_Fp_Mutex)))
+	{
+		Autoguider_General_Get_Current_Time_String(time_string,32);
+		fprintf(stderr,"%s Autoguider_General:Error(%d) : %s\n",time_string,
+			Autoguider_General_Error_Number,Autoguider_General_Error_String);
+	} 
 	/* change error files if necessary */
 	General_Log_Handler_Hourly_File_Set_Fp(General_Data.Log_Directory,"autoguider_error",
 					       General_Data.Error_Filename,&General_Data.Error_Fp);
@@ -196,6 +215,7 @@ void Autoguider_General_Error(char *sub_system,char *source_filename,char *funct
 		fflush(stderr);
 		General_Data.Error_Fp = stderr;
 	}
+	/* write errors to General_Data.Error_Fp */
 	strcpy(buff,"");
 	if(Object_Get_Error_Number())
 	{
@@ -241,6 +261,13 @@ void Autoguider_General_Error(char *sub_system,char *source_filename,char *funct
 		fprintf(General_Data.Error_Fp,"Error:Autoguider_General_Error:Error not found\n");
 		fflush(General_Data.Error_Fp);
 	}
+	/* unlock mutex */
+	if(!Autoguider_General_Mutex_Unlock(&(General_Data.Error_Fp_Mutex)))
+	{
+		Autoguider_General_Get_Current_Time_String(time_string,32);
+		fprintf(stderr,"%s Autoguider_General:Error(%d) : %s\n",time_string,
+			Autoguider_General_Error_Number,Autoguider_General_Error_String);
+	} 
 }
 
 /**
@@ -536,6 +563,9 @@ void Autoguider_General_Log_Handler_Log_Fp(char *sub_system,char *source_filenam
  * A log handler to be used for the General_Data.Log_Handler function.
  * First calls General_Log_Handler_Hourly_File_Set_Fp to open/check the right log file is open.
  * Prints the message to General_Data.Log_Fp, terminated by a newline, and then flushes the stream.
+ * The General_Data.Log_Fp_Mutex islocked around the complete operation. This is because General_Data.Log_Fp's
+ * value can be changed during this function call (once an hour), and another thread may want to log during this
+ * value changing process, causing a Segmentation Violation unless this is locked.
  * @param sub_system The sub system. Can be NULL.
  * @param source_file The source filename. Can be NULL.
  * @param function The function calling the log. Can be NULL.
@@ -544,6 +574,9 @@ void Autoguider_General_Log_Handler_Log_Fp(char *sub_system,char *source_filenam
  * @param category What sort of information is the message. Designed to be used as a filter. Can be NULL.
  * @param string The log message to be logged. 
  * @see #Autoguider_General_Get_Current_Time_String
+ * @see #Autoguider_General_Mutex_Lock
+ * @see #Autoguider_General_Mutex_Unlock
+ * @see #Autoguider_General_Error
  * @see #General_Data
  * @see #General_Log_Handler_Log_Hourly_File_Set_Fp
  */
@@ -554,11 +587,27 @@ void Autoguider_General_Log_Handler_Log_Hourly_File(char *sub_system,char *sourc
 
 	if(message == NULL)
 		return;
+	/* lock mutex */
+	if(!Autoguider_General_Mutex_Lock(&(General_Data.Log_Fp_Mutex)))
+	{
+		Autoguider_General_Get_Current_Time_String(time_string,32);
+		fprintf(stderr,"%s Autoguider_General:Error(%d) : %s\n",time_string,
+			Autoguider_General_Error_Number,Autoguider_General_Error_String);
+	} 
+	/* check file pointer is using right filename, change filenames if the hour has rolled over */
 	General_Log_Handler_Hourly_File_Set_Fp(General_Data.Log_Directory,"autoguider_log",General_Data.Log_Filename,
 					       &General_Data.Log_Fp);
+	/* actually log messages, and flush file pointer */
 	Autoguider_General_Get_Current_Time_String(time_string,32);
 	fprintf(General_Data.Log_Fp,"%s : %s:%s\n",time_string,function,message);
 	fflush(General_Data.Log_Fp);
+	/* unlock mutex */
+	if(!Autoguider_General_Mutex_Unlock(&(General_Data.Log_Fp_Mutex)))
+	{
+		Autoguider_General_Get_Current_Time_String(time_string,32);
+		fprintf(stderr,"%s Autoguider_General:Error(%d) : %s\n",time_string,
+			Autoguider_General_Error_Number,Autoguider_General_Error_String);
+	} 
 }
 
 /**
@@ -938,6 +987,12 @@ static void General_Log_Handler_Filename_To_Fp(char *log_filename,FILE **log_fp)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.7  2012/01/27 15:31:10  cjm
+** Changed General_Log_Handler_Hourly_File_Set_Fp to open new log file pointers before
+** flushing and closing the old log file pointers, when the log file changes (every hour).
+** This means General_Data.Log_Fp can now never be NULL (after first assignment), which should
+** reduce the chance of seg faults in the fprintf in Autoguider_General_Log_Handler_Log_Hourly_File.
+**
 ** Revision 1.6  2011/09/08 09:23:39  cjm
 ** Added #include <stdlib.h> for malloc under newer kernels.
 **
