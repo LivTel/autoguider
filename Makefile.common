@@ -1,0 +1,14 @@
+# $Header: /home/cjm/cvs/autoguider/Makefile.common,v 1.1 2013-10-28 10:58:42 cjm Exp $
+
+SHELL			=	/bin/sh
+AUTOGUIDER_HOME		=	autoguider
+AUTOGUIDER_SRC_HOME	= 	$(LT_SRC_HOME)/$(AUTOGUIDER_HOME)
+AUTOGUIDER_BIN_HOME	= 	$(LT_BIN_HOME)/$(AUTOGUIDER_HOME)
+AUTOGUIDER_DOC_HOME	= 	$(LT_DOC_HOME)/$(AUTOGUIDER_HOME)
+
+LOG_UDP_HOME		=	log_udp
+LOG_UDP_SRC_HOME	=	$(LT_SRC_HOME)/$(LOG_UDP_HOME)
+
+#
+# $Log: not supported by cvs2svn $
+#
