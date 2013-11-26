@@ -1,0 +1,12 @@
+# $Header: /home/cjm/cvs/autoguider/ccd/fli/Makefile.common,v 1.1 2013-11-26 16:28:11 cjm Exp $
+
+SHELL				=	/bin/sh
+FLI_HOME			= 	fli
+FLI_LIBRARYNAME			= 	lib$(AUTOGUIDER_HOME)_$(CCD_HOME)_$(FLI_HOME)
+AUTOGUIDER_FLI_HOME		=	fli
+AUTOGUIDER_FLI_SRC_HOME		= 	$(LT_SRC_HOME)/$(AUTOGUIDER_HOME)/$(CCD_HOME)/$(FLI_HOME)
+AUTOGUIDER_FLI_BIN_HOME		= 	$(LT_BIN_HOME)/$(AUTOGUIDER_HOME)/$(CCD_HOME)/$(FLI_HOME)
+AUTOGUIDER_FLI_DOC_HOME		= 	$(LT_DOC_HOME)/$(AUTOGUIDER_HOME)/$(CCD_HOME)/$(FLI_HOME)
+#
+# $Log: not supported by cvs2svn $
+#

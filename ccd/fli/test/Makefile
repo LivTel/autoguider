@@ -1,0 +1,34 @@
+# $Header: /home/cjm/cvs/autoguider/ccd/fli/test/Makefile,v 1.1 2013-11-26 16:28:46 cjm Exp $
+
+include ../../../../Makefile.common
+include ../../../Makefile.common
+include ../../Makefile.common
+include ../Makefile.common
+
+BINDIR			= $(AUTOGUIDER_FLI_BIN_HOME)/test/$(HOSTTYPE)
+INCDIR 			= $(AUTOGUIDER_FLI_SRC_HOME)/include
+DOCSDIR 		= $(AUTOGUIDER_FLI_DOC_HOME)/test
+
+# fli library
+FLI_CFLAGS 		= -I$(AUTOGUIDER_SRC_HOME)/$(AUTOGUIDER_FLI_HOME)/libfli-1.104/
+FLI_LDFLAGS 		= -L$(AUTOGUIDER_SRC_HOME)/$(AUTOGUIDER_FLI_HOME)/libfli-1.104/ -lfli
+
+# CFITSIO library
+CFITSIO_CFLAGS		= -I$(CFITSIOINCDIR) 
+CFITSIO_LDFLAGS		= -L$(LT_LIB_HOME) -lcfitsio
+
+CFLAGS 			= -g -I$(INCDIR) $(FLI_CFLAGS) $(CFITSIO_CFLAGS)
+#$(DEBUG_CFLAGS) $(CCD_CFLAGS) 
+
+EXE_SRCS		= test_temperature_low_level.c test_exposure_low_level.c
+EXE_OBJS		= $(EXE_SRCS:%.c=$(BINDIR)/%.o)
+EXES			= $(EXE_SRCS:%.c=$(BINDIR)/%)
+
+top: $(EXES) 
+
+$(BINDIR)/%: $(BINDIR)/%.o
+	$(CC) $< -o $@  $(CFITSIO_LDFLAGS) $(FLI_LDFLAGS) -lfli
+
+$(BINDIR)/%.o: %.c
+	$(CC) -c $(CFLAGS) $< -o $@  
+
