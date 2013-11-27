@@ -1,6 +1,6 @@
 #!/bin/csh
-# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_make_deployment,v 1.20 2012-03-05 11:33:09 cjm Exp $
-# Version: $Revision: 1.20 $
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_make_deployment,v 1.21 2013-11-27 14:53:26 cjm Exp $
+# Version: $Revision: 1.21 $
 # By $Author: cjm $
 # Make a deployment tar file.
 # This contains:
@@ -168,8 +168,7 @@ echo "${java_class_dir_count} Java class directories copied with ${java_class_fi
 # C libraries
 #
 echo "Copying C libraries..."
-set clib_list = "libcfitsio.so libdprt_object.so libdprt_libfits.so liblt_filenames.so libngatastro.so libautoguider_commandserver.so libautoguider_ccd_general.so libautoguider_ccd_andor.so libautoguider_ngatcil.so libestar_config.so liblog_udp.so"
-# libccd_dprt.so 
+set clib_list = "libcfitsio.so libdprt_object.so libdprt_libfits.so libccd_dprt.so liblt_filenames.so libngatastro.so libautoguider_commandserver.so libautoguider_ccd_general.so libautoguider_ccd_andor.so libautoguider_ngatcil.so libestar_config.so liblog_udp.so"
 set clib_count = 0
 foreach clib ( ${clib_list} )
 	echo "C Library : ${clib}"
@@ -278,7 +277,7 @@ echo "${file_count} scripts copied."
 #
 # in bin sub-directories
 echo "Copying machine configuration files..."
-set file_list = "autoguider/c/${HOSTTYPE}/autoguider.properties autoguider/ccd/andor/test/${HOSTTYPE}/test_exposure.properties autobooter/java/${machine_name}.autobooter.properties autoguider/java/gui/${machine_name}.ag_gui.properties"
+set file_list = "autoguider/c/${HOSTTYPE}/${machine_name}.autoguider.properties autoguider/ccd/andor/test/${HOSTTYPE}/test_exposure.properties autobooter/java/${machine_name}.autobooter.properties autoguider/java/gui/${machine_name}.ag_gui.properties"
 set file_count = 0
 cd ${dev_dir}
 foreach file ( ${file_list} )
@@ -391,6 +390,10 @@ echo "Download ${deployment_tar}.gz autoguider_tar_install icc_cshrc icc_cshrc_e
 echo "Deployment ready."
 #
 # $Log: not supported by cvs2svn $
+# Revision 1.20  2012/03/05 11:33:09  cjm
+# Removed libccd_dprt.so from deployment, we don't seem to need it at the moment,
+# and it does not build.
+#
 # Revision 1.19  2011/09/08 09:20:19  cjm
 # Lots os changes.
 #
