@@ -17,6 +17,7 @@ end
 /icc/bin/autoguider/commandserver/test/i386-linux/send_command -h ${machine_name} -p ${port} -c "temperature set ${ambient_temperature}"
 set done = 0
 while ( ${done} == 0 )
+	sleep 10
 	set current_temp = `/icc/bin/autoguider/commandserver/test/i386-linux/send_command -h ${machine_name} -p ${port} -c "status temperature get" | awk ' { print $3}'`
 	echo "Current autoguider temperature is ${current_temp}"
 	set done = `/bin/echo " ( ${current_temp} > 0.0 )" | /usr/bin/bc`
@@ -38,4 +39,7 @@ else
 endif
 #
 # $Log: not supported by cvs2svn $
+# Revision 1.1  2013/12/02 13:39:36  cjm
+# Initial revision
+#
 #
