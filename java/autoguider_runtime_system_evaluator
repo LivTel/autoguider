@@ -1,0 +1,33 @@
+#!/bin/csh
+# $Header: /home/cjm/cvs/autoguider/java/autoguider_runtime_system_evaluator,v 1.1 2013-12-02 16:22:41 cjm Exp $
+set hostname = `/bin/hostname --short`
+switch ( ${hostname} )
+	case "acc":
+	case "autoguider1":
+	case "iucaaag":
+		set javalib_dir = "/icc/bin/javalib"
+		breaksw
+	case "ltobs9":
+		set javalib_dir = "${LT_JAVALIB_HOME}"
+		breaksw
+	default:
+		set javalib_dir = "."
+		breaksw
+endsw
+foreach jar ( ngat_autoguider.jar ngat_net.jar ngat_sound.jar ngat_swing.jar ngat_util.jar ngat_util_logging.jar )
+	if ( ${?CLASSPATH} ) then
+		echo "${CLASSPATH}" | /bin/grep -q ${jar}
+		if ( ${status} != 0 ) then
+			setenv CLASSPATH "${CLASSPATH}:${javalib_dir}/${jar}"
+		endif
+	else
+		setenv CLASSPATH ".:${javalib_dir}/${jar}"
+	endif
+end
+echo "CLASSPATH : ${CLASSPATH}"
+echo "Starting Autoguider Runtime System Evaluator..."
+cd ${LT_BIN_HOME}/autoguider/java/gui
+java -Djava.net.preferIPv4Stack=true ngat.autoguider.gui.AgGUI $*
+#
+# $Log: not supported by cvs2svn $
+#
