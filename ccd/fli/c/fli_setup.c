@@ -1,12 +1,12 @@
 /* fli_setup.c
 ** Autoguider FLI CCD Library setup routines
-** $Header: /home/cjm/cvs/autoguider/ccd/fli/c/fli_setup.c,v 1.1 2013-11-26 16:28:36 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/fli/c/fli_setup.c,v 1.2 2013-12-03 09:33:33 cjm Exp $
 */
 
 /**
  * Setup routines for the FLI autoguider CCD library.
  * @author Chris Mottram
- * @version $Revision: 1.1 $
+ * @version $Revision: 1.2 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -72,7 +72,7 @@ struct Setup_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: fli_setup.c,v 1.1 2013-11-26 16:28:36 cjm Exp $";
+static char rcsid[] = "$Id: fli_setup.c,v 1.2 2013-12-03 09:33:33 cjm Exp $";
 
 /**
  * Instance of the setup data.
@@ -222,6 +222,12 @@ int FLI_Setup_Dimensions(int ncols,int nrows,int hbin,int vbin,
 		Setup_Data.Image_Area.Upper_Left_Y = window.Y_Start;
 		Setup_Data.Image_Area.Lower_Right_X = window.X_End;
 		Setup_Data.Image_Area.Lower_Right_Y = window.Y_End;
+#ifdef FLI_DEBUG
+	CCD_General_Log_Format("ccd","fli_setup.c","FLI_Setup_Dimensions",LOG_VERBOSITY_VERBOSE,NULL,
+			       "Window: (ulx=%d,uly=%d,lrx=%d,lry=%d).",Setup_Data.Image_Area.Upper_Left_X,
+			       Setup_Data.Image_Area.Upper_Left_Y,
+			       Setup_Data.Image_Area.Lower_Right_X,Setup_Data.Image_Area.Lower_Right_Y);
+#endif
 	}
 	else
 	{
@@ -230,6 +236,12 @@ int FLI_Setup_Dimensions(int ncols,int nrows,int hbin,int vbin,
 		Setup_Data.Image_Area.Upper_Left_Y = 1;
 		Setup_Data.Image_Area.Lower_Right_X = ncols;
 		Setup_Data.Image_Area.Lower_Right_Y = nrows;
+#ifdef FLI_DEBUG
+	CCD_General_Log_Format("ccd","fli_setup.c","FLI_Setup_Dimensions",LOG_VERBOSITY_VERBOSE,NULL,
+			       "Full Frame: (ulx=%d,uly=%d,lrx=%d,lry=%d).",Setup_Data.Image_Area.Upper_Left_X,
+			       Setup_Data.Image_Area.Upper_Left_Y,
+			       Setup_Data.Image_Area.Lower_Right_X,Setup_Data.Image_Area.Lower_Right_Y);
+#endif
 	}
 	Setup_Data.Horizontal_Bin = hbin;
 	Setup_Data.Vertical_Bin = vbin;
@@ -319,7 +331,8 @@ flidev_t FLI_Setup_Get_Dev(void)
 
 /**
  * Get the number of columns setup to be read out from the last FLI_Setup_Dimensions.
- * Currently, (Setup_Data.Image_Area.Lower_Right_X-Setup_Data.Image_Area.Upper_Left_X).
+ * Currently, (<b>((Setup_Data.Image_Area.Lower_Right_X-Setup_Data.Image_Area.Upper_Left_X)-1)/
+ * Setup_Data.Horizontal_Bin</b>).
  * @return The number of binned columns.
  * @see #Setup_Data
  */
@@ -327,14 +340,15 @@ int FLI_Setup_Get_NCols(void)
 {
 	long binned_pixels_x;
 
-	binned_pixels_x = (Setup_Data.Image_Area.Lower_Right_X-Setup_Data.Image_Area.Upper_Left_X)/
+	binned_pixels_x = ((Setup_Data.Image_Area.Lower_Right_X-Setup_Data.Image_Area.Upper_Left_X)+1)/
 		Setup_Data.Horizontal_Bin;
 	return binned_pixels_x;
 }
 
 /**
  * Get the number of columns setup to be read out from the last FLI_Setup_Dimensions.
- * Currently, (Setup_Data.Image_Area.Lower_Right_Y-Setup_Data.Image_Area.Upper_Left_Y).
+ * Currently, (<b>((Setup_Data.Image_Area.Lower_Right_Y-Setup_Data.Image_Area.Upper_Left_Y)+1)/
+ * Setup_Data.Vertical_Bin</b>).
  * @return The number of binned rows.
  * @see #Setup_Data
  */
@@ -342,7 +356,7 @@ int FLI_Setup_Get_NRows(void)
 {
 	long binned_pixels_y;
 
-	binned_pixels_y = (Setup_Data.Image_Area.Lower_Right_Y-Setup_Data.Image_Area.Upper_Left_Y)/
+	binned_pixels_y = ((Setup_Data.Image_Area.Lower_Right_Y-Setup_Data.Image_Area.Upper_Left_Y)+1)/
 		Setup_Data.Vertical_Bin;
 	return binned_pixels_y;
 }
@@ -360,26 +374,26 @@ int FLI_Setup_Get_Buffer_Length(void)
 
 /**
  * Get the number of detector columns as read from the camera head during FLI_Setup_Startup.
- * @return The number of columns on the detector (<b>Setup_Data.Detector_Area.Lower_Right_X - 
- *         Setup_Data.Detector_Area.Upper_Left_X</b>). Currently unbinned pixels.
+ * @return The number of columns on the detector (<b>(Setup_Data.Detector_Area.Lower_Right_X - 
+ *         Setup_Data.Detector_Area.Upper_Left_X)+1</b>). Currently unbinned pixels.
  * @see #FLI_Setup_Startup
  * @see #Setup_Data
  */
 int FLI_Setup_Get_Detector_Columns(void)
 {
-	return Setup_Data.Detector_Area.Lower_Right_X - Setup_Data.Detector_Area.Upper_Left_X;
+	return (Setup_Data.Detector_Area.Lower_Right_X - Setup_Data.Detector_Area.Upper_Left_X)+1;
 }
 
 /**
  * Get the number of detector rows as read from the camera head during FLI_Setup_Startup.
- * @return The number of rows on the detector (<b>Setup_Data.Detector_Area.Lower_Right_XY- 
- *         Setup_Data.Detector_Area.Upper_Left_Y</b>). Currently unbinned pixels.
+ * @return The number of rows on the detector (<b>(Setup_Data.Detector_Area.Lower_Right_Y- 
+ *         Setup_Data.Detector_Area.Upper_Left_Y)+1</b>). Currently unbinned pixels.
  * @see #FLI_Setup_Startup
  * @see #Setup_Data
  */
 int FLI_Setup_Get_Detector_Rows(void)
 {
-	return Setup_Data.Detector_Area.Lower_Right_Y - Setup_Data.Detector_Area.Upper_Left_Y;
+	return (Setup_Data.Detector_Area.Lower_Right_Y - Setup_Data.Detector_Area.Upper_Left_Y)+1;
 }
 
 /**
@@ -427,4 +441,7 @@ int FLI_Setup_Allocate_Image_Buffer(void **buffer,size_t *buffer_length)
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2013/11/26 16:28:36  cjm
+** Initial revision
+**
 */
