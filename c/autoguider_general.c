@@ -1,11 +1,11 @@
 /* autoguider_general.c
 ** Autoguider general routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_general.c,v 1.8 2012-03-22 11:05:33 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_general.c,v 1.9 2013-12-03 09:34:26 cjm Exp $
 */
 /**
  * General routines (logging, errror etc) for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.8 $
+ * @version $Revision: 1.9 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -126,7 +126,7 @@ struct General_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_general.c,v 1.8 2012-03-22 11:05:33 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_general.c,v 1.9 2013-12-03 09:34:26 cjm Exp $";
 /**
  * The instance of General_Struct that contains local data for this module.
  * This is statically initialised to the following:
@@ -597,6 +597,12 @@ void Autoguider_General_Log_Handler_Log_Hourly_File(char *sub_system,char *sourc
 	/* check file pointer is using right filename, change filenames if the hour has rolled over */
 	General_Log_Handler_Hourly_File_Set_Fp(General_Data.Log_Directory,"autoguider_log",General_Data.Log_Filename,
 					       &General_Data.Log_Fp);
+	if(General_Data.Log_Fp == NULL)
+	{
+		fprintf(stderr,"Failed to set Log Fp.\n");
+		fflush(stderr);
+		General_Data.Log_Fp = stderr;
+	}
 	/* actually log messages, and flush file pointer */
 	Autoguider_General_Get_Current_Time_String(time_string,32);
 	fprintf(General_Data.Log_Fp,"%s : %s:%s\n",time_string,function,message);
@@ -892,6 +898,7 @@ char *Autoguider_General_Get_Config_Filename(void)
 static void General_Log_Handler_Hourly_File_Set_Fp(char *directory,char *basename,char *log_filename,FILE **log_fp)
 {
 	FILE *old_log_fp = NULL;
+	FILE *new_log_fp = NULL;
 	char new_filename[AUTOGUIDER_GENERAL_FILENAME_LENGTH];
 
 	if((*log_fp) == NULL)
@@ -908,10 +915,14 @@ static void General_Log_Handler_Hourly_File_Set_Fp(char *directory,char *basenam
 			old_log_fp = (*log_fp);
 			/* generate and create new log filename */
 			strcpy(log_filename,new_filename);
-			General_Log_Handler_Filename_To_Fp(log_filename,log_fp);
-			/* close old file pointer */
-			fflush(old_log_fp);
-			fclose(old_log_fp);
+			General_Log_Handler_Filename_To_Fp(log_filename,&new_log_fp);
+			if(new_log_fp != NULL)
+			{
+				(*log_fp) = new_log_fp;
+				/* close old file pointer */
+				fflush(old_log_fp);
+				fclose(old_log_fp);
+			}
 		}
 	}
 }
@@ -987,6 +998,13 @@ static void General_Log_Handler_Filename_To_Fp(char *log_filename,FILE **log_fp)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.8  2012/03/22 11:05:33  cjm
+** Added mutex locking around writing to (and potentially changing) the Log and Error file pointers.
+** This is to prevent occasional crashes when a second thread tries to write to General_Data.Log_Fp
+** as an hourly roll-over is taking place and the pointer is not a legal value. The Error file
+** pointer has been changed to match although the chances of this crashing in the same manner are vastly
+** smaller.
+**
 ** Revision 1.7  2012/01/27 15:31:10  cjm
 ** Changed General_Log_Handler_Hourly_File_Set_Fp to open new log file pointers before
 ** flushing and closing the old log file pointers, when the log file changes (every hour).
