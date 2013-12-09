@@ -1,5 +1,5 @@
 #!/bin/csh
-# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_get_guide_frames,v 1.7 2006-10-18 13:46:14 cjm Exp $
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_get_guide_frames,v 1.8 2013-12-09 10:25:44 cjm Exp $
 set gaiadisp = 0
 set ds9disp = 0
 set ds9objects = 0
@@ -61,7 +61,7 @@ else
     echo "Could not find print_line.awk."
     exit 3
 endif
-set hostname = "autoguider1"
+set hostname = "acc"
 set port = "6571"
 set file_number = 0
 set done = 0
@@ -175,6 +175,9 @@ while ( "${done}" == 0 )
 end
 #
 # $Log: not supported by cvs2svn $
+# Revision 1.7  2006/10/18 13:46:14  cjm
+# Added sleep_time argument, and guiding active status check.
+#
 # Revision 1.6  2006/06/02 16:36:39  cjm
 # Changed for different object list format.
 #

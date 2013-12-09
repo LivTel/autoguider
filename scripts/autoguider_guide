@@ -1,5 +1,5 @@
 #!/bin/csh
-# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_guide,v 1.1 2006-05-25 16:24:10 cjm Exp $
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_guide,v 1.2 2013-12-09 10:25:41 cjm Exp $
 set ds9disp = 0
 set exposure_length = 100
 set frame_type_string = "reduced"
@@ -55,7 +55,7 @@ else
     echo "Could not find print_line.awk."
     exit 3
 endif
-set hostname = "autoguider1"
+set hostname = "acc"
 set port = "6571"
 #
 # do guide exposure_length
@@ -97,4 +97,7 @@ set directory = `dirname $0`
 ${directory}/autoguider_get_guide_frames -ds9disp -ds9objects -reduced -delete
 #
 # $Log: not supported by cvs2svn $
+# Revision 1.1  2006/05/25 16:24:10  cjm
+# Initial revision
+#
 #
