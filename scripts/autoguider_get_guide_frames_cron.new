@@ -1,0 +1,118 @@
+#!/bin/csh
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_get_guide_frames_cron.new,v 1.1 2013-12-09 10:25:25 cjm Exp $
+# cron task to get one autoguider guide frame, if the autoguider is currently guiding.
+#
+set hostname = "acc"
+set port = "6571"
+set frame_type_string = "reduced"
+set date_string = `/bin/date +"%Y-%m-%dT%H:%M:%S"`
+set tmp_dir = "/icc/tmp"
+set log_dir = "/icc/log"
+set log_filename = "${log_dir}/autoguider_get_guide_frames_cron_`/bin/date +'%j'`.txt"
+if ( -r /home/dev/bin/autoguider/commandserver/test/i386-linux/test_getfits_command ) then
+    alias getfits_command "/home/dev/bin/autoguider/commandserver/test/i386-linux/test_getfits_command"
+else if ( -r /icc/bin/autoguider/commandserver/test/i386-linux/test_getfits_command ) then
+    alias getfits_command "/icc/bin/autoguider/commandserver/test/i386-linux/test_getfits_command"
+else
+    echo "${date_string} : Could not find test_getfits_command." >>! ${log_filename}
+    exit 2
+endif
+if ( -r /home/dev/bin/autoguider/commandserver/test/i386-linux/send_command ) then
+    alias send_command "/home/dev/bin/autoguider/commandserver/test/i386-linux/send_command"
+else if ( -r /icc/bin/autoguider/commandserver/test/i386-linux/send_command ) then
+    alias send_command "/icc/bin/autoguider/commandserver/test/i386-linux/send_command"
+else
+    echo "${date_string} : Could not find send_command." >>! ${log_filename}
+    exit 2
+endif
+if ( -r /home/dev/bin/autoguider/scripts/print_line.awk ) then
+    alias print_line "/home/dev/bin/autoguider/scripts/print_line.awk"
+else if ( -r /icc/bin/autoguider/scripts/print_line.awk ) then
+    alias print_line "/icc/bin/autoguider/scripts/print_line.awk"
+else
+    echo "${date_string} : Could not find print_line.awk." >>! ${log_filename}
+    exit 3
+endif
+#
+# Are we guiding?
+#
+#
+# get status guide active
+#
+set guide_active_output = `send_command -h ${hostname} -p ${port} -c "status guide active"`
+# debug
+#echo "${date_string} : guide active returned : ${guide_active_output}" >>! ${log_filename}
+set guide_active_output = `echo "${guide_active_output}" | sed "s/.*client: reply:\(.*\)/\1/"`
+# debug
+#echo "${date_string} : guide active output now ${guide_active_output}." >>! ${log_filename}
+set retval = `echo "${guide_active_output}" | /usr/bin/awk ' { print $1}'`
+if( "${retval}" != "0" ) then
+    	echo "${date_string} : guide active failed (${retval})." >>! ${log_filename}
+    	exit 1
+endif
+set guide_active = `echo "${guide_active_output}" | /usr/bin/awk ' { print $2}'`
+if( "${guide_active}" == "false" ) then
+    	echo "${date_string} : guide active returned false:we are not autoguiding." >>! ${log_filename}
+	exit 0
+endif
+#
+# get status guide exposure_length
+#
+set guide_exposure_length_output = `send_command -h ${hostname} -p ${port} -c "status guide exposure_length"`
+# debug
+#echo "${date_string} : guide exposure_length returned : ${guide_exposure_length_output}" >>! ${log_filename}
+set guide_exposure_length_output = `echo "${guide_exposure_length_output}" | sed "s/.*client: reply:\(.*\)/\1/"`
+# debug
+#echo "${date_string} : guide exposure_length output now ${guide_exposure_length_output}." >>! ${log_filename}
+set retval = `echo "${guide_exposure_length_output}" | /usr/bin/awk ' { print $1}'`
+if( "${retval}" != "0" ) then
+    	echo "${date_string} : guide exposure_length failed (${retval})." >>! ${log_filename}
+    	exit 1
+endif
+set guide_exposure_length = `echo "${guide_exposure_length_output}" | /usr/bin/awk ' { print $2}'`
+echo "${date_string} : guide exposure_length : ${guide_exposure_length}." >>! ${log_filename}
+#
+# Get guide frame
+#
+set filename = "${tmp_dir}/guide_${frame_type_string}_${date_string}_${file_number}.fits"
+# debug
+echo "${date_string} : getfits_command : getfits_command -h ${hostname} -p ${port} -c getfits guide ${frame_type_string} -f ${filename}" >>! ${log_filename}
+getfits_command -h ${hostname} -p ${port} -c "getfits guide ${frame_type_string}" -f ${filename}
+set getfits_command_status = $status
+if( ${getfits_command_status} != 0 ) then
+	echo "${date_string} : getfits_command -h ${hostname} -p ${port} -c getfits guide ${frame_type_string} -f ${filename} failed." >>! ${log_filename}
+	exit 4
+endif
+#
+# get object count
+#
+set object_count_output = `send_command -h ${hostname} -p ${port} -c "status object count"`
+# debug
+#echo "${date_string} : status object count returned : ${object_count_output}" >>! ${log_filename}
+set object_count_output = `echo "${object_count_output}" | sed "s/.*client: reply:\(.*\)/\1/"`
+# debug
+#echo "${date_string} : object count output now ${object_count_output}." >>! ${log_filename}
+set retval = `echo "${object_count_output}" | /usr/bin/awk ' { print $1}'`
+if( "${retval}" != "0" ) then
+	echo "${date_string} : object count failed (${retval})." >>! ${log_filename}
+	exit 1
+endif
+set object_count = `echo "${object_count_output}" | /usr/bin/awk ' { print $2}'`
+echo "${date_string} : guide object count : ${object_count}." >>! ${log_filename}
+if( "${object_count}" > "0" ) then
+	#
+	# get object list
+	#
+	set object_filename = "${tmp_dir}/field_${frame_type_string}_${date_string}_${file_number}.txt"
+	set object_list_output = `send_command -h ${hostname} -p ${port} -c "status object list" -f ${object_filename}`
+	if( -r ${object_filename} ) then
+		/bin/cat  ${object_filename} >>! ${log_filename}
+		/bin/rm ${object_filename}
+	endif
+endif
+#
+# $Log: not supported by cvs2svn $
+# Revision 1.1  2006/10/18 13:46:20  cjm
+# Initial revision
+#
+#
