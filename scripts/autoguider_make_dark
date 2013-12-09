@@ -1,5 +1,5 @@
 #!/bin/csh
-# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_make_dark,v 1.5 2006-06-19 15:59:21 cjm Exp $
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_make_dark,v 1.6 2013-12-09 10:16:45 cjm Exp $
 set gaiadisp = 0
 set exposure_length = "1000"
 set exposure_count = "3"
@@ -64,7 +64,7 @@ else
     echo "Could not find fits_median."
     exit 2
 endif
-set hostname = "autoguider1"
+set hostname = "acc"
 set port = "6571"
 #
 # Turn off field reductions
@@ -160,6 +160,10 @@ echo "Note, field flat-fielding is now turned off, use:send_command -h ${hostnam
 echo "Note, field object detection is now turned off, use:send_command -h ${hostname} -p ${port} -c'field object on' to restore."
 #
 # $Log: not supported by cvs2svn $
+# Revision 1.5  2006/06/19 15:59:21  cjm
+# If old dark exists, this is now renamed before the new one is created.
+# fits_median return code is error checked.
+#
 # Revision 1.4  2006/05/22 17:24:00  cjm
 # Added extra echos at end.
 #
