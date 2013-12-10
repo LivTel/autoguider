@@ -1,4 +1,4 @@
-# $Header: /home/cjm/cvs/autoguider/c/Makefile,v 1.11 2013-11-27 14:26:35 cjm Exp $
+# $Header: /home/cjm/cvs/autoguider/c/Makefile,v 1.12 2013-12-10 16:15:40 cjm Exp $
 
 include ../../Makefile.common
 include ../commandserver/Makefile.common
@@ -104,7 +104,7 @@ backup: tidy
 	$(RM) $(RM_OPTIONS) $(OBJS)
 
 checkin:
-	-$(CI) $(CI_OPTIONS) $(SRCS)
+	-$(CI) $(CI_OPTIONS) $(SRCS) $(CONFIG_SRCS)
 	-(cd $(INCDIR); $(CI) $(CI_OPTIONS) $(HEADERS);)
 
 checkout:
