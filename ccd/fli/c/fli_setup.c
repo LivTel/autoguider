@@ -1,12 +1,12 @@
 /* fli_setup.c
 ** Autoguider FLI CCD Library setup routines
-** $Header: /home/cjm/cvs/autoguider/ccd/fli/c/fli_setup.c,v 1.2 2013-12-03 09:33:33 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/fli/c/fli_setup.c,v 1.3 2013-12-10 16:13:01 cjm Exp $
 */
 
 /**
  * Setup routines for the FLI autoguider CCD library.
  * @author Chris Mottram
- * @version $Revision: 1.2 $
+ * @version $Revision: 1.3 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -53,6 +53,7 @@ struct Area_Struct
  * <dl>
  * <dt>FLI_Dev</dt> <dd>The FLI library camera handle (a flidev_t).</dd>
  * <dt>Detector_Area</dt> <dd>The pixel coordinates of the detector area.</dd>
+ * <dt>Visible_Area</dt> <dd>The pixel coordinates of the visible part of the detector area.</dd>
  * <dt>Horizontal_Bin</dt> <dd>Horizontal (X) binning factor.</dd>
  * <dt>Vertical_Bin</dt> <dd>Vertical (Y) binning factor.</dd>
  * <dt>Image_Area</dt> <dd>The pixel coordinates of the current window/in use imaging area.</dd>
@@ -63,6 +64,7 @@ struct Setup_Struct
 {
 	flidev_t FLI_Dev;
 	struct Area_Struct Detector_Area;
+	struct Area_Struct Visible_Area;
 	long Horizontal_Bin;
 	long Vertical_Bin;
 	struct Area_Struct Image_Area;
@@ -72,7 +74,7 @@ struct Setup_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: fli_setup.c,v 1.2 2013-12-03 09:33:33 cjm Exp $";
+static char rcsid[] = "$Id: fli_setup.c,v 1.3 2013-12-10 16:13:01 cjm Exp $";
 
 /**
  * Instance of the setup data.
@@ -80,7 +82,7 @@ static char rcsid[] = "$Id: fli_setup.c,v 1.2 2013-12-03 09:33:33 cjm Exp $";
  */
 static struct Setup_Struct Setup_Data = 
 {
-	0,{0L,0L,0L,0L},0L,0L,{0L,0L,0L,0L}
+	0,{0L,0L,0L,0L},{0L,0L,0L,0L},0L,0L,{0L,0L,0L,0L}
 };
 
 /* ----------------------------------------------------------------------------
@@ -102,6 +104,7 @@ void FLI_Setup_Initialise(void)
  *     <b>ccd.fli.setup.device_name</b>
  * <li>We call FLIOpen to open the device (as a USB camera).
  * <li>We call FLIGetArrayArea to get the detector area, and save it in Setup_Data.Detector_Area.
+ * <li>We call FLIGetVisibleArea to get the visible part of the detector area, and save it in Setup_Data.Visible_Area.
  * </ul>
  * @return The routine returns TRUE on success, and FALSE if an error occurs.
  * @see #FLI_SETUP_KEYWORD_ROOT
@@ -159,10 +162,17 @@ int FLI_Setup_Startup(void)
 		return FALSE;
 	}
 	/* visible area */
-	/*
-	fli_retval = FLIGetVisibleArea(Fli_Dev,&(visible_area.Upper_Left_X),&(visible_area.Upper_Left_Y),
-				     &(visible_area.Lower_Right_X),&(visible_area.Lower_Right_Y));
-	*/
+	fli_retval = FLIGetVisibleArea(Setup_Data.FLI_Dev,&(Setup_Data.Visible_Area.Upper_Left_X),
+				       &(Setup_Data.Visible_Area.Upper_Left_Y),
+				       &(Setup_Data.Visible_Area.Lower_Right_X),
+				       &(Setup_Data.Visible_Area.Lower_Right_Y));
+	if(fli_retval != 0)
+	{
+		CCD_General_Error_Number = 1109;
+		sprintf(CCD_General_Error_String,"FLI_Setup_Startup: FLIGetVisibleArea failed %s(%ld).",
+			strerror((int)-fli_retval),fli_retval);
+		return FALSE;
+	}
 #ifdef FLI_DEBUG
 	CCD_General_Log("ccd","fli_setup.c","FLI_Setup_Startup",LOG_VERBOSITY_INTERMEDIATE,NULL,"finished.");
 #endif
@@ -190,7 +200,8 @@ int FLI_Setup_Shutdown(void)
  * Setup dimension information. 
  * <ul>
  * <li>If the windows_flags is set, we set the Setup_Data.Image_Area to the defined window.
- * <li>If the windows_flags is <b>not</b> set, we set the Setup_Data.Image_Area to (1,1,ncols,nrows).
+ * <li>If the windows_flags is <b>not</b> set, we set the Setup_Data.Image_Area to 
+ *     (Setup_Data.Visible_Area.Upper_Left_X,Setup_Data.Visible_Area.Upper_Left_Y,ncols,nrows).
  * <li>We save the supplied binning values in Setup_Data.
  * <li>We calculate the number of binned pixels.
  * <li>We call FLISetHBin and FLISetVBin to tell the FLI library the binning we want to use.
@@ -232,8 +243,8 @@ int FLI_Setup_Dimensions(int ncols,int nrows,int hbin,int vbin,
 	else
 	{
 		/*Setup_Data.Image_Area = Setup_Data.Detector_Area;*/
-		Setup_Data.Image_Area.Upper_Left_X = 1;
-		Setup_Data.Image_Area.Upper_Left_Y = 1;
+		Setup_Data.Image_Area.Upper_Left_X = Setup_Data.Visible_Area.Upper_Left_X;
+		Setup_Data.Image_Area.Upper_Left_Y = Setup_Data.Visible_Area.Upper_Left_Y;
 		Setup_Data.Image_Area.Lower_Right_X = ncols;
 		Setup_Data.Image_Area.Lower_Right_Y = nrows;
 #ifdef FLI_DEBUG
@@ -441,6 +452,9 @@ int FLI_Setup_Allocate_Image_Buffer(void **buffer,size_t *buffer_length)
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.2  2013/12/03 09:33:33  cjm
+** Fixed FLI_Setup_Dimensions with inclusive pixels.
+**
 ** Revision 1.1  2013/11/26 16:28:36  cjm
 ** Initial revision
 **
