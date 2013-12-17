@@ -1,0 +1,446 @@
+\documentclass[10pt,a4paper]{article}
+\pagestyle{plain}
+\textwidth 16cm
+\textheight 21cm
+\oddsidemargin -0.5cm
+\topmargin 0cm
+
+\title{Autoguider User Guide}
+\author{C. J. Mottram}
+\date{}
+\begin{document}
+\pagenumbering{arabic}
+\thispagestyle{empty}
+\maketitle
+\begin{abstract}
+This document is a basic user guide for the Autoguider Control System developed by LJMU.
+\end{abstract}
+\centerline{\Large History}
+\begin{center}
+\begin{tabular}{|l|l|l|p{15em}|}
+\hline
+{\bf Version} & {\bf Author} & {\bf Date} & {\bf Notes} \\
+\hline
+0.1 & C. J. Mottram & 09/12/13 & First draft \\
+\hline
+\end{tabular}
+\end{center}
+
+\newpage
+\tableofcontents
+\listoffigures
+\listoftables
+\newpage
+
+\section{Introduction}
+This document is a basic user guide for using the autoguider control software developed by LJMU for the 
+Liverpool telescope.
+
+It assumes the autoguider is in the following state:
+
+\begin{itemize}
+\item The autoguider camera head is installed on the telescope.
+\item The autoguider control computer is installed on the telescope.
+\item The camera head and control computer are connected up and switched on.
+\end{itemize}
+
+\section{Power Up Sequence}
+
+We normally leave the autoguider camera head and control computer on at all times (i.e. throughout the day).
+However, the system can be turned on and off during system maintenance. When powering on the system, it is best to
+power on the camera head before turning on the control computer.
+
+At the end of the control computer boot sequence, the following occurs:
+
+\begin{itemize}
+\item The AutoBooter is started. This is a small Java process tasked with starting the autoguider control software. See Section \ref{sec:Autobooter} for details.
+\item The {\bf autoguider} process is started by the AutoBooter. This is the main control software for the autoguider.
+\item The {\bf autoguider} process initialises the image buffers, logging, communication servers (telnet and CIL) and CCD (including starting ramping the CCD to temperature.
+\end{itemize}
+
+The autoguider is available for use once the server ports are initialised. Note however, the autoguider camera head can take several minutes to reach operating temperature after the server ports are ready. The camera head temperature should be queried until it's operating temperature is reached.
+
+If, for some reason, the autoguider fails to start and initialise properly, the AutoBooter will retry starting the executable a configurable number of times and then stop. In this case, check the log files (see Section \ref{sec:logfiles}) to start diagnosing the problem.
+
+\section{Power Down Sequence}
+
+Normally, the autoguider software and hardware is left powered on throughout the day. If however, it needs to be powered down for maintenance the following procedures can be used.
+
+\begin{itemize}
+\item Log into the control computer as the {\bf eng} user. For password information see the password list (LT) or installation instructions (IUCAA) \cite{bib:iucaainstallation}.
+\item Use the telnet interface to command the CCD camera head to raise the CCD temperature to ambient i.e. {\bf /icc/bin/autoguider/commandserver/test/i386-linux/send\_command -h acc -p 6571 -c "temperature set 15.0"}. There is also an alias that can be run to do this {\bf autoguider\_temperature\_ambient}.
+\item Monitor the CCD camera head temperature until it reaches a safe temperature to switch off the camera head: {\bf /icc/bin/autoguider/commandserver/test/i386-linux/send\_command -h acc -p 6571 -c "status temperature get"} or use the alias {\bf autoguider\_temperature\_get}.
+\item Shutdown the control computer and switch off the camera head: {\bf su}, {\bf /sbin/shutdown -h now}.
+\end{itemize}
+
+All the above can also be done using the {\bf /icc/bin/autoguider/scripts/autoguider\_engineering\_mode} script. That
+warms the CCD and kills the {\bf autoguider} process in such a way the {\bf AutoBooter} process does not restart it. This can also be used to stop the robotic software so that low level command line test programs can be used with the camera.
+
+\section{Basic Operation}
+
+The autoguider is basically controlled using the TCS interface. The following TCS autoguider commands are supported
+\begin{itemize}
+\item {\bf autoguide on brightest} Start autoguiding on the brightest star in the field.
+\item {\bf autoguide on rank \textless n\textgreater} Start autoguiding on the {\bf n}th brightest star in the field.
+\item {\bf autoguide on pixel \textless x\textgreater \textless y\textgreater} Start autoguiding on the  star nearest pixel ({\bf x},{\bf y}).
+\item {\bf autoguide off} Stop autoguiding.
+\end{itemize}
+
+The TCS displays some status as to whether the autoguider commands have succeeded or not, and has a status display showing the centroids received from the autoguider software, and whether the autoguider is guiding (LOCKED) or has lost the guide star.
+
+More detailed information on the autoguider status can be gleaned from the log files (see Section \ref{sec:logfiles}).
+
+\section{Log files}
+\label{sec:logfiles}
+
+The autoguider software keeps comprehensive logs when it is operating. In the default installation, these are written to the autoguider control computer in the directory {\bf /icc/log}. The following types of log files are present in this directory:
+
+\begin{itemize}
+\item Error logs from the AutoBooter process of the form: {\bf autobooter\_error\_338\_H16.txt}
+\item Logs from the AutoBooter process of the form: {\bf autobooter\_log\_338\_H16.txt}
+\item Capture of stdout and stderr from the AutoBooter process of the form: {\bf autobooter\_output.txt}
+\item Error logs from the {\bf autoguider} process of the form: {\bf autoguider\_error\_338\_17.txt}
+\item Logs from the {\bf autoguider} process of the form: {\bf autoguider\_log\_338\_16.txt}
+\item Capture of stdout and stderr from the {\bf autoguider} process of the form: {\bf autoguider\_output.txt}
+\end{itemize}
+
+In each case, the first number is the day of year (DOY), and the second (which may be prefixed by a ``h'') is the hour of day. In other words there is a new log file every hour. We normally have a script that runs daily to archive the older log files into a tarball to stop the autoguider control computer disk filling up.
+
+\subsection{Fault finding}
+
+The usual procedure for fault finding (when the autoguider process fails to start, or an autoguider on fails), is as follows:
+
+\begin{itemize}
+\item Check the {\bf /icc/log} directory and find the latest log files. If there is a autoguider error log file for the
+hour the error occurred that is a good place to start.
+\item If there is  an AutoBooter error log file worth checking whether the AutoBooter has been trying to (re)start the autoguider process and failing.
+\item The relevant stdout and stderr capture files are worth looking at to see if an error has occurred which has not been logged in the normal way.
+\item It can be worth checking whether a core dump file has appeared  in the {\bf /icc/bin/autoguider/c/i386-linux} directory (where the autoguider process is run from), if the process has crashed for some reason.
+\item If there is an issue with the autoguider control computer (or networking for example), checking {\bf /var/log/messages} and {\bf dmesg} can sometimes help.
+\end{itemize}
+
+\subsection{Log tools}
+
+There are some scripts that operate on the log files to produce some useful information.
+
+\subsubsection{Graphing guide packets}
+
+This procedure produces a simple graph of centroids sent to the TCS over a certain time period.
+
+\begin{itemize}
+
+\item Select the log files over the time period you wish to graph (look in /icc/log) e.g.: 
+
+\begin{verbatim}
+autoguider_log_271_21.txt autoguider_log_271_22.txt autoguider_log_271_23.txt
+\end{verbatim}
+
+\item Extract the guide packet logs:
+
+\begin{verbatim}
+/icc/bin/autoguider/scripts/autoguider_get_guide_packets_with_time autoguider_log_271_21.txt
+ autoguider_log_271_22.txt autoguider_log_271_23.txt > guide_packets_with_time_271_21_23.txt
+\end{verbatim}
+
+\item Convert the extracted guide packet logs to CSV:
+
+\begin{verbatim}
+/icc/bin/autoguider/scripts/autoguider_guide_packets_to_csv guide_packets_with_time_271_21_23.txt
+\end{verbatim}
+
+\item Create graphs from the CSV file:
+
+\begin{verbatim}
+/icc/bin/autoguider/scripts/autoguider_guide_packets_graph guide_packets_with_time_271_21_23.csv
+\end{verbatim}
+
+\end{itemize}
+
+If all goes well three PNG files containing the graphs will be produced:
+
+\begin{itemize}
+\item \verb'guide_packets_with_time_271_21_23_x.png'  containing a graph of x centroids vs. time.
+\item \verb'guide_packets_with_time_271_21_23_xy.png' containing a graph of x and y centroids vs. time.
+\item \verb'guide_packets_with_time_271_21_23_y.png'  containing a graph of y centroids vs. time.
+\end{itemize}
+
+An example guide packet centroid graph is shown in Figure \ref{fig:exampleguidepacketcentroidgraph}.
+
+\setlength{\unitlength}{1in}
+\begin{figure}[!h]
+	\begin{center}
+		\begin{picture}(6.0,4.0)(0.0,0.0)
+			\put(0,0){\special{psfile=guide_packets_with_time_346_16_xy.eps   hscale=50 vscale=50}}
+		\end{picture}
+	\end{center}
+	\caption{\em Example guide packet centroid graph.}
+	\label{fig:exampleguidepacketcentroidgraph} 
+\end{figure}
+
+
+\subsubsection{Graphing Objects}
+
+This procedure enables you to graph the detected objects on the guide frame. This produces a similar graph to
+the one centroid one, with the object coordinates being in guide window pixels, whereas the guide coordinates themselves
+are in overall CCD pixels.
+
+\begin{itemize}
+
+\item Select log files e.g.: 
+
+\begin{verbatim}
+autoguider_log_271_21.txt autoguider_log_271_22.txt autoguider_log_271_23.txt
+\end{verbatim}
+
+\item Extract object list logs:
+
+\begin{verbatim}
+/icc/bin/autoguider/scripts/autoguider_get_object_list autoguider_log_271_21.txt 
+autoguider_log_271_22.txt autoguider_log_271_23.txt > object_list_271_21_23.txt
+\end{verbatim}
+
+\item Convert extract to CSV:
+
+\begin{verbatim}
+/icc/bin/autoguider/scripts/autoguider_object_list_to_csv object_list_271_21_23.txt
+\end{verbatim}
+
+\item Create graphs from CSV:
+
+\begin{verbatim}
+/icc/bin/autoguider/scripts/autoguider_object_list_graph object_list_271_21_23.csv
+\end{verbatim}
+
+\item Some more graphs can be generated using using \verb'autoguider_object_list_graph_column':
+
+\begin{verbatim}
+/icc/bin/autoguider/scripts/autoguider_object_list_graph_column fwhm_x object_list_271_21_23.csv
+
+/icc/bin/autoguider/scripts/autoguider_object_list_graph_column fwhm_y object_list_271_21_23.csv
+
+/icc/bin/autoguider/scripts/autoguider_object_list_graph_column integrated_counts 
+object_list_271_21_23.csv
+
+/icc/bin/autoguider/scripts/autoguider_object_list_graph_column peak_counts 
+object_list_271_21_23.csv
+
+/icc/bin/autoguider/scripts/autoguider_object_list_graph_column number_of_pixels 
+object_list_271_21_23.csv
+\end{verbatim}
+
+\item A scatter plot of FWHM can also be generated as follows:
+
+\begin{verbatim}
+/icc/bin/autoguider/scripts/autoguider_object_list_graph_fwhm object_list_271_21_23.csv
+\end{verbatim}
+
+\end{itemize}
+
+\section{Command line controls}
+
+\subsection{Viewing guide frames live}
+
+It is possible to see guide frames as they are generated by the autoguider. There is a script that, when
+autoguiding, will retrieve the most recent guide frame ever so often and display it in gaia or ds9.
+
+The script is run as follows:
+\begin{verbatim}
+autoguider_get_guide_frames [-gaiadisp][-ds9disp [-ds9objects]][-raw|-reduced][-delete]
+[-sleep_time <secs>]
+\end{verbatim}
+
+So for example:
+\begin{verbatim}
+autoguider_get_guide_frames -gaiadisp -reduced -sleep_time 10
+\end{verbatim}
+will display a reduced guide frame every 10 seconds in gaia, whilst a guide loop is in operation. The script will stop
+when the autoguider stops autoguiding. Of course, the machine's DISPLAY has to be setup to display gaia's X windows
+successfully (either locally or on a remote machine).
+
+\section{Cron jobs}
+
+The autoguider control computer is usually setup with a series of cron jobs that run at various times of the day.
+
+\begin{verbatim}
+# minute hour day_of_month month day_of_week command
+# 35 11 * * * $HOME/scripts/instrument_archive_logs
+35 14 * * * /icc/bin/autoguider/scripts/autoguider_rm_field_frames_cron
+35 15 * * * /icc/bin/autoguider/scripts/autoguider_rm_guide_frames_cron
+* 0-6,18-23 * * * /icc/bin/autoguider/scripts/autoguider_get_guide_frames_cron
+2 * * * * /icc/bin/autoguider/scripts/autoguider_get_process_stats
+\end{verbatim}
+
+\subsubsection{instrument\_archive\_logs}
+
+This script is commented out of the crontab at the moment. If enabled, once a day it creates a tarball of the previous days log files and places them in {\bf /icc/tmp/log\_archive} (from where, on the LT, they are copied to another archive machine and deleted). If the log files are not archived or deleted in some way they will eventually fill the disk.
+
+\subsubsection{autoguider\_rm\_field\_frames\_cron}
+
+This cron job is run once a day. It deletes previously saved field frames from {\bf /icc/tmp}. Frames older than a certain number of days are deleted :- we keep failed frames for longer than successful frames in case some analysis of the failure to find a guide star is required. 
+
+Field frames are saved based on the the values of the following keys in {\bf autoguider.properties} : 
+if the {\bf field.fits.save.successful} keyword value is set to {\bf true} successful field frames are saved 
+and if the {\bf field.fits.save.failed} keyword value is set to {\bf true} failed field frames are saved.
+
+\subsubsection{autoguider\_rm\_guide\_frames\_cron}
+
+This cron job is run once a day. It deletes previously saved guide frames from {\bf /icc/tmp}. The guide frames
+are generated if the {\bf autoguider\_get\_guide\_frames\_cron} cron job is set to run. The age limit used to
+determine which guide frames to delete is configurable within the script.
+
+\subsubsection{autoguider\_get\_guide\_frames\_cron}
+
+This cron job grabs an autoguider guide frame each time it is run, assuming the autoguider is currently guiding. It is normally setup to run once a minute during the hours of darkness.
+
+\begin{itemize}
+\item The script issues a {\bf status guide active} to the autoguider telnet port, which returns whether the guide loop is active or not.
+\item If the autoguider is guiding, the current guide exposure length is  retrieved using the telnet command {\bf status guide exposure\_length}. 
+\item The last guide frame taken is retrieved using the {\bf test\_getfits\_command} to send the command {\bf getfits guide reduced} to the autoguider and deal with the binary (FITS) response.
+\item We retrieve the number of objects detected on the last guide frame by issuing the telnet command {\bf status object count} to the autoguider.
+\item The exposure length and object count are logged to a suitable log filename  ( {\bf /icc/log/ autoguider\_get\_guide\_frames\_cron\_ \textless day of year\textgreater .txt} ).
+\item If the object count was greater than zero, the list of objects detected (retrieved using the {\bf status object list} command) is also added to the log file.
+\end{itemize}
+
+\subsubsection{autoguider\_get\_process\_stats}
+
+This cron job is normally invoked once an hour in the crontab. It lists processes running on the autoguider control computer and tries to extract CPU and memory usage information for the {\bf ./autoguider} process started by the autobooter. This enables us to track any memory problems, or problems when the process consumes too much CPU for some reason.
+
+
+
+\section{Calibration}
+
+The autoguider contains software for processing the acquired images to best extract guide centroids. As part of the standard reductions to acquired frames (both field and guide), an equal length dark is subtracted from the image, and the image is divided through by a suitable flat-field.
+
+\subsection{Dark}
+
+A dark frame is needed for each length of exposure the autoguider uses. The exposure length's used by the autoguider
+is actually defined by the list in the {\bf autoguider.properties} file (in the {\bf /icc/bin/autoguider/c/i386-linux} directory:
+
+\begin{verbatim}
+dark.exposure_length.0			=10
+dark.exposure_length.1			=20
+dark.exposure_length.2			=50
+dark.exposure_length.3			=100
+dark.exposure_length.4			=200
+dark.exposure_length.5			=500
+dark.exposure_length.6			=1000
+dark.exposure_length.7			=2000
+dark.exposure_length.8			=5000
+dark.exposure_length.9			=10000
+\end{verbatim}
+
+The exposure lengths are in milliseconds. Each exposure length requires a dark FITS image, defined as follows in 
+{\bf autoguider.properties}:
+
+\begin{verbatim}
+# filename for each x_bin,y_bin,exposure_length
+dark.filename.1.1.10			=/icc/dprt/dark/dark_1_1_10.fits
+dark.filename.1.1.20			=/icc/dprt/dark/dark_1_1_20.fits
+dark.filename.1.1.50			=/icc/dprt/dark/dark_1_1_50.fits
+dark.filename.1.1.100			=/icc/dprt/dark/dark_1_1_100.fits
+dark.filename.1.1.200			=/icc/dprt/dark/dark_1_1_200.fits
+dark.filename.1.1.500			=/icc/dprt/dark/dark_1_1_500.fits
+dark.filename.1.1.1000			=/icc/dprt/dark/dark_1_1_1000.fits
+dark.filename.1.1.2000			=/icc/dprt/dark/dark_1_1_2000.fits
+dark.filename.1.1.5000			=/icc/dprt/dark/dark_1_1_5000.fits
+dark.filename.1.1.10000			=/icc/dprt/dark/dark_1_1_10000.fits
+\end{verbatim}
+
+There is a script to make a dark library. This can be invoked from the autoguider control computer as follows:
+\begin{verbatim}
+/icc/bin/autoguider/scripts/autoguider_make_dark_list
+\end{verbatim}
+Note the camera should be down to temperature, and if the camera has no shutter something should be covering the CCD, before this command is invoked.
+
+This script contains a list of exposure lengths (which should match the list in {\bf autoguider.properties}), and for each exposure length the script {\bf /icc/bin/autoguider/scripts/autoguider\_make\_dark} is called to take 5 dark exposures, median them and replace the dark FITS filename.
+
+\subsubsection{autoguider\_make\_dark script}
+
+This script does the following:
+
+\begin{itemize}
+\item Sends the telnet command {\bf field dark off} to turn off dark subtraction of the acquired images.
+\item Sends the telnet command {\bf field flat off} to turn off flat-fielding of the acquired images.
+\item Sends the telnet command {\bf field object off} to turn off object detection in the acquired images.
+\item Loops over the number of images required:
+         \begin{itemize}
+         \item Sends the telnet command {\bf expose \textless exposurelength \textgreater} to acquire the image.
+	 \item  Sends the telnet command {\bf getfits field raw} to retrieve the FITS image from the autoguider's internal buffer and save it to disk. Note this command returns binary data (actually a FITS image) so the {\bf test\_getfits\_command} binary is used to send the command and properly process the reply.
+	 \item The filename is added to a list of filenames to median.
+         \end{itemize}
+\item If the output FITS image already exists it is renamed to old date-stamped name.
+\item The acquired images are medianed using the {\bf fits\_median} command line program and the output saved as the
+dark frame.
+\end{itemize}
+
+Note this script leaves the autoguider reduction flags in a different state to what they started in, the following commands should be issued from the command line to rectify this (as printed out by the script itself):
+\begin{itemize}
+\item {\bf send\_command -h acc -p  6571 -c 'field dark on'} to turn back on dark subtraction of field images.
+\item {\bf send\_command -h acc -p  6571 -c 'field flat on'} to turn back on flat-fielding of field images.
+\item {\bf send\_command -h acc -p  6571 -c 'field object on'} to turn back on object detection of field images.
+\end{itemize}
+
+\subsection{Flat}
+
+The autoguider software also does flat-fielding at part of it's image processing. The flat field to use is a normalised
+FITS image defined in the {\bf autoguider.properties} file:
+
+\begin{verbatim}
+#
+# flat library
+# filename for each x_bin,y_bin
+#
+flat.filename.1.1			=/icc/dprt/flat/flat_1_1.fits
+\end{verbatim}
+
+There is a script {\bf /icc/bin/autoguider/scripts/autoguider\_make\_flat} that can be used to generate a flat field, when the CCD is down to temperature and is looking through the telescope optics at the twilight sky (or a illuminated dome). The script does not scale the exposure length due to changing sky conditions, and the exposure length used must be
+one with a suitable dark available for dark subtraction.
+
+Here is an example invocation of the script:
+\begin{verbatim}
+/icc/bin/autoguider/scripts/autoguider_make_flat -exposure_length 1000 -exposure_count 5 
+-output /icc/dprt/flat/flat_1_1.fits
+\end{verbatim}
+
+For on-bench testing a 'flat flat' may be used i.e. one where all the pixels are set to {\bf 1.0}, so dividing through by the flat makes no difference. This can be created using the {\bf fits\_create\_blank} command as follows:
+\begin{verbatim}
+/icc/bin/ccd/misc/i386-linux/fits_create_blank -c 1024 -r 1024 -image_type float -ramp_type none 
+-value 1.0 -output /icc/dprt/flat/flat_1_1.fits
+\end{verbatim}
+
+\subsubsection{autoguider\_make\_flat script}
+
+This script does the following:
+
+\begin{itemize}
+\item Sends the telnet command {\bf field dark on} to turn on dark subtraction of the acquired images.
+\item Sends the telnet command {\bf field flat off} to turn off flat-fielding of the acquired images.
+\item Sends the telnet command {\bf field object off} to turn off object detection in the acquired images.
+\item Loops over the number of images required:
+         \begin{itemize}
+         \item Sends the telnet command {\bf expose \textless exposurelength \textgreater} to acquire the image.
+	 \item Sends the telnet command {\bf getfits field reduced} to retrieve the dark-subtracted FITS image from the autoguider's internal buffer and save it to disk. Note this command returns binary data (actually a FITS image) so the {\bf test\_getfits\_command} binary is used to send the command and properly process the reply.
+	 \item The command line program {\bf fits\_normalise} is run to normalize the flat image.
+	 \end{itemize}
+\item The normalized flats are medianed using the {\bf fits\_median} command line tool.
+\item The medianed flat is then re-normalised using  {\bf fits\_normalise} and saved to the output flat filename.
+\end{itemize}
+
+\section{AutoBooter}
+\label{sec:Autobooter}
+
+If the autoguider control software is shut down, or stops for any reason, the AutoBooter restarts it (there is actually a retry count, after so many tries in a certain length of time it will give up). The autobooter is started by the {\bf /etc/init.d/autobooter} script which is itself linked from the {\bf /etc/rc*.d} directory.
+
+The Autobooter reads it's configuration from the {\bf /icc/bin/autobooter/java/autobooter.properties}. This contains
+the command line used to start the {\bf autoguider} process, as well as the retry\_count and retry\_time which controls how many times the Autobooter will try and start the autoguider process before it gives up.
+
+\begin{thebibliography}{99}
+\addcontentsline{toc}{section}{Bibliography}
+
+\bibitem{bib:iucaainstallation}{\bf IUCAA autoguider control computer Installation}
+C. J. Mottram  \newline{\em /home/dev/public\_html/autoguider/latex/iucaaag\_installation.ps} v0.1
+
+
+\end{thebibliography}
+
+\end{document}
