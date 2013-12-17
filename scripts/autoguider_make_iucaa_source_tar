@@ -1,0 +1,83 @@
+#!/bin/csh
+# Create a source tarball with the autoguider source code for IUCAA.
+# dev root directory
+set dev_dir 		= "~dev"
+# dev source root directory
+set dev_src_dir 	= "${dev_dir}/src"
+# temporary directory containing root of deployment tree (which becomes root of tar).
+set deployment_dir 	= "/tmp/autoguider_deployment"
+# directory location of tar
+set source_tar_dir 	= "${dev_dir}/public_html/autoguider/"
+# name of tar file
+set source_tar 	= "autoguider_source_iucaaag.tar"
+#
+# Clear old deployment.
+#
+if (-d ${deployment_dir}) then
+	echo "Deployment directory ${deployment_dir} already exists:clearing..."
+	rm -rf ${deployment_dir}
+endif
+#
+# Create directory structure
+#
+echo "Creating directory structure..."
+set dir_count = 0
+set dir_list = "${deployment_dir} ${deployment_dir}/libdprt/ ${deployment_dir}/ccd ${deployment_dir}/ngat ${deployment_dir}/estar "
+# cfitsio
+foreach dir ( ${dir_list} )
+	mkdir -p ${dir}
+	if ($status != 0) then
+	   echo "Failed to make directory ${dir}"
+	   exit 2
+	endif
+	@ dir_count ++
+end
+echo "${dir_count} directories created."
+#
+# Copy directories of source code
+#
+set dir_count = 0
+set dir_list = "autoguider autobooter libdprt/object libdprt/ccd_imager ccd/misc log_udp ics_util ngat/net ngat/swing ngat/util/ ngat/sound ngatastro estar/config "
+# ngat/util/logging 
+foreach dir ( ${dir_list} )
+	set dest_dir = `/usr/bin/dirname ${dir}`
+	if( "${dest_dir}" == "." ) then
+		set dest_dir = ""
+	endif
+	echo "cp -R ${dev_src_dir}/${dir} ${deployment_dir}/${dest_dir}"
+	cp -R ${dev_src_dir}/${dir} ${deployment_dir}/${dest_dir}
+	if ($status != 0) then
+		echo "Failed: cp -R ${dev_src_dir}/${dir} ${deployment_dir}/${dir}"
+		exit 2
+	endif
+	@ dir_count ++
+end
+echo "${dir_count} directories of source code copied."
+#
+# Delete some parts of the source tar that arn't wanted.
+#
+set dir_count = 0
+set dir_list = "autoguider/download autoguider/andor autoguider/TTL autoguider/control_computer"
+foreach dir ( ${dir_list} )
+	echo "rm -rf ${deployment_dir}/${dir}"
+	rm -rf ${deployment_dir}/${dir}
+	if ($status != 0) then
+		echo "Failed: rm -rf ${dir}"
+		exit 2
+	endif
+	@ dir_count ++
+end
+echo "${dir_count} sub-directories of not needed source code deleted."
+#
+# Create source tar
+#
+echo "--------------------------"
+echo "Creating source tar..."
+cd ${deployment_dir}
+tar cvf ${source_tar_dir}/${source_tar} .
+echo "GZipping source tar..."
+cd ${source_tar_dir}
+rm -f ${source_tar}.gz
+gzip ${source_tar}
+echo "Source tar : ${source_tar_dir}/${source_tar}.gz"
+rm -rf ${deployment_dir}
