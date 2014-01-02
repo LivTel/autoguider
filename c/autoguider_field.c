@@ -1,11 +1,11 @@
 /* autoguider_field.c
 ** Autoguider field routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_field.c,v 1.16 2012-03-07 14:57:55 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_field.c,v 1.17 2014-01-02 16:34:23 eng Exp $
 */
 /**
  * Field routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.16 $
+ * @version $Revision: 1.17 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -23,6 +23,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "fitsio.h"
 #include "log_udp.h"
 
 #include "ccd_exposure.h"
@@ -128,7 +129,7 @@ struct Field_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_field.c,v 1.16 2012-03-07 14:57:55 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_field.c,v 1.17 2014-01-02 16:34:23 eng Exp $";
 /**
  * Instance of field data.
  * @see #Field_Struct
@@ -146,6 +147,7 @@ static struct Field_Struct Field_Data =
 
 /* internal functions */
 static int Field_Set_Dimensions(void);
+static void Field_Save_Raw_Image(unsigned short *image_data, int ncols, int nrows, int exposure_length, double current_temperature); 
 static int Field_Reduce(int buffer_index);
 static int Field_Check_Done(int *done,int *dark_exposure_length_index);
 
@@ -584,6 +586,9 @@ int Autoguider_Field(void)
 					      LOG_VERBOSITY_VERBOSE,"FIELD","Unlocking raw field buffer %d.",
 					      Field_Data.In_Use_Buffer_Index);
 #endif
+		/* save raw FITS file, for debugging */
+		Field_Save_Raw_Image(buffer_ptr, Autoguider_Buffer_Get_Field_Binned_NCols(), Autoguider_Buffer_Get_Field_Binned_NRows(), Field_Data.Exposure_Length, current_temperature);
+
 		retval = Autoguider_Buffer_Raw_Field_Unlock(Field_Data.In_Use_Buffer_Index);
 		if(retval == FALSE)
 		{
@@ -1365,6 +1370,91 @@ static int Field_Set_Dimensions(void)
 #endif
 	return TRUE;
 }
+
+/**
+ * Developed as a debug routine to gather useful information for bug #1895
+ * cjm (brain), nrc (hands and feet) 
+ * 29/03/12
+ * @param image_data The image data itself
+ * @param ncols The number of columns in the image
+ * @param nrows The number of rows in the image
+ * @param exposure_length The length of exposure used to create the image
+ * @param current_temperature The temperature of the CCD when the image was taken
+ */ 
+static void Field_Save_Raw_Image(unsigned short *image_data, int ncols, int nrows, int exposure_length, double current_temperature)
+{
+        fitsfile *fp = NULL;
+	char buff[32]; /* fits_get_errstatus returns 30 chars max */
+	char filename[256];
+	long axes[2];
+	
+	char exposure_start_time_string[64];
+	double exposure_length_s;
+	time_t now_time_s;
+	int status=0, retval;
+
+	now_time_s = time(NULL);
+	sprintf(filename, "/icc/tmp/field_raw_%d.fits", now_time_s);
+	retval = fits_create_file(&fp,filename,&status);
+	if(retval)
+	{
+	        fits_get_errstatus(status,buff);
+		fits_report_error(stderr,status);
+		return;
+	}
+  
+	/* basic dimensions */
+	axes[0] = ncols;
+	axes[1] = nrows;
+  
+	retval = fits_create_img(fp,USHORT_IMG,2,axes,&status);
+	if(retval)
+	{
+	        fits_get_errstatus(status,buff);
+		fits_report_error(stderr,status);
+		fits_close_file(fp,&status);
+		return;
+	}
+  
+	retval = fits_write_img(fp,TUSHORT,1,ncols*nrows,image_data,&status);
+	if(retval)
+	{
+	        fits_get_errstatus(status,buff);
+		fits_report_error(stderr,status);
+		fits_close_file(fp,&status);
+		return;
+	}
+  
+ 
+	exposure_length_s = ((double)exposure_length)/1000.0;
+	retval = fits_update_key_fixdbl(fp,"EXPTIME",exposure_length_s,6,NULL,&status);
+	if(retval)
+	{
+	       fits_get_errstatus(status,buff);
+	       fits_report_error(stderr,status);
+	       fits_close_file(fp,&status);
+	       return;
+	}
+	retval = fits_update_key_fixdbl(fp,"CCDATEMP",current_temperature+273.16,6,
+				 "Temperature of CCD",&status);
+	if(retval)
+	{
+	       fits_get_errstatus(status,buff);
+	       fits_report_error(stderr,status);
+	       fits_close_file(fp,&status);
+	       return;
+	}
+
+	/* close file */
+	retval = fits_close_file(fp,&status);
+	if(retval)
+	{
+	       fits_get_errstatus(status,buff);
+	       fits_report_error(stderr,status);
+	       return;
+	}
+}
+
 /**
  * Internal routine to reduced the field data in the Field_Data.In_Use_Buffer_Index buffer.
  * The raw/reduced mutexs should <b>not</b> be locked when this is called.
@@ -1854,6 +1944,10 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.16  2012/03/07 14:57:55  cjm
+** Autoguider_Field_SDB_State_Failed_Then_Idle_Set now called, rather than
+** Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE), in Autoguider_Field.
+**
 ** Revision 1.15  2009/04/29 10:55:28  cjm
 ** Change to Autoguider_Field_Save_FITS calls to allow saving of guide star FITS header information.
 **
