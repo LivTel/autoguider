@@ -1,12 +1,12 @@
 /* fli_setup.c
 ** Autoguider FLI CCD Library setup routines
-** $Header: /home/cjm/cvs/autoguider/ccd/fli/c/fli_setup.c,v 1.3 2013-12-10 16:13:01 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/fli/c/fli_setup.c,v 1.4 2014-01-02 15:47:41 cjm Exp $
 */
 
 /**
  * Setup routines for the FLI autoguider CCD library.
  * @author Chris Mottram
- * @version $Revision: 1.3 $
+ * @version $Revision: 1.4 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -74,7 +74,7 @@ struct Setup_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: fli_setup.c,v 1.3 2013-12-10 16:13:01 cjm Exp $";
+static char rcsid[] = "$Id: fli_setup.c,v 1.4 2014-01-02 15:47:41 cjm Exp $";
 
 /**
  * Instance of the setup data.
@@ -199,7 +199,8 @@ int FLI_Setup_Shutdown(void)
 /**
  * Setup dimension information. 
  * <ul>
- * <li>If the windows_flags is set, we set the Setup_Data.Image_Area to the defined window.
+ * <li>If the windows_flags is set, we set the Setup_Data.Image_Area to the defined window, adding in the
+ *     visible area offset (as the guide window was derived from field data where that offset was implicit).
  * <li>If the windows_flags is <b>not</b> set, we set the Setup_Data.Image_Area to 
  *     (Setup_Data.Visible_Area.Upper_Left_X,Setup_Data.Visible_Area.Upper_Left_Y,ncols,nrows).
  * <li>We save the supplied binning values in Setup_Data.
@@ -229,13 +230,23 @@ int FLI_Setup_Dimensions(int ncols,int nrows,int hbin,int vbin,
 #endif
 	if(window_flags > 0)
 	{
-		Setup_Data.Image_Area.Upper_Left_X = window.X_Start;
-		Setup_Data.Image_Area.Upper_Left_Y = window.Y_Start;
-		Setup_Data.Image_Area.Lower_Right_X = window.X_End;
-		Setup_Data.Image_Area.Lower_Right_Y = window.Y_End;
 #ifdef FLI_DEBUG
-	CCD_General_Log_Format("ccd","fli_setup.c","FLI_Setup_Dimensions",LOG_VERBOSITY_VERBOSE,NULL,
-			       "Window: (ulx=%d,uly=%d,lrx=%d,lry=%d).",Setup_Data.Image_Area.Upper_Left_X,
+		CCD_General_Log_Format("ccd","fli_setup.c","FLI_Setup_Dimensions",LOG_VERBOSITY_VERBOSE,NULL,
+			       "Passed in Window: (ulx=%d,uly=%d,lrx=%d,lry=%d).",window.X_Start,window.Y_Start,
+			       window.X_End,window.Y_End);
+#endif
+		/* add Visible_Area.Upper_Left_X|Y to window corrdinates as these were derived as though the
+		** field window started at 1,1 wheras in reality it starts at Visible_Area.Upper_Left_X|Y.
+		** This should NOT affect the TCS centroid coordinates which are only calculated using the
+		** passed in window. */
+		Setup_Data.Image_Area.Upper_Left_X = window.X_Start+Setup_Data.Visible_Area.Upper_Left_X;
+		Setup_Data.Image_Area.Upper_Left_Y = window.Y_Start+Setup_Data.Visible_Area.Upper_Left_Y;
+		Setup_Data.Image_Area.Lower_Right_X = window.X_End+Setup_Data.Visible_Area.Upper_Left_X;
+		Setup_Data.Image_Area.Lower_Right_Y = window.Y_End+Setup_Data.Visible_Area.Upper_Left_Y;
+#ifdef FLI_DEBUG
+		CCD_General_Log_Format("ccd","fli_setup.c","FLI_Setup_Dimensions",LOG_VERBOSITY_VERBOSE,NULL,
+			       "Window (after adding in offset for visible area i.e. bias strips): "
+			       "(ulx=%d,uly=%d,lrx=%d,lry=%d).",Setup_Data.Image_Area.Upper_Left_X,
 			       Setup_Data.Image_Area.Upper_Left_Y,
 			       Setup_Data.Image_Area.Lower_Right_X,Setup_Data.Image_Area.Lower_Right_Y);
 #endif
@@ -243,15 +254,17 @@ int FLI_Setup_Dimensions(int ncols,int nrows,int hbin,int vbin,
 	else
 	{
 		/*Setup_Data.Image_Area = Setup_Data.Detector_Area;*/
+		/* image areas are inclusive, so subtract one off ncols/nrows */
 		Setup_Data.Image_Area.Upper_Left_X = Setup_Data.Visible_Area.Upper_Left_X;
 		Setup_Data.Image_Area.Upper_Left_Y = Setup_Data.Visible_Area.Upper_Left_Y;
-		Setup_Data.Image_Area.Lower_Right_X = ncols;
-		Setup_Data.Image_Area.Lower_Right_Y = nrows;
+		Setup_Data.Image_Area.Lower_Right_X = (ncols-1)+Setup_Data.Visible_Area.Upper_Left_X;
+		Setup_Data.Image_Area.Lower_Right_Y = (nrows-1)+Setup_Data.Visible_Area.Upper_Left_Y;
 #ifdef FLI_DEBUG
-	CCD_General_Log_Format("ccd","fli_setup.c","FLI_Setup_Dimensions",LOG_VERBOSITY_VERBOSE,NULL,
-			       "Full Frame: (ulx=%d,uly=%d,lrx=%d,lry=%d).",Setup_Data.Image_Area.Upper_Left_X,
-			       Setup_Data.Image_Area.Upper_Left_Y,
-			       Setup_Data.Image_Area.Lower_Right_X,Setup_Data.Image_Area.Lower_Right_Y);
+		CCD_General_Log_Format("ccd","fli_setup.c","FLI_Setup_Dimensions",LOG_VERBOSITY_VERBOSE,NULL,
+			       "Full Frame with visible area offsets: (ulx=%d,uly=%d,lrx=%d,lry=%d).",
+				       Setup_Data.Image_Area.Upper_Left_X,
+				       Setup_Data.Image_Area.Upper_Left_Y,
+				       Setup_Data.Image_Area.Lower_Right_X,Setup_Data.Image_Area.Lower_Right_Y);
 #endif
 	}
 	Setup_Data.Horizontal_Bin = hbin;
@@ -342,7 +355,7 @@ flidev_t FLI_Setup_Get_Dev(void)
 
 /**
  * Get the number of columns setup to be read out from the last FLI_Setup_Dimensions.
- * Currently, (<b>((Setup_Data.Image_Area.Lower_Right_X-Setup_Data.Image_Area.Upper_Left_X)-1)/
+ * Currently, (<b>((Setup_Data.Image_Area.Lower_Right_X-Setup_Data.Image_Area.Upper_Left_X)+1)/
  * Setup_Data.Horizontal_Bin</b>).
  * @return The number of binned columns.
  * @see #Setup_Data
@@ -452,6 +465,11 @@ int FLI_Setup_Allocate_Image_Buffer(void **buffer,size_t *buffer_length)
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.3  2013/12/10 16:13:01  cjm
+** Changed to the Visible area is now retrieved from the head. This is
+** used when no window is set to remove the horizontal and vertical bias
+** strips from the image.
+**
 ** Revision 1.2  2013/12/03 09:33:33  cjm
 ** Fixed FLI_Setup_Dimensions with inclusive pixels.
 **
