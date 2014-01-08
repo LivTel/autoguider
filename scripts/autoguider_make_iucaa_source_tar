@@ -4,8 +4,18 @@
 set dev_dir 		= "~dev"
 # dev source root directory
 set dev_src_dir 	= "${dev_dir}/src"
+# dev bin root directory
+set dev_bin_dir 	= "${dev_dir}/bin"
+# dev source root directory
+set dev_public_html_dir = "${dev_dir}/public_html"
 # temporary directory containing root of deployment tree (which becomes root of tar).
 set deployment_dir 	= "/tmp/autoguider_deployment"
+# temporary directory containing src root of deployment tree
+set deployment_src_dir 	= "${deployment_dir}/src"
+# temporary directory containing bin root of deployment tree
+set deployment_bin_dir 	= "${deployment_dir}/bin"
+# temporary directory containing public_html root of deployment tree
+set deployment_public_html_dir 	= "${deployment_dir}/public_html"
 # directory location of tar
 set source_tar_dir 	= "${dev_dir}/public_html/autoguider/"
 # name of tar file
@@ -22,7 +32,14 @@ endif
 #
 echo "Creating directory structure..."
 set dir_count = 0
-set dir_list = "${deployment_dir} ${deployment_dir}/libdprt/ ${deployment_dir}/ccd ${deployment_dir}/ngat ${deployment_dir}/estar "
+set src_dir_list = "${deployment_dir} ${deployment_dir}/src/libdprt/ ${deployment_dir}/src/ccd ${deployment_dir}/src/ngat ${deployment_dir}/src/estar ${deployment_dir}/classes "
+set bin_dir_list = "${deployment_dir}/bin ${deployment_dir}/bin/autoguider/c/i386-linux ${deployment_dir}/bin/autoguider/ccd/c/i386-linux/ ${deployment_dir}/bin/autoguider/ccd/fli/c/i386-linux/ ${deployment_dir}/bin/autoguider/ccd/fli/test/i386-linux/ ${deployment_dir}/bin/autoguider/ngatcil/c/i386-linux/ ${deployment_dir}/bin/autoguider/ngatcil/test/i386-linux/ ${deployment_dir}/bin/autoguider/scripts ${deployment_dir}/bin/autoguider/commandserver/c/i386-linux/ ${deployment_dir}/bin/autoguider/commandserver/test/i386-linux/ ${deployment_dir}/bin/autoguider/java/gui/ ${deployment_dir}/bin/autoguider/java/ngat/autoguider/gui ${deployment_dir}/bin/autoguider/java/ngat/autoguider/command ${deployment_dir}/bin/lib/i386-linux/ ${deployment_dir}/bin/estar/lib/i386-linux/ ${deployment_dir}/bin/ics_util/c/i386-linux/ ${deployment_dir}/bin/libdprt/object/c/i386-linux/ ${deployment_dir}/bin/libdprt/object/test/i386-linux/ ${deployment_dir}/bin/ngatastro/test/i386-linux/ ${deployment_dir}/bin/javalib_third_party/ ${deployment_dir}/bin/javalib"
+set public_html_dir_list = "${deployment_dir}/public_html ${deployment_dir}/public_html/autoguider/ccd/cdocs ${deployment_dir}/public_html/autoguider/ccd/fli/cdocs/ ${deployment_dir}/public_html/autoguider/ccd/fli/test ${deployment_dir}/public_html/autoguider/cdocs ${deployment_dir}/public_html/autoguider/commandserver/cdocs ${deployment_dir}/public_html/autoguider/commandserver/test ${deployment_dir}/public_html/autoguider/deployment ${deployment_dir}/public_html/autoguider/icd ${deployment_dir}/public_html/autoguider/javadocs/ ${deployment_dir}/public_html/autoguider/latex ${deployment_dir}/public_html/autoguider/ngatcil/cdocs ${deployment_dir}/public_html/autoguider/ngatcil/test ${deployment_dir}/public_html/estar/config/ ${deployment_dir}/public_html/ics_util/c/ ${deployment_dir}/public_html/libdprt/object/cdocs/ ${deployment_dir}/public_html/libdprt/object/test/ ${deployment_dir}/public_html/ngatastro/cdocs/"
+set autobooter_dir_list = "${deployment_dir}/bin/autobooter/java ${deployment_dir}/public_html/autobooter/javadocs/ ${deployment_dir}/public_html/autobooter/latex"
+set log_udp_dir_list = "${deployment_dir}/bin/log_udp/c/i386-linux/ ${deployment_dir}/bin/log_udp/test/i386-linux/ ${deployment_dir}/public_html/log_udp/cdocs ${deployment_dir}/public_html/log_udp/test"
+set cdoc_dir_list = "${deployment_dir}/bin/cdoc/i386-linux/ ${deployment_dir}/public_html/cdoc/cdocs/"
+set ccd_misc_dir_list = "${deployment_dir}/bin/ccd/misc/i386-linux/"
+set dir_list = "${src_dir_list} ${bin_dir_list} ${public_html_dir_list} ${autobooter_dir_list} ${log_udp_dir_list} ${cdoc_dir_list} ${ccd_misc_dir_list}"
 # cfitsio
 foreach dir ( ${dir_list} )
 	mkdir -p ${dir}
@@ -37,17 +54,17 @@ echo "${dir_count} directories created."
 # Copy directories of source code
 #
 set dir_count = 0
-set dir_list = "autoguider autobooter libdprt/object libdprt/ccd_imager ccd/misc log_udp ics_util ngat/net ngat/swing ngat/util/ ngat/sound ngatastro estar/config "
+set dir_list = "autoguider autobooter cdoc libdprt/object libdprt/ccd_imager ccd/misc log_udp ics_util ngat/message ngat/net ngat/swing ngat/util/ ngat/sound ngatastro estar/config estar/common scripts cfitsio3310"
 # ngat/util/logging 
 foreach dir ( ${dir_list} )
 	set dest_dir = `/usr/bin/dirname ${dir}`
 	if( "${dest_dir}" == "." ) then
 		set dest_dir = ""
 	endif
-	echo "cp -R ${dev_src_dir}/${dir} ${deployment_dir}/${dest_dir}"
-	cp -R ${dev_src_dir}/${dir} ${deployment_dir}/${dest_dir}
+	echo "cp -R ${dev_src_dir}/${dir} ${deployment_dir}/src/${dest_dir}"
+	cp -R ${dev_src_dir}/${dir} ${deployment_dir}/src/${dest_dir}
 	if ($status != 0) then
-		echo "Failed: cp -R ${dev_src_dir}/${dir} ${deployment_dir}/${dir}"
+		echo "Failed: cp -R ${dev_src_dir}/${dir} ${deployment_dir}/src/${dest_dir}"
 		exit 2
 	endif
 	@ dir_count ++
@@ -59,15 +76,195 @@ echo "${dir_count} directories of source code copied."
 set dir_count = 0
 set dir_list = "autoguider/download autoguider/andor autoguider/TTL autoguider/control_computer"
 foreach dir ( ${dir_list} )
-	echo "rm -rf ${deployment_dir}/${dir}"
-	rm -rf ${deployment_dir}/${dir}
+	echo "rm -rf ${deployment_dir}/src/${dir}"
+	rm -rf ${deployment_dir}/src/${dir}
 	if ($status != 0) then
-		echo "Failed: rm -rf ${dir}"
+		echo "Failed: rm -rf ${deployment_dir}/src/${dir}"
 		exit 2
 	endif
 	@ dir_count ++
 end
 echo "${dir_count} sub-directories of not needed source code deleted."
+#
+# Create soft links
+#
+echo "Creating soft links from ${deployment_dir}/bin/autoguider/scripts."
+set file_count = 0
+set file_list = "../../../src/autoguider/scripts/autoguider_engineering_mode ../../../src/autoguider/scripts/autoguider_field ../../../src/autoguider/scripts/autoguider_get_exposure_lengths ../../../src/autoguider/scripts/autoguider_get_guide_frames ../../../src/autoguider/scripts/autoguider_get_guide_frames_cron ../../../src/autoguider/scripts/autoguider_get_guide_packets ../../../src/autoguider/scripts/autoguider_get_guide_packets_with_time ../../../src/autoguider/scripts/autoguider_get_object_list ../../../src/autoguider/scripts/autoguider_get_process_stats ../../../src/autoguider/scripts/autoguider_guide ../../../src/autoguider/scripts/autoguider_guide_packets_graph ../../../src/autoguider/scripts/autoguider_guide_packets_to_csv ../../../src/autoguider/scripts/autoguider_log_get_temperature ../../../src/autoguider/scripts/autoguider_make_dark ../../../src/autoguider/scripts/autoguider_make_dark_list /home/dev/src/autoguider/scripts/autoguider_make_flat ../../../src/autoguider/scripts/autoguider_object_list_graph ../../../src/autoguider/scripts/autoguider_object_list_graph_column ../../../src/autoguider/scripts/autoguider_object_list_graph_fwhm ../../../src/autoguider/scripts/autoguider_object_list_to_csv ../../../src/autoguider/scripts/autoguider_rm_field_frames_cron ../../../src/autoguider/scripts/autoguider_rm_guide_frames_cron ../../../src/autoguider/java/autoguider_runtime_system_evaluator ../../../src/autoguider/scripts/autoguider_temperature_to_csv ../../../src/autoguider/scripts/csv2gnuplot.sh ../../../src/autoguider/scripts/print_line.awk"
+cd ${deployment_dir}/bin/autoguider/scripts
+foreach file ( ${file_list} )
+    echo "Creating soft link ${file}."
+    ln -s ${file}
+    if ($status != 0) then
+	    echo "Failed: ln -s ${file}"
+	    exit 2
+    endif
+    @ file_count ++
+end
+echo "${file_count} links created in ${deployment_dir}/bin/autoguider/scripts."
+echo "Creating soft links from ${deployment_dir}/bin/autoguider/java/gui/."
+set file_count = 0
+set file_list = "/home/dev/src/autoguider/java/autoguider1.ag_gui.properties /home/dev/src/autoguider/java/autoguider_runtime_system_evaluator /home/dev/src/autoguider/java/iucaaag.ag_gui.properties /home/dev/src/autoguider/java/ltobs9.ag_gui.properties"
+cd ${deployment_dir}/bin/autoguider/java/gui/
+foreach file ( ${file_list} )
+    echo "Creating soft link ${file}."
+    ln -s ${file}
+    if ($status != 0) then
+	    echo "Failed: ln -s ${file}"
+	    exit 2
+    endif
+    @ file_count ++
+end
+echo "${file_count} links created in ${deployment_dir}/bin/autoguider/java/gui/."
+# /home/dev/bin/scripts soft-linked to /home/dev/src/scripts
+cd ${deployment_dir}/bin/
+ln -s ../src/scripts
+if ($status != 0) then
+	echo "Failed: ln -s ${file}"
+	exit 2
+endif
+#
+# Copy public_html index files
+#
+echo "Copying public_html index files."
+set file_count = 0
+set file_list = "autoguider/commandserver/test/index.html autoguider/commandserver/cdocs/index.html autoguider/commandserver/index.html autoguider/latex/index.html autoguider/ccd/fli/test/index.html autoguider/ccd/fli/cdocs/index.html autoguider/ccd/fli/index.html autoguider/ccd/cdocs/index.html autoguider/ccd/index.html autoguider/ngatcil/test/index.html autoguider/ngatcil/cdocs/index.html autoguider/ngatcil/index.html autoguider/javadocs/index.html autoguider/icd/index.html autoguider/cdocs/index.html autoguider/deployment/index.html autoguider/index.html cdoc/index.html log_udp/cdocs/index.html log_udp/test/index.html"
+foreach file ( ${file_list} )
+	echo "cp ${dev_public_html_dir}/${file} ${deployment_public_html_dir}/${file}"
+	cp ${dev_public_html_dir}/${file} ${deployment_public_html_dir}/${file}
+	if ($status != 0) then
+		echo "Failed: cp ${dev_public_html_dir}/${file} ${deployment_public_html_dir}/${file}"
+		exit 2
+	endif
+	@ file_count ++
+end
+echo "${file_count} public_html index files copied."
+#
+# CDoc images
+#
+echo "Copying public_html cdoc images."
+cp -R ${dev_public_html_dir}/cdoc_images ${deployment_public_html_dir}/
+if ($status != 0) then
+    echo "Failed: cp -R ${dev_public_html_dir}/cdoc_images ${deployment_public_html_dir}/"
+    exit 2
+endif
+#
+# CDoc images link
+#
+echo "Creating cdoc images links."
+set dir_count = 0
+set dir_list = "autoguider/commandserver/test autoguider/commandserver/cdocs autoguider/ccd/fli/test autoguider/ccd/fli/cdocs autoguider/ccd/cdocs autoguider/ngatcil/cdocs autoguider/cdocs cdoc/cdocs log_udp/cdocs log_udp/test"
+foreach dir ( ${dir_list} )
+    echo "Changing directory to ${deployment_public_html_dir}/${dir}"
+    cd ${deployment_public_html_dir}/${dir}
+    set up_count = `echo ${dir} | sed "s#/# #g" | wc -w`
+    set up_index = 0
+    set link_string = ""
+    while ( ${up_index} < ${up_count} )
+	set link_string = "${link_string}../"
+	@ up_index ++
+    end
+    set link_string = "${link_string}cdoc_images/"
+    echo "Creating link  ${link_string} to images."
+    ln -s ${link_string} images
+    @ dir_count ++
+end
+echo "${dir_count} cdoc images links created."
+#
+# Autoguider GUI icons
+#
+echo "Copying autoguider GUI icons."
+set file_count = 0
+set file_list = "autoguider/java/gui/lt_icon.gif autoguider/java/gui/lt.gif"
+foreach file ( ${file_list} )
+    echo "cp ${dev_bin_dir}/${file} ${deployment_bin_dir}/${file}"
+    cp ${dev_bin_dir}/${file} ${deployment_bin_dir}/${file}
+    if ($status != 0) then
+	echo "Failed: cp ${dev_bin_dir}/${file} ${deployment_bin_dir}/${file}"
+	exit 2
+    endif
+    @ file_count ++
+end
+echo "${file_count} icons copied."
+#
+# Makefile.common's
+#
+set file_list = "Makefile.common Makefile.java.common ccd/Makefile.common estar/Makefile.common estar/Makefile.dirs estar/Makefile.estar libdprt/Makefile.common"
+set file_count = 0
+echo "Copying Makefile.common s."
+foreach file ( ${file_list} )
+    set dest_dir = `/usr/bin/dirname ${file}`
+    if( "${dest_dir}" == "." ) then
+	    set dest_dir = ""
+    endif
+    echo "cp ${dev_src_dir}/${file} ${deployment_src_dir}/${dest_dir}"
+    cp ${dev_src_dir}/${file} ${deployment_src_dir}/${dest_dir}
+    if ($status != 0) then
+	echo "Failed: cp ${dev_src_dir}/${file} ${deployment_src_dir}/${dest_dir}"
+	exit 2
+    endif
+    @ file_count ++
+end
+echo "${file_count} Makefile's copied."
+echo "Copying ngat/Makefile.ngat."
+cp ${dev_src_dir}/ngat/Makefile.ngat ${deployment_src_dir}/ngat/
+if ($status != 0) then
+    echo "Failed: cp ${dev_src_dir}/ngat/Makefile.ngat ${deployment_src_dir}/ngat/"
+    exit 2
+endif
+#
+# lt_environment.csh
+#
+echo "Copying lt_environment.csh."
+cp ${dev_dir}/lt_environment.csh ${deployment_dir}/
+if ($status != 0) then
+    echo "Failed: cp ${dev_dir}/lt_environment.csh ${deployment_dir}/"
+    exit 2
+endif
+#
+# estar_environment.csh
+#
+echo "Copying estar_environment.csh."
+cp ${dev_src_dir}/estar/estar_environment.csh ${deployment_src_dir}/estar/
+if ($status != 0) then
+    echo "Failed: cp ${dev_src_dir}/estar/estar_environment.csh ${deployment_src_dir}/estar/"
+    exit 2
+endif
+#
+# Copy directories not source code
+#
+set dir_count = 0
+set dir_list = "lt_classpath "
+foreach dir ( ${dir_list} )
+	set dest_dir = `/usr/bin/dirname ${dir}`
+	if( "${dest_dir}" == "." ) then
+		set dest_dir = ""
+	endif
+	echo "cp -R ${dev_dir}/${dir} ${deployment_dir}/${dest_dir}"
+	cp -R ${dev_dir}/${dir} ${deployment_dir}/${dest_dir}
+	if ($status != 0) then
+		echo "Failed: cp -R ${dev_dir}/${dir} ${deployment_dir}/${dest_dir}"
+		exit 2
+	endif
+	@ dir_count ++
+end
+echo "${dir_count} directories copied."
+#
+# Third party jars
+#
+set file_list = "jdom.jar"
+set file_count = 0
+echo "Copying third party jars."
+foreach file ( ${file_list} )
+    echo "cp ${dev_bin_dir}/javalib_third_party/${file} ${deployment_bin_dir}/javalib_third_party/"
+    cp ${dev_bin_dir}/javalib_third_party/${file} ${deployment_bin_dir}/javalib_third_party/
+    if ($status != 0) then
+	echo "Failed: cp ${dev_bin_dir}/javalib_third_party/${file} ${deployment_bin_dir}/javalib_third_party/"
+	exit 2
+    endif
+    @ file_count ++
+end
+echo "${file_count} third party jars COPIED."
 #
 # Create source tar
 #
