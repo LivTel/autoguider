@@ -1,0 +1,265 @@
+\documentclass[10pt,a4paper]{article}
+\pagestyle{plain}
+\textwidth 16cm
+\textheight 21cm
+\oddsidemargin -0.5cm
+\topmargin 0cm
+
+\title{IUCAA autoguider control computer Operating System and Software Installation}
+\author{C. J. Mottram}
+\date{}
+\begin{document}
+\pagenumbering{arabic}
+\thispagestyle{empty}
+\maketitle
+\begin{abstract}
+This document describes the installation procedure for the IUCAA autoguider.
+\end{abstract}
+\centerline{\Large History}
+\begin{center}
+\begin{tabular}{|l|l|l|p{15em}|}
+\hline
+{\bf Version} & {\bf Author} & {\bf Date} & {\bf Notes} \\
+\hline
+0.1 & C. J. Mottram & 04/12/13 & First draft \\
+\hline
+\end{tabular}
+\end{center}
+
+\newpage
+\tableofcontents
+\listoffigures
+\listoftables
+\newpage
+
+\newcommand{\mytilde}{\raise.17ex\hbox{$\scriptstyle\mathtt{\sim}$}}
+
+\section{Introduction}
+This document describes the installation procedure for the IUCAA autoguider.
+
+\section{Control Computer}
+
+The control computer selected was an ASUS eeePC mode name EeeBox EB1007P. This has an Intel Atom D425 1.8Ghz CPU. It has a small form factor, as required by IUCAA for fitting to their A\&G box. It has 2Gb of RAM and a 320Gb SATAII hard drive.
+
+\section{OS Install}
+Centos 6.5 was installed as the OS. Any recent Centos distribution would work however (where the FLI device driver
+can be built). A basic install was done, with further packages added as necessary. Development tools were installed (compiler etc) as the machine will contain the buildable source code.
+
+\section{Users and Passwords}
+
+The machine is setup with the usernames and passwords documented in Table \ref{tab:usernamespasswords}.
+
+\begin{table}[!h]
+\begin{center}
+\begin{tabular}{|l|l|}
+\hline
+{\bf Username} & {\bf Password} \\ \hline
+root & iucaar00t \\ \hline
+eng & iucaaeng \\ \hline
+\end{tabular}
+\end{center}
+\caption{\em Username and password list.}
+\label{tab:usernamespasswords}
+\end{table}
+
+\section{BIOS changes}
+
+The BIOS is accessed on this machine by pressing F2 whilst the machine is booting.
+
+We entered the {\bf Power} screen and changed the {\bf Restore on AC Power Loss} from {\bf Power OFF} to {\bf Power On}.If power is lost to the control computer, it will automatically reboot when power is reapplied.
+
+\section{Autoguider Software and FLI Device driver}
+
+\subsection{FLI Device driver}
+
+{\bf fliusb-1.3.tgz} was downloaded from the FLI website and installed.
+
+\begin{itemize}
+\item {\bf tar xvfz fliusb-1.3.tgz}
+\item {\bf cd fliusb-1.3}
+\item {\bf make}
+\item {\bf su}
+\item {\bf cp fliusb.ko /lib/modules/2.6.32-431.el6.i686/extra/}
+\item {\bf /sbin/depmod -a}
+\end{itemize}
+
+The device driver is then automatically recognised and installed into the kernel, when the FLI camera head is plugged into the control computer and turned on.
+
+\subsection{Autoguider Software}
+
+This is installed from the deployment files, usually held on a development machine in the directory:
+{\bf /home/dev/public\_html/autoguider/deployment}. These are usually copied to a date stamped sub-directory of eng's download directory and installed from there e.g.:
+
+\begin{itemize}
+\item {\bf cd \mytilde dev/public\_html/autoguider/deployment}
+\item {\bf scp -C autoguider\_deployment\_iucaaag.tar.gz autoguider\_tar\_install icc\_cshrc icc\_cshrc\_edit.awk README.DEPLOYMENT eng@iucaaag:download/20131204/} Obviously, {\bf cp} can be used instead if the development and deployment machines are the same.
+\item {\bf cd \mytilde eng/download/20131204/}
+\item {\bf su}
+\item {\bf ./autoguider\_tar\_install iucaaag}
+\item {\bf reboot}
+\end{itemize}
+
+Note if a previous version of the robotic software is already running, running 
+{\bf /icc/bin/autoguider/scripts/autoguider\_engineering\_mode} 
+will safely warm up the CCD and kill the robotic software before the installation is started.
+
+\section{Other Packages Installed}
+
+After doing a basic install, the following extra packages were installed at various stages.
+
+\subsection{XTerm}
+
+This was installed to provide a terminal : {\bf yum install xterm}
+
+\subsection{Emacs}
+
+Emacs was selected to be installed during OS installation. However the default OS install does not install the dependencies correctly, libotf.so is not installed (or rather the wrong OpenMPI library with the same name is installed to satisfy the dependency). This appears to be a well known problem with Centos 6.5, the solution is {\bf yum install libotf}.
+
+\subsection{Java}
+
+The latest oracle JVM was installed: 
+
+\begin{itemize}
+\item {\bf rpm -i jdk-7u45-linux-i586.rpm}
+\item {\bf/usr/sbin/update-alternatives --install /usr/bin/java java /usr/java/jdk1.7.0\_45/bin/java 1 --slave /usr/bin/javac javac /usr/java/jdk1.7.0\_45/bin/javac --slave /usr/bin/jar jar /usr/java/jdk1.7.0\_45/bin/jar --slave /usr/bin/javadoc javadoc /usr/java/jdk1.7.0\_45/bin/javadoc --slave /usr/bin/javah javah /usr/java/jdk1.7.0\_45/bin/javah --slave /usr/bin/javaws javaws /usr/java/jdk1.7.0\_45/bin/javaws}
+\item {\bf/usr/sbin/update-alternatives --config java} and select the new Oracle JDK.
+\end{itemize}
+
+\subsection{ds9}
+
+The latest version of ds9 (7.2) was downloaded and installed:
+
+\begin{itemize}
+\item {\bf cp ds9 /usr/local/bin/}
+\end{itemize}
+
+\subsection{starlink}
+
+The latest starlink collection was downloaded and installed.
+
+\begin{itemize}
+\item {\bf cd /}
+\item {\bf tar xvfz \mytilde eng/download/starlink-hikianalia-Linux-32bit.tar.gz}
+\item Edit {\bf /home/eng/.login} and source starlink's {\bf /star-hikianalia/etc/login}
+\item Edit {\bf /home/eng/.cshrc} and source starlink's {\bf /star-hikianalia/etc/cshrc}
+\end{itemize}
+
+\subsection{system-config-securitylevel}
+
+This is a tool to mkake it easier to turn of the firewall. We install as follows:
+ {\bf yum install system-config-securitylevel}.
+
+\subsection{gnuplot}
+
+This is installed as follows {\bf yum install gnuplot}. gnuplot is used by some of the scripts
+for graphing centroids etc.
+
+\section{Configuration Changes}
+
+The following system files were edited or changed during the installation.
+
+\subsection{/etc/inittab}
+
+The default runlevel was changed from 5 to 3, X Windows does not need to be running most of the time.
+
+\subsection{/etc/hosts}
+
+The hostnames for the various machines the autoguider software communicates with were added to the {\bf /etc/hosts} file. Any hostname present in the {\bf autoguider.properties} config file will need to be present in {\bf /etc/hosts} to be resolved correctly.
+
+\begin{itemize}
+\item 192.168.1.1     mcc
+\item 192.168.1.2     scc
+\item 192.168.1.10    tcc
+\end{itemize}
+
+\subsection{/root/.bashrc}
+
+The following lines were added to {\bf /root/.bashrc} to add the software library directory to
+{\bf LD\_LIBRARY\_PATH}. This allows us to run low-level command line test programs as root.
+
+\begin{verbatim}
+for dir in /icc/bin/lib/i386-linux/ 
+  do
+  if [ -z "${LD_LIBRARY_PATH}" ] 
+    then
+    echo "${LD_LIBRARY_PATH}" | grep ":${dir}" > /dev/null
+    if [ $? != 0 ] 
+    then
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}":"${dir}
+    fi
+  else
+    export LD_LIBRARY_PATH=${dir}
+  fi
+done
+\end{verbatim}
+
+\subsection{SELinux and firewall}
+
+This needs to be disabled so the UDP packets can reach other machines:
+Edit the file {\bf /etc/selinux/config} and change
+
+\begin{verbatim}
+SELINUX=enforcing
+\end{verbatim}
+
+to
+
+\begin{verbatim}
+SELINUX=disabled
+\end{verbatim}
+
+We disabled the firewall using the GUI (System \textgreater Administration \textgreater Firewall) as root.
+
+\subsection{eng's crontab}
+
+We created the following crontab for eng:
+\begin{verbatim}
+# minute hour day_of_month month day_of_week command
+# 35 11 * * * $HOME/scripts/instrument_archive_logs
+35 14 * * * /icc/bin/autoguider/scripts/autoguider_rm_field_frames_cron
+35 15 * * * /icc/bin/autoguider/scripts/autoguider_rm_guide_frames_cron
+* 0-6,18-23 * * * /icc/bin/autoguider/scripts/autoguider_get_guide_frames_cron
+2 * * * * /icc/bin/autoguider/scripts/autoguider_get_process_stats
+\end{verbatim}
+
+The function of each of the scripts in the crontab are described in the Autoguider User Guide ]
+\cite{bib:autoguideruserguide}.
+
+\section{Source code installation}
+
+The source code is not normally installed on the autoguider control computer. We usually keep the source code on a development computer and deploy a set of binaries to the actual control computer. For the purposes of releasing the source code to IUCAA, the steps in this section were taken to get a copy of the source code onto the control computer.
+
+The source code is installed in the same base directory as we use for our development server. This is is the {\bf /home/dev} directory.
+
+\begin{itemize}
+\item As root: {\bf mkdir -p /home/dev/src}
+\item As root: {\bf chown eng:ltdev /home/dev}
+\item As root, add the following line to {\bf /etc/passwd} : 
+\begin{verbatim}
+dev:x:1004:1000::/home/dev:/sbin/nologin
+\end{verbatim}
+This allows us to use {\bf ~dev} to refer to {\bf /home/dev}.
+\item We create a tarball of the source code to move to this machine by running the script {\bf /home/dev/src/autoguider/scripts/autoguider\_make\_iucaa\_source\_tar}
+\item The created tarball \mytilde dev/public\_html/autoguider/autoguider\_source\_iucaaag.tar.gz is copied into the control computers download directory.
+\item As eng:
+\begin{verbatim}
+cd ~dev/
+tar xvfz ~/download/autoguider_source_iucaaag.tar.gz
+\end{verbatim}
+\end{itemize}
+
+Some extra packeges were installed which are used to generate the binaries:
+
+\begin{itemize}
+\item {\bf yum install makedepend}
+\end{itemize}
+
+\begin{thebibliography}{99}
+\addcontentsline{toc}{section}{Bibliography}
+
+\bibitem{bib:autoguideruserguide}{\bf Autoguider User Guide}
+C. J. Mottram  \newline{\em /home/dev/public\_html/autoguider/latex/autoguider\_user\_guide.ps} v0.1
+
+\end{thebibliography}
+
+\end{document}
