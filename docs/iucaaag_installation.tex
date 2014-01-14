@@ -22,6 +22,7 @@ This document describes the installation procedure for the IUCAA autoguider.
 {\bf Version} & {\bf Author} & {\bf Date} & {\bf Notes} \\
 \hline
 0.1 & C. J. Mottram & 04/12/13 & First draft \\
+0.2 & C. J. Mottram & 10/01/14 & Second draft \\
 \hline
 \end{tabular}
 \end{center}
@@ -35,15 +36,16 @@ This document describes the installation procedure for the IUCAA autoguider.
 \newcommand{\mytilde}{\raise.17ex\hbox{$\scriptstyle\mathtt{\sim}$}}
 
 \section{Introduction}
-This document describes the installation procedure for the IUCAA autoguider.
+This document describes the installation procedure for the Operating System and software for the IUCAA autoguider control computer.
+
+This procedure should only be necessary to order to setup a new autogudier control computer should the original one supplied fail. For a simpler reinstall procedure we recommend that the original computer data is cloned so that a drop in replacement may be used.
 
 \section{Control Computer}
 
 The control computer selected was an ASUS eeePC mode name EeeBox EB1007P. This has an Intel Atom D425 1.8Ghz CPU. It has a small form factor, as required by IUCAA for fitting to their A\&G box. It has 2Gb of RAM and a 320Gb SATAII hard drive.
 
 \section{OS Install}
-Centos 6.5 was installed as the OS. Any recent Centos distribution would work however (where the FLI device driver
-can be built). A basic install was done, with further packages added as necessary. Development tools were installed (compiler etc) as the machine will contain the buildable source code.
+Centos 6.5 was installed as the OS. The 32-bit version of the operating system was selected. Any recent Centos distribution would work however (where the FLI device driver can be built). A basic install was done, with further packages added as necessary. grub is used to boot the Centos OS automatically. UTC is used as the default TIMEZONE. A UK keyboard was selected. Development tools were installed (compiler etc) as the machine will contain the buildable source code.
 
 \section{Users and Passwords}
 
@@ -72,7 +74,7 @@ We entered the {\bf Power} screen and changed the {\bf Restore on AC Power Loss}
 
 \subsection{FLI Device driver}
 
-{\bf fliusb-1.3.tgz} was downloaded from the FLI website and installed.
+{\bf fliusb-1.3.tgz} was downloaded from the FLI website \cite{bib:flidevicedriver} and installed.
 
 \begin{itemize}
 \item {\bf tar xvfz fliusb-1.3.tgz}
@@ -99,8 +101,10 @@ This is installed from the deployment files, usually held on a development machi
 \item {\bf reboot}
 \end{itemize}
 
-Note if a previous version of the robotic software is already running, running 
-{\bf /icc/bin/autoguider/scripts/autoguider\_engineering\_mode} 
+Note if a previous version of the robotic software is already running, running:
+\begin{verbatim}
+/icc/bin/autoguider/scripts/autoguider_engineering_mode
+\end{verbatim}
 will safely warm up the CCD and kill the robotic software before the installation is started.
 
 \section{Other Packages Installed}
@@ -127,7 +131,7 @@ The latest oracle JVM was installed:
 
 \subsection{ds9}
 
-The latest version of ds9 (7.2) was downloaded and installed:
+The latest version of ds9 (7.2) \cite{bib:ds9} was downloaded and installed:
 
 \begin{itemize}
 \item {\bf cp ds9 /usr/local/bin/}
@@ -135,7 +139,7 @@ The latest version of ds9 (7.2) was downloaded and installed:
 
 \subsection{starlink}
 
-The latest starlink collection was downloaded and installed.
+The latest starlink collection was downloaded \cite{bib:starlink} and installed.
 
 \begin{itemize}
 \item {\bf cd /}
@@ -164,7 +168,7 @@ The default runlevel was changed from 5 to 3, X Windows does not need to be runn
 
 \subsection{/etc/hosts}
 
-The hostnames for the various machines the autoguider software communicates with were added to the {\bf /etc/hosts} file. Any hostname present in the {\bf autoguider.properties} config file will need to be present in {\bf /etc/hosts} to be resolved correctly.
+The hostnames for the various machines the autoguider software communicates with were added to the {\bf /etc/hosts} file. Any hostname present in the {\bf autoguider.properties} config file will need to be present in {\bf /etc/hosts} to be resolved correctly. These IP addresses are correct for the Liverpool Telescope, but need to be the correct IP addresses for the equivalent machines at IUCAA.
 
 \begin{itemize}
 \item 192.168.1.1     mcc
@@ -239,7 +243,10 @@ The source code is installed in the same base directory as we use for our develo
 dev:x:1004:1000::/home/dev:/sbin/nologin
 \end{verbatim}
 This allows us to use {\bf ~dev} to refer to {\bf /home/dev}.
-\item We create a tarball of the source code to move to this machine by running the script {\bf /home/dev/src/autoguider/scripts/autoguider\_make\_iucaa\_source\_tar}
+\item We create a tarball of the source code to move to this machine by running the script:
+\begin{verbatim}
+/home/dev/src/autoguider/scripts/autoguider_make_iucaa_source_tar
+\end{verbatim}
 \item The created tarball \mytilde dev/public\_html/autoguider/autoguider\_source\_iucaaag.tar.gz is copied into the control computers download directory.
 \item As eng:
 \begin{verbatim}
@@ -258,7 +265,16 @@ Some extra packeges were installed which are used to generate the binaries:
 \addcontentsline{toc}{section}{Bibliography}
 
 \bibitem{bib:autoguideruserguide}{\bf Autoguider User Guide}
-C. J. Mottram  \newline{\em /home/dev/public\_html/autoguider/latex/autoguider\_user\_guide.ps} v0.1
+Liverpool John Moores University  \newline{\em /home/dev/public\_html/autoguider/latex/autoguider\_user\_guide.ps} v0.1
+
+\bibitem{bib:flidevicedriver} {\bf FLI Device driver}
+Finger Lake Instruments \newline{\em http://www.flicamera.com/downloads/sdk/fliusb-1.3.tgz} v1.3
+
+\bibitem{bib:ds9} {\bf SAOImage DS9}
+HEASARC \newline{\em http://hea-www.harvard.edu/RD/ds9/site/Home.html} v7.2
+
+\bibitem{bib:starlink} {\bf Starlink Software Collection - Hikianalia}
+Starlink \newline{\em http://starlink.jach.hawaii.edu/starlink/HikianaliaDownload} Hikianalia
 
 \end{thebibliography}
 
