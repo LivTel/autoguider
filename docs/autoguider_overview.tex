@@ -1,0 +1,444 @@
+\documentclass[10pt,a4paper]{article}
+\pagestyle{plain}
+\textwidth 16cm
+\textheight 21cm
+\oddsidemargin -0.5cm
+\topmargin 0cm
+
+\title{Autoguider Control System}
+\author{C. J. Mottram}
+\date{}
+\begin{document}
+\pagenumbering{arabic}
+\thispagestyle{empty}
+\maketitle
+\begin{abstract}
+This document describes the Autoguider Control System.
+\end{abstract}
+\centerline{\Large History}
+\begin{center}
+\begin{tabular}{|l|l|l|p{15em}|}
+\hline
+{\bf Version} & {\bf Author} & {\bf Date} & {\bf Notes} \\
+\hline
+0.1 & C. J. Mottram & 03/12/13 & First draft. \\
+0.2 & C. J. Mottram & 13/01/13 & Second draft. \\
+\hline
+\end{tabular}
+\end{center}
+
+\newpage
+\tableofcontents
+\listoffigures
+\listoftables
+\newpage
+
+\section{Introduction}
+This document gives an overview of the Autoguider control system as designed by Liverpool John Moores University for
+the Liverpool Telescope. The autoguider is designed to improve the telescope tracking, by repeatedly taking images of an area of sky, centroiding stars in the image, and feeding image coordinates values to the TCS, which can then correct the position of the telescope such that the stars remain in the same location on the focal plane.
+
+The LJMU autoguider system was designed as a replacement to the TTL supplied autoguider supplied with the Liverpool Telescope. The design has some similarities but also some differences in terms of operation as described below.
+
+\section{Overview}
+
+The autoguider system consists of the following components:
+\begin{itemize}
+\item A pick-off mirror (that may or may not be deploy-able) that takes off-axis light. Control of the mechanism is not part of the autoguider software, the TTL software does this.
+\item Some optics to focus the light onto the camera head. These normally consist of the collimator and camera lens.
+Again control of the mechanism is not part of the autoguider software, the TTL software does this.
+\item The camera head. This may be mounted on a focus stage, so that changes in the telescope focus (for different instrument or filters, for instance) can be removed and the autoguider remains in focus.
+\item A control computer to run the autoguider control software.
+\item The autoguider control software and it's associated software interfaces' to the Telescope Control System and SDB System database.
+\end{itemize}
+
+Normal control of the autoguider will be through TCS commands. The TTL-supplied autoguider GUI is not functional with this system.
+
+\section{Autoguider control software}
+
+The autoguider control software is responsible for the following tasks:
+\begin{itemize}
+\item Initialisation of the camera head.
+\item Temperature control of the camera head.
+\item Acquisition of field images and detection of a suitable star to guide upon.
+\item Configuring the camera for windowing.
+\item Acquisition of guide image, reduction and centroiding of these images.
+\item Transmission of the centroids to the TCS and and other software, such that guide corrections can be
+made to the position of the telescope.
+\item Session handling and other requests made by upstream software.
+\item Logging of the centroids and decision processes for off-line analysis.
+\end{itemize}
+
+The LJMU software is quite different to the TTL supplied executable. The LJMU software is designed to run in an ``always on'' state, i.e. the control computer is always on, and the camera head is always powered and the CCD chip always cooled. There are procedures available to warm up and shutdown the camera head for maintenance periods.
+
+\section{Method of operation}
+
+The autoguider operates in the following manner:
+
+\begin{itemize}
+\item On startup the software initialises
+\item A variety of server ports are created listening for commands from various sources. The most important ones are:
+      \begin{itemize}
+      \item The CIL control port which listens for autoguider commands originated from the TCS. 
+      \item The telnet control port, which is a low level interface for receiving engineering commands. 
+      \end{itemize}
+      The CIL control port runs on one thread and processes commands sequentially, whilst the telnet server spawns a new thread for each command sent.
+\item When a command is received from either source to start autoguiding, the following occurs:
+      \begin{itemize}
+      \item The CCD dimensions are configured for full frame. An initial exposure length is found is retrieved from the configuration file.
+      \item A loop is entered taking full-frame field exposures of increasing exposure lengths (known as ``field frames''). Each frame is reduced (flat-fielded / dark subtracted) and object detection performed to see if a suitable guide star can be found. The guide star is selected based on it's measured brightness, ellipticity and in some cases position.
+      \item If a suitable guide star is found in a field frame, a guide loop is started. This is run in a separate thread, so the original command thread can return successfully to tell the client software the autoguider has successfully started guiding. Depending on the autoguider configuration, the field image can be saved for offline analysis.
+      \end{itemize}
+\item Inside the guide loop thread the following operations are performed:
+      \begin{itemize}
+      \item The CCD dimensions are reconfigured to the guide window. The size of the guide window is retrieved from the configuration file.
+      \item The guide exposure length is initially calculated based on the guide object counts in the field exposure, the field exposure length, and a configured guide target counts. These counts can either be peak or integrated counts depending on how the autoguider is configured in the configuration file.
+      \item An exposure of the computed length is taken. This is known as a guide frame.
+      \item The guide frame is reduced (flat-fielded and dark subtracted) and the guide object extracted.
+      \item If the counts on the guide object are out of a configured range for a configured number of frames, the guide exposure length is rescaled to try and keep the guide object counts in range.
+      \item A guide packet is sent to the TCS, containing the object centroid.
+      \item Based on the guide object found, if it's centroid is too close to the edge of the window, the guide window is tracked (it's position moved on the CCD to keep the guide object in the centre).
+      \end{itemize}
+\item When the guide loop is terminated (either the guide star is lost or the autoguider is commanded to stop guiding) the loop is terminated, and the autoguider status in the SDB updated to show the autoguider is no longer guiding.
+\end{itemize}
+
+This sequence of operations is summarized in Figure \ref{fig:autoguiderfieldandguideloops}.
+
+\setlength{\unitlength}{1in}
+\begin{figure}[!h]
+	\begin{center}
+		\begin{picture}(6.0,9.0)(0.0,0.0)
+			\put(0,0){\special{psfile=autoguider_field_guide_loops.eps   hscale=50 vscale=30}}
+		\end{picture}
+	\end{center}
+	\caption{\em Autoguider Field and Guide loops.}
+	\label{fig:autoguiderfieldandguideloops} 
+\end{figure}
+
+
+\section{Autoguider System Context}
+
+The autoguider software process communicates with the external entities described in Table \ref{tab:autogudierprocesscommunicationinterfaces} and Figure \ref{fig:autoguidersystemcontextdiagram}.
+
+\begin{table}[!h]
+\begin{center}
+\begin{tabular}{|l|l|l|l|p{10em}|p{10em}|}
+\hline
+{\bf Process} & {\bf Machine} & {\bf Port Number} & {\bf Protocol}  & {\bf Message}  & {\bf Notes} \\ \hline
+TCS & TCC & 13021 & CIL & Autoguider Requests/Replies & \\ \hline
+TCS & TCC & 13025 & ASCII/UDP & Guiding corrections & \\ \hline
+SDB & MCC & 13011 & CIL & Autoguider Data (status) & \\ \hline
+MCS & SCC & 13001 & CIL & Autoguider Control Commands/Replies & ACTIVATE and SAFESTATE faked.\\ \hline
+CHB & SCC & 13002 & CIL & Continuous heartbeats & \\ \hline
+- & User & 6571 & Telnet & Engineering Commands/Replies & \\ \hline
+\end{tabular}
+\end{center}
+\caption{\em Autoguider Process Communication Interfaces.}
+\label{tab:autogudierprocesscommunicationinterfaces}
+\end{table}
+
+\setlength{\unitlength}{1in}
+\begin{figure}[!h]
+	\begin{center}
+		\begin{picture}(6.0,6.0)(0.0,0.0)
+			\put(0,0){\special{psfile=autoguider_system_context_diagram.eps   hscale=50 vscale=50}}
+		\end{picture}
+	\end{center}
+	\caption{\em Autoguider System Context Diagram.}
+	\label{fig:autoguidersystemcontextdiagram} 
+\end{figure}
+
+\subsection{Autoguider Requests/Replies}
+
+The autoguider receives requests from the TCS as part of normal operations. These commands are generated by typing autoguider commands into the TCS control window, or by using software sending robotic autoguider commands by the TCS's robotic interface. They are received by the autoguider CIL control port (13024) (as configured by the {\bf cil.server.port\_number} in {\bf autoguider.properties}), and replies are sent back to the TCS CIL
+control port (as configured by the {\bf cil.tcs.command\_reply.port\_number} and {\bf cil.tcs.hostname} keywords in the {\bf autoguider.properties} property file). The command set is documented in the Autoguider to Telescope Interface Control Document \cite{bib:agtcsicd}.
+
+The autoguider software supports the following subset of commands:
+\begin{itemize}
+\item AUTOGUIDE ON BRIGHTEST
+\item AUTOGUIDE ON RANK (not used robotically by the LT so somewhat untested).
+\item AUTOGUIDE ON PIXEL (not used robotically by the LT so somewhat untested).
+\item AUTOGUIDE OFF
+\end{itemize}
+
+The following commands are supported insofar as a reply is sent to them saying they have been completed,
+however the implementation actually does (almost) nothing.
+\begin{itemize}
+\item START\_SESSION
+\item END\_SESSION
+\end{itemize}
+
+The LJMU software is run ``always on''. In other words, the autoguider software is automatically started when the control computer boots, and is normally left running during the daytime with the CCD cooled. The CCD is initialised and the temperature set during bootup. Therefore the START\_SESSION and END\_SESSION commands do very little. The START\_SESSION command sends a couple of packets to the SDB to set the AGG\_STATE to INIT, followed by IDLE. This is needed by the TCS software to confirm the autoguider is available according to it's state model. See the state model in the Autoguider to Telescope Interface Control Document \cite{bib:agtcsicd} for more details.
+
+The following commands are {\bf NOT} supported by the LJMU software:
+\begin{itemize}
+\item AUTOGUIDE ON RANGE
+\item CONFIG EXP\_TIME
+\item CONFIG FRAME\_RATE
+\item CONFIG FRAME\_AVERAGE
+\item CONFIG CALIB
+\item AGG\_LOGGING
+\end{itemize}
+
+The logging and calibration parameters are configured by the {\bf autoguider.properties} file. The exposure length is set as part of the engineering command for an exposure, or automatically scaled according to the configured dark frames for automatic exposure scaling during guiding. The LJMU software does not support the concept of AUTOGUIDE ON RANGE, FRAME\_RATE and FRAME\_AVERAGE. 
+
+\subsection{Guiding Corrections}
+
+When the autoguider is guiding the TCS is sent the centroid of the guide star each time a guide image is taken. The TCS
+uses this (along with configured information on the autoguider's physical position and orientation) to correct the
+telescope tracking, by offsetting the telescope axes by an amount dependent on the difference between the current autoguider centroid position and it's start position. The centroid data is sent in ASCII UDP packets to the TCS, port 13025. This port is configured in
+{\bf autoguider.properties}, key {\bf cil.tcs.guide\_packet.port\_number}. The autoguider can also be configured not to
+send guide packets using the {\bf cil.tcs.guide\_packet.send} property. The guide centroids also have to be sent to the SDB as Autoguider Data packets for the TCS to guide successfully, however. The packet data format is described in detail in the Autoguider to Telescope Interface Control Document \cite{bib:agtcsicd}. The LJMU autoguider software only supports the UDP version (labeled TCP/IP in the TTL documentation) of the interface, the serial physical layer is not supported.
+
+\subsection{Autoguider Data (status)}
+
+The autoguider software sends data packets containing datums to be logged in the telescope Status Database (SDB).
+These data packets are CIL packets as described in the document Communications Interface Library User Guide v0.16  \cite{bib:ciluserguide}. The datums updated by the autoguider are described in the document Autoguider to Telescope Interface Control Document \cite{bib:agtcsicd}.
+
+The following datums are updated by the LJMU autoguider software:
+\begin{itemize}
+\item D\_AGS\_AGSTATE
+\item D\_AGS\_INTTIME
+\item D\_AGS\_CENTROIDX
+\item D\_AGS\_CENTROIDY
+\item D\_AGS\_FWHM
+\item D\_AGS\_GUIDEMAG
+\item D\_AGS\_WINDOW\_TLX
+\item D\_AGS\_WINDOW\_TLY
+\item D\_AGS\_WINDOW\_BRX
+\item D\_AGS\_WINDOW\_BRY
+\end{itemize}
+These ensure the TCS knows about the last centroid (it appears this information is required by the TCS in the SDB as well as via the guiding corrections interface), the autoguider state, integration time, and window details. The others listed in the Autoguider to Telescope Interface Control Document \cite{bib:agtcsicd} are {\bf NOT} updated by the LJMU software.
+
+The SDB CIL packets are sent to the SDB on the hostname and port configured in the {\bf autoguider.properties file}, keys {\bf cil.mcc.hostname} and {\bf cil.sdb.port\_number}. The {\bf cil.sdb.packet.send} property can be used to turn of sending of SDB packets.
+
+Note the {\bf D\_AGS\_AGSTATE} is not filled in with values from the enumerated list{\bf  eAgsAgState\_t} as suggested by the document Autoguider to Telescope Interface Control Document \cite{bib:agtcsicd}, P23. This did not work, and instead values from {\bf eAggState\_t} are used, as defined in TTL's Agg.h.
+
+\subsection{Autoguider Control Commands/Replies}
+
+The autoguider receives commands from the Master Control System / Master Control Process in certain situations. Although actioning and replying to these is not necessary to autoguide, it was found a good idea to action and complete a subset of these commands to allow certain telescope actions to complete and not get stuck in a loop (putting the telescope into SAFE state being one). Therefore  the following commands are parsed, and action and completion messages returned to the MCP (although the autoguider actually does nothing as we operate 'always on').
+
+\begin{itemize}
+\item {\bf E\_MCP\_SHUTDOWN} This is logged but no action taken.
+\item {\bf E\_MCP\_ACTIVATE} A action and completed packet are sent back to the MCP, but no other action is taken.
+\item {\bf E\_MCP\_SAFESTATE} A action and completed packet are sent back to the MCP, but no other action is taken.
+\end{itemize}
+
+The MCP is contacted using a hardcoded hostname and port number in the ngatcil library, these are hostname {\bf NGATCIL\_CIL\_MCP\_HOSTNAME\_DEFAULT} (currently defined as ``scc'' in {\bf ngatcil\_cil.h}) and port number {\bf NGATCIL\_CIL\_MCP\_PORT\_DEFAULT}  (currently defined as 13001 in {\bf ngatcil\_cil.h}).
+
+\subsection{Continuous heartbeats}
+
+The autoguider software responds to continuous heartbeat's from the Master Control Process. These are packets that are sent out about once a second to each bit of TTL software, and must be replies to within a certain time period to convince the TTL software the autoguider is still alive. The autoguider sends a response packet to hostname {\bf NGATCIL\_CIL\_CHB\_HOSTNAME\_DEFAULT} (defined in {\bf ngatcil\_cil.h} to be ``scc'') port {\bf NGATCIL\_CIL\_CHB\_PORT\_DEFAULT} (defined in {\bf ngatcil\_cil.h} to be 13002).
+
+\subsection{Log UDP Interface}
+
+The autoguider has the capability to send specially formatted UDP packets consisting of logging messages to a remote server. This is used at the Liverpool Telescope to provide a single log across multiple systems of what each telescope system is doing. However, the log messages emitted by the autoguider to this system are identical to the ones saved in the local log messages files on disk. The location of the log\_udp server is specified in the {\bf autoguider.properties} file, keys {\bf logging.udp.hostname} and {\bf logging.udp.port\_number}. The log UDP interface can be turned on and off using the {\bf logging.udp.active} key in the properties file. For the IUCAA autoguider this interface is turned off.
+
+\section{Engineering Commands/Replies}
+
+In addition to the implemented TTL interfaces there is an additional interface which is used for engineering. This is really an alternative (if rather more low level) alternative to the TTL gui (which isn't compatible with the LJMU software of course). It takes the form of the telnet port on port {\bf 6571} (configurable by changing the {\bf command.server.port\_number} key value in {\bf autoguider.properties}. The server works by taking one command (line) from the client, processing it, returning a reply, and then closing that connection i.e. you have to make a new connection for each command you send.
+
+Most of these commands send and receive one line of text. The {\bf getfits} command is rather different and returns a FITS image binary buffer, so a special client-side command is needed to handle this. The text commands are normally of the form ``\textless return code\textgreater \textless data\textgreater''. The return code is usually 0 for success, and non-zero when an error occurs (in which case the {\bf data} arguments is a descriptive error message). 
+
+There are two command line client-side tools, that simplify usage of this interface. The {\bf send\_command} command-line tool sends a command to the telnet interface, receives a reply and prints it to stdout. e.g.
+\begin{verbatim}
+/icc/bin/autoguider/commandserver/test/i386-linux/send_command -h iucaaag -p 6571 -c "guide on"
+\end{verbatim}
+There is a special version of the command for handling the binary data returned by the getfits command:
+\begin{verbatim}
+/icc/bin/autoguider/commandserver/test/i386-linux/test_getfits_command -h iucaaag -p 6571 -c "getfits field reduced"
+\end{verbatim}
+
+See the {\bf getfits} command below to get the exact syntax of allowed {\bf getfits} commands.
+
+Here is a list of command supported by this interface:
+
+\begin{itemize}
+\item {\bf abort}
+\item {\bf agstate \textless n\textgreater}
+\item {\bf autoguide on \textless brightest\textbar pixel \textless x\textgreater \textless y\textgreater \textbar rank \textless n\textgreater \textgreater }
+\item {\bf autoguide off}
+\item {\bf configload}
+\item {\bf expose \textless ms\textgreater }
+\item {\bf field [\textless ms\textgreater  [lock]]}
+\item {\bf field \textless dark\textbar flat\textbar object\textgreater  \textless on\textbar off\textgreater }
+\item {\bf getfits \textless field\textbar guide\textgreater \textless raw\textbar reduced\textgreater}
+\item {\bf guide [on\textbar off]}
+\item {\bf guide window \textless sx\textgreater  \textless sy\textgreater  \textless ex\textgreater  \textless ey\textgreater }
+\item {\bf guide exposure\_length \textless ms\textgreater  [lock]}
+\item {\bf guide \textless dark\textbar flat\textbar object\textbar packet\textbar window\_track\textgreater  \textless on\textbar off\textgreater }
+\item {\bf guide object  \textless index\textgreater }
+\item {\bf help}
+\item {\bf log\_level \textless autoguider\textbar ccd\textbar command\_server\textbar object\textbar ngatcil\textgreater  \textless n\textgreater }
+\item {\bf status temperature \textless get\textbar status\textgreater }
+\item {\bf status field \textless active\textbar dark\textbar flat\textbar object\textgreater }
+\item {\bf status guide \textless active\textbar dark\textbar flat\textbar object\textbar packet\textgreater }
+\item {\bf status object \textless list\textbar count\textgreater }
+\item {\bf temperature [set \textless C\textgreater \textbar cooler [on\textbar off]]}
+\item {\bf shutdown}
+\end{itemize}
+
+\subsection{abort}
+
+If the autoguider is taking an exposure as part of a field or guide operation, this command tries to abort the exposure
+to stop the data being taken.
+
+\subsection{agstate}
+
+The agstate command allows the user to modify the value of the {\bf D\_AGS\_AGSTATE} datum in the SDB database. The parameter is the new value of the AGSTATE.  This should be a valid value from TTL's Agg.h , eAggState\_e enumeration, with possible values as shown in Table \ref{tab:aggstatevalues}.
+
+\begin{table}[!h]
+\begin{center}
+\begin{tabular}{|l|l|p{20em}|}
+\hline
+{\bf Name}                   & {\bf Value} \\ \hline
+E\_AGG\_STATE\_UNKNOWN       & 0     \\ \hline
+E\_AGG\_STATE\_OK            & 16    \\ \hline
+E\_AGG\_STATE\_OFF           & 17    \\ \hline
+E\_AGG\_STATE\_STANDBY       & 18    \\ \hline
+E\_AGG\_STATE\_IDLE          & 19    \\ \hline
+E\_AGG\_STATE\_WORKING       & 20    \\ \hline
+E\_AGG\_STATE\_INIT          & 21    \\ \hline
+E\_AGG\_STATE\_FAILED        & 22    \\ \hline
+E\_AGG\_STATE\_INTWORK       & 23    \\ \hline
+E\_AGG\_STATE\_ERROR         & 256   \\ \hline
+E\_AGG\_STATE\_NONRECERR     & 257   \\ \hline
+E\_AGG\_STATE\_LOOP\_RUNNING & 4096  \\ \hline
+E\_AGG\_STATE\_GUIDEONBRIGHT & 4098  \\ \hline
+E\_AGG\_STATE\_GUIDEONRANGE  & 4099  \\ \hline
+E\_AGG\_STATE\_GUIDEONRANK   & 4100  \\ \hline
+E\_AGG\_STATE\_GUIDEONPIXEL  & 4101  \\ \hline
+E\_AGG\_STATE\_INTON         & 4102  \\ \hline
+E\_AGG\_TSTATE\_AT\_TEMP     & 65536 \\ \hline
+E\_AGG\_TSTATE\_ABOVE\_TEMP  & 65537 \\ \hline
+E\_AGG\_TSTATE\_BELOW\_TEMP  & 65538 \\ \hline
+E\_AGG\_TSTATE\_ERROR        & 65539 \\ \hline
+E\_AGG\_STATE\_EOL           & 65540 \\ \hline
+\end{tabular}
+\end{center}
+\caption{\em AGG state values.}
+\label{tab:aggstatevalues}
+\end{table}
+
+\subsection{autoguide on}
+
+This is the equivalent of issuing an {\bf autoguider on} command from the TCS. See the user guide for details \cite{bib:autoguideruserguide}. The only difference is the TCS will not know that the command has been issued. However, centroids are still sent to the TCS. You can issue a {\bf AUTOGUIDE RECEIVE} from the TCS to allow the TCS to receive guide packets, and make corrections, from an autoguider not under TCS control.
+
+\subsection{autoguide off}
+
+This is the equivalent of issuing an {\bf autoguider off} command from the TCS. See the user guide for details \cite{bib:autoguideruserguide}. This will stop any running guide loop.
+
+\subsection{configload}
+
+This commands reloads the configuration file. Subsequent calls to retrieve values from the config file will retrieve the new values. 
+
+\subsection{expose}
+
+This uses the fielding code to take a single exposure. The {\bf expose} command requires a single parameter which is the exposure length to use in milliseconds. The exposure is stored in a field buffer, use the {\bf getfits} command to retrieve the contents of the field buffer and store it in a FITS image for offline processing.
+
+\subsection{field}
+
+The field command has two different forms, which affect what the command does. Both involve operations or configuring of the field operation.
+
+\subsubsection{field [\textless ms\textgreater  [lock]]}
+
+This command syntax actually performs the field operation. In the form without parameters the field operation will loop
+over increasing exposure lengths until a guide object is found as normal. Adding a first parameter (an exposure length in milliseconds) sets the initial exposure length to use. Adding a second parameter ``lock'' will not allow the field software to change the exposure length. In all cases, the last field image taken will end up in the field buffer. This can be retrieved with the getfits command. If this command finds a guide object, the guide loop can then be turned on using the {\bf guide} command.
+
+\subsubsection{field \textless dark\textbar flat\textbar object\textgreater  \textless on\textbar off\textgreater}
+
+These forms of the field command actually configure what reduction operations the field command performs. Dark subtraction, flat fielding and object detection can all be turned on or off with this command.
+
+\subsection{getfits}
+
+The {\bf getfits} command requires two parameters. It is used to retrieve FITS data from either the field or guide buffer (the first parameter) and either the raw or reduced (dark subtracted and flat fielded as appropriate) data (the second parameter). This command, unusually, returns binary data, so the basic {\bf send\_command} will not work. Another command line client side command {\bf test\_getfits\_command} can receive the binary data and save it in a FITS image correctly.
+
+\subsection{guide}
+
+The guide command has five sub-forms. Some sub commands turn the guide loop on and off, and some allow you to manually configure elements used in the guide loop.
+
+\subsubsection{guide \textless on\textbar off\textgreater}
+
+This command turns the guide loop on or off. The guide loop can only be turned on, if a field operation has previously been performed which successfully found a suitable guide object. If turning on the guide loop from this low-level interface, the TCS will not know the autoguider is in operation and will do nothing with the guide corrections and centroids it receives. Issuing an {\bf autoguide receive} to the TCS interface will allow it to start using the guide corrections it receives.
+
+\subsubsection{guide window \textless sx\textgreater  \textless sy\textgreater  \textless ex\textgreater  \textless ey\textgreater}
+
+This command allows the manual setting of the guide window to be used by the guide loop. The coordinates are 1-based and inclusive. 
+
+\subsubsection{guide exposure\_length \textless ms\textgreater  [lock]}
+
+This form of the command allows the setting of the exposure length initially used for the guide exposures. The guide loop can change this if the guide object centroid is too faint or too bright, unless the {\bf lock} parameter is set in which case the guide exposure length cannot be changed.
+
+\subsubsection{guide \textless dark\textbar flat\textbar object\textbar packet\textbar window\_track\textgreater  \textless on\textbar off\textgreater}
+
+This form of the command turns on and off various parts of the guide loop data reduction. The dark subtraction, flat fielding and object detection can be turned on and off. The transmission of autoguider guide packets can be turned on and off, as can window tracking.
+
+\subsubsection{guide object \textless index\textgreater}
+
+This form of the command can be used to set which object to guide upon. The {\bf index} parameter is the index of the selected guide object in the object list (see the {\bf status object list} command). This sets the guide window and initial centroid from the specified object. The guide exposure length is computed from the last field exposure length and the target and actual object counts. Following this, an {\bf guide on} can be issued to actually start the guide loop. 
+
+\subsection{help}
+
+This returns a string describing all the commands and parameters available via this interface.
+
+\subsection{log\_level}
+
+This command takes two parameters, which subsystem to set the log level for, and the level to set the logging at. The log levels go from 0(no logging) to 5 (most verbose) inclusive. The following subsystems are supported:
+
+\begin{itemize}
+\item autoguider
+\item ccd
+\item command\_server
+\item object
+\item ngatcil
+\end{itemize}
+
+\subsection{status}
+
+The status commands are used to return various status and data from the autoguider.
+
+\subsubsection{status temperature}
+
+The {bf status temperature} is used to return the current temperature of the CCD. The {\bf get} argument will return the current temperature in degrees centigrade (or a recently cached temperature if the autoguider is currently exposing and the CCD temperature cannot be currently read). The {\bf status} argument will return whether the CCD is at temperature or still ramping to the temperature set-point.
+
+\subsubsection{status field}
+
+The {\bf status field} commands returns the state of various options for the field operation. The {\bf active} argument returns whether the field operation is currently running or not. The {\bf dark}, {\bf flat} and {\bf object} options return whether the field reduction is currently setup to dark subtract, flat-field and object detect. In each case, the command returns {\bf 0 true} if the option is on, and {\bf 0 false} when the option is off (where the {\bf 0} is the return code showing the command succeeded).
+
+\subsubsection{status guide}
+
+The {\bf status guide} commands returns the state of various options for the guide operation. The {\bf active} argument returns whether the guide loop is currently running or not. The {\bf dark}, {\bf flat} and {\bf object} options return whether the guide reduction is currently setup to dark subtract, flat-field and object detect. The {\bf packet} argument returns whether guide packets are currently configured to be emitted to the TCS. In each case, the command returns {\bf 0 true} if the option is on, and {\bf 0 false} when the option is off (where the {\bf 0} is the return code showing the command succeeded).
+
+\subsubsection{status object}
+
+The {\bf status object count} command returns the number of detected object centroids in the last field or guide frame to be processed. The return string is of the form {\bf 0 1} where the first number is the return code showing the command succeeded, and the second number is the object count (1 in this example).
+
+The {\bf status object list} returns a multi-line string containing information about each object detected in the last field or guide frame to be processed. The format returned is as follows:
+\begin{verbatim}
+Id Frame_Number Index CCD_X_Pos  CCD_Y_Pos Buffer_X_Pos  Buffer_Y_Pos  Total_Counts 
+Number_of_Pixels Peak_Counts Is_Stellar FWHM_X FWHM_Y
+\end{verbatim}
+
+\subsection{temperature}
+
+The temperature commands allows control of the CCD temperature. The {\bf temperature set \textless C\textgreater} sets
+the CCD target temperature to the specified {\bf C}, in degrees centigrade. The {\bf temperature cooler} option does nothing for the IUCAA FLI autoguider, this is only useful for the Liverpool Andor autoguider.
+
+\subsection{shutdown}
+
+This command stops the autoguider software. However, there is a better way to shutdown the software and warm up the CCD. See the {\bf Autoguider User Guide} \cite{bib:autoguideruserguide} for details.
+
+\begin{thebibliography}{99}
+\addcontentsline{toc}{section}{Bibliography}
+
+\bibitem{bib:autoguideruserguide}{\bf Autoguider User Guide}
+Liverpool John Moores University  \newline{\em /home/dev/public\_html/autoguider/latex/autoguider\_user\_guide.ps} v0.1
+
+\bibitem{bib:agtcsicd}{\bf Autoguider to Telescope Interface Control Document}
+Telescope Technologies Limited  \newline{\em 97-001-AGS-TEL-ICD} v0.02
+
+\bibitem{bib:ciluserguide}{\bf Liverpool 2.0m Telescope Communications Interface Library User Guide}
+ Telescope Technologies Limited  \newline{\em } v0.16
+
+\end{thebibliography}
+
+\end{document}

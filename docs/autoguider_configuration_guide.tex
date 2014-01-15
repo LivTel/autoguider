@@ -1,0 +1,563 @@
+\documentclass[10pt,a4paper]{article}
+\pagestyle{plain}
+\textwidth 16cm
+\textheight 21cm
+\oddsidemargin -0.5cm
+\topmargin 0cm
+
+\title{Autoguider Configuration Guide}
+\author{C. J. Mottram}
+\date{}
+\begin{document}
+\pagenumbering{arabic}
+\thispagestyle{empty}
+\maketitle
+\begin{abstract}
+This document describes the LJMU Autoguider Control System configuration file and command line arguments, that can be used to tune the operation of the autoguider.
+\end{abstract}
+\centerline{\Large History}
+\begin{center}
+\begin{tabular}{|l|l|l|p{15em}|}
+\hline
+{\bf Version} & {\bf Author} & {\bf Date} & {\bf Notes} \\
+\hline
+0.1 & C. J. Mottram & 03/01/14 & First draft \\
+0.2 & C. J. Mottram & 13/01/14 & Second draft \\
+\hline
+\end{tabular}
+\end{center}
+
+\newpage
+\tableofcontents
+\listoffigures
+\listoftables
+\newpage
+
+\section{Introduction}
+
+This document describes the LJMU Autoguider Control System configuration file and command line arguments, that can be used to tune the operation of the autoguider.
+
+\section{Command line arguments}
+
+The autoguider process has various command line arguments that can be used to configure items at startup. The command
+line used when starting the process automatically is defined in {\bf autobooter.properties} (source location: {\bf /home/dev/src/autobooter/java/iucaaag.autobooter.properties}, deployed location: {\bf /icc/bin/autobooter/java/autobooter.properties} ). This contains the line:
+
+\begin{verbatim}
+autobooter.process.command_line.0       =./autoguider -co autoguider.properties 
+-autoguider_log_level 5 -ccd_log_level 5 -command_server_log_level 5 
+-object_log_level 5 -ngatcil_log_level 5 1> /icc/log/autoguider_output.txt 2>&1
+\end{verbatim}
+
+The full range of command line arguments can be seen by issuing the following commands:
+
+\begin{verbatim}
+cd /icc/bin/autoguider/c/i386-linux/
+./autoguider -help
+\end{verbatim}
+
+and this returns the following:
+
+\begin{verbatim}
+[eng@iucaaag i386-linux]$ ./autoguider -help
+Autoguider:Help.
+autoguider 
+        [-co[nfig_filename] <filename>]
+        [-[al|autoguider_log_level] <verbosity>]
+        [-[ccdl|ccd_log_level] <verbosity>]
+        [-[csl|command_server_log_level] <verbosity>]
+        [-[ncl|ngatcil_log_level] <verbosity>]
+        [-ol|-object_log_level] <verbosity>]
+        [-h[elp]]
+
+        -help prints out this message and stops the program.
+
+        <config filename> should be a valid configuration filename.
+\end{verbatim}
+
+The command line arguments are summarized in Table \ref{tab:autoguiderprocesscommandlinearguments}.
+
+\begin{table}[!h]
+\begin{center}
+\begin{tabular}{|l|l|p{20em}|}
+\hline
+{\bf Option} & {\bf Value} & {\bf Purpose} \\ \hline
+-config\_filename & A valid filename & Specify the configuration file location. \\ \hline
+-autoguider\_log\_level & verbosity level (0..5) & How detailed the logging should be for the main autoguider software. \\ \hline
+-ccd\_log\_level & verbosity level (0..5) & How detailed the logging should be for the CCD control library software. \\ \hline
+-command\_server\_log\_level & verbosity level (0..5) & How detailed the logging should be for the (telnet) command server library software. \\ \hline
+-ngatcil\_log\_level & verbosity level (0..5) & How detailed the logging should be for the CIL communication library software (used to communicate with the TCS/SDB/MCP etc). \\ \hline
+-object\_log\_level & verbosity level (0..5) & How detailed the logging should be for the object detection library software. \\ \hline
+-help & none & Print the above help message and stop the program. \\ \hline
+\end{tabular}
+\end{center}
+\caption{\em Autoguider Process Command line arguments.}
+\label{tab:autoguiderprocesscommandlinearguments}
+\end{table}
+
+\section{Configuration file}
+
+The autoguider configuration file contains a series and keywords and values that are used to configure various parts of the autoguider software. The location of the configuration file (also called a properties file) is defined by the
+autoguider command line, but is usually deployed to {\bf /icc/bin/autoguider/c/i386-linux/autoguider.properties}. The
+source copy of this is located at {\bf /home/dev/src/autoguider/c/ iucaaag.autoguider.properties}.
+
+\subsection{Logging}
+
+\begin{verbatim}
+# logging
+logging.directory_name			=/icc/log
+logging.udp.active			=false
+logging.udp.hostname			=192.168.4.1
+logging.udp.port_number			=2371
+\end{verbatim}
+
+This section configures the connection to the {\bf log\_udp} server, which is sent a copy of logs written to the log
+files. The {\bf log\_udp} server is only installed at the Liverpool Telescope, so for the IUCAA autoguider software
+we configure the software not to emit packets to this server ({\bf logging.udp.active} is set to false).
+
+\subsection{Command server}
+
+\begin{verbatim}
+# server configuration
+command.server.port_number		=6571
+\end{verbatim}
+
+This section sets the port that the telnet command server for engineering control listens on. 
+
+\subsection{CIL command server}
+
+\begin{verbatim}
+# CIL command server
+cil.server.port_number			=13024
+cil.server.start			=true
+# CIL TCS server to send replies to (as a client)
+cil.tcs.hostname			=tcc
+cil.tcs.command_reply.port_number	=13021
+# TCS Guide packet server to send guide packets to (as a client)
+cil.tcs.guide_packet.port_number	=13025
+cil.tcs.guide_packet.send		=true
+# SDB Config
+cil.mcc.hostname                        =mcc
+cil.sdb.port_number                     =13011
+cil.sdb.packet.send			=true
+\end{verbatim}
+
+This section configures the hostnames and port numbers to send various types of CIL messages to. The hostnames can either be names or IP addresses, if they are names these should be resolvable via the {\bf /etc/hosts} file. The property
+keywords and values are described in Table \ref{tab:autoguidercilproperties}.
+
+\begin{table}[!h]
+\begin{center}
+\begin{tabular}{|l|l|p{20em}|}
+\hline
+{\bf Keyword} & {\bf Value} & {\bf Purpose} \\ \hline
+cil.server.port\_number & numeric port number & Port the autoguider sits on awaiting commands from other systems. \\ \hline
+cil.server.start & boolean (true\textbar false) & Whether to start the CIL command server. \\ \hline
+cil.tcs.hostname & string & The hostname of the machine to send TCS command replies and guide packets to. \\ \hline
+cil.tcs.command\_reply.port\_number & numeric port number & The port on the TCC to send TCS command replies to. \\ \hline
+cil.tcs.guide\_packet.port\_number & numeric port number & The port on the TCC to send guide packets to. \\ \hline
+cil.tcs.guide\_packet.send & boolean (true\textbar false) & Whether to send guide packets to the TCS. \\ \hline
+cil.mcc.hostname & string & The hostname of the MCC. The SDB is assumed to reside on this machine. \\ \hline
+cil.sdb.port\_number & numeric port number & The port number on the MCC that the SDB process is sitting on to receive status updates. \\ \hline
+cil.sdb.packet.send & boolean (true\textbar false) & Whether to send SDB status packets to the SDB. \\ \hline
+\end{tabular}
+\end{center}
+\caption{\em Autoguider CIL properties.}
+\label{tab:autoguidercilproperties}
+\end{table}
+
+\subsection{Field configuration}
+
+Here is an example of the field configuration properties:
+
+\begin{verbatim}
+# field configuration - see also ccd.field
+field.dark_subtract			=true
+field.flat_field			=true
+field.object_detect			=true
+# only select suitable guide stars within these bounds
+# See TCSINITGUI.DAT (CONF->GUI) X/YMIN/MAX (10,1013,10,1013)
+field.object_bounds.min.x		=20
+field.object_bounds.min.y		=20
+field.object_bounds.max.x		=1003
+field.object_bounds.max.y		=1003
+field.fits.directory			=/icc/tmp
+field.fits.save.successful		=true
+field.fits.save.failed			=true
+\end{verbatim}
+
+These properties are used for configuration of the fielding process. This is the acquisition of full field frames and the detection of a suitable guide object within them. The properties are summarised in Table \ref{tab:autoguiderfieldproperties}.
+
+\begin{table}[!h]
+\begin{center}
+\begin{tabular}{|l|l|p{20em}|}
+\hline
+{\bf Keyword}              & {\bf Value} & {\bf Purpose} \\ \hline
+field.dark\_subtract       & boolean (true\textbar false) & Whether to subtract a suitable length dark frame from the image. This is the initial state only, and can be changed from the telnet command interface. \\ \hline
+field.flat\_field          & boolean (true\textbar false) & Whether to flat field the field image. This is the initial state only, and can be changed from the telnet command interface. \\ \hline
+field.object\_detect       & boolean (true\textbar false) & Whether to find objects (stars) in the reduced image . This is the initial state only, and can be changed from the telnet command interface. \\ \hline
+field.object\_bounds.min.x & numeric pixel number         & Minimum X position of an object suitable for guiding on (inclusive). This parameter must be inside the bounds specified in the TCS (TCSINITGUI.DAT). It must also lie within the {\bf ccd.field.ncols} property. \\ \hline
+field.object\_bounds.min.y & numeric pixel number         & Minimum Y position of an object suitable for guiding on (inclusive). This parameter must be inside the bounds specified in the TCS (TCSINITGUI.DAT). It must also lie within the {\bf ccd.field.nrows} property. \\ \hline
+field.object\_bounds.max.x & numeric pixel number         & Maximum X position of an object suitable for guiding on (inclusive). This parameter must be inside the bounds specified in the TCS (TCSINITGUI.DAT). It must also lie within the {\bf ccd.field.ncols} property. \\ \hline
+field.object\_bounds.max.y & numeric pixel number         & Maximum Y position of an object suitable for guiding on (inclusive). This parameter must be inside the bounds specified in the TCS (TCSINITGUI.DAT). It must also lie within the {\bf ccd.field.nrows} property. \\ \hline
+field.fits.directory       & string                       & The directory to put FITS images saved by the fielding process. \\ \hline
+field.fits.save.successful & boolean (true\textbar false) & Whether to save a FITS image when the fielding operation is successful. \\ \hline
+field.fits.save.failed     & boolean (true\textbar false) & Whether to save a FITS image when the fielding operation is NOT successful. \\ \hline
+\end{tabular}
+\end{center}
+\caption{\em Autoguider field properties.}
+\label{tab:autoguiderfieldproperties}
+\end{table}
+
+There are also some properties in the ``ccd'' configuration section of the property file pertaining to field dimensions:
+
+\begin{verbatim}
+#
+# detector size, use for field setup
+#
+ccd.field.ncols				=1024
+ccd.field.nrows				=1024
+ccd.field.x_bin				=1
+ccd.field.y_bin				=1
+\end{verbatim}
+
+\begin{table}[!h]
+\begin{center}
+\begin{tabular}{|l|l|p{20em}|}
+\hline
+{\bf Keyword}    & {\bf Value} & {\bf Purpose} \\ \hline
+ccd.field.ncols  & positive integer & The number of columns (x dimension) to configure the CCD for full frame field images \\ \hline
+ccd.field.nrows  & positive integer & The number of rows (y dimension) to configure the CCD for full frame field images \\ \hline
+ccd.field.x\_bin & positive integer & The X binning factor. This should normally be left as 1. \\ \hline
+ccd.field.y\_bin & positive integer & The Y binning factor. This should normally be left as 1. \\ \hline
+\end{tabular}
+\end{center}
+\caption{\em Autoguider field properties.}
+\label{tab:autoguiderfieldproperties}
+\end{table}
+
+
+\subsection{Guide configuration}
+
+\begin{verbatim}
+# guide configuration - see also ccd.guide
+guide.dark_subtract			=true
+guide.flat_field			=true
+guide.object_detect			=true
+guide.exposure_length.autoscale		=true
+guide.window.tracking			=true
+#
+# default/minimum/maximum auto guide window size
+#
+guide.ncols.default			=100
+guide.nrows.default			=100
+\end{verbatim}
+
+These properties configure various aspects of the guide operation. The properties are summarised in Table \ref{tab:autoguiderguideproperties}.
+
+\begin{table}[!h]
+\begin{center}
+\begin{tabular}{|l|l|p{20em}|}
+\hline
+{\bf Keyword}              & {\bf Value} & {\bf Purpose} \\ \hline
+guide.dark\_subtract             & boolean (true\textbar false) & Whether to subtract a suitable length dark frame from the guide image. This is the initial state only, and can be changed from the telnet command interface. \\ \hline
+guide.flat\_field                & boolean (true\textbar false) & Whether to flat field the guide image. This is the initial state only, and can be changed from the telnet command interface. \\ \hline
+guide.object\_detect             & boolean (true\textbar false) & Whether to find objects (stars) in the reduced guide image. This is the initial state only, and can be changed from the telnet command interface. \\ \hline
+guide.exposure\_length.autoscale & boolean (true\textbar false) & Whether to scale the guide exposure length depending on how bright the guide object appears in the guide frames. \\ \hline
+guide.window.tracking            & boolean (true\textbar false) & Whether to move the guide window if the guide object approaches the edge of the window. \\ \hline
+guide.ncols.default              & positive integer pixel count & Size of the guide window in the x dimension. Used to configure the memory buffers guide windows are read into. \\ \hline
+guide.nrows.default              & positive integer pixel count & Size of the guide window in the y dimension. Used to configure the memory buffers guide windows are read into. \\ \hline
+\end{tabular}
+\end{center}
+\caption{\em Autoguider guide properties.}
+\label{tab:autoguiderguideproperties}
+\end{table}
+
+There are also some guide dimension configuration properties in the 'ccd' section of the property file:
+
+\begin{verbatim}
+ccd.guide.ncols				=1024
+ccd.guide.nrows				=1024
+ccd.guide.x_bin				=1
+ccd.guide.y_bin				=1
+\end{verbatim}
+
+These are passed into the {\bf CCD\_Setup\_Dimensions} routine when setting up guide windows. However, as a guide window is being setup, the actual full frame nrows/ncols ({\bf ccd.guide.ncols} / {\bf ccd.guide.nrows}) don't actually end up being used to set anything. It is recommended the binning values stay at 1, other binning levels have not been tested.
+
+\subsection{Guide window tracking configuration}
+
+\begin{verbatim}
+#
+# Guide window tracking/window edge config
+# Slightly different to "field.object_bounds...", which reflect TCS config
+#
+# How close to the guide window edge before we set the guide packet "close to edge" flag
+guide.window.edge.pixels		=10
+# How close to the guide window edge before we re-centre guide window if tracking is enabled
+guide.window.track.pixels		=10
+\end{verbatim}
+
+These properties control various aspects of guide window control. The properties are summarised in Table \ref{tab:autoguiderguidewindowproperties}.
+
+\begin{table}[!h]
+\begin{center}
+\begin{tabular}{|l|l|p{20em}|}
+\hline
+{\bf Keyword}              & {\bf Value} & {\bf Purpose} \\ \hline
+guide.window.edge.pixels   & positive integer number of pixels & This determines how close the centroid gets to the edge of the guide window before an SDB status flag is set. In fact, this flag is later reset anyway, so only a warning is logged when this occurs. \\ \hline
+guide.window.track.pixels  & positive integer number of pixels & When the guide centroid is within this specified number of pixels of the window edge, and guide window tracking is enabled, the guide window is recentred on the guide object coordinates. \\ \hline
+\end{tabular}
+\end{center}
+\caption{\em Autoguider guide window properties.}
+\label{tab:autoguiderguidewindowproperties}
+\end{table}
+
+\subsection{Guide exposure configuration}
+
+\begin{verbatim}
+#
+# Scaling of guide exposures on selected object
+#
+guide.counts.min.peak			=50
+guide.counts.min.integrated		=100
+guide.counts.target.peak		=150
+guide.counts.target.integrated		=1000
+guide.counts.max.peak			=1000
+guide.counts.max.integrated		=99999999
+guide.counts.scale_type			=peak
+# How many times round the guide loop we get an out of range centroid, 
+# before rescaling the exposure length.
+guide.exposure_length.scale_count	=3
+\end{verbatim}
+
+This section contains configuration properties for how exposure scaling is implemented, assuming it has been enabled. 
+The properties are summarised in Table \ref{tab:guideexposurescalingproperties}.
+
+\begin{table}[!h]
+\begin{center}
+\begin{tabular}{|l|l|p{20em}|}
+\hline
+{\bf Keyword}              & {\bf Value} & {\bf Purpose} \\ \hline
+guide.counts.min.peak               & positive integer (ADU counts)    & If the scale\_type is ``peak'', this is the minimum peak counts of the guide object. If the guide object peak counts are below this number for scale\_count guide loops, the exposure length will be scaled (increased).\\ \hline
+guide.counts.min.integrated         & positive integer (ADU counts)    & If the scale\_type is ``integrated'', this is the minimum integrated counts of the guide object. If the guide object integrated counts are below this number for scale\_count guide loops, the exposure length will be scaled (increased).\\ \hline
+guide.counts.target.peak            & positive integer (ADU counts)    & If the scale\_type is ``peak'', this is the ideal peak counts of the guide object. If the guide exposure length is rescaled, this is the peak counts we are aiming for. \\ \hline
+guide.counts.target.integrated      & positive integer (ADU counts)    & If the scale\_type is ``integrated'', this is the ideal integrated counts of the guide object. If the guide exposure length is rescaled, this is the integrated counts we are aiming for. \\ \hline
+guide.counts.max.peak               & positive integer (ADU counts)    & If the scale\_type is ``peak'', this is the maximum peak counts of the guide object. If the guide object peak counts are above this number for scale\_count guide loops, the exposure length will be scaled (decreased).\\ \hline
+guide.counts.max.integrated         & positive integer (ADU counts)    & If the scale\_type is ``integrated'', this is the maximum integrated counts of the guide object. If the guide object integrated counts are above this number for scale\_count guide loops, the exposure length will be scaled (decreased). \\ \hline
+guide.counts.scale\_type            & string (peak\textbar integrated) & Whether the exposure length should be scaled based on the peak or integrated counts of the guide object. \\ \hline
+guide.exposure\_length.scale\_count & positive integer                 & The number of guide loops the guide objects counts have to be out of range for, before the guide exposure length is changed (rescaled).\\ \hline
+\end{tabular}
+\end{center}
+\caption{\em Autoguider guide exposure scaling properties.}
+\label{tab:guideexposurescalingproperties}
+\end{table}
+
+\subsection{Guide object configuration}
+
+\begin{verbatim}
+# how elliptical the guide star can be.
+# 0 - fully circular
+# 1 - quite elliptical
+# 2 - very elliptical etc
+# fabs((fwhmx/fwhmy)-1.0) > guide_ellipticity then unreliable
+guide.ellipticity			=3.0
+# What number to multiply the guide loop cadence by to construct the TCS UDP packet timecode with.
+# Should normally be 1.0 or greater, < ~0.5 will probably cause autoguiding to fail.
+guide.timecode.scale			=2.0
+# Do we want to set the SDB exposure length to the guide loop cadence?
+# This may help the TCS calculate the right guide corrections.
+guide.sdb.exposure_length.use_cadence	=true
+# magnitude const used in the guide magnitude computation, such that
+# mag = guide.mag.const - 2.5 * log10(total_counts/exposure length(s))
+guide.mag.const				=24.4
+\end{verbatim}
+
+This section contains configurable items used in the guide loop. The properties are summarised in Table \ref{tab:guideloopproperties}.
+
+\begin{table}[!h]
+\begin{center}
+\begin{tabular}{|l|l|p{20em}|}
+\hline
+{\bf Keyword}              & {\bf Value} & {\bf Purpose} \\ \hline
+guide.ellipticity                       & positive float               & This limit is used to log a message if the guide object star is not circular enough. It was originally used to set a status reliability bit in the TCS guide packet, but it was found setting this bit caused guiding to fail. \\ \hline
+guide.timecode.scale                    & positive float               & This number is used to generate a time-code sent as part of the TCS guide packet. The number is multiplied with the loop cadence (how long one integration of the guide loop is taking). The TCS uses this number as a form of timeout, if it does not receive another guide packet within time-code seconds, it assumes the autoguider has died / stopped sending packets. \\ \hline
+guide.sdb.exposure\_length.use\_cadence & boolean (true\textbar false) & This property determines whether the SDB Guide exposure time is set to the actual guide exposure time used, or (if true) the guide loop cadence (which includes readout and reduction/object detection overheads). It was found the TCS scaled guide corrections better if the overall guide cadence was used. \\ \hline
+guide.mag.const                         & positive float               & This constant is used in calculating the guide magnitude, which is sent as part of the SDB centroid packet. This magnitude is used by the TCS for display purposes only.\\ \hline
+\end{tabular}
+\end{center}
+\caption{\em Autoguider guide loop properties.}
+\label{tab:guideloopproperties}
+\end{table}
+
+\subsection{CCD Driver setup}
+
+\begin{verbatim}
+# fli driver setup
+ccd.driver.shared_library		=libautoguider_ccd_fli.so
+ccd.driver.registration_function	=FLI_Driver_Register
+
+# fli driver config
+# selected camera
+ccd.fli.setup.device_name 		= /dev/fliusb0
+\end{verbatim}
+
+This section is used to configure which CCD camera the autoguider software is talking to. The CCD control library is actually dynamically linked at run-time, so the same autoguider binary can be used to control different CCD cameras by changing this configuration. The properties are summarised in Table \ref{tab:ccddriverproperties}.
+
+\begin{table}[!h]
+\begin{center}
+\begin{tabular}{|l|l|p{20em}|}
+\hline
+{\bf Keyword}                & {\bf Value} & {\bf Purpose} \\ \hline
+ccd.driver.shared\_library        & string & The name of the shared library to dynamically bind at run-time. This shared library should exist in a directory in LD\_LIBRARY\_PATH, normally in /icc/bin/lib/i386-linux/. \\ \hline
+ccd.driver.registration\_function & string & This function should exist in the specified shared library, with the prototype \verb'int (*Register_Function)' \verb'(struct CCD_Driver_Function_Struct ' \verb'*functions);' This function pointer is retrieved by the autoguider binary and called to fill in the driver mapping functions for this shared library. \\ \hline
+ccd.fli.setup.device\_name        & string & This is a FLI driver specific option that sets the device handle used in the FLIOpen call to the FLI library. \\ \hline
+\end{tabular}
+\end{center}
+\caption{\em CCD driver properties.}
+\label{tab:ccddriverproperties}
+\end{table}
+
+\subsection{CCD Temperature Control}
+
+\begin{verbatim}
+ccd.temperature.target			=-30.0
+ccd.temperature.ramp_to_ambient		=false
+ccd.temperature.cooler.on		=true
+ccd.temperature.cooler.off		=false
+\end{verbatim}
+
+This section configures how the CCD temperature is controlled. The properties are summarised in Table \ref{tab:ccdtemperatureproperties}.
+
+\begin{table}[!h]
+\begin{center}
+\begin{tabular}{|l|l|p{20em}|}
+\hline
+{\bf Keyword}                & {\bf Value} & {\bf Purpose} \\ \hline
+ccd.temperature.target            & double value & The temperature set point of the CCD in degrees centigrade. \\ \hline
+ccd.temperature.ramp\_to\_ambient & boolean (true\textbar false) & If set to true, during shutdown of the autoguider process the software waits for the CCD temperature to rise above 0.0. For the FLI camera, however, this option will not work, as the cooler off function is called to cause the CCD to warm up, and this is unimplemented in the FLI driver. \\ \hline
+ccd.temperature.cooler.on         & boolean (true\textbar false) & If set to true, during startup of the autoguider process the CCD cooler is turned on. However the FLI driver (unlike the Andor driver) does not have separate control of the cooler (from general setting of the target temperature) so the routine called does nothing for the FLI camera. \\ \hline
+ccd.temperature.cooler.off        & boolean (true\textbar false) & If set to true, during shutdown of the autoguider process the software the CCD cooler is turned off. However the FLI driver (unlike the Andor driver) does not have separate control of the cooler (from general setting of the target temperature) so the routine called does nothing for the FLI camera. \\ \hline
+\end{tabular}
+\end{center}
+\caption{\em CCD temperature properties.}
+\label{tab:ccdtemperatureproperties}
+\end{table}
+
+\subsection{CCD Exposure loop configuration}
+
+\begin{verbatim}
+ccd.exposure.loop.pause.length		=50
+\end{verbatim}
+
+This property is used to configure the exposure loop. There is a loop in the exposure code, which after starting an exposure monitors the camera status waiting for the exposure to finish. As part of this loop there is a call to nanosleep to pause the thread for a configurable number of milliseconds, the value of which is determined by this property. It's important to do this to allow other threads to run whilst the exposure is taking place, most importantly continuous heartbeat (CHB) requests from the SCC/MCC need replying to otherwise the MCP (master control process) will think the autoguider has crashed.
+
+\subsection{Exposure length configuration}
+
+\begin{verbatim}
+ccd.exposure.minimum			=10
+ccd.exposure.maximum			=10000
+ccd.exposure.field.default		=2000
+ccd.exposure.guide.default		=1000
+\end{verbatim}
+
+\begin{table}[!h]
+\begin{center}
+\begin{tabular}{|l|l|p{20em}|}
+\hline
+{\bf Keyword}                & {\bf Value} & {\bf Purpose} \\ \hline
+ccd.exposure.minimum       & positive integer & This value (in milliseconds) is used as a range check when deciding on the initial guide exposure length following a successful field operation. It's value should probably take into account the range of dark frames available (which determine the range of guide exposure lengths available with full reductions). \\ \hline
+ccd.exposure.maximum       & positive integer & This value (in milliseconds) is used as a range check when deciding on the initial guide exposure length following a successful field operation. It's value should probably take into account the range of dark frames available (which determine the range of guide exposure lengths available with full reductions).\\ \hline
+ccd.exposure.field.default & positive integer & This is the default field exposure length (in milliseconds) when starting a field operation. This is used if the field exposure length lock is not on, and a exposure length has not been manually set. It should take into account the range of dark frame exposure lengths available (as the exposure length will be rounded to the nearest available dark). \\ \hline
+ccd.exposure.guide.default & positive integer & This is the default guide exposure length (in milliseconds) when starting the guide loop. Normally, the initial exposure length will be computed from the brightness of the selected guide star, but if this is not the case this default can be used instead. It's value should take into account the range of dark frame exposure lengths available (as the exposure length will be rounded to the nearest available dark). \\ \hline
+\end{tabular}
+\end{center}
+\caption{\em CCD Exposure length properties.}
+\label{tab:ccdexposurelengthproperties}
+\end{table}
+
+\subsection{Object detection configuration}
+
+\begin{verbatim}
+# Whether to use simple RMS calculation , or iterative sigma clipping 
+# Should be one of: simple, sigma_clip 
+object.threshold.stats.type		=sigma_clip
+# If object.threshold.stats.type is sigma_clip,
+# this value is the sigma reject parameter to use when calculating the std. deviation
+# This value is _not_ used if object.threshold.stats.type is simple
+object.threshold.sigma.reject		=5.0
+# This value is used in the object threshold calculation as follows:
+# threshold = median+object.threshold.sigma*(background standard deviation)
+object.threshold.sigma			=7.0
+#
+# Object_List_Get ellipticity configuration. Limit of 'stellar' ellipticity.
+# 0.3 is standard
+# see also guide.ellipticity which is numerically different.
+#
+object.ellipticity.limit		=0.5
+\end{verbatim}
+
+This section configures various parameters used in the object detection software. The properties are summarised in Table \ref{tab:objectdetectionproperties}.
+
+\begin{table}[!h]
+\begin{center}
+\begin{tabular}{|l|l|p{20em}|}
+\hline
+{\bf Keyword}                 & {\bf Value} & {\bf Purpose} \\ \hline
+object.threshold.stats.type   & string (simple\textbar sigma\_clip) & This defines which method to use for computing the mean and standard deviation. ``simple'' uses the normal mathematical definition, whilst ``sigma\_clip'' uses the DpRt routine {\bf iterstat} which uses a sigma clipped RMS. \\ \hline
+object.threshold.sigma.reject & positive double                     & This defines the level of sigma clipping when the ``sigma\_clip'' method is used. \\ \hline
+object.threshold.sigma        & positive double                     & This value is used in calculating the threshold above which value pixels are deemed to be part of objects rather than background. The threshold is defined as follows: \verb'threshold = median+' \verb'object.threshold.sigma*' \verb'(background standard deviation)'. \\ \hline
+object.ellipticity.limit      & positive double                     & This is used to configure the object detection's stellar ellipticity parameter. \\ \hline
+\end{tabular}
+\end{center}
+\caption{\em Object detection properties.}
+\label{tab:objectdetectionproperties}
+\end{table}
+
+\subsection{Dark library configuration}
+
+\begin{verbatim}
+# exposure length list, each exposure length must have at least one associated filename 
+# (for one binning)
+dark.exposure_length.0			=10
+dark.exposure_length.1			=20
+dark.exposure_length.2			=50
+dark.exposure_length.3			=100
+dark.exposure_length.4			=200
+dark.exposure_length.5			=500
+dark.exposure_length.6			=1000
+dark.exposure_length.7			=2000
+dark.exposure_length.8			=5000
+dark.exposure_length.9			=10000
+#dark.exposure_length.10		=20000
+
+# filename for each x_bin,y_bin,exposure_length
+dark.filename.1.1.10			=/icc/dprt/dark/dark_1_1_10.fits
+dark.filename.1.1.20			=/icc/dprt/dark/dark_1_1_20.fits
+dark.filename.1.1.50			=/icc/dprt/dark/dark_1_1_50.fits
+dark.filename.1.1.100			=/icc/dprt/dark/dark_1_1_100.fits
+dark.filename.1.1.200			=/icc/dprt/dark/dark_1_1_200.fits
+dark.filename.1.1.500			=/icc/dprt/dark/dark_1_1_500.fits
+dark.filename.1.1.1000			=/icc/dprt/dark/dark_1_1_1000.fits
+dark.filename.1.1.2000			=/icc/dprt/dark/dark_1_1_2000.fits
+dark.filename.1.1.5000			=/icc/dprt/dark/dark_1_1_5000.fits
+dark.filename.1.1.10000			=/icc/dprt/dark/dark_1_1_10000.fits
+#dark.filename.1.1.20000		=/icc/dprt/dark/dark_1_1_20000.fits
+\end{verbatim}
+
+The autoguider subtracts a dark frame from any image it takes as part of the data reduction procedure. The dark frame structure can vary with exposure length and binning and so a dark library of varying exposure lengths is needed (we only use binning 1 for the autoguider at the moment). There is a list of supported exposure lengths ({\bf dark.exposure\_length.\textless n\textgreater } where the value is in milliseconds, and each of these exposure lengths must have a dark filename of the form {\bf dark.filename.1.1.\textless exposure length\textgreater }.
+
+\subsection{Flat library configuration}
+
+\begin{verbatim}
+# filename for each x_bin,y_bin
+#
+flat.filename.1.1			=/icc/dprt/flat/flat_1_1.fits
+\end{verbatim}
+
+The autoguider software divides through the acquired data by a suitable flat field as part of the data reduction on each image taken. The flat field to used is defined in this section.
+
+\begin{thebibliography}{99}
+\addcontentsline{toc}{section}{Bibliography}
+
+
+\end{thebibliography}
+
+\end{document}

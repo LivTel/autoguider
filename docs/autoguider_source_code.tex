@@ -1,0 +1,403 @@
+\documentclass[10pt,a4paper]{article}
+\pagestyle{plain}
+\textwidth 16cm
+\textheight 21cm
+\oddsidemargin -0.5cm
+\topmargin 0cm
+
+\title{Autoguider Source Code Overview}
+\author{C. J. Mottram}
+\date{}
+\begin{document}
+\pagenumbering{arabic}
+\thispagestyle{empty}
+\maketitle
+\begin{abstract}
+This document describes the source code used to create the autoguider software.
+\end{abstract}
+\centerline{\Large History}
+\begin{center}
+\begin{tabular}{|l|l|l|p{15em}|}
+\hline
+{\bf Version} & {\bf Author} & {\bf Date} & {\bf Notes} \\
+\hline
+0.1 & C. J. Mottram & 18/12/13 & First draft \\
+\hline
+\end{tabular}
+\end{center}
+
+\newpage
+\tableofcontents
+\listoffigures
+\listoftables
+\newpage
+
+\newcommand{\mytilde}{\raise.17ex\hbox{$\scriptstyle\mathtt{\sim}$}}
+
+\section{Introduction}
+
+This document describes the source code supplied with the LJMU autoguider software. An overview of the directory structure and library structure is given. 
+
+\section{Directory Structure}
+
+The source code directory structure is shown in Figure \ref{fig:sourcecodedirectorystructure}.
+
+\setlength{\unitlength}{1in}
+\begin{figure}[!h]
+	\begin{center}
+		\begin{picture}(8.0,9.5)(0.0,0.0)
+			\put(0,0){\special{psfile=autoguider_directory_structure1.eps hscale=50 vscale=19}}
+		\end{picture}
+	\end{center}
+	\caption{\em Autoguider Source Code Directory Structure.}
+	\label{fig:sourcecodedirectorystructure} 
+\end{figure}
+
+\subsection{bin directory}
+
+The {\bf /home/dev/bin} directory is the root directory of the binary directory tree. Binaries (both C programs/libraries and Java libraries/application classes) or put in sub-directories of this one, based on what package they belong to.
+
+\subsubsection{autobooter}
+
+The autobooter directory contains the Java classes that are the Autobooter process. These files (along with the associated config file)
+
+diddly
+
+
+\subsubsection{autoguider}
+
+\subsubsection{ccd}
+
+\subsubsection{cdoc}
+
+\subsubsection{estar}
+
+\subsubsection{ics\_util}
+
+\subsubsection{javalib}
+
+\subsubsection{javalib\_third\_party}
+
+\subsubsection{lib}
+
+\subsubsection{libdprt}
+
+\subsubsection{log\_udp}
+
+\subsubsection{ngatastro}
+
+\subsubsection{scripts}
+
+
+\subsection{classes directory}
+
+The {\bf /home/dev/classes} directory is an intermediate directory used when building Java software. This is particularly used by the ngat package. The source code is built into class files in the correct directory structure in the classes directory, and the Makefile then creates suitable ngat jars from this that end up in the {\bf /home/dev/bin/javalib} directory that actually get deployed.
+
+\subsection{lt\_classpath directory}
+
+The {\bf /home/dev/lt\_classpath} directory contains a series of text files containing locations of various jar files.
+The {\bf lt\_environment.csh} script (see Section \ref{sec:ltenvironment.csh}) uses these files to decide what jar files are required in the {\bf LD\_LIBRARY\_PATH} environment variable.
+
+\subsection{lt\_environment.csh script}
+\label{sec:ltenvironment.csh}
+
+The {\bf /home/dev/lt\_environment.csh} script is sourced to provide a suitable environment for compiling the source code into binaries. See Section \ref{sec:devenvironment} for how this is used. Tables \ref{tab:environmentsetup1} and \ref{tab:environmentsetup2} shows a list of some of the environment that is set up.
+
+\begin{table}[!h]
+\begin{center}
+\begin{tabular}{|l|p{10em}|p{20em}|}
+\hline
+{\bf Name}        & {\bf Example value}                & {\bf Purpose} \\ \hline
+LT\_HOME          & /home/dev                          & The root directory of the development area. Defaults to {\bf /space/home/dev} if it has not been set before sourcing {\bf /home/dev/lt\_environment.csh}. \\ \hline
+LT\_SRC\_HOME     & \${LT\_HOME}/src                   & The root directory of the source code tree. \\ \hline
+LT\_BIN\_HOME     & \${LT\_HOME}/bin                   & The root directory of binaries generated from the source code. \\ \hline
+LT\_DOC\_HOME     & \${LT\_HOME}/public\_html          & The root directory of API, LaTeX and other documentation generated from sources. \\ \hline
+LT\_CLASS\_HOME   & \${LT\_HOME}/classes                & The root directory to store compiled Java classes into, before generating jars with them. \\ \hline
+LT\_LIB\_HOME     & \${LT\_BIN\_HOME}/lib/ \${HOSTTYPE} & The directory to put compiled  shared libraries in. \\ \hline
+LT\_JAVALIB\_HOME & \${LT\_BIN\_HOME}/javalib          & The directory to put jars of Java  code (Java libraries) into. \\ \hline
+JNIINCDIR         & \$JAVA\_HOME/include               & The location of the Java supplied headers for JNI (Java Native interface), which allows Java code to call C libraries. \\ \hline
+JNIMDINCDIR       & \$JAVA\_HOME/include/ linux         & The location of the Java supplied OS dependent headers for JNI (Java Native interface), which allows Java code to call C libraries. \\ \hline
+CCSHAREDFLAG      & -shared                            & The C compiler flag that generates shared libraries. \\ \hline
+CCSTATICFLAG      & -static                            & The C compiler flag that generates static libraries. \\ \hline
+TIMELIB           & -lrt                               & The C compiler link parameter to link against the real-time library, which on certain OS versions is needed to call time related functions (nanosleep, clock\_gettime etc). \\ \hline
+SOCKETLIB         & -lsocket -lnsl                     & The C compiler link parameter to link against socket libraries, which is needed for some OS versions to call socket functions. \\ \hline
+MAKEDEPENDFLAGS   & -I/usr/lib/gcc/i686-redhat-linux/4.4.4/include/ & The makedepend flag needed on some OS versions so makedepend does not complain about missing  stddef.h / stdarg.h. \\ \hline
+CCHECKFLAG        & -ansi -pedantic -Wall              &  The C compiler flags to turn on warnings and non-fatal errors to improve code standards. This value can be modified by the {\bf checkon}, {\bf checkoff} and {\bf checkmid} aliases for software that complains when all the checks are on (third party CCD libraries for instance). \\ \hline
+CFITSIOINCDIR     & \$LT\_SRC\_HOME/ cfitsio3310/include & The directory containing the headers files for the CFITSIO FITS handling library. \\ \hline
+CDOC\_HOME        & \${LT\_BIN\_HOME}/ cdoc/\${HOSTTYPE} & The directory containing the cdoc binary, a little tool for generating HTML API documentation from C source code. \\ \hline
+\hline
+\end{tabular}
+\end{center}
+\caption{\em lt\_environment.csh Environment setup Part 1.}
+\label{tab:environmentsetup1}
+\end{table}
+
+\begin{table}[!h]
+\begin{center}
+\begin{tabular}{|l|p{10em}|p{20em}|}
+\hline
+{\bf Name}        & {\bf Example value}                & {\bf Purpose} \\ \hline
+CLASSPATH         & colon separated list if directories / jars & A colon separated list if directories / jars used by Java to link Java applications with their associated libraries at compile and runtime. \\ \hline
+LD\_LIBRARY\_PATH & /usr/lib: /home/dev/bin/lib/i386-linux & A colon separated list if directories used by the OS to link dynamically linked binaries at runtime. The script ensures the {\bf LT\_LIB\_HOME} is in this list. \\ \hline
+PATH              & colon separated list if directories & The script ensures the {\bf \${LT\_HOME}/bin/scripts/} directory is in the list. The list is used by the OS to find executables/scripts to run when invoked from the command line. \\
+\hline
+\end{tabular}
+\end{center}
+\caption{\em lt\_environment.csh Environment setup Part 2.}
+\label{tab:environmentsetup2}
+\end{table}
+
+\subsection{public\_html directory}
+
+This contains a series of directories relating to various software subsystems. Inside each directory is documentation relating to the software. This is mainly API documentation generated from the C and Java source code. There is further descriptive documentation where this is needed. The documentation for the autoguider process itself is in the {\bf /home/dev/public\_html/autoguider/} directory.
+
+\subsection{src directory}
+
+The source directories contain a series of sub-directories, one for each sub-system used to build the autoguider software and associated utility programs.
+
+\subsubsection{autobooter}
+
+The autobooter is a Java process that is started by an {\bf /etc/init.d} script when the operating system boots. It is a Java process. It is responsible for starting the autoguider process, and ensuring it keeps running. The {\bf java} sub-directory contains the Java source code for the autobooter, and the {\bf latex} sub-directory contains the source for some documentation.
+
+\subsubsection{autoguider}
+
+This is the directory containing the main autoguider software source code. 
+
+\subsubsection{ccd}
+
+This contains a single sub-directory called {\bf misc}. This contains some command-line tools used by various autoguider scripts, mainly FITS file manipulation tools (that link against CFITSIO).
+
+\subsubsection{cdoc}
+
+This contains the source code for the {\bf cdoc} tool. This is run as part of the compilation process for most of the C libraries and C processes in the system. It extracts specially formatted comments from the source code and constructs HTML API documentation from them.
+
+\subsubsection{cfitsio3310}
+
+This directory contains a copy of CFITSIO version 3.310 as released by NASA HEASARC. The structure is modified slightly by the addition of a separate {\bf include} sub-directory to hold the externally referenced header files. The compiled libraries are currently manually copied to the binary library directory.
+
+\subsubsection{estar}
+
+The {\bf eSTAR} system was a project to create a heterogeneous network of robotic telescopes for automated observing. A small amount of it's software is used by the autoguider system :- the {\bf estar\_config} library is used to process the autoguider configuration property file. The {\bf config} source directory contains the source for this, and the {\bf common} sub-directory just contains header files that the {\bf config} source directory uses.
+
+\subsubsection{ics\_util}
+
+This directory contains various utility programs associated with rebooting and shutting down the control computer.
+
+\subsubsection{libdprt}
+
+This directory contains the source code for data-pipelining CCD images. The Liverpool Telescope uses routines in this library for data reduction of images from it's CCD cameras. Most of these routines are {\em not} used by the autoguider. However the {\bf iterstat} routine is used for calculating the threshold level for object detection, and the object detection software is used to extract star centroids from processed images. The {\bf iterstat} routine is part of the {\bf libccd\_dprt.so} shared library which is contained in the {\bf ccd\_imager} sub-directory, and the {\bf object} sub-directory contains the object detection code.
+
+\subsubsection{log\_udp}
+
+This directory contains the source code to build the {\bf liblog\_udp.so} shared library and it's associated test programs. 
+
+\subsubsection{Makefile.common}
+
+The {\bf Makefile.common} file contains many of the common command definitions and options used by other Makefiles in the source tree. Many of the other Makefiles in the source tree {\bf include} this file to access a common set of definitions.
+
+\subsubsection{Makefile.java.common}
+
+This is a generic Makefile for building Java packages. It is mainly used in the {\bf ngat} package directories, and is sourced to provide common commands and command options for building {\bf ngat} package libraries.
+
+\subsubsection{ngat}
+
+The {\bf ngat} (Next Generation Astronomical Telescope) directory contains the source code for various Java libraries used by the Autobooter and Autoguider GUI. The {\bf ngat/message} and {\bf ngat/net} libraries are needed to compile the {\bf ngat/util} libraries. The {\bf ngat/sound} and {\bf ngat/swing} libraries are GUI support libraries. The {\bf ngat/util} library contains utility routine used by both the Autobooter and Autoguider GUI, most particularly the logging software.
+
+\subsubsection{ngatastro}
+
+The {\bf ngatastro} directory contains code to create the {\bf libngatastro.so} shared library. The autoguider links to this library to create MJD (Modified Julian Date) data for inclusion in the FITS headers of field and guide frames it creates.
+
+\subsubsection{scripts}
+
+This is a directory containing general scripts used by various packages. Some of these scripts are used to setup a suitable build environment, and others are used for creating and deploying the built autoguider software.
+
+\section{Setting up the development Environment}
+\label{sec:devenvironment}
+
+The following commands set up {\bf LT\_HOME} for software development, and source the environment so the software can be compiled.
+
+\begin{verbatim}
+setenv LT_HOME "/home/dev/"
+source ~dev/lt_environment.csh
+\end{verbatim}
+
+\section{Compilation}
+
+Before compiling the autoguider source code itself, some libraries and support binaries need to be compiled.
+
+\subsection{CDoc}
+
+CDoc is a little command line tool that is used to produce API HTML documentation from C source code.
+
+\begin{verbatim}
+cd ~dev/src/cdoc
+make depend
+make
+\end{verbatim}
+
+\subsection{log\_udp}
+
+The log\_udp package is a library and binary for sending log messages over UDP to a central server.
+
+\begin{verbatim}
+cd ~dev/src/log_udp
+make depend
+make
+\end{verbatim}
+
+\subsection{CFITSIO}
+
+We use the CFITSIO library to read and write FITS images.
+
+\begin{verbatim}
+cd ~dev/src/cfitsio3310/
+make
+make shared
+cp libcfitsio.a  libcfitsio.so ~dev/bin/lib/i386-linux/
+\end{verbatim}
+
+\subsection{ccd/misc}
+
+The ccd/misc directory contains some FITS header manipulation tools used in various scripts.
+
+\begin{verbatim}
+cd ~dev/src/ccd/misc
+make depend
+make
+\end{verbatim}
+
+\subsection{eSTAR Config library}
+
+This library is used by the autoguider for parsing the properties configuration file. This package requires the estar environment to be setup before it will compile.
+
+\begin{verbatim}
+source ~dev/src/estar/estar_environment.csh
+cd ~dev/src/estar/config/
+make depend
+make
+\end{verbatim}
+
+\subsection{ics\_util}
+
+This package contains some utilities for handling machine reboots and shutdowns.
+
+\begin{verbatim}
+cd ~dev/src/ics_util/
+make depend
+make
+\end{verbatim}
+
+\subsection{libdprt}
+
+This package contains the object detection code.
+
+\begin{verbatim}
+cd ~dev/src/libdprt/object
+make depend
+make
+\end{verbatim}
+
+This part of the package contains the iterstat routine which is used for background estimation.
+
+\begin{verbatim}
+cd ~dev/src/libdprt/ccd_imager
+make
+\end{verbatim}
+
+\subsection{ngatastro}
+
+This contains MJD computation routines used by the autoguider.
+
+\begin{verbatim}
+cd ~dev/src/ngatastro
+make depend
+make
+\end{verbatim}
+
+When making the package some of the test programs will fail to link, unless the slalib package is installed. These test
+programs are not needed to create the autoguider software.
+
+\subsection{ngat\_util}
+
+This Java package has utility routines used by the Autobooter software, and autoguider GUI software.
+
+\begin{verbatim}
+setenv JAVA_HOME "/usr/java/jdk1.7.0_45/"
+cd ~dev/src/ngat/util
+make
+\end{verbatim}
+
+\subsection{ngat\_message}
+
+This package is needed to compile ngat.net.
+
+\begin{verbatim}
+setenv JAVA_HOME "/usr/java/jdk1.7.0_45/"
+cd ~dev/src/ngat/message
+make
+\end{verbatim}
+
+Some of the sub-packages will fail to compile. However, only the ngat\_message\_base.jar is needed to compile ngat.net.
+
+\subsection{ngat\_net}
+
+\begin{verbatim}
+setenv JAVA_HOME "/usr/java/jdk1.7.0_45/"
+cd ~dev/src/ngat/net
+make
+\end{verbatim}
+
+Again, some of the sub-packages will not build, but only the main ngat.net package is needed in this case.
+
+\subsection{ngat\_sound}
+
+This package is used by GUI code.
+
+\begin{verbatim}
+setenv JAVA_HOME "/usr/java/jdk1.7.0_45/"
+cd ~dev/src/ngat/sound
+make
+\end{verbatim}
+
+\subsection{ngat\_swing}
+
+This package is used by GUI code.
+
+\begin{verbatim}
+setenv JAVA_HOME "/usr/java/jdk1.7.0_45/"
+cd ~dev/src/ngat/swing
+make
+\end{verbatim}
+
+
+\subsection{autobooter}
+
+This Java software is used to keep the autoguider software running. The JAVA\_HOME environment is used to select
+which Java compiler to use.
+
+\begin{verbatim}
+setenv JAVA_HOME "/usr/java/jdk1.7.0_45/"
+cd ~dev/src/autobooter
+make
+\end{verbatim}
+
+\subsection{autoguider}
+
+The autoguider control software.
+
+\begin{verbatim}
+setenv JAVA_HOME "/usr/java/jdk1.7.0_45/"
+cd ~dev/src/autoguider
+make depend
+make
+\end{verbatim}
+
+The ccd/andor sub-directory will not build without the Andor libraries being present. However, as the IUCAA autoguider
+uses an FLI camera this is not a problem.
+
+\begin{thebibliography}{99}
+\addcontentsline{toc}{section}{Bibliography}
+
+\end{thebibliography}
+
+\end{document}
