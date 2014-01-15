@@ -22,6 +22,7 @@ This document is a basic user guide for the Autoguider Control System developed 
 {\bf Version} & {\bf Author} & {\bf Date} & {\bf Notes} \\
 \hline
 0.1 & C. J. Mottram & 09/12/13 & First draft \\
+0.2 & C. J. Mottram & 13/01/13 & Second draft \\
 \hline
 \end{tabular}
 \end{center}
@@ -34,7 +35,7 @@ This document is a basic user guide for the Autoguider Control System developed 
 
 \section{Introduction}
 This document is a basic user guide for using the autoguider control software developed by LJMU for the 
-Liverpool telescope.
+Liverpool Telescope and modified for the IUCAA Telescope.
 
 It assumes the autoguider is in the following state:
 
@@ -46,7 +47,7 @@ It assumes the autoguider is in the following state:
 
 \section{Power Up Sequence}
 
-We normally leave the autoguider camera head and control computer on at all times (i.e. throughout the day).
+LJMU recommends to leave the autoguider camera head and control computer on at all times (i.e. throughout the day).
 However, the system can be turned on and off during system maintenance. When powering on the system, it is best to
 power on the camera head before turning on the control computer.
 
@@ -67,14 +68,34 @@ If, for some reason, the autoguider fails to start and initialise properly, the 
 Normally, the autoguider software and hardware is left powered on throughout the day. If however, it needs to be powered down for maintenance the following procedures can be used.
 
 \begin{itemize}
-\item Log into the control computer as the {\bf eng} user. For password information see the password list (LT) or installation instructions (IUCAA) \cite{bib:iucaainstallation}.
-\item Use the telnet interface to command the CCD camera head to raise the CCD temperature to ambient i.e. {\bf /icc/bin/autoguider/commandserver/test/i386-linux/send\_command -h acc -p 6571 -c "temperature set 15.0"}. There is also an alias that can be run to do this {\bf autoguider\_temperature\_ambient}.
-\item Monitor the CCD camera head temperature until it reaches a safe temperature to switch off the camera head: {\bf /icc/bin/autoguider/commandserver/test/i386-linux/send\_command -h acc -p 6571 -c "status temperature get"} or use the alias {\bf autoguider\_temperature\_get}.
-\item Shutdown the control computer and switch off the camera head: {\bf su}, {\bf /sbin/shutdown -h now}.
+\item Log into the control computer as the {\bf eng} user. For password information see the password list (LT) or software installation instructions (IUCAA) \cite{bib:iucaainstallation}.
+\item Use the telnet interface to command the CCD camera head to raise the CCD temperature to ambient i.e.
+\begin{verbatim}
+/icc/bin/autoguider/commandserver/test/i386-linux/send_command -h acc -p 6571 
+-c "temperature set 15.0"
+\end{verbatim} 
+There is also an alias that can be run to do this:
+\begin{verbatim}
+autoguider_temperature_ambient
+\end{verbatim}
+\item Monitor the CCD camera head temperature until it reaches a safe temperature to switch off the camera head:
+\begin{verbatim}
+/icc/bin/autoguider/commandserver/test/i386-linux/send_command -h acc -p 6571 
+-c "status temperature get"
+\end{verbatim}
+or use the alias 
+\begin{verbatim}
+autoguider_temperature_get
+\end{verbatim}
+\item Shutdown the control computer and switch off the camera head:
+\begin{verbatim}
+su
+/sbin/shutdown -h now
+\end{verbatim}
 \end{itemize}
 
 All the above can also be done using the {\bf /icc/bin/autoguider/scripts/autoguider\_engineering\_mode} script. That
-warms the CCD and kills the {\bf autoguider} process in such a way the {\bf AutoBooter} process does not restart it. This can also be used to stop the robotic software so that low level command line test programs can be used with the camera.
+warms the CCD and kills the {\bf autoguider} process in such a way the {\bf AutoBooter} process does not restart it. This can also be used to stop the autoguider software so that low level command line test programs can be used with the camera.
 
 \section{Basic Operation}
 
@@ -82,11 +103,37 @@ The autoguider is basically controlled using the TCS interface. The following TC
 \begin{itemize}
 \item {\bf autoguide on brightest} Start autoguiding on the brightest star in the field.
 \item {\bf autoguide on rank \textless n\textgreater} Start autoguiding on the {\bf n}th brightest star in the field.
-\item {\bf autoguide on pixel \textless x\textgreater \textless y\textgreater} Start autoguiding on the  star nearest pixel ({\bf x},{\bf y}).
+\item {\bf autoguide on pixel \textless x\textgreater \textless y\textgreater} Start autoguiding on the  star nearest pixel ({\bf x},{\bf y}) on the field image.
 \item {\bf autoguide off} Stop autoguiding.
 \end{itemize}
 
-The TCS displays some status as to whether the autoguider commands have succeeded or not, and has a status display showing the centroids received from the autoguider software, and whether the autoguider is guiding (LOCKED) or has lost the guide star.
+The TCS displays some status as to whether the autoguider commands have succeeded or not, and has a status display showing the centroids received from the autoguider software, and whether the autoguider is guiding (LOCKED) or not.
+
+Figure \ref{fig:tcsdisplayscreen1} shows TCS Display Screen 1. The {\bf Autoguider} status can show {\bf GUIDING} if the guide loop is active and locked, and {\bf NOT GUIDING} if the guide loop is not locked.
+
+Figure \ref{fig:tcsdisplayscreen2} shows TCS Display Screen 2. This shows the guide centroid X and Y positions, computed Full width half maximum (FWHM) and centroid magnitude, guide exposure length ({\bf Integration Time}) and Chip temperature. The {\bf Autoguider packet} section shows the guide packet as received from the autoguider, the format is described in the guiding corrections interface section of the Autoguider to Telescope Interface Control Document \cite {bib:agtcsicd}.
+
+\setlength{\unitlength}{1in}
+\begin{figure}[!h]
+	\begin{center}
+		\begin{picture}(6.0,5.0)(0.0,0.0)
+			\put(0,0){\special{psfile=tcs_display_screen_1.eps   hscale=35 vscale=35}}
+		\end{picture}
+	\end{center}
+	\caption{\em TCS Display showing screen 1.}
+	\label{fig:tcsdisplayscreen1} 
+\end{figure}
+
+\setlength{\unitlength}{1in}
+\begin{figure}[!h]
+	\begin{center}
+		\begin{picture}(6.0,5.0)(0.0,0.0)
+			\put(0,0){\special{psfile=tcs_display_screen_2.eps   hscale=35 vscale=35}}
+		\end{picture}
+	\end{center}
+	\caption{\em TCS Display showing screen 2.}
+	\label{fig:tcsdisplayscreen2} 
+\end{figure}
 
 More detailed information on the autoguider status can be gleaned from the log files (see Section \ref{sec:logfiles}).
 
@@ -104,7 +151,7 @@ The autoguider software keeps comprehensive logs when it is operating. In the de
 \item Capture of stdout and stderr from the {\bf autoguider} process of the form: {\bf autoguider\_output.txt}
 \end{itemize}
 
-In each case, the first number is the day of year (DOY), and the second (which may be prefixed by a ``h'') is the hour of day. In other words there is a new log file every hour. We normally have a script that runs daily to archive the older log files into a tarball to stop the autoguider control computer disk filling up.
+In each case, the first number is the day of year (DOY), and the second (which may be prefixed by a ``h'') is the hour of day. In other words there is a new log file every hour. LJMU recommend the older log files are archived by a script on a regular basis. 
 
 \subsection{Fault finding}
 
@@ -156,7 +203,7 @@ autoguider_log_271_21.txt autoguider_log_271_22.txt autoguider_log_271_23.txt
 
 \end{itemize}
 
-If all goes well three PNG files containing the graphs will be produced:
+Three PNG files containing the graphs will be produced:
 
 \begin{itemize}
 \item \verb'guide_packets_with_time_271_21_23_x.png'  containing a graph of x centroids vs. time.
@@ -241,7 +288,7 @@ object_list_271_21_23.csv
 \subsection{Viewing guide frames live}
 
 It is possible to see guide frames as they are generated by the autoguider. There is a script that, when
-autoguiding, will retrieve the most recent guide frame ever so often and display it in gaia or ds9.
+autoguiding, will retrieve the most recent guide frame and display it in gaia or ds9. The machine's DISPLAY has to be setup to display gaia's X windows successfully (either locally or on a remote machine) before running the script.
 
 The script is run as follows:
 \begin{verbatim}
@@ -254,8 +301,7 @@ So for example:
 autoguider_get_guide_frames -gaiadisp -reduced -sleep_time 10
 \end{verbatim}
 will display a reduced guide frame every 10 seconds in gaia, whilst a guide loop is in operation. The script will stop
-when the autoguider stops autoguiding. Of course, the machine's DISPLAY has to be setup to display gaia's X windows
-successfully (either locally or on a remote machine).
+when the autoguider stops autoguiding. 
 
 \section{Cron jobs}
 
@@ -296,14 +342,14 @@ This cron job grabs an autoguider guide frame each time it is run, assuming the 
 \item The script issues a {\bf status guide active} to the autoguider telnet port, which returns whether the guide loop is active or not.
 \item If the autoguider is guiding, the current guide exposure length is  retrieved using the telnet command {\bf status guide exposure\_length}. 
 \item The last guide frame taken is retrieved using the {\bf test\_getfits\_command} to send the command {\bf getfits guide reduced} to the autoguider and deal with the binary (FITS) response.
-\item We retrieve the number of objects detected on the last guide frame by issuing the telnet command {\bf status object count} to the autoguider.
+\item The number of objects detected on the last guide frame is retrieved by issuing the telnet command {\bf status object count} to the autoguider.
 \item The exposure length and object count are logged to a suitable log filename  ( {\bf /icc/log/ autoguider\_get\_guide\_frames\_cron\_ \textless day of year\textgreater .txt} ).
 \item If the object count was greater than zero, the list of objects detected (retrieved using the {\bf status object list} command) is also added to the log file.
 \end{itemize}
 
 \subsubsection{autoguider\_get\_process\_stats}
 
-This cron job is normally invoked once an hour in the crontab. It lists processes running on the autoguider control computer and tries to extract CPU and memory usage information for the {\bf ./autoguider} process started by the autobooter. This enables us to track any memory problems, or problems when the process consumes too much CPU for some reason.
+This cron job is normally invoked once an hour in the crontab. It lists processes running on the autoguider control computer and tries to extract CPU and memory usage information for the {\bf ./autoguider} process started by the autobooter. This can be used to track any memory problems, or problems when the process consumes too much CPU for some reason.
 
 
 
@@ -314,7 +360,7 @@ The autoguider contains software for processing the acquired images to best extr
 \subsection{Dark}
 
 A dark frame is needed for each length of exposure the autoguider uses. The exposure length's used by the autoguider
-is actually defined by the list in the {\bf autoguider.properties} file (in the {\bf /icc/bin/autoguider/c/i386-linux} directory:
+is defined by the list in the {\bf autoguider.properties} file (in the {\bf /icc/bin/autoguider/c/i386-linux} directory:
 
 \begin{verbatim}
 dark.exposure_length.0			=10
@@ -346,11 +392,10 @@ dark.filename.1.1.5000			=/icc/dprt/dark/dark_1_1_5000.fits
 dark.filename.1.1.10000			=/icc/dprt/dark/dark_1_1_10000.fits
 \end{verbatim}
 
-There is a script to make a dark library. This can be invoked from the autoguider control computer as follows:
+To make a dark library, the camera should be down to temperature, and if the camera has no shutter no light should be falling on the CCD. Then a script can be invoked from the autoguider control computer to create a dark library as follows:
 \begin{verbatim}
 /icc/bin/autoguider/scripts/autoguider_make_dark_list
 \end{verbatim}
-Note the camera should be down to temperature, and if the camera has no shutter something should be covering the CCD, before this command is invoked.
 
 This script contains a list of exposure lengths (which should match the list in {\bf autoguider.properties}), and for each exposure length the script {\bf /icc/bin/autoguider/scripts/autoguider\_make\_dark} is called to take 5 dark exposures, median them and replace the dark FITS filename.
 
@@ -437,8 +482,11 @@ the command line used to start the {\bf autoguider} process, as well as the retr
 \begin{thebibliography}{99}
 \addcontentsline{toc}{section}{Bibliography}
 
-\bibitem{bib:iucaainstallation}{\bf IUCAA autoguider control computer Installation}
-C. J. Mottram  \newline{\em /home/dev/public\_html/autoguider/latex/iucaaag\_installation.ps} v0.1
+\bibitem{bib:iucaainstallation}{\bf IUCAA autoguider control computer Operating System and Software Installation}
+C. J. Mottram  \newline{\em /home/dev/public\_html/autoguider/latex/iucaaag\_software\_installation.ps} v0.1
+
+\bibitem{bib:agtcsicd}{\bf Autoguider to Telescope Interface Control Document}
+Telescope Technologies Limited  \newline{\em 97-001-AGS-TEL-ICD} v0.02
 
 
 \end{thebibliography}
