@@ -5,7 +5,7 @@
 \oddsidemargin -0.5cm
 \topmargin 0cm
 
-\title{IUCAA autoguider control computer Operating System and Software Installation}
+\title{IUCAA autoguider Installation}
 \author{C. J. Mottram}
 \date{}
 \begin{document}
@@ -21,8 +21,7 @@ This document describes the installation procedure for the IUCAA autoguider.
 \hline
 {\bf Version} & {\bf Author} & {\bf Date} & {\bf Notes} \\
 \hline
-0.1 & C. J. Mottram & 04/12/13 & First draft \\
-0.2 & C. J. Mottram & 10/01/14 & Second draft \\
+0.1 & C. J. Mottram & 14/01/13 & First draft \\
 \hline
 \end{tabular}
 \end{center}
@@ -36,230 +35,354 @@ This document describes the installation procedure for the IUCAA autoguider.
 \newcommand{\mytilde}{\raise.17ex\hbox{$\scriptstyle\mathtt{\sim}$}}
 
 \section{Introduction}
-This document describes the installation procedure for the Operating System and software for the IUCAA autoguider control computer.
 
-This procedure should only be necessary to order to setup a new autogudier control computer should the original one supplied fail. For a simpler reinstall procedure we recommend that the original computer data is cloned so that a drop in replacement may be used.
+This document describes how to unpack and check the autoguider on delivery.
 
-\section{Control Computer}
+\section{Unpacking}
 
-The control computer selected was an ASUS eeePC mode name EeeBox EB1007P. This has an Intel Atom D425 1.8Ghz CPU. It has a small form factor, as required by IUCAA for fitting to their A\&G box. It has 2Gb of RAM and a 320Gb SATAII hard drive.
+The following items should have been shipped:
 
-\section{OS Install}
-Centos 6.5 was installed as the OS. The 32-bit version of the operating system was selected. Any recent Centos distribution would work however (where the FLI device driver can be built). A basic install was done, with further packages added as necessary. grub is used to boot the Centos OS automatically. UTC is used as the default TIMEZONE. A UK keyboard was selected. Development tools were installed (compiler etc) as the machine will contain the buildable source code.
+\begin{itemize}
+\item The FLI camera head.
+\item The FLI camera head power supply, leads and USB cable.
+\item The eeePC autoguider control computer.
+\item The eeePC mounting plate and stand.
+\item The eeePC power block and associated leads.
+\end{itemize}
 
-\section{Users and Passwords}
+The eeePC comes pre-installed with the robotic autoguider software. A copy of the
+code used to produce this is also included on the disk. Documentation will also be provided, either
+electronically on disk and DVD, or physically on paper.
 
-The machine is setup with the usernames and passwords documented in Table \ref{tab:usernamespasswords}.
+\section{Control computer}
+
+For initial bench testing this will need to be connected to a monitor, keyboard and mouse. It should not be connected to the network initially.
+
+\subsection{Power on}
+
+The autoguider control computer is currently setup to boot when power is applied to it. So the computer should power up automatically. If it does not, there is a round power button on the front of the computer. Press it to power the machine up :- it lights with a blue LED when power is applied.
+
+The computer should go through a standard Centos boot sequence, and eventually arrive at a command line login prompt. The computer is configured to {\em not} start a graphical user interface automatically, as this is not used for robotic operation.
+
+\subsection{Login}
+
+The usernames and passwords for the control computer are specified in the IUCAA software installation instructions \cite{bib:iucaasoftwareinstallation}, Section 4 (Users and Passwords). The {\bf eng} user is used for normal operations, but to change some system config files you need to be {\bf root}.
+
+After logging in to the autoguider, type {\bf startx} to start a graphical user interface.
+
+\subsection{Network configuration}
+
+The network has been configured in the same way as the autoguider fitted to the Liverpool Telescope. This may {\bf not} be correct for the IUCAA telescope, and needs checking.
+
+The Networks settings box can be displayed by selecting the  {\bf System \textgreater Preferences \textgreater Network connections} menu option, see Figure \ref{fig:networkconnections1}.
+
+
+\setlength{\unitlength}{1in}
+\begin{figure}[!h]
+	\begin{center}
+		\begin{picture}(6.0,5.0)(0.0,0.0)
+			\put(0,0){\special{psfile=Network_Connections_1.eps   hscale=35 vscale=35}}
+		\end{picture}
+	\end{center}
+	\caption{\em Network Connections Menu.}
+	\label{fig:networkconnections1} 
+\end{figure}
+
+This brings up the {\bf Network Connections} dialog. By selecting {\bf System eth0} and pressing the {\bf Edit} button the {\bf Editing System eth0} dialog can be brought up as shown in Figure \ref{fig:networkconnections2}. This allows you to edit the IP Address, Netmask and Gateway. 
+
+\setlength{\unitlength}{1in}
+\begin{figure}[!h]
+	\begin{center}
+		\begin{picture}(6.0,5.0)(0.0,0.0)
+			\put(0,0){\special{psfile=Network_Connections_2.eps   hscale=35 vscale=35}}
+		\end{picture}
+	\end{center}
+	\caption{\em Editing System eth0.}
+	\label{fig:networkconnections2} 
+\end{figure}
+
+On the Liverpool Telescope these need to be set as shown in Table \ref{tab:autogudiernetworksettings}.
 
 \begin{table}[!h]
 \begin{center}
-\begin{tabular}{|l|l|}
+\begin{tabular}{|l|p{20em}|}
 \hline
-{\bf Username} & {\bf Password} \\ \hline
-root & iucaar00t \\ \hline
-eng & iucaaeng \\ \hline
+{\bf Name} & {\bf Value}   \\ \hline
+Address    & 192.168.1.3   \\ \hline
+Netmask    & 255.255.255.0 \\ \hline
+Gateway    & 192.168.1.254 \\ \hline
+DNS Server & blank         \\ \hline
 \end{tabular}
 \end{center}
-\caption{\em Username and password list.}
-\label{tab:usernamespasswords}
+\caption{\em Autoguider network settings.}
+\label{tab:autogudiernetworksettings}
 \end{table}
 
-\section{BIOS changes}
+On the IUCAA telescope they will need to be set as the old TTL autoguider was setup, so the TCS, SDB and MCP know
+the location of the autoguider machine.
 
-The BIOS is accessed on this machine by pressing F2 whilst the machine is booting.
+\subsubsection{/etc/hosts file}
 
-We entered the {\bf Power} screen and changed the {\bf Restore on AC Power Loss} from {\bf Power OFF} to {\bf Power On}.If power is lost to the control computer, it will automatically reboot when power is reapplied.
+The {\bf /etc/hosts} file contains the network addresses of machine the autoguider needs to communicate with. The file is setup as shown in the IUCAA software installation instructions \cite{bib:iucaasoftwareinstallation}, Section 8.2. The autoguider software needs the names {\bf mcc} , {\bf scc} and {\bf tcc} in the {\bf /etc/hosts} file, as these names are used in the autoguider configuration file and therefore looked up by the autoguider software when configuring software connections to the TCS (tcc), SDB (mcc), and MCP (scc). If the IP addresses differ on the IUCAA telescope they must be changed.
 
-\section{Autoguider Software and FLI Device driver}
+\subsection{Network testing}
+\label{sec:networktesting}
 
-\subsection{FLI Device driver}
-
-{\bf fliusb-1.3.tgz} was downloaded from the FLI website \cite{bib:flidevicedriver} and installed.
-
-\begin{itemize}
-\item {\bf tar xvfz fliusb-1.3.tgz}
-\item {\bf cd fliusb-1.3}
-\item {\bf make}
-\item {\bf su}
-\item {\bf cp fliusb.ko /lib/modules/2.6.32-431.el6.i686/extra/}
-\item {\bf /sbin/depmod -a}
-\end{itemize}
-
-The device driver is then automatically recognised and installed into the kernel, when the FLI camera head is plugged into the control computer and turned on.
-
-\subsection{Autoguider Software}
-
-This is installed from the deployment files, usually held on a development machine in the directory:
-{\bf /home/dev/public\_html/autoguider/deployment}. These are usually copied to a date stamped sub-directory of eng's download directory and installed from there e.g.:
+When it is possible to connect the control computer to the telescope LAN the network settings can be tested. The following should be tested:
 
 \begin{itemize}
-\item {\bf cd \mytilde dev/public\_html/autoguider/deployment}
-\item {\bf scp -C autoguider\_deployment\_iucaaag.tar.gz autoguider\_tar\_install icc\_cshrc icc\_cshrc\_edit.awk README.DEPLOYMENT eng@iucaaag:download/20131204/} Obviously, {\bf cp} can be used instead if the development and deployment machines are the same.
-\item {\bf cd \mytilde eng/download/20131204/}
-\item {\bf su}
-\item {\bf ./autoguider\_tar\_install iucaaag}
-\item {\bf reboot}
-\end{itemize}
-
-Note if a previous version of the robotic software is already running, running:
+\item From an autoguider terminal prompt, {\bf ping tcc} successfully transmits packets to and from the tcc. Here is an example of a successful ping:
 \begin{verbatim}
+[eng@acc ~]> ping tcc
+PING tcc.lt.com (192.168.1.10) 56(84) bytes of data.
+64 bytes from tcc.lt.com (192.168.1.10): icmp_seq=1 ttl=64 time=0.996 ms
+64 bytes from tcc.lt.com (192.168.1.10): icmp_seq=2 ttl=64 time=0.244 ms
+64 bytes from tcc.lt.com (192.168.1.10): icmp_seq=3 ttl=64 time=0.234 ms
+64 bytes from tcc.lt.com (192.168.1.10): icmp_seq=4 ttl=64 time=0.238 ms
+
+--- tcc.lt.com ping statistics ---
+4 packets transmitted, 4 received, 0% packet loss, time 2999ms
+rtt min/avg/max/mdev = 0.234/0.428/0.996/0.327 ms
+\end{verbatim}
+Use Ctrl-C to quit from the ping command.
+\item From an autoguider terminal prompt, {\bf ping mcc} successfully transmits packets to and from the mcc.
+\item From an autoguider terminal prompt, {\bf ping scc} successfully transmits packets to and from the scc.
+\item Log into the mcc. From an mcc terminal prompt, {\bf ping acc} transmits packets to and from the autoguider. You may have to check {\bf acc} is setup correctly on the mcc, {\bf cat /etc/hosts} to find the autoguider entry. You may have to issue a {\bf slay ping} from a second mcc terminal to stop the ping, rather than using Ctrl-C.
+\item From a machine on the telescope LAN, try {\bf ssh eng@acc} (if the machine has acc in the {\bf /etc/hosts}) or {\bf ssh eng@192.168.1.3} (replacing the IP address with the autoguider's if the IUCAA autoguider has a different IP address). You may have to use a different machine from the mcc for this test, it appears the Liverpool Telescopes ssh on mcc is {\bf not} compatible with the ssh on our autoguider machine. 
+\end{itemize}
+
+\section{Connecting the camera head}
+
+To connect the camera head, The USB cable between the camera and control computer must be plugged in. The power supply brick can then be plugged into the camera head, and then into mains power and turned on.
+
+If the control computer was turned on with the camera head plugged in and switched on, then it will automatically start the robotic software. If the camera head is plugged in after the control computer was switched on and fully booted, then the robotic software will have tried to start and failed (as no camera head was detected when the software was started).
+
+You can tell if the robotic software is running by issuing the following command from a shell logged on to the autoguider control computer: {\bf ps waux | grep autoguider}. If the robotic software is running you will see something like the following:
+\begin{verbatim}
+[eng@acc ~]> ps waux | grep autoguider
+root      2737  0.0  0.0   4532  1068 ?        S    10:36   0:00 /bin/sh -c ( 
+cd /icc/bin/autoguider/c/i386-linux ; 
+./autoguider -co autoguider.properties -autoguider_log_level 5 -ccd_log_level 5 
+-command_server_log_level 5 -object_log_level 5 -ngatcil_log_level 5 1> 
+/icc/log/autoguider_output.txt 2>&1 )
+root      2738  0.0  0.0   4532   444 ?        S    10:36   0:00 /bin/sh -c ( 
+cd /icc/bin/autoguider/c/i386-linux ; 
+./autoguider -co autoguider.properties -autoguider_log_level 5 -ccd_log_level 5 
+-command_server_log_level 5 -object_log_level 5 -ngatcil_log_level 5 1> 
+/icc/log/autoguider_output.txt 2>&1 )
+root      2744  0.1  0.1 101428  3268 ?        Sl   10:36   0:16 ./autoguider 
+-co autoguider.properties -autoguider_log_level 5 -ccd_log_level 5 
+-command_server_log_level 5 -object_log_level 5 -ngatcil_log_level 5
+eng       6059  0.0  0.0   3924   704 pts/0    S+   14:53   0:00 grep autoguider
+\end{verbatim}
+whereas if the robotic software is not running you will see something like:
+\begin{verbatim}
+[eng@iucaaag ~]> ps waux | grep autoguider
+eng       2646  0.0  0.0   4360   740 pts/0    S+   14:54   0:00 grep autoguider
+\end{verbatim}
+
+If the robotic software {\bf is} running, you need to stop it before running any of the low level test commands.
+
+\section{Stopping the robotic software}
+
+If the robotic software is running, it can be stopped by issuing the following commands:
+\begin{verbatim}
+su
+(type in root password)
 /icc/bin/autoguider/scripts/autoguider_engineering_mode
 \end{verbatim}
-will safely warm up the CCD and kill the robotic software before the installation is started.
+The script will ensure the CCD was been warmed up before shutting down the robotic process.
 
-\section{Other Packages Installed}
+\section{Low level command line testing}
 
-After doing a basic install, the following extra packages were installed at various stages.
+The basic operation of the camera head can be tested with the following commands.
 
-\subsection{XTerm}
+\subsection{test\_temperature\_low\_level}
 
-This was installed to provide a terminal : {\bf yum install xterm}
+This can be used to check the device driver is operating correctly, and that the control computer can communicate with the camera head correctly. It's main purpose is control and monitoring of the head CCD temperature.
 
-\subsection{Emacs}
+The help option lists the command options:
 
-Emacs was selected to be installed during OS installation. However the default OS install does not install the dependencies correctly, libotf.so is not installed (or rather the wrong OpenMPI library with the same name is installed to satisfy the dependency). This appears to be a well known problem with Centos 6.5, the solution is {\bf yum install libotf}.
+\begin{verbatim}
+[eng@iucaaag ~]> /icc/bin/autoguider/ccd/fli/test/i386-linux/test_temperature_low_level -help
+Parsing Arguments.
+Test Temperature (low level):Help.
+test_temperature_low_level [-h[elp]] [-t[emperature] <target temp C>]
+\end{verbatim}
 
-\subsection{Java}
+Without any command line arguments the command will report some information about the camera head, and the current CCD temperature. Note because the device driver endpoint {\bf /dev/fliusb0} is owned by root, this command needs to be run as root (otherwise the command complains it can't find the camera head). Here is an example invocation:
 
-The latest oracle JVM was installed: 
+\begin{verbatim}
+[eng@iucaaag ~]> su
+Password: 
+[root@iucaaag eng]# /icc/bin/autoguider/ccd/fli/test/i386-linux/test_temperature_low_level
+Parsing Arguments.
+test_temperature_low_level: FLI library version: Software Development Library for Linux 1.104.
+Find_FLI_Camera: Camera 0 has filename /dev/fliusb0 name MicroLine ML4720 and domain 258.
+Find_FLI_Camera: Opening Camera with filename /dev/fliusb0 name MicroLine ML4720 and domain 258.
+Camera Model: MicroLine ML4720
+Serial Number: ML0832313
+Hardware Revision: 256
+Firmware Revision: 512
+CCD Camera cold finger Temperature: 15.00.
+CCD Temperature: 15.00.
+Base Temperature: 24.19.
+Cooler Power: 20.00.
+\end{verbatim}
+
+The camera cooler can be tested by turning on the cooler by specifying the set-point. This is done by using the -temperature argument:
+
+\begin{verbatim}
+[root@iucaaag eng]# /icc/bin/autoguider/ccd/fli/test/i386-linux/test_temperature_low_level 
+-temperature -30
+Parsing Arguments.
+test_temperature_low_level: FLI library version: Software Development Library for Linux 1.104.
+Find_FLI_Camera: Camera 0 has filename /dev/fliusb0 name MicroLine ML4720 and domain 258.
+Find_FLI_Camera: Opening Camera with filename /dev/fliusb0 name MicroLine ML4720 and domain 258.
+Camera Model: MicroLine ML4720
+Serial Number: ML0832313
+Hardware Revision: 256
+Firmware Revision: 512
+Setting temperature to -30.00 C
+CCD Camera cold finger Temperature: 15.00.
+CCD Temperature: 15.00.
+Base Temperature: 24.25.
+Cooler Power: 20.00.
+\end{verbatim}
+
+The temperature and cooler can then be monitored using this command, and the CCD can be warmed back to ambient by specifying a positive temperature.
+
+\subsection{test\_exposure\_low\_level}
+
+This command is a low level program for taking an exposure with the camera head and saving the resulting image to a FITS file. The help argument returns the following:
+
+\begin{verbatim}
+[root@iucaaag eng]# /icc/bin/autoguider/ccd/fli/test/i386-linux/test_exposure_low_level -help
+Parsing Arguments.
+Test Exposure (low level):Help.
+test_exposure_low_level <-b[ias]|-d[ark] <exposure length ms>|-e[xpose] <exposure length ms>>
+        -f[its_filename] <fits filename> [-h[elp]] -t[emperature] <target temp C>
+        [-xb[in] <n>] [-yb[in] <n>].
+        [-w[indow] <ulx> <uly> <lrx> <lry>].
+The window is defined in unbinned pixels with upper left corner (<ulx>,<uly>) and lower right corner (<lrx>,<lry>).
+\end{verbatim}
+
+The command should be run as the root user, because the device driver endpoint {\bf /dev/fliusb0} is owned by root (otherwise the command complains it can't find the camera head).
+As an example, a 1 second exposure may be taken as follows:
+
+\begin{verbatim}
+[root@iucaaag eng]# /icc/bin/autoguider/ccd/fli/test/i386-linux/test_exposure_low_level 
+-expose 1000 -fits_filename test1.fits  -xbin 1 -ybin 1
+Parsing Arguments.
+test_exposure_low_level: FLI library version: Software Development Library for Linux 1.104.
+Find_FLI_Camera: Camera 0 has filename /dev/fliusb0 name MicroLine ML4720 and domain 258.
+Find_FLI_Camera: Opening Camera with filename /dev/fliusb0 name MicroLine ML4720 and domain 258.
+Camera Model: MicroLine ML4720
+Serial Number: ML0832313
+Hardware Revision: 256
+Firmware Revision: 512
+Pixel Size (microns): 0.00001300 x 0.00001300
+Array Area: Upper Left (0,0) Lower Right (1072,1033)
+Visible Area: Upper Left (24,9) Lower Right (1048,1033)
+CCD Camera cold finger Temperature: -30.00.
+CCD Temperature: -30.00.
+Base Temperature: 34.06.
+Cooler Power: 95.00.
+main: Allocating image data (1072 x 1033).
+main: Setting image data to (0,0) (1072,1033).
+main: Setting 1000 ms Exposure up.
+main: Setting Binning to 1,1.
+main: Starting exposure.
+main: Waiting for the exposure to finish.
+main: Camera status is WAITING_FOR_TRIGGER.
+main: Camera status is READING_CCD.
+main:Remaining exposure length = 1000 ms.
+main: Camera status is EXPOSING.
+main: Camera status is READING_CCD.
+main:Remaining exposure length = 59 ms.
+main: Camera status is IDLE.
+main: Camera has data ready.
+main:Remaining exposure length = 0 ms.
+\end{verbatim}
+
+In this example, the resultant exposure was saved in the test1.fits image file, which can be viewed using your favourite FITS image viewer. Both {\bf ds9} and {\bf gaia} are installed on the autoguider control computer, though only ds9 is available for the root user.
+
+This test command has options to take both bias and dark images, but has the camera has no shutter the CCD should be covered with light-tight material to properly takes these images. With a pinhole placed in front of the CCD test images can be taken to check the camera head is imaging correctly.
+
+\section{Starting the robotic software}
+
+After using the low level command line tools, the robotic software can be restarted as follows:
 
 \begin{itemize}
-\item {\bf rpm -i jdk-7u45-linux-i586.rpm}
-\item {\bf/usr/sbin/update-alternatives --install /usr/bin/java java /usr/java/jdk1.7.0\_45/bin/java 1 --slave /usr/bin/javac javac /usr/java/jdk1.7.0\_45/bin/javac --slave /usr/bin/jar jar /usr/java/jdk1.7.0\_45/bin/jar --slave /usr/bin/javadoc javadoc /usr/java/jdk1.7.0\_45/bin/javadoc --slave /usr/bin/javah javah /usr/java/jdk1.7.0\_45/bin/javah --slave /usr/bin/javaws javaws /usr/java/jdk1.7.0\_45/bin/javaws}
-\item {\bf/usr/sbin/update-alternatives --config java} and select the new Oracle JDK.
-\end{itemize}
-
-\subsection{ds9}
-
-The latest version of ds9 (7.2) \cite{bib:ds9} was downloaded and installed:
-
-\begin{itemize}
-\item {\bf cp ds9 /usr/local/bin/}
-\end{itemize}
-
-\subsection{starlink}
-
-The latest starlink collection was downloaded \cite{bib:starlink} and installed.
-
-\begin{itemize}
-\item {\bf cd /}
-\item {\bf tar xvfz \mytilde eng/download/starlink-hikianalia-Linux-32bit.tar.gz}
-\item Edit {\bf /home/eng/.login} and source starlink's {\bf /star-hikianalia/etc/login}
-\item Edit {\bf /home/eng/.cshrc} and source starlink's {\bf /star-hikianalia/etc/cshrc}
-\end{itemize}
-
-\subsection{system-config-securitylevel}
-
-This is a tool to mkake it easier to turn of the firewall. We install as follows:
- {\bf yum install system-config-securitylevel}.
-
-\subsection{gnuplot}
-
-This is installed as follows {\bf yum install gnuplot}. gnuplot is used by some of the scripts
-for graphing centroids etc.
-
-\section{Configuration Changes}
-
-The following system files were edited or changed during the installation.
-
-\subsection{/etc/inittab}
-
-The default runlevel was changed from 5 to 3, X Windows does not need to be running most of the time.
-
-\subsection{/etc/hosts}
-
-The hostnames for the various machines the autoguider software communicates with were added to the {\bf /etc/hosts} file. Any hostname present in the {\bf autoguider.properties} config file will need to be present in {\bf /etc/hosts} to be resolved correctly. These IP addresses are correct for the Liverpool Telescope, but need to be the correct IP addresses for the equivalent machines at IUCAA.
-
-\begin{itemize}
-\item 192.168.1.1     mcc
-\item 192.168.1.2     scc
-\item 192.168.1.10    tcc
-\end{itemize}
-
-\subsection{/root/.bashrc}
-
-The following lines were added to {\bf /root/.bashrc} to add the software library directory to
-{\bf LD\_LIBRARY\_PATH}. This allows us to run low-level command line test programs as root.
-
+\item Command the CCD camera head to warm up to ambient:
 \begin{verbatim}
-for dir in /icc/bin/lib/i386-linux/ 
-  do
-  if [ -z "${LD_LIBRARY_PATH}" ] 
-    then
-    echo "${LD_LIBRARY_PATH}" | grep ":${dir}" > /dev/null
-    if [ $? != 0 ] 
-    then
-	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}":"${dir}
-    fi
-  else
-    export LD_LIBRARY_PATH=${dir}
-  fi
-done
+/icc/bin/autoguider/ccd/fli/test/i386-linux/test_temperature_low_level 
+-temperature 15
 \end{verbatim}
-
-\subsection{SELinux and firewall}
-
-This needs to be disabled so the UDP packets can reach other machines:
-Edit the file {\bf /etc/selinux/config} and change
-
+\item Issue a command to check the CCD camera head temperature until it is warm enough to reboot the machine:
 \begin{verbatim}
-SELINUX=enforcing
+/icc/bin/autoguider/ccd/fli/test/i386-linux/test_temperature_low_level 
 \end{verbatim}
-
-to
-
+\item When the camera head is warm enough, reboot the machine:
 \begin{verbatim}
-SELINUX=disabled
-\end{verbatim}
-
-We disabled the firewall using the GUI (System \textgreater Administration \textgreater Firewall) as root.
-
-\subsection{eng's crontab}
-
-We created the following crontab for eng:
-\begin{verbatim}
-# minute hour day_of_month month day_of_week command
-# 35 11 * * * $HOME/scripts/instrument_archive_logs
-35 14 * * * /icc/bin/autoguider/scripts/autoguider_rm_field_frames_cron
-35 15 * * * /icc/bin/autoguider/scripts/autoguider_rm_guide_frames_cron
-* 0-6,18-23 * * * /icc/bin/autoguider/scripts/autoguider_get_guide_frames_cron
-2 * * * * /icc/bin/autoguider/scripts/autoguider_get_process_stats
-\end{verbatim}
-
-The function of each of the scripts in the crontab are described in the Autoguider User Guide ]
-\cite{bib:autoguideruserguide}.
-
-\section{Source code installation}
-
-The source code is not normally installed on the autoguider control computer. We usually keep the source code on a development computer and deploy a set of binaries to the actual control computer. For the purposes of releasing the source code to IUCAA, the steps in this section were taken to get a copy of the source code onto the control computer.
-
-The source code is installed in the same base directory as we use for our development server. This is is the {\bf /home/dev} directory.
-
-\begin{itemize}
-\item As root: {\bf mkdir -p /home/dev/src}
-\item As root: {\bf chown eng:ltdev /home/dev}
-\item As root, add the following line to {\bf /etc/passwd} : 
-\begin{verbatim}
-dev:x:1004:1000::/home/dev:/sbin/nologin
-\end{verbatim}
-This allows us to use {\bf ~dev} to refer to {\bf /home/dev}.
-\item We create a tarball of the source code to move to this machine by running the script:
-\begin{verbatim}
-/home/dev/src/autoguider/scripts/autoguider_make_iucaa_source_tar
-\end{verbatim}
-\item The created tarball \mytilde dev/public\_html/autoguider/autoguider\_source\_iucaaag.tar.gz is copied into the control computers download directory.
-\item As eng:
-\begin{verbatim}
-cd ~dev/
-tar xvfz ~/download/autoguider_source_iucaaag.tar.gz
+su
+reboot
 \end{verbatim}
 \end{itemize}
 
-Some extra packeges were installed which are used to generate the binaries:
+If the camera head is on, the robotic software will be automatically started as part of the control computer boot-up procedure.
+
+\section{Bench testing of the robotic software}
+
+When the robotic software is running the following tasks should be considered before mounting the camera head on the telescope:
 
 \begin{itemize}
-\item {\bf yum install makedepend}
+\item Deciding on the CCD temperature set-point to use.
+\item Creating a suitable set of dark frames for the temperature set-point.
 \end{itemize}
+
+\subsection{Temperature set-point}
+
+During bench testing at the ARI we found the FLI camera head maintained a stable temperature when running at -30 degrees centigrade. However, with different ambient temperature conditions a different temperature set-point may be required. The best value to use is one where the camera head can maintain the temperature set-point over all the expected ambient conditions when mounted on the telescope.
+
+The robotic software temperature set-point can be modified by editing the {\bf autoguider.properties} file located in the {\bf /icc/bin/autoguider/c/i386-linux/} directory on the autoguider control computer. The {\bf ccd.temperature.target } property is the one to change. See the Autoguider Configuration Guide \cite{bib:autoguiderconfigurationguide} for details. The robotic software will need to be restarted for this change to take effect.
+
+\section{Setting up dark frames}
+
+Whilst the autoguider is set up on the bench you may wish to take a set of dark frames. For the FLI camera head this requires the CCD to be covered (with black card or similar), as the head has no shutter. It may be easier to do this before mounting the camera head on the telescope. Section 10 (Calibration) in the Autoguider User Guide \cite{bib:autoguideruserguide} describes the process for doing this.
+
+\section{Basic robotic imaging tests}
+\label{sec:basicroboticimaging}
+
+Before mounting the camera head on the telescope a basic test of the imaging capabilities of the robotic software may be useful. To do this a pinhole should be fitted to the front of the camera.
+
+With the camera connected and the control computer booted, and running the robotic software, the following commands can be issued to take an image:
+
+\begin{verbatim}
+send_command -h iucaaag -p 6571 -c "expose 1000"
+test_getfits_command -h iucaaag -p 6571 -c "getfits field raw" -f test1.fits
+ds9 test1.fits &
+\end{verbatim}
+
+This tells the autoguider to take a 1 second exposure, which will be saved in the field buffer. The field buffer is then saved to the FITS filename test1.fits, and ds9 is then invoked to view the taken image. Obviously the exposure length and FITS filename can be changed as appropriate.
+
+Once bench testing is complete the autoguider is ready to be mounted onto the telescope.
+
+
+\section{Post telescope mounting tests}
+
+Once the autoguider is mounted onto the telescope, and connected up and turned on, the following tests can be performed.
+\begin{itemize}
+\item The network testing in Section \ref{sec:networktesting} can be retested to ensure the network is working properly.\item Basic imaging of the camera head can be retested, see Section \ref{sec:basicroboticimaging}.
+\end{itemize}
+
+Before the autoguider can be used on-sky, the autoguider focus needs to be setup, and a suitable flat field frame acquired.
+
+\subsection{Flat fielding}
+
+The autoguider robotic software needs a suitable flat field to reduce field and guide images successfully These can be acquired at twilight or using dome flats. On the Liverpool Telescope we aim to get 10-30k counts in our flat field images, and find for dome flats this requires about 5 second exposures, and for sky flats 2 second exposures around 15 minutes after sunset. Given the IUCAA autoguider is using a different telescope and different camera head these values may need tuning.
+
+The procedure used is described in the {\bf Autoguider User Guide}, Section 8.2 (Calibration, sub-section Flat). The robotic software will need to be restarted after the new flat is installed for the new flat to take effect.
 
 \begin{thebibliography}{99}
 \addcontentsline{toc}{section}{Bibliography}
@@ -267,14 +390,11 @@ Some extra packeges were installed which are used to generate the binaries:
 \bibitem{bib:autoguideruserguide}{\bf Autoguider User Guide}
 Liverpool John Moores University  \newline{\em /home/dev/public\_html/autoguider/latex/autoguider\_user\_guide.ps} v0.1
 
-\bibitem{bib:flidevicedriver} {\bf FLI Device driver}
-Finger Lake Instruments \newline{\em http://www.flicamera.com/downloads/sdk/fliusb-1.3.tgz} v1.3
+\bibitem{bib:autoguiderconfigurationguide}{\bf Autoguider Configuration Guide}
+Liverpool John Moores University  \newline{\em /home/dev/public\_html/autoguider/latex/autoguider\_configuration\_guide.ps} v0.2
 
-\bibitem{bib:ds9} {\bf SAOImage DS9}
-HEASARC \newline{\em http://hea-www.harvard.edu/RD/ds9/site/Home.html} v7.2
-
-\bibitem{bib:starlink} {\bf Starlink Software Collection - Hikianalia}
-Starlink \newline{\em http://starlink.jach.hawaii.edu/starlink/HikianaliaDownload} Hikianalia
+\bibitem{bib:iucaasoftwareinstallation}{\bf IUCAA autoguider control computer Operating System and Software Installation}
+C. J. Mottram  \newline{\em /home/dev/public\_html/autoguider/latex/iucaaag\_software\_installation.ps} v0.1
 
 \end{thebibliography}
 
