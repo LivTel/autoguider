@@ -38,7 +38,7 @@ This document describes the installation procedure for the IUCAA autoguider cont
 \section{Introduction}
 This document describes the installation procedure for the Operating System and software for the IUCAA autoguider control computer.
 
-This procedure should only be necessary to order to setup a new autogudier control computer should the original one supplied fail. For a simpler reinstall procedure we recommend that the original computer data is cloned so that a drop in replacement may be used.
+This procedure should only be necessary to order to setup a new autoguider control computer should the original one supplied fail. For a simpler reinstall procedure we recommend that the original computer data is cloned so that a drop in replacement may be used.
 
 \section{Control Computer}
 
@@ -150,7 +150,7 @@ The latest starlink collection was downloaded \cite{bib:starlink} and installed.
 
 \subsection{system-config-securitylevel}
 
-This is a tool to mkake it easier to turn of the firewall. We install as follows:
+This is a tool to make it easier to turn of the firewall. We install as follows:
  {\bf yum install system-config-securitylevel}.
 
 \subsection{gnuplot}
@@ -161,6 +161,11 @@ for graphing centroids etc.
 \subsection{gnome-utils}
 
 This is installed as follows {\bf yum install gnome-utils}. gnome-utils contains gnome-screenshot which was used when creating the documentation.
+
+\subsection{vncserver}
+
+A vncserver was installed with the command {\bf yum install vnc-server}. This allows remote access to the autoguider's
+X server, which can be useful when using the autoguider interactively on the telescope.
 
 \section{Configuration Changes}
 
@@ -259,7 +264,7 @@ tar xvfz ~/download/autoguider_source_iucaaag.tar.gz
 \end{verbatim}
 \end{itemize}
 
-Some extra packeges were installed which are used to generate the binaries:
+Some extra packages were installed which are used to generate the binaries:
 
 \begin{itemize}
 \item {\bf yum install makedepend}
