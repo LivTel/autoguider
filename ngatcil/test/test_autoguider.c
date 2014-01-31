@@ -1,5 +1,5 @@
 /* test_autoguider.c
-** $Header: /home/cjm/cvs/autoguider/ngatcil/test/test_autoguider.c,v 1.5 2011-09-08 09:22:24 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ngatcil/test/test_autoguider.c,v 1.6 2014-01-31 17:32:32 cjm Exp $
 */
 /**
  * Test server that pretends to be an autoguider, and sends guide packets to a TCS.
@@ -7,7 +7,7 @@
  * test_autoguider
  * </pre>
  * @author Chris Mottram
- * @version $Revision: 1.5 $
+ * @version $Revision: 1.6 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -57,7 +57,7 @@ struct Guide_Offset_Point_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: test_autoguider.c,v 1.5 2011-09-08 09:22:24 cjm Exp $";
+static char rcsid[] = "$Id: test_autoguider.c,v 1.6 2014-01-31 17:32:32 cjm Exp $";
 /**
  * Command server (telnet) port.
  */
@@ -451,7 +451,7 @@ static int Test_Autoguider_CIL_UDP_Server_Callback(int socket_id,void* message_b
 			NGATCIL_CIL_AGS_PACKET_LENGTH);
 		return FALSE;
 	}
-	/* diddly won't work if NGATCIL_CIL_AGS_PACKET_LENGTH != sizeof(struct NGATCil_Ags_Packet_Struct) */
+	/* Won't work if NGATCIL_CIL_AGS_PACKET_LENGTH != sizeof(struct NGATCil_Ags_Packet_Struct) */
 	memcpy(&ags_cil_packet,message_buff,message_length);
 	if(ags_cil_packet.Cil_Base.Class != E_CIL_CMD_CLASS)
 	{
@@ -761,6 +761,9 @@ static void Help(void)
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.5  2011/09/08 09:22:24  cjm
+** Added #include <stdlib.h> for exit under newer kernels.
+**
 ** Revision 1.4  2009/01/30 18:01:14  cjm
 ** Changed log messges to use log_udp verbosity (absolute) rather than bitwise.
 **

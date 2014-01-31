@@ -1,11 +1,11 @@
 /* ngatcil_cil.c
 ** NGATCil General CIL packet tranmitting/receiving routines.
-** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_cil.c,v 1.7 2009-01-30 18:00:52 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ngatcil/c/ngatcil_cil.c,v 1.8 2014-01-31 17:30:25 cjm Exp $
 */
 /**
  * NGAT Cil library transmission/receiving of CIL packets over UDP.
  * @author Chris Mottram
- * @version $Revision: 1.7 $
+ * @version $Revision: 1.8 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -32,7 +32,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: ngatcil_cil.c,v 1.7 2009-01-30 18:00:52 cjm Exp $";
+static char rcsid[] = "$Id: ngatcil_cil.c,v 1.8 2014-01-31 17:30:25 cjm Exp $";
 /**
  * CIL packet sequence number.
  */
@@ -209,7 +209,7 @@ int NGATCil_Cil_Autoguide_On_Pixel_Send(int socket_id,char *hostname,int port_nu
 			"Pixel Y %.2f out of range (0..1023).",pixel_y);
 		return FALSE;
 	}
-	/* diddly rewrite using NGATCil_Cil_Packet_Create to packet is in network byte order
+	/* rewrite using NGATCil_Cil_Packet_Create to packet is in network byte order
 	retval = NGATCil_Cil_Packet_Create(E_CIL_TCS,E_CIL_AGS,E_CIL_CMD_CLASS,E_AGS_CMD,Sequence_Number,E_AGS_GUIDE_ON_PIXEL,
 			     SYS_NOMINAL,int param1, int param2,struct NGATCil_Ags_Packet_Struct *packet)
 	*/
@@ -940,6 +940,9 @@ int NGATCil_Cil_Autoguide_Off_Reply_Parse(struct NGATCil_Ags_Packet_Struct packe
 ** ---------------------------------------------------------------------------- */
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.7  2009/01/30 18:00:52  cjm
+** Changed log messges to use log_udp verbosity (absolute) rather than bitwise.
+**
 ** Revision 1.6  2006/08/29 14:07:57  cjm
 ** Rewritten using new Cil_Base element in packet structure.
 **

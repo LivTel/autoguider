@@ -1,10 +1,10 @@
 /* test_cil_server.c
-** $Header: /home/cjm/cvs/autoguider/ngatcil/test/test_cil_server.c,v 1.3 2011-09-08 09:22:24 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ngatcil/test/test_cil_server.c,v 1.4 2014-01-31 17:31:00 cjm Exp $
 */
 /**
  * Test CIL server to see what we receive.
  * @author Chris Mottram
- * @version $Revision: 1.3 $
+ * @version $Revision: 1.4 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -28,7 +28,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: test_cil_server.c,v 1.3 2011-09-08 09:22:24 cjm Exp $";
+static char rcsid[] = "$Id: test_cil_server.c,v 1.4 2014-01-31 17:31:00 cjm Exp $";
 /**
  * File descriptor of the CIL Server UDP Command socket.
  */
@@ -110,7 +110,7 @@ static int CIL_Command_Server_Callback(int socket_id,void *message_buff,int mess
 			NGATCIL_CIL_BASE_PACKET_LENGTH);
 		return FALSE;
 	}
-	/* diddly won't work if NGATCIL_CIL_BASE_PACKET_LENGTH != sizeof(struct NGATCil_Cil_Packet_Struct) */
+	/* Won't work if NGATCIL_CIL_BASE_PACKET_LENGTH != sizeof(struct NGATCil_Cil_Packet_Struct) */
 	memcpy(&cil_packet,message_buff,NGATCIL_CIL_BASE_PACKET_LENGTH);
 	fprintf(stdout,"AGS_CIL_Command_Server_Callback:"
 		"Source = %#x, Dest = %#x, Class = %#x, Service = %#x,SeqNum = %#x.\n",
@@ -213,6 +213,9 @@ static void Help(void)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.3  2011/09/08 09:22:24  cjm
+** Added #include <stdlib.h> for exit under newer kernels.
+**
 ** Revision 1.2  2009/01/30 18:01:14  cjm
 ** Changed log messges to use log_udp verbosity (absolute) rather than bitwise.
 **
