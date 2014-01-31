@@ -1,11 +1,11 @@
 /* autoguider_guide.c
 ** Autoguider guide routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.39 2010-02-15 11:49:04 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_guide.c,v 1.40 2014-01-31 16:27:51 cjm Exp $
 */
 /**
  * Guide routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.39 $
+ * @version $Revision: 1.40 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -115,7 +115,8 @@ struct Guide_Window_Tracking_Struct
  * <dt>Bin_Y</dt> <dd>Y binning in guide images.</dd>
  * <dt>Binned_NCols</dt> <dd>Number of binned columns in <b>full frame</b>.</dd>
  * <dt>Binned_NRows</dt> <dd>Number of binned rows in <b>full frame</b>.</dd>
- * <dt>Window</dt> <dd>The guide window, an instance of CCD_Setup_Window_Struct .</dd>
+ * <dt>Window</dt> <dd>The guide window, an instance of CCD_Setup_Window_Struct. The dimensions are inclusive, 
+ *             i.e. a window of ((X_Start=100,Y_Start=200),(X_End=200,Y_End=300)) has a size of (101,101) pixels.</dd>
  * <dt>Exposure_Length</dt> <dd>The exposure length in milliseconds.</dd>
  * <dt>Exposure_Length_Lock</dt> <dd>Boolean determining whether the exposure length can be dynamically changed
  *                                or is 'locked' to a specified length.</dd>
@@ -188,7 +189,7 @@ struct Guide_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_guide.c,v 1.39 2010-02-15 11:49:04 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_guide.c,v 1.40 2014-01-31 16:27:51 cjm Exp $";
 /**
  * Instance of guide data.
  * @see #Guide_Struct
@@ -832,7 +833,7 @@ int Autoguider_Guide_Set_Guide_Object(int index)
 			return FALSE;
 		}
 		/* get min/max exposure length */
-		/* diddly this makes no sense given exp length scaled to nearest available dark ? */
+		/* Probably not needed given exp length scaled to nearest available dark ? */
 		retval = CCD_Config_Get_Integer("ccd.exposure.minimum",&min_exposure_length);
 		if(retval == FALSE)
 		{
@@ -1175,7 +1176,7 @@ static void *Guide_Thread(void *user_arg)
 	/* set is guiding flag */
 	Guide_Data.Is_Guiding = TRUE;
 	/* update SDB */
-	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_GUIDEONBRIGHT))/* diddly bodge */
+	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_GUIDEONBRIGHT))
 	{
 		Autoguider_General_Error("guide","autoguider_guide.c","Guide_Thread",
 					 LOG_VERBOSITY_VERY_TERSE,"GUIDE"); /* no need to fail */
@@ -1230,9 +1231,9 @@ static void *Guide_Thread(void *user_arg)
 	Autoguider_General_Log_Format("guide","autoguider_guide.c","Guide_Thread",
 				      LOG_VERBOSITY_VERY_TERSE,"GUIDE",
 	   "Calling Autoguider_Buffer_Set_Guide_Dimension(ncols=%d(%d-%d),nrows=%d(%d-%d),binx=%d,biny=%d).",
-				      Guide_Data.Window.X_End-Guide_Data.Window.X_Start,
+				      (Guide_Data.Window.X_End-Guide_Data.Window.X_Start)+1,
 				      Guide_Data.Window.X_End,Guide_Data.Window.X_Start,
-				      Guide_Data.Window.Y_End-Guide_Data.Window.Y_Start,
+				      (Guide_Data.Window.Y_End-Guide_Data.Window.Y_Start)+1,
 				      Guide_Data.Window.Y_End,Guide_Data.Window.Y_Start,
 				      Guide_Data.Bin_X,Guide_Data.Bin_Y);
 #endif
@@ -2783,6 +2784,12 @@ static int Guide_Dimension_Config_Load(void)
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.39  2010/02/15 11:49:04  cjm
+** Reset status char to '0' in Guide_Packet_Send.
+** This was assumed to be a warning. However, the TCS sets the AGSTATE UNLOCKED
+** when the status char is non-zero. This causes the RCS to issue another  "autoguider on"
+** even when the current guide loop is still running.
+**
 ** Revision 1.38  2009/01/30 18:01:33  cjm
 ** Changed log messges to use log_udp verbosity (absolute) rather than bitwise.
 **
