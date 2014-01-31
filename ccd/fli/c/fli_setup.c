@@ -1,12 +1,12 @@
 /* fli_setup.c
 ** Autoguider FLI CCD Library setup routines
-** $Header: /home/cjm/cvs/autoguider/ccd/fli/c/fli_setup.c,v 1.4 2014-01-02 15:47:41 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/fli/c/fli_setup.c,v 1.5 2014-01-31 17:35:06 cjm Exp $
 */
 
 /**
  * Setup routines for the FLI autoguider CCD library.
  * @author Chris Mottram
- * @version $Revision: 1.4 $
+ * @version $Revision: 1.5 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -74,7 +74,7 @@ struct Setup_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: fli_setup.c,v 1.4 2014-01-02 15:47:41 cjm Exp $";
+static char rcsid[] = "$Id: fli_setup.c,v 1.5 2014-01-31 17:35:06 cjm Exp $";
 
 /**
  * Instance of the setup data.
@@ -201,6 +201,11 @@ int FLI_Setup_Shutdown(void)
  * <ul>
  * <li>If the windows_flags is set, we set the Setup_Data.Image_Area to the defined window, adding in the
  *     visible area offset (as the guide window was derived from field data where that offset was implicit).
+ *     The window is meant to be inclusive, i.e. it goes from
+ *     window.X_Start to window.X_End (with both pixels being included) and the width as the window is
+ *     (window.X_End-window.X_Start)+1. We have to add 1 to the Lower_Right_X|Y coordinates passed into
+ *     FLISetImageArea to facilitate this, as although the documentation suggests these coordinates are inclusive
+ *     they appear not to be.
  * <li>If the windows_flags is <b>not</b> set, we set the Setup_Data.Image_Area to 
  *     (Setup_Data.Visible_Area.Upper_Left_X,Setup_Data.Visible_Area.Upper_Left_Y,ncols,nrows).
  * <li>We save the supplied binning values in Setup_Data.
@@ -213,7 +218,9 @@ int FLI_Setup_Shutdown(void)
  * @param hbin Binning in X.
  * @param vbin Binning in Y.
  * @param window_flags Whether to use the specified window or not.
- * @param window A structure containing window data.
+ * @param window A structure containing window data. The window is meant to be inclusive, i.e. it goes from
+ *        window.X_Start to window.X_End (with both pixels being included) and the width os the window is
+ *        (window.X_End-window.X_Start)+1.
  * @return The routine returns TRUE on success, and FALSE if an error occurs.
  * @see ../../cdocs/ccd_setup.html#CCD_Setup_Window_Struct
  * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
@@ -241,8 +248,14 @@ int FLI_Setup_Dimensions(int ncols,int nrows,int hbin,int vbin,
 		** passed in window. */
 		Setup_Data.Image_Area.Upper_Left_X = window.X_Start+Setup_Data.Visible_Area.Upper_Left_X;
 		Setup_Data.Image_Area.Upper_Left_Y = window.Y_Start+Setup_Data.Visible_Area.Upper_Left_Y;
-		Setup_Data.Image_Area.Lower_Right_X = window.X_End+Setup_Data.Visible_Area.Upper_Left_X;
-		Setup_Data.Image_Area.Lower_Right_Y = window.Y_End+Setup_Data.Visible_Area.Upper_Left_Y;
+		/* The window passed into this routine is inclusive. 
+		** The window passed into the FLISetImageArea appears to be exclusive,
+		** although the documentation does not make this clear. 
+		** Therefore we add one to the Lower_Right coordinates so the right sized window is sent to the 
+		** FLI library, and FLIGrabRow then gets the right number of pixels back.
+		*/
+		Setup_Data.Image_Area.Lower_Right_X = (window.X_End+Setup_Data.Visible_Area.Upper_Left_X)+1;
+		Setup_Data.Image_Area.Lower_Right_Y = (window.Y_End+Setup_Data.Visible_Area.Upper_Left_Y)+1;
 #ifdef FLI_DEBUG
 		CCD_General_Log_Format("ccd","fli_setup.c","FLI_Setup_Dimensions",LOG_VERBOSITY_VERBOSE,NULL,
 			       "Window (after adding in offset for visible area i.e. bias strips): "
@@ -253,12 +266,10 @@ int FLI_Setup_Dimensions(int ncols,int nrows,int hbin,int vbin,
 	}
 	else
 	{
-		/*Setup_Data.Image_Area = Setup_Data.Detector_Area;*/
-		/* image areas are inclusive, so subtract one off ncols/nrows */
 		Setup_Data.Image_Area.Upper_Left_X = Setup_Data.Visible_Area.Upper_Left_X;
 		Setup_Data.Image_Area.Upper_Left_Y = Setup_Data.Visible_Area.Upper_Left_Y;
-		Setup_Data.Image_Area.Lower_Right_X = (ncols-1)+Setup_Data.Visible_Area.Upper_Left_X;
-		Setup_Data.Image_Area.Lower_Right_Y = (nrows-1)+Setup_Data.Visible_Area.Upper_Left_Y;
+		Setup_Data.Image_Area.Lower_Right_X = ncols+Setup_Data.Visible_Area.Upper_Left_X;
+		Setup_Data.Image_Area.Lower_Right_Y = nrows+Setup_Data.Visible_Area.Upper_Left_Y;
 #ifdef FLI_DEBUG
 		CCD_General_Log_Format("ccd","fli_setup.c","FLI_Setup_Dimensions",LOG_VERBOSITY_VERBOSE,NULL,
 			       "Full Frame with visible area offsets: (ulx=%d,uly=%d,lrx=%d,lry=%d).",
@@ -355,8 +366,11 @@ flidev_t FLI_Setup_Get_Dev(void)
 
 /**
  * Get the number of columns setup to be read out from the last FLI_Setup_Dimensions.
- * Currently, (<b>((Setup_Data.Image_Area.Lower_Right_X-Setup_Data.Image_Area.Upper_Left_X)+1)/
+ * Currently, (<b>(Setup_Data.Image_Area.Lower_Right_X-Setup_Data.Image_Area.Upper_Left_X)/
  * Setup_Data.Horizontal_Bin</b>).
+ * The window passed into FLI_Setup_Dimensions is inclusive, but the dimensions calculated in FLI_Setup_Dimensions
+ * are exclusive (i.e. the window contains pixels from Setup_Data.Image_Area.Upper_Left_X to 
+ * (Setup_Data.Image_Area.Lower_Right_X-1).
  * @return The number of binned columns.
  * @see #Setup_Data
  */
@@ -364,15 +378,18 @@ int FLI_Setup_Get_NCols(void)
 {
 	long binned_pixels_x;
 
-	binned_pixels_x = ((Setup_Data.Image_Area.Lower_Right_X-Setup_Data.Image_Area.Upper_Left_X)+1)/
+	binned_pixels_x = (Setup_Data.Image_Area.Lower_Right_X-Setup_Data.Image_Area.Upper_Left_X)/
 		Setup_Data.Horizontal_Bin;
 	return binned_pixels_x;
 }
 
 /**
  * Get the number of columns setup to be read out from the last FLI_Setup_Dimensions.
- * Currently, (<b>((Setup_Data.Image_Area.Lower_Right_Y-Setup_Data.Image_Area.Upper_Left_Y)+1)/
+ * Currently, (<b>(Setup_Data.Image_Area.Lower_Right_Y-Setup_Data.Image_Area.Upper_Left_Y)/
  * Setup_Data.Vertical_Bin</b>).
+ * The window passed into FLI_Setup_Dimensions is inclusive, but the dimensions calculated in FLI_Setup_Dimensions
+ * are exclusive (i.e. the window contains pixels from Setup_Data.Image_Area.Upper_Left_Y to 
+ * (Setup_Data.Image_Area.Lower_Right_Y-1).
  * @return The number of binned rows.
  * @see #Setup_Data
  */
@@ -380,7 +397,7 @@ int FLI_Setup_Get_NRows(void)
 {
 	long binned_pixels_y;
 
-	binned_pixels_y = ((Setup_Data.Image_Area.Lower_Right_Y-Setup_Data.Image_Area.Upper_Left_Y)+1)/
+	binned_pixels_y = (Setup_Data.Image_Area.Lower_Right_Y-Setup_Data.Image_Area.Upper_Left_Y)/
 		Setup_Data.Vertical_Bin;
 	return binned_pixels_y;
 }
@@ -465,6 +482,9 @@ int FLI_Setup_Allocate_Image_Buffer(void **buffer,size_t *buffer_length)
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.4  2014/01/02 15:47:41  cjm
+** More logging of window coordinates.
+**
 ** Revision 1.3  2013/12/10 16:13:01  cjm
 ** Changed to the Visible area is now retrieved from the head. This is
 ** used when no window is set to remove the horizontal and vertical bias
