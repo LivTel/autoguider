@@ -1,11 +1,11 @@
 /* autoguider_flat.c
 ** Autoguider flat routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_flat.c,v 1.4 2010-08-13 08:49:32 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_flat.c,v 1.5 2014-01-31 15:47:57 cjm Exp $
 */
 /**
  * Flat routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.4 $
+ * @version $Revision: 1.5 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -72,7 +72,7 @@ struct Flat_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_flat.c,v 1.4 2010-08-13 08:49:32 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_flat.c,v 1.5 2014-01-31 15:47:57 cjm Exp $";
 /**
  * Instance of flat data.
  * @see #Flat_Struct
@@ -473,7 +473,7 @@ int Autoguider_Flat_Field(float *buffer_ptr,int pixel_count,int ncols,int nrows,
 				}
 #endif
 			}
-			/* diddly also check for range overrun floatmax? */
+			/* Also check for range overrun floatmax? */
 			current_buffer_ptr++;
 			current_flat_ptr++;
 		}
@@ -559,9 +559,8 @@ static int Flat_Load_Reduced(char *filename,int bin_x,int bin_y)
 	Autoguider_General_Log("flat","autoguider_flat.c","Flat_Load_Reduced",
 			       LOG_VERBOSITY_INTERMEDIATE,"FLAT","started.");
 #endif
-	/* diddly check binning matches expected flat binning? */
-	/* diddly or call Autoguider_Flat_Set_Dimension? */
-
+	/* Check binning matches expected flat binning? */
+	/* Or call Autoguider_Flat_Set_Dimension? */
 	/* lock the reduced data mutex */
 	retval = Autoguider_General_Mutex_Lock(&(Flat_Data.Reduced_Mutex));
 	if(retval == FALSE)
@@ -718,6 +717,9 @@ static int Flat_Load_Reduced(char *filename,int bin_x,int bin_y)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.4  2010/08/13 08:49:32  cjm
+** Removed range checking on dark subtraction with ruined image stats causing spurious objects.
+**
 ** Revision 1.3  2009/01/30 18:01:33  cjm
 ** Changed log messges to use log_udp verbosity (absolute) rather than bitwise.
 **
