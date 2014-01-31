@@ -1,11 +1,11 @@
 /* fli_exposure.c
 ** Autoguider FLI CCD Library exposure routines
-** $Header: /home/cjm/cvs/autoguider/ccd/fli/c/fli_exposure.c,v 1.1 2013-11-26 16:28:36 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/fli/c/fli_exposure.c,v 1.2 2014-01-31 17:35:24 cjm Exp $
 */
 /**
  * Exposure routines for the FLI autoguider CCD library.
  * @author Chris Mottram
- * @version $Revision: 1.1 $
+ * @version $Revision: 1.2 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -156,6 +156,9 @@ int FLI_Exposure_Expose(int open_shutter,struct timespec start_time,int exposure
 		sprintf(CCD_General_Error_String,"FLI_Exposure_Expose: buffer was NULL.");
 		return FALSE;
 	}
+#ifdef FLI_DEBUG
+	CCD_General_Log_Format("ccd","fli_exposure.c","FLI_Exposure_Expose",LOG_VERBOSITY_TERSE,NULL,"Supplied Buffer Length %ld vs. Setup buffer length %ld.",buffer_length,FLI_Setup_Get_Buffer_Length());
+#endif
 	if(buffer_length < FLI_Setup_Get_Buffer_Length())
 	{
 		CCD_General_Error_Number = 1201;
@@ -509,5 +512,8 @@ int FLI_Exposure_Loop_Pause_Length_Set(int ms)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2013/11/26 16:28:36  cjm
+** Initial revision
+**
 */
 
