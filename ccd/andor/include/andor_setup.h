@@ -1,5 +1,5 @@
 /* andor_setup.h
-** $Header: /home/cjm/cvs/autoguider/ccd/andor/include/andor_setup.h,v 1.1 2006-03-27 14:03:01 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/andor/include/andor_setup.h,v 1.2 2014-01-31 17:21:30 cjm Exp $
 */
 #ifndef ANDOR_SETUP_H
 #define ANDOR_SETUP_H
@@ -30,17 +30,10 @@ extern int Andor_Setup_Get_Detector_Columns(void);
 extern int Andor_Setup_Get_Detector_Rows(void);
 extern int Andor_Setup_Allocate_Image_Buffer(void **buffer,size_t *buffer_length);
 
-/* diddly
-extern int Andor_Setup_Get_NSBin(void);
-extern int Andor_Setup_Get_NPBin(void);
-extern int Andor_Setup_Get_Window_Width(int window_index);
-extern int Andor_Setup_Get_Window_Height(int window_index);
-extern int Andor_Setup_Get_Window_Flags(void);
-extern int Andor_Setup_Get_Window(struct CCD_Setup_Window_Struct *window);
-extern int Andor_Setup_Get_Setup_Complete(void);
-extern int Andor_Setup_Get_Setup_In_Progress(void);
-*/
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2006/03/27 14:03:01  cjm
+** Initial revision
+**
 */
 #endif

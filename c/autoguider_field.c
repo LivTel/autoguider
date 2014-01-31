@@ -1,11 +1,11 @@
 /* autoguider_field.c
 ** Autoguider field routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_field.c,v 1.17 2014-01-02 16:34:23 eng Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_field.c,v 1.18 2014-01-31 17:15:28 cjm Exp $
 */
 /**
  * Field routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.17 $
+ * @version $Revision: 1.18 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -129,7 +129,7 @@ struct Field_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_field.c,v 1.17 2014-01-02 16:34:23 eng Exp $";
+static char rcsid[] = "$Id: autoguider_field.c,v 1.18 2014-01-31 17:15:28 cjm Exp $";
 /**
  * Instance of field data.
  * @see #Field_Struct
@@ -386,7 +386,7 @@ int Autoguider_Field(void)
 		return FALSE;
 	}
 	/* setup CCD */
-	/* diddly Consider some sort of mutex around CCD calls? */
+	/* Consider some sort of mutex around CCD calls? */
 #if AUTOGUIDER_DEBUG > 5
 	Autoguider_General_Log("field","autoguider_field.c","Autoguider_Field",LOG_VERBOSITY_VERBOSE,
 			       "FIELD","Calling CCD_Setup_Dimensions.");
@@ -466,7 +466,8 @@ int Autoguider_Field(void)
 	/* initialise Field ID/Frame Number */
 	time_secs = time(NULL);
 	time_tm = gmtime(&time_secs);
-	Field_Data.Field_Id = /*diddly (time_tm->tm_year*1000000000)+*/(time_tm->tm_yday*1000000)+
+	/* We could add (time_tm->tm_year*1000000000)+ , but this makes the integer too large. */
+	Field_Data.Field_Id = (time_tm->tm_yday*1000000)+
 		(time_tm->tm_hour*10000)+(time_tm->tm_min*100)+time_tm->tm_sec;
 	Field_Data.Frame_Number = 0;
 #if AUTOGUIDER_DEBUG > 5
@@ -735,7 +736,7 @@ int Autoguider_Field_Expose(void)
 		return FALSE;
 	}
 	/* setup CCD */
-	/* diddly Consider some sort of mutex around CCD calls? */
+	/* Consider some sort of mutex around CCD calls? */
 	/* also state checking, are we already fielding/guiding ? */
 #if AUTOGUIDER_DEBUG > 5
 	Autoguider_General_Log("field","autoguider_field.c","Autoguider_Field_Expose",
@@ -799,7 +800,8 @@ int Autoguider_Field_Expose(void)
 	/* initialise Field ID/Frame Number */
 	time_secs = time(NULL);
 	time_tm = gmtime(&time_secs);
-	Field_Data.Field_Id = /*diddly (time_tm->tm_year*1000000000)+*/(time_tm->tm_yday*1000000)+
+	/* adding (time_tm->tm_year*1000000000)+ takes us over the int size limit */
+	Field_Data.Field_Id = (time_tm->tm_yday*1000000)+
 		(time_tm->tm_hour*10000)+(time_tm->tm_min*100)+time_tm->tm_sec;
 	Field_Data.Frame_Number = 0;
 	/* lock out a readout buffer */
@@ -1716,7 +1718,7 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 	{
 		Field_Data.Exposure_Length = Field_Data.Exposure_Length*2.0f;
 		/* round field exposure length to nearest available dark */
-		/* diddly currently assumes this will change the exposure length - 
+		/* Currently assumes this will change the exposure length - 
 		** this is only true if list is spaced correctly - need to do something more complicated here */
 		if(!Autoguider_Dark_Get_Exposure_Length_Nearest(&Field_Data.Exposure_Length,
 								&new_dark_exposure_length_index))
@@ -1769,7 +1771,7 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 			(*done) = TRUE;
 			return FALSE;
 		}
-		/* diddly object selection now more relaxed than this in Autoguider_Object_Guide_Object_Get? */
+		/* Object selection now more relaxed than this in Autoguider_Object_Guide_Object_Get? */
 		if(object.Is_Stellar)
 		{
 			if(object.Peak_Counts > 100)
@@ -1819,7 +1821,7 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 #endif
 						Field_Data.Exposure_Length = Field_Data.Exposure_Length/2.0f;
 						/* round field exposure length to nearest available dark */
-						/* diddly currently assumes this will change the exposure length - 
+						/* Currently assumes this will change the exposure length - 
 						** this is only true if list is spaced correctly - 
 						** need to do something more complicated here */
 						if(!Autoguider_Dark_Get_Exposure_Length_Nearest(
@@ -1898,7 +1900,7 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 	{
 		Field_Data.Exposure_Length = Field_Data.Exposure_Length*2.0f;
 		/* round field exposure length to nearest available dark */
-		/* diddly currently assumes this will change the exposure length - 
+		/* Currently assumes this will change the exposure length - 
 		** this is only true if list is spaced correctly - need to do something more complicated here */
 		if(!Autoguider_Dark_Get_Exposure_Length_Nearest(&Field_Data.Exposure_Length,
 								&new_dark_exposure_length_index))
@@ -1944,6 +1946,9 @@ static int Field_Check_Done(int *done,int *dark_exposure_length_index)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.17  2014/01/02 16:34:23  eng
+** Changes relating to saving raw FITS images.
+**
 ** Revision 1.16  2012/03/07 14:57:55  cjm
 ** Autoguider_Field_SDB_State_Failed_Then_Idle_Set now called, rather than
 ** Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE), in Autoguider_Field.

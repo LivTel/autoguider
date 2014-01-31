@@ -1,5 +1,5 @@
 /* fli_general.h
-** $Header: /home/cjm/cvs/autoguider/ccd/fli/include/fli_general.h,v 1.1 2013-11-26 16:29:11 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/fli/include/fli_general.h,v 1.2 2014-01-31 17:20:50 cjm Exp $
 */
 #ifndef FLI_GENERAL_H
 #define FLI_GENERAL_H
@@ -28,8 +28,10 @@
 #endif
 
 
-/* diddly extern char* FLI_General_ErrorCode_To_String(unsigned int error_code);*/
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2013/11/26 16:29:11  cjm
+** Initial revision
+**
 */
 #endif

@@ -1,11 +1,11 @@
 /* autoguider_dark.c
 ** Autoguider dark routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_dark.c,v 1.4 2010-08-13 08:49:33 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_dark.c,v 1.5 2014-01-31 17:17:17 cjm Exp $
 */
 /**
  * Dark routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.4 $
+ * @version $Revision: 1.5 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -73,7 +73,7 @@ struct Dark_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_dark.c,v 1.4 2010-08-13 08:49:33 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_dark.c,v 1.5 2014-01-31 17:17:17 cjm Exp $";
 /**
  * Instance of dark data.
  * @see #Dark_Struct
@@ -649,9 +649,8 @@ static int Dark_Load_Reduced(char *filename,int bin_x,int bin_y,int exposure_len
 	Autoguider_General_Log("dark","autoguider_dark.c","Dark_Load_Reduced",
 			       LOG_VERBOSITY_INTERMEDIATE,"DARK","started.");
 #endif
-	/* diddly check binning matches expected dark binning? */
-	/* diddly or call Autoguider_Dark_Set_Dimension? */
-
+	/* We should check binning matches expected dark binning? */
+	/* Or we could call Autoguider_Dark_Set_Dimension? */
 	/* lock the reduced data mutex */
 	retval = Autoguider_General_Mutex_Lock(&(Dark_Data.Reduced_Mutex));
 	if(retval == FALSE)
@@ -832,6 +831,9 @@ static int Dark_Exposure_Length_List_Initialise(void)
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.4  2010/08/13 08:49:33  cjm
+** Removed range checking on dark subtraction with ruined image stats causing spurious objects.
+**
 ** Revision 1.3  2009/01/30 18:01:33  cjm
 ** Changed log messges to use log_udp verbosity (absolute) rather than bitwise.
 **

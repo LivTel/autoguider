@@ -1,13 +1,13 @@
 /* autoguider_object.c
 ** Autoguider object detection routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_object.c,v 1.17 2009-06-12 13:41:25 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_object.c,v 1.18 2014-01-31 17:15:45 cjm Exp $
 */
 /**
  * Object detection routines for the autoguider program.
  * Uses libdprt_object.
  * Has it's own buffer, as Object_List_Get destroys the data within it's buffer argument.
  * @author Chris Mottram
- * @version $Revision: 1.17 $
+ * @version $Revision: 1.18 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -90,7 +90,7 @@ struct Object_Internal_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_object.c,v 1.17 2009-06-12 13:41:25 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_object.c,v 1.18 2014-01-31 17:15:45 cjm Exp $";
 /**
  * Instance of object data.
  * @see #Object_Internal_Struct
@@ -838,11 +838,11 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
 	Autoguider_General_Log("object","autoguider_object.c","Object_Create_Object_List",
 			       LOG_VERBOSITY_VERBOSE,"OBJECT","Starting object detection.");
 #endif
-	/*clock_gettime(CLOCK_REALTIME,&start_time);*/
-	/* diddly npix '8' should be a loaded property */
+	/* clock_gettime(CLOCK_REALTIME,&start_time);*/
+	/* npix '8' should be a loaded property */
 	retval = Object_List_Get(Object_Data.Image_Data,Object_Data.Median,Object_Data.Binned_NCols,
 				 Object_Data.Binned_NRows,threshold,8,&object_list,&seeing_flag,&seeing);
-	/*clock_gettime(CLOCK_REALTIME,&stop_time);*/
+	/* clock_gettime(CLOCK_REALTIME,&stop_time);*/
 	if(retval == FALSE)
 	{
 		Autoguider_General_Mutex_Unlock(&(Object_Data.Image_Data_Mutex));
@@ -1238,6 +1238,9 @@ static int Object_Sort_Object_List_By_Total_Counts(const void *p1, const void *p
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.17  2009/06/12 13:41:25  cjm
+** Object_List_Get ellipticity/is_stellar limit/flag now configured from object.ellipticity.limit.
+**
 ** Revision 1.16  2009/01/30 18:01:33  cjm
 ** Changed log messges to use log_udp verbosity (absolute) rather than bitwise.
 **

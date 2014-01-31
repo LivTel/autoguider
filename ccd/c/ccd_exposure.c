@@ -1,11 +1,11 @@
 /* ccd_exposure.c
 ** Autoguider CCD Library exposure routines
-** $Header: /home/cjm/cvs/autoguider/ccd/c/ccd_exposure.c,v 1.5 2009-01-30 18:00:24 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/c/ccd_exposure.c,v 1.6 2014-01-31 17:23:56 cjm Exp $
 */
 /**
  * Exposure routines for the autoguider CCD library.
  * @author Chris Mottram
- * @version $Revision: 1.5 $
+ * @version $Revision: 1.6 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -31,7 +31,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: ccd_exposure.c,v 1.5 2009-01-30 18:00:24 cjm Exp $";
+static char rcsid[] = "$Id: ccd_exposure.c,v 1.6 2014-01-31 17:23:56 cjm Exp $";
 
 /* internal function declarations */
 static int fexist(char *filename);
@@ -351,7 +351,6 @@ int CCD_Exposure_Save(char *filename,void *buffer,size_t buffer_length,int ncols
 			filename,status,buff);
 		return FALSE;
 	}
-	/*diddly time stamp etc*/
 	/* ensure data we have written is in the actual data buffer, not CFITSIO's internal buffers */
 	/* closing the file ensures this. */ 
 	retval = fits_close_file(fits_fp,&status);
@@ -393,6 +392,9 @@ static int fexist(char *filename)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.5  2009/01/30 18:00:24  cjm
+** Changed log messges to use log_udp verbosity (absolute) rather than bitwise.
+**
 ** Revision 1.4  2006/09/07 15:36:26  cjm
 ** Added CCD_Exposure_Loop_Pause_Length_Set.
 **

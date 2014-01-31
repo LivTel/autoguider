@@ -1,11 +1,11 @@
 /* autoguider_command.c
 ** Autoguider command routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_command.c,v 1.17 2012-03-07 14:56:26 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_command.c,v 1.18 2014-01-31 17:17:17 cjm Exp $
 */
 /**
  * Command routines for the autoguider program.
  * @author Chris Mottram
- * @version $Revision: 1.17 $
+ * @version $Revision: 1.18 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -46,7 +46,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_command.c,v 1.17 2012-03-07 14:56:26 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_command.c,v 1.18 2014-01-31 17:17:17 cjm Exp $";
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -1689,7 +1689,7 @@ int Autoguider_Command_Guide(char *command_string,char **reply_string)
 }
 
 /**
- * Handle a command of the form: "getfits [field|guide] [raw|reduced]".
+ * Handle a command of the form: "getfits <field|guide> <raw|reduced>".
  * @param command_string The command. This is not changed during this routine.
  * @param buffer_ptr The address of a pointer to allocate and store a FITS image in memory.
  * @param buffer_length The address of a word to store the length of the created returned data.
@@ -1844,6 +1844,11 @@ int Autoguider_Command_Log_Level(char *command_string,char **reply_string)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.17  2012/03/07 14:56:26  cjm
+** Autoguider_Field_SDB_State_Failed_Then_Idle_Set now called, rather than
+** Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE), in Autoguider_Command_Autoguide_On
+** when the fielding process fails.
+**
 ** Revision 1.16  2011/06/23 11:02:00  cjm
 ** Fixed dodgy sprintf in "status temperature status" command.
 **

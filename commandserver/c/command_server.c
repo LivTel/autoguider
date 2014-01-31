@@ -1,11 +1,11 @@
 /* Command_Server source file
- * $Header: /home/cjm/cvs/autoguider/commandserver/c/command_server.c,v 1.11 2012-02-20 10:26:51 cjm Exp $
+ * $Header: /home/cjm/cvs/autoguider/commandserver/c/command_server.c,v 1.12 2014-01-31 17:23:00 cjm Exp $
  */
 
 /**
  * Routines to support a simple one command text over socket command server.
  * @author Chris Mottram,LJMU
- * @revision $Revision: 1.11 $
+ * @revision $Revision: 1.12 $
  */
 
 /**
@@ -234,7 +234,7 @@ static void *Command_Server_Server_Connection_Thread (void *user_arg);
 /**
  * Revision Control System identifier.
  */
-static const char rcsid[] = "$Id: command_server.c,v 1.11 2012-02-20 10:26:51 cjm Exp $";
+static const char rcsid[] = "$Id: command_server.c,v 1.12 2014-01-31 17:23:00 cjm Exp $";
 
 
 /*===========================================================================*/
@@ -288,7 +288,7 @@ int Command_Server_Open_Client(char *hostname,int port,Command_Server_Handle_T *
 		return(FALSE);
 	}
 	/* disable nagle's algorithm */
-	/* diddly
+	/* This does not appear to be needed at the rpesent time.
 	flag = 1;
 	retval = setsockopt((*handle)->Socket_fd,IPPROTO_TCP,TCP_NODELAY,(char *) &flag,sizeof(int));
 	if(retval == -1)
@@ -863,8 +863,7 @@ int Command_Server_Read_Message(Command_Server_Handle_T handle,char **message)
 		/* check if new-line has been read */
 		if((*message) != NULL)
 		{
-			/* diddly
-			** What happens is there is a new-line at the last character of the first read
+			/* What happens is there is a new-line at the last character of the first read
 			** we do, even though the reply is multi-line and the next read would produce more characters.
 			** NB If we don't have a new-line test here, the server Read hangs forever as
 			** EOF is not set.
@@ -1461,6 +1460,9 @@ static void Get_Current_Time(char *time_string,int string_length)
 
 /*
  * $Log: not supported by cvs2svn $
+ * Revision 1.11  2012/02/20 10:26:51  cjm
+ * Upgraded to match ringo2 and tiptilt code.
+ *
  * Revision 1.10  2010/07/01 14:39:13  cjm
  * Added test for gethostbyname returning NULL in Command_Server_Open_Client.
  *
