@@ -1,11 +1,11 @@
 /* autoguider_get_fits.c
 ** Autoguider get fits routines
-** $Header: /home/cjm/cvs/autoguider/c/autoguider_get_fits.c,v 1.5 2009-04-29 10:57:51 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/c/autoguider_get_fits.c,v 1.6 2014-01-31 16:25:09 cjm Exp $
 */
 /**
  * Routines to return an in-memory FITS image for the field or guide buffer.
  * @author Chris Mottram
- * @version $Revision: 1.5 $
+ * @version $Revision: 1.6 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -55,7 +55,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: autoguider_get_fits.c,v 1.5 2009-04-29 10:57:51 cjm Exp $";
+static char rcsid[] = "$Id: autoguider_get_fits.c,v 1.6 2014-01-31 16:25:09 cjm Exp $";
 
 /* internal functions */
 static int Get_Fits_Get_Header(int buffer_type,int buffer_state,int object_index,
@@ -650,10 +650,6 @@ static int Get_Fits_Get_Header(int buffer_type,int buffer_state,int object_index
 	/* MJD */
 	Get_Fits_TimeSpec_To_Mjd(start_time,FALSE,&mjd);
 	Autoguider_Fits_Header_Add_Float(fits_header,"MJD",mjd,"Modified Julian Date");
-	/*
-diddly fixed loaded stuff like PRESCAN POSTSCAN READNOIS DETECTOR EPERDN
-diddly modifiable programmable stuff TAGID/USERID/PROPID
-	*/
 	/* field - raw or reduced? */
 	if(buffer_state == AUTOGUIDER_GET_FITS_BUFFER_STATE_RAW)
 	{
@@ -853,6 +849,9 @@ static int Get_Fits_TimeSpec_To_Mjd(struct timespec time,int leap_second_correct
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.5  2009/04/29 10:57:51  cjm
+** Get_Fits_Get_Header now saves guide object information in the header if specified.
+**
 ** Revision 1.4  2009/01/30 18:01:33  cjm
 ** Changed log messges to use log_udp verbosity (absolute) rather than bitwise.
 **
