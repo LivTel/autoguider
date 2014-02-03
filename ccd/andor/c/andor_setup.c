@@ -1,11 +1,11 @@
 /* andor_setup.c
 ** Autoguider Andor CCD Library setup routines
-** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_setup.c,v 1.4 2011-09-08 09:20:29 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_setup.c,v 1.5 2014-02-03 09:52:06 cjm Exp $
 */
 /**
  * Setup routines for the Andor autoguider CCD library.
  * @author Chris Mottram
- * @version $Revision: 1.4 $
+ * @version $Revision: 1.5 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -61,7 +61,7 @@ struct Setup_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: andor_setup.c,v 1.4 2011-09-08 09:20:29 cjm Exp $";
+static char rcsid[] = "$Id: andor_setup.c,v 1.5 2014-02-03 09:52:06 cjm Exp $";
 
 /**
  * Instance of the setup data.
@@ -99,7 +99,7 @@ void Andor_Setup_Initialise(void)
  * <li>Calls <b>SetAcquisitionMode</b> to set the Andor library to acquire a single image at a time.
  * <li>Calls <b>GetDetector</b> to get the detector dimensions and save then to <b>Setup_Data</b>.
  * <li>Calls <b>SetShutter</b> to set the Andor library shutter settings to auto with no shutter delay.
- * <li>diddly TODO Calls <b>SetFrameTransferMode</b>
+ * <li>Calls <b>SetFrameTransferMode</b> to enable frame transfer mode.
  * </ul>
  * @return The routine returns TRUE on success, and FALSE if an error occurs.
  * @see #ANDOR_SETUP_KEYWORD_ROOT
@@ -281,7 +281,7 @@ int Andor_Setup_Shutdown(void)
 #ifdef ANDOR_DEBUG
 	CCD_General_Log("ccd","andor_setup.c","Andor_Setup_Shutdown",LOG_VERBOSITY_VERBOSE,NULL,"started.");
 #endif
-	/* diddly documentation says temp should be > -20 before calling this */
+	/* Note documentation says temp should be > -20 before calling this */
 #ifdef ANDOR_DEBUG
 	CCD_General_Log("ccd","andor_setup.c","Andor_Setup_Shutdown",LOG_VERBOSITY_VERBOSE,NULL,
 			"Calling Shutdown.");
@@ -480,6 +480,9 @@ int Andor_Setup_Allocate_Image_Buffer(void **buffer,size_t *buffer_length)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.4  2011/09/08 09:20:29  cjm
+** Added #include <stdlib.h>.
+**
 ** Revision 1.3  2009/01/30 15:41:14  cjm
 ** *** empty log message ***
 **
