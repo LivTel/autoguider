@@ -1,11 +1,11 @@
 /* andor_exposure.c
 ** Autoguider Andor CCD Library exposure routines
-** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_exposure.c,v 1.11 2010-07-29 09:51:43 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_exposure.c,v 1.12 2014-02-03 09:50:41 cjm Exp $
 */
 /**
  * Exposure routines for the Andor autoguider CCD library.
  * @author Chris Mottram
- * @version $Revision: 1.11 $
+ * @version $Revision: 1.12 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -64,7 +64,7 @@ struct Exposure_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: andor_exposure.c,v 1.11 2010-07-29 09:51:43 cjm Exp $";
+static char rcsid[] = "$Id: andor_exposure.c,v 1.12 2014-02-03 09:50:41 cjm Exp $";
 /**
  * Data holding the current status of ccd_exposure.
  * @see #Exposure_Struct
@@ -356,7 +356,7 @@ int Andor_Exposure_Expose(int open_shutter,struct timespec start_time,int exposu
 			       "Acquisition Status after %d loops is %s(%u).",acquisition_counter,
 			       Andor_General_ErrorCode_To_String(exposure_status),exposure_status);
 #endif
-	/* diddly check exposure_status is correct (DRV_IDLE?) */
+	/* We should really check exposure_status is correct (DRV_IDLE?) */
 	/* get data */
 #if ANDOR_DEBUG
 	CCD_General_Log_Format("ccd","andor_exposure.c","Andor_Exposure_Expose",LOG_VERBOSITY_VERBOSE,NULL,
@@ -463,6 +463,9 @@ int Andor_Exposure_Loop_Pause_Length_Set(int ms)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.11  2010/07/29 09:51:43  cjm
+** Reboot code commented out.
+**
 ** Revision 1.10  2009/01/30 15:41:14  cjm
 ** Changed log messges to use log_udp verbosity (absolute) rather than bitwise.
 **
