@@ -1,5 +1,5 @@
 /* test_exposure.c
- * $Header: /home/cjm/cvs/autoguider/ccd/andor/test/test_exposure.c,v 1.3 2009-01-30 18:00:15 cjm Exp $
+ * $Header: /home/cjm/cvs/autoguider/ccd/andor/test/test_exposure.c,v 1.4 2014-02-03 09:53:20 cjm Exp $
  * Test exposure code.
  */
 /**
@@ -7,7 +7,7 @@
  * <pre>
  * </pre>
  * @author $Author: cjm $
- * @version $Revision: 1.3 $
+ * @version $Revision: 1.4 $
  */
 
 #include <stdio.h>
@@ -55,7 +55,7 @@ enum COMMAND_ID
 /**
  * Revision control system identifier.
  */
-static char rcsid[] = "$Id: test_exposure.c,v 1.3 2009-01-30 18:00:15 cjm Exp $";
+static char rcsid[] = "$Id: test_exposure.c,v 1.4 2014-02-03 09:53:20 cjm Exp $";
 /**
  * Temperature to set the CCD to.
  * @see #DEFAULT_TEMPERATURE
@@ -162,7 +162,6 @@ int main(int argc, char *argv[])
 	}
 	fprintf(stdout,"Andor_Setup_Dimensions completed\n");
 	/* allocate buffer for image */
-	/* diddly ok but fails 	image_buffer_length = Andor_Setup_Get_Buffer_Length()*sizeof(unsigned short);*/
 	image_buffer_length = Andor_Setup_Get_Buffer_Length();
 	image_buffer = (unsigned short*)malloc(image_buffer_length*sizeof(unsigned short));
 	if(image_buffer == NULL)
@@ -648,6 +647,9 @@ static void Test_Fits_Header_Error(int status)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.3  2009/01/30 18:00:15  cjm
+** Changed log messges to use log_udp verbosity (absolute) rather than bitwise.
+**
 ** Revision 1.2  2006/06/01 15:26:32  cjm
 ** Changed exposure save to use common CCD_Exposure_Save.
 **
