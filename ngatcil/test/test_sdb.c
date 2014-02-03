@@ -1,10 +1,10 @@
-d/* test_sdb.c
-** $Header: /home/cjm/cvs/autoguider/ngatcil/test/test_sdb.c,v 1.4 2014-01-31 17:31:59 cjm Exp $
+/* test_sdb.c
+** $Header: /home/cjm/cvs/autoguider/ngatcil/test/test_sdb.c,v 1.5 2014-02-03 10:35:26 cjm Exp $
 */
 /**
  * Test SDB submission.
  * @author Chris Mottram
- * @version $Revision: 1.4 $
+ * @version $Revision: 1.5 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -47,7 +47,7 @@ struct Test_SDB_Datum_Struct
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: test_sdb.c,v 1.4 2014-01-31 17:31:59 cjm Exp $";
+static char rcsid[] = "$Id: test_sdb.c,v 1.5 2014-02-03 10:35:26 cjm Exp $";
 /**
  * SDB CIL hostname.
  * @see ../cdocs/ngatcil_ags_sdb.html#NGATCIL_AGS_SDB_MCC_DEFAULT
@@ -326,6 +326,9 @@ static void Help(void)
 
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.4  2014/01/31 17:31:59  cjm
+** Comment tidy-up.
+**
 ** Revision 1.3  2011/09/08 09:22:24  cjm
 ** Added #include <stdlib.h> for exit under newer kernels.
 **
