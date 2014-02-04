@@ -5,7 +5,7 @@
 \oddsidemargin -0.5cm
 \topmargin 0cm
 
-\title{IUCAA autoguider Installation}
+\title{IUCAA autoguider Installation Guide}
 \author{C. J. Mottram}
 \date{}
 \begin{document}
@@ -13,7 +13,9 @@
 \thispagestyle{empty}
 \maketitle
 \begin{abstract}
-This document describes the installation procedure for the IUCAA autoguider.
+This document describes a recommended installation and setup procedure
+for the IUCAA autoguider.  It is the first document you should read.
+
 \end{abstract}
 \centerline{\Large History}
 \begin{center}
@@ -22,6 +24,8 @@ This document describes the installation procedure for the IUCAA autoguider.
 {\bf Version} & {\bf Author} & {\bf Date} & {\bf Notes} \\
 \hline
 0.1 & C. J. Mottram & 14/01/13 & First draft \\
+0.2 & I.A. Steele   & 31/01/13 & On sky testing \\
+1.0 & C. J. Mottram & 04/04/14 & Issued. \\
 \hline
 \end{tabular}
 \end{center}
@@ -36,7 +40,66 @@ This document describes the installation procedure for the IUCAA autoguider.
 
 \section{Introduction}
 
-This document describes how to unpack and check the autoguider on delivery.
+This document acts as a ``quick start'' to the Autoguider system
+developed by LJMU for the  IUCAA 2.0 metre telescope.  The system
+is based on a modification of the system in use at the Liverpool
+Telescope and is usually controlled in operation via the command line 
+Telescope Control System (TCS) interface.  No support is provided for
+the original TTL GUI interface.
+
+No recommendations or information is presented regarding
+the physical installation of the autoguider or control computer onto
+the telescope itself, as that is the responsibility of IUCAA.
+
+This document suggests some basic tests that can be carried out on
+a workbench before installation, and outlines the basic steps
+necessary to commission the system on sky.  It assumes the installer is
+familiar with basic linux system administration and operation of the
+IUCAA telescope.  Since LJMU have never visited the IUCAA telescope we
+can take no responsibility for the accuracy or safety of these
+instructions, which are merely provided in good faith and without any
+implied warranty.
+
+In addition to this document, also supplied are
+
+\begin{itemize}
+\item Autoguider User Guide - this provides details of operation of
+  the system once installed, including operation via the TCS, command
+  line tools, routine calibration procedures and system
+  power up and power down routines.
+\item Autoguider Configuration Guide - this provides details of configuration file
+  and  command line arguments that can be used to tune the operation of the autoguider
+\item Autoguider Control System Overview - this provides a description
+  of how the system works as an aid to fault finding.  It also
+  includes a description low level engineering software that may be of
+  use in that process.
+\item Autoguider Control Computer Operating System and Software
+  installation - this provides the details that would be necessary in
+  the event of the system having to be rebuilt on a fresh control
+  computer.
+\item Autoguider Source Code Overview - this describes the supplied
+  source code and how to build it.  It should only be necessary to use
+  this information in the event of wanting to change the software in
+  some way.
+\end{itemize}
+
+In addition a copy of the TTL document T2-010-5180 
+"Generic 2.0m Telescope Astronomical Commissioning Installation
+Procedure"  
+is included which has some useful information on system setup and
+geometry.
+
+
+\section{Terminology}
+
+The supplied documentation makes use of the phrase ``robotic
+software''.  This is the ARI phrase used for the software
+that runs on the autoguider control computer in normal,
+manual operation and starts automatically (``robotically'') on system
+reboot.  The robotic software can be controlled
+either by the by the TTL Telescope Control System (TCS) or various
+command line tools.  It specifically does not imply  ``robotic
+control''  of the telescope.
 
 \section{Unpacking}
 
@@ -48,11 +111,16 @@ The following items should have been shipped:
 \item The eeePC autoguider control computer.
 \item The eeePC mounting plate and stand.
 \item The eeePC power block and associated leads.
+\item A DVD containing source code, a copy of the installation and
+this documentation.
 \end{itemize}
 
 The eeePC comes pre-installed with the robotic autoguider software. A copy of the
 code used to produce this is also included on the disk. Documentation will also be provided, either
 electronically on disk and DVD, or physically on paper.
+
+Note that we strongly recommend a copy is made of the hard disk in the
+control computer to allow a re-installation in the case of disk failure.
 
 \section{Control computer}
 
@@ -184,6 +252,7 @@ eng       2646  0.0  0.0   4360   740 pts/0    S+   14:54   0:00 grep autoguider
 If the robotic software {\bf is} running, you need to stop it before running any of the low level test commands.
 
 \section{Stopping the robotic software}
+\label{sec:engineering_mode}
 
 If the robotic software is running, it can be stopped by issuing the following commands:
 \begin{verbatim}
@@ -366,7 +435,9 @@ ds9 test1.fits &
 
 This tells the autoguider to take a 1 second exposure, which will be saved in the field buffer. The field buffer is then saved to the FITS filename test1.fits, and ds9 is then invoked to view the taken image. Obviously the exposure length and FITS filename can be changed as appropriate.
 
-Once bench testing is complete the autoguider is ready to be mounted onto the telescope.
+Once bench testing is complete the autoguider is ready to be mounted
+onto the telescope.  Note that unlike the original autoguider we recommend the autoguider head and
+control computer are left powered up at all times connected to a UPS supply.
 
 
 \section{Post telescope mounting tests}
@@ -382,7 +453,135 @@ Before the autoguider can be used on-sky, the autoguider focus needs to be setup
 
 The autoguider robotic software needs a suitable flat field to reduce field and guide images successfully These can be acquired at twilight or using dome flats. On the Liverpool Telescope we aim to get 10-30k counts in our flat field images, and find for dome flats this requires about 5 second exposures, and for sky flats 2 second exposures around 15 minutes after sunset. Given the IUCAA autoguider is using a different telescope and different camera head these values may need tuning.
 
-The procedure used is described in the {\bf Autoguider User Guide}, Section 8.2 (Calibration, sub-section Flat). The robotic software will need to be restarted after the new flat is installed for the new flat to take effect.
+Note the telescope will need to be configured such that light is
+falling onto the autoguider (i.e. mirror cover open, science fold stowed etc.) for this
+procedure to work. The procedure used is described in the {\bf Autoguider User Guide}, Section 8.2 (Calibration, sub-section Flat). The robotic software will need to be restarted after the new flat is installed for the new flat to take effect.
+
+\section{On sky setup}
+
+The tests in this section should be attempted once the dark frame and
+flat field have been installed and require the operator to use the
+telescope control system (TCS) to acquire objects.
+
+This section should be read in conjunction with TTL document
+``Generic 2.0m Telescope Astronomical Commissioning Installation
+Procedure", especially Section 2.6 which describes the autoguider
+geometry in detail.
+
+During this work two TCS configuration files will need to be edited:
+\begin{itemize}
+\item The GUI config file describes the physical geometry of the autoguider camera itself. The file can contain specifications for multiple autoguiders each distinguished by a different KEYWORD. You need to update only the configuration of the single autoguider being commissioned. By default the TTL autoguider was called CASSEGRAIN.
+\item The focus is specified in the INS config file. The file can
+  contain specifications for multiple instruments each distinguished
+  by a different KEYWORD. Issuing the TCS INSTRUMENT command changes
+  the telescope focus so the autoguider focus needs to be configured
+  separately for each instrument KEYWORD you use during observing.
+\end{itemize}
+
+{\bf Note that after making any changes to these configuration items, you
+will need to use the APPLY option in the  TCS menu to ensure they 
+are picked up.}
+
+\subsection{Autoguider focus}
+
+This section is written assuming the original TTL supplied autoguider
+focus and deployment mechanism and science fold deployment mechanism
+are present and operational.
+
+Move the autoguider to the field centre and move the science fold
+mirror out of the beam.  Setup the telescope as normal (i.e. in focus for science use and with
+focus tracking enabled). 
+
+Point the telescope at a bright (~8th magnitude) star
+and then take images using the commands outlined in 
+Section {\ref:basicroboticimaging}.  Examine the images
+and adjust the autoguider focus stages using the TCS AGFOCUS command
+until a good focus is obtained.
+
+Once an acceptable autoguider focus is obtained, enter it into the
+TCS INS config file (accessed from the TCS menu CONFIGURE option)
+as the DEFAULT AGFOCUS for each instrument that is configured in that
+file.
+
+\subsection{Autoguider Pixel Scale}
+
+Now, using the TCS HANDSET, apply a series of X and Y offsets of size
+60 arcseconds to the telescope pointing, in each case obtaining an 
+image with the autoguider.  For each image, determine the location
+of the star on the autoguider and hence determine the pixel
+scale (note simple trigonometry to determine the distance moved on the
+autoguider may be necessary if the motion of the star on the
+autoguider is 
+rotated with respect to the telescope focal plane X,Y axes). Enter the pixel scale
+value into 
+the TCS CONFIG GUI file
+items PIXEL SIZE X and PIXEL SIZE Y.
+
+\subsection{Autoguider Geometry}
+
+\setlength{\unitlength}{1in}
+\begin{figure}[!h]
+	\begin{center}
+		\begin{picture}(6.0,5.0)(0.0,0.0)
+			\put(0,0){\special{psfile=ag_rotation_20091109.eps   hscale=35 vscale=35}}
+		\end{picture}
+	\end{center}
+	\caption{Example plot of autoguider centroids versus time in case of crosstalk
+        (lower panel) and no crosstalk (upper panel).}
+	\label{fig:geometry} 
+\end{figure}
+
+Assuming the autoguider has been placed back on the same stage
+as the original TTL autoguider, this should be roughly correct.  If
+the image is flipped with respect to the original
+autoguider the the TCS CONFIGURE GUI items ROT SENSE, FLIP X and 
+FLIP Y will need to be adjusted.  
+
+The easiest way to determine if this is the case is to use the
+autoguider closed loop.  Therefore pointing at the bright star,
+issue the TCS command:
+\begin{verbatim}
+AUTOGUIDE ON
+\end{verbatim}
+and observe if the telescope pointing remains roughly stable
+or shoots off in one direction indicating an error in one or
+more of these quantities.
+
+Once the basic image orientation is confirmed, then use the
+TCS HANDSET to offset the telescope in X and Y by a few arcseconds
+and confirm that the telescope pointing is compensated to remove that
+offset.  Use of the Guide packet logging and graphing tools described
+in Section 5.2 of the Autoguider User Guide will help here.
+
+Assuming the new camera head is replacing a previous, correctly configured camera
+there is no need to completely re-derive the camera orientation. (See T2-010-5180 
+"Generic 2.0m Telescope Astronomical Commissioning Installation Procedure" 
+Section 2.6). To verify the existing orientation configuration,
+induce telescope offsets parallel to the guider X, Y axes. Any error in the rotation 
+configuration will result in cross-talk between the axes and the autoguider 
+will loop back to the guiding centre instead of moving in a straight line. 
+See figure \ref{geometry} for an example running on the Liverpool Telescope. 
+The offsets must be smaller than the guide window size or you will simply 
+lose the star. If such crosstalk is found then the TCS CONFIG GUI ROTATION 
+parameter should be adjusted.
+
+How you create offsets aligned with X,Y in the autoguider focal plane depends on where the
+camera head has been installed. 
+* In most common configurations, the autoguider CCD
+and main imaging camera are likely to be roughly aligned to each other anyway and then
+simply using X,Y offsets on the TCS HANDSET will work. 
+* If the autoguider has been installed at some tilted angle then careful choice a certain 
+cassegrain rotator angle will align Alt,Az offsets on the TCS HANDSET with the autoguider 
+axes. To find the cassegrain mount angle which will create this special alignment of alt,az with
+autoguider X,Y, start by using the current value of ROTATION in the TCS GUI configuration.
+
+
+\subsection{Autoguider Gain}
+
+Note that if guiding seems generally unstable without a preferred
+direction or spiral pattern it may simply reflect too high a system
+gain,in which case you should reduce the gain by increasing the LOOP GAIN
+values in the TCS CONFIG GUI file.  At LT we use values of 8.0.
 
 \begin{thebibliography}{99}
 \addcontentsline{toc}{section}{Bibliography}
