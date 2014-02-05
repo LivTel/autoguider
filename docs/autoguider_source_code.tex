@@ -60,35 +60,56 @@ The {\bf /home/dev/bin} directory is the root directory of the binary directory 
 
 \subsubsection{autobooter}
 
-The autobooter directory contains the Java classes that are the Autobooter process. These files (along with the associated config file)
-
-diddly
-
+The autobooter directory contains the Java classes that are the Autobooter process. The AutoBooter process is started by an {\bf /etc/init.d} script, and it used to start and monitor the autoguider process.
 
 \subsubsection{autoguider}
 
+This directory contains the autoguider binary and the associated property file to configure it.
+
 \subsubsection{ccd}
+
+This contains various command line tools for use with FITS images.
 
 \subsubsection{cdoc}
 
+This contains a documentation tool that extracts specially formatted comments from C source files and creates API documentation HTML files from them.
+
 \subsubsection{estar}
+
+This contains elements of the estar project that are used to build the autoguider software :- specifically the estar\_config shared library which is used to handle property files from within C.
 
 \subsubsection{ics\_util}
 
+This contains various binaries used for managing shutdown and rebooting of control computers.
+
 \subsubsection{javalib}
+
+This contains Java library files (jars) used by the Java processes.
 
 \subsubsection{javalib\_third\_party}
 
+This contains third party java libraries (not developed by LJMU), that are needed to build libraries that are
+used by the Java software.
+
 \subsubsection{lib}
+
+This contains the C libraries that are linked to by the autoguider (and other) binaries.
 
 \subsubsection{libdprt}
 
+This contains various test programs and libraries from the real time data pipeline, mainly the object detection library which is used by the autoguider software.
+
 \subsubsection{log\_udp}
+
+This contains various command line tools associated with the UDP logging library.
 
 \subsubsection{ngatastro}
 
+This contains some command line test tools associated with the process of converting date/times to Modified Julian Dates (MJD).
+
 \subsubsection{scripts}
 
+This directory contains some scripts that used by the autoguider system.
 
 \subsection{classes directory}
 
