@@ -1,9 +1,10 @@
 #!/bin/csh
-# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_rm_field_frames_cron,v 1.3 2008-02-15 10:58:02 cjm Exp $
+# $Header: /home/cjm/cvs/autoguider/scripts/autoguider_rm_field_frames_cron,v 1.4 2014-11-18 09:53:45 cjm Exp $
 # cron task to delete "old" autoguider field frames
 # age limit is days - files older than this are deleted.
 set successful_age_limit = "7"
 set failed_age_limit = "31"
+set raw_age_limit = "31"
 set date_string = `/bin/date +"%Y-%m-%dT%H:%M:%S"`
 set tmp_dir = "/icc/tmp"
 set log_dir = "/icc/log"
@@ -82,7 +83,40 @@ while ( "${file_index}" <= "${file_count}" )
 end
 /bin/rm -f "${ls_filename}"
 #
+# Raw Field images
+#
+/bin/ls ${tmp_dir}/field_raw_*.fits >>! ${ls_filename}
+set file_count = `/usr/bin/wc -l ${ls_filename} | awk ' {print $1}'`
+echo "${date_string} : Found ${file_count} raw FITS files." >>! ${log_filename}
+set file_index = 1
+while ( "${file_index}" <= "${file_count}" )
+	set fits_filename = `print_line -v LINE=${file_index} ${ls_filename}`
+	if( -r "${fits_filename}" ) then
+		set fits_filename_date = `/bin/date -r ${fits_filename} +"%Y%j"`
+		echo "${date_string} : Raw FITS file ${fits_filename} has date ${fits_filename_date}." >>! ${log_filename}
+		@ day_count = ${todays_date} - ${fits_filename_date}
+		echo "${date_string} : Raw FITS file ${fits_filename} is ${day_count} days old." >>! ${log_filename}
+		if( "${day_count}" > "${raw_age_limit}" ) then
+			echo "${date_string} : removing ${fits_filename}." >>! ${log_filename}
+			/bin/rm -f ${fits_filename}
+			set rm_status = $status
+			if( "${rm_status}" == 0 ) then
+				echo "${date_string} : ${fits_filename} deleted." >>! ${log_filename}
+			else
+				echo "${date_string} : Failed to delete ${fits_filename} (error ${rm_status})." >>! ${log_filename}
+			endif
+		endif
+	else
+		echo "${date_string} : FITS file ${fits_filename} not readable." >>! ${log_filename}
+	endif
+	@ file_index ++
+end
+/bin/rm -f "${ls_filename}"
+#
 # $Log: not supported by cvs2svn $
+# Revision 1.3  2008/02/15 10:58:02  cjm
+# Added -f to /bin/rm commands - as field images were written by autoguider running as root.
+#
 # Revision 1.2  2007/11/06 14:52:06  cjm
 # Fixed indexing (awk goes from 1..N).
 # Removed spurious comment.
