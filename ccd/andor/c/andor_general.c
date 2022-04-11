@@ -1,11 +1,11 @@
 /* andor_general.c
 ** Autoguider Andor CCD Library general routines
-** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_general.c,v 1.1 2006-03-27 14:02:36 cjm Exp $
+** $Header: /home/cjm/cvs/autoguider/ccd/andor/c/andor_general.c,v 1.2 2022-04-11 09:38:45 cjm Exp $
 */
 /**
  * General routines for the Andor autoguider CCD library.
  * @author Chris Mottram
- * @version $Revision: 1.1 $
+ * @version $Revision: 1.2 $
  */
 /**
  * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes.
@@ -31,7 +31,7 @@
 /**
  * Revision Control System identifier.
  */
-static char rcsid[] = "$Id: andor_general.c,v 1.1 2006-03-27 14:02:36 cjm Exp $";
+static char rcsid[] = "$Id: andor_general.c,v 1.2 2022-04-11 09:38:45 cjm Exp $";
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -47,6 +47,8 @@ char* Andor_General_ErrorCode_To_String(unsigned int error_code)
 	{
 		case DRV_SUCCESS:
 			return "DRV_SUCCESS";
+		case DRV_ERROR_ACK:
+			return "DRV_ERROR_ACK";
 		case DRV_ACQUIRING:
 			return "DRV_ACQUIRING";
 		case DRV_IDLE:
@@ -66,4 +68,7 @@ char* Andor_General_ErrorCode_To_String(unsigned int error_code)
 }
 /*
 ** $Log: not supported by cvs2svn $
+** Revision 1.1  2006/03/27 14:02:36  cjm
+** Initial revision
+**
 */
