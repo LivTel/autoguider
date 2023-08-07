@@ -1,0 +1,5 @@
+http://www.informit.com/guides/content.asp?g=java&seqNum=75&rl=1
+http://www.jfree.org/jfreechart/
+/home/dev/src/rcs_gui/src/dev/RcsGUI.java : TimeSeries
+/home/dev/src/rcs_gui/src/dev/GraphTabFrame.java
+/home/dev/src/rcs_gui/src/dev/GraphPanel.java
