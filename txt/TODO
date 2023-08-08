@@ -1,0 +1,71 @@
+TODO
+----
+FITS headers meta-information
+  - basic (done)
+  - from config file
+  - commands to add/amend/delete user list
+GUI
+TCS Interface
+  - how does telescope offsets work?
+  - finish SDB interface
+requires ability to startup and shutdown CCD independantly of control systems (TCS advanced interface)
+Add ability to reload dark/flat (after creation of new one!)
+add field (guide?) gradient calculation/subtraction
+add alternative guide centroid - no object detection - whole frame centroiding
+offbys TCS handling
+command_server.c: multi-reads of long text messages can fail if a partial read ends on a '\n' character. See diddly.
+command replies: add ability to put error string into replies for more info.
+reseting of error numbers, review libdprt_object/libestar_config and autoguider.
+
+DONE
+----
+Control of scaling of UDP guide packet timecode value.
+guide exposure length initial value.
+guide window tracking - also non-sidereal tracking.
+configurable pixels for detecting centroid near edge rather than fwhm based calculation
+configurable pixels for guide window tracking rather than fwhm based calculation
+autoscaling of exposure length in guide loop for cloud.
+Autobooter support to deployment script
+SDB interface
+autoguider on
+autoguider off
+autoguider_field, loop until suitable objects detected or error.
+scaling of exposure lengths in guide loop based on guide objects peak/total counts
+add guide packets to tcs
+add ags cil handling
+log_level <autoguider|ccd|command_server|object|ngatcil> <n>
+autoguider_object.c
+Guide Objects : Where is it on the CCD (to send to TCS)
+Guide Objects : Where is it on the buffer (to send to GUIs)
+Guide Objects : Frame number for logging
+Guide Objects : Guide number for logging
+If client end Ctrl-C then when autoguider tries to send reply exits with Broken Pipe to command line.
+'Broken pipe' if client end dies:
+	- signal(SIGPIPE, SIG_IGN)' somewhere at the start of your program. You will get an EPIPE error return when send/write fails due to a broken pipe.
+	- POSIX, use sigaction instead?
+	- Another less portable solution is to pass the MSG_NOSIGNAL flag to send(). This has the same effect.
+change make dark to turn off all 3 reductions explicitly. Should restore previous settings at end?
+change make flat to turn on dark subtraction, and off flat/object reductions explicitly. Should restore previous settings at end?
+make failure to load specified dark and flat an error. Don't turn off the boolean. 
+field dark on|off
+field flat on|off
+field object on|off
+guide dark on|off
+guide flat on|off
+guide object on|off
+fits_normalize.c
+status field dark
+status field flat
+status field object
+status guide dark
+status guide flat
+status guide object
+guide on
+guide off
+guide window <sx> <sy> <ex> <ey>
+guide exposure_length <ms>
+bias
+dark <ms>
+multrun <length> <count> <object>
+
+reduced/unreduced buffers
