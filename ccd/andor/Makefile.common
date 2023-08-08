@@ -1,0 +1,12 @@
+# $Header: /home/cjm/cvs/autoguider/ccd/andor/Makefile.common,v 1.1 2023-08-08 12:18:20 cjm Exp $
+
+SHELL					=	/bin/sh
+ANDOR_HOME				= 	andor
+ANDOR_LIBRARYNAME			= 	lib$(AUTOGUIDER_HOME)_$(CCD_HOME)_$(ANDOR_HOME)
+AUTOGUIDER_ANDOR_HOME			=	andor
+AUTOGUIDER_ANDOR_SRC_HOME		= 	$(LT_SRC_HOME)/$(AUTOGUIDER_HOME)/$(CCD_HOME)/$(ANDOR_HOME)
+AUTOGUIDER_ANDOR_BIN_HOME		= 	$(LT_BIN_HOME)/$(AUTOGUIDER_HOME)/$(CCD_HOME)/$(ANDOR_HOME)
+AUTOGUIDER_ANDOR_DOC_HOME		= 	$(LT_DOC_HOME)/$(AUTOGUIDER_HOME)/$(CCD_HOME)/$(ANDOR_HOME)
+#
+# $Log: not supported by cvs2svn $
+#

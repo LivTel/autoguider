@@ -1,0 +1,81 @@
+Heres what you need to do for robotic testing of the autoguider.
+
+Start of night
+--------------
+
+Bloke starting up the telescope needs to do the following:
+
+ssh eng@acc
+cd /icc/bin/autoguider/c/i386-linux
+./autoguider -co autoguider.properties -autoguider_log_level 2047 -ccd_log_level 3871 -command_server_log_level 3 -object_log_level 196608 -ngatcil_log_level 13
+#-ngatcil_log_level 15
+
+You'll probably find the terminal times out after an hour or two of no input - guess this needs to be put into a script.
+
+ssh maintain@mcc
+/opt/ttl/util/testinject < inject2.txt
+
+This tells the TCS (via the SDB) that the autoguider is guiding and doing 1 second exposures.
+
+End of night
+------------
+
+You may want to issue the following:
+ssh eng@acc
+send_command -h autoguider1 -p 6571 -c "shutdown"
+
+This will warm up the CCD and shut the system down.
+
+RCS control
+-----------
+
+The CIL interface doesn't really work properly at the moment (well, you can send "autoguide off" successfully,
+but the TCS doesn't like my replies! (and I can't even figure out how to test "autoguide on")).
+
+So, use the socket text interface. This is on the acc, port 6571. This is a telnet like interface in that you send a text string ('\n' terminated) and get a string reply per connection. I think you can use telnet for testing, but normally called via the 'send_command' program (source in ~dev/src/autoguider/commandserver/test/send_command.c, calling library
+functions in ~dev/src/autoguider/commandserver/c/command_server.c). Most replies start with a number, '0' is success, non-zero is an error. The error replies are a bit basic, you have to look in the log files to figure out whats really happening (acc:/icc/log/).
+
+RCS start of night
+------------------
+
+"guide exposure_length 1000 lock" - you may wish to issue this to lock guide loop exposure lengths to 1000ms, this is
+the same length as injected into the SDB, so the TCS will then issue the correct correction per axis demand, otherwise it won't....
+
+To the TCS:
+"agsel cass"
+"agradial 0"
+"agfocus 2.8"
+
+RCS autoguiding
+---------------
+
+"autoguide on rank 0" - turn the autoguider on and guide on the brightest object.
+"autoguide on brightest" might work "autoguide on pixel <x> <y>" definately doesn't at the moment.
+
+The TCS will of course then need "autoguide receive".
+
+"autoguide off" - turn off the autoguider.
+
+You will have to send "autoguide off" to the TCS as well to stop it expecting packets.
+
+See if it's still guiding:
+"status guide active" should return "0 true" if it's guiding.
+
+If you want to monitor temperature etc:
+"status temperature get" will return something like "0 -39.5", -40C is the normal temperature atm.
+
+More info
+---------
+
+Look in the directory: ~dev/src/autoguider/txt
+
+autoguider_basic_user_instructions.txt : basic manual usage instructions - shows how to use low level commands
+(field/guide) rather than "autoguide on/off".
+
+autoguider_commands.txt : Complete autoguider command set.
+
+autoguider_focus.txt : autoguider focus/ TCS selection notes.
+
+autoguider_inject.txt : MCC SDB injection notes.
+
+log_levels.txt : What all those log-level arguments to the autoguider command do.

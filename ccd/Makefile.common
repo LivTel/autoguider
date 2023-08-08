@@ -1,0 +1,12 @@
+# $Header: /home/cjm/cvs/autoguider/ccd/Makefile.common,v 1.1 2023-08-08 12:18:01 cjm Exp $
+
+SHELL					=	/bin/sh
+CCD_HOME				= 	ccd
+CCD_LIBRARYNAME				= 	lib$(AUTOGUIDER_HOME)_$(CCD_HOME)_general
+AUTOGUIDER_CCD_HOME			=	ccd
+AUTOGUIDER_CCD_SRC_HOME			= 	$(LT_SRC_HOME)/$(AUTOGUIDER_HOME)/$(CCD_HOME)
+AUTOGUIDER_CCD_BIN_HOME			= 	$(LT_BIN_HOME)/$(AUTOGUIDER_HOME)/$(CCD_HOME)
+AUTOGUIDER_CCD_DOC_HOME			= 	$(LT_DOC_HOME)/$(AUTOGUIDER_HOME)/$(CCD_HOME)
+#
+# $Log: not supported by cvs2svn $
+#

@@ -1,0 +1,178 @@
+
+Jul 31 13:51:38 mcc.lt.com Sdb: <d0007> Submit message truncated (0 bytes only)
+Jul 31 13:51:38 mcc.lt.com Sdb: <d0007> Submit message truncated (0 bytes only)
+Jul 31 13:51:38 scc.lt.com Ait: <d0007> Error returned by SDB submission
+Jul 31 13:51:38 scc.lt.com Ait: <d0007> Error returned by SDB submission
+
+./test_sdb -agstate IDLE
+NGATCil_UDP_Open(mcc,13011):started.
+NGATCil_UDP_Open:inet_addr didn't work:trying gethostbyname(mcc).
+NGATCil_UDP_Open(mcc,13011):returned socket 3:finished.
+NGATCil_AGS_SDB_Status_Send:started.
+NGATCil_AGS_SDB_Status_Send:Found changed OID 5 at index 5.
+NGATCil_AGS_SDB_Status_Send:Found changed OID 6 at index 6.
+NGATCil_AGS_SDB_Status_Send:Found changed OID 7 at index 7.
+NGATCil_AGS_SDB_Status_Send:Found changed OID 8 at index 8.
+NGATCil_AGS_SDB_Status_Send:Found changed OID 9 at index 9.
+NGATCil_AGS_SDB_Status_Send:Found changed OID 10 at index 10.
+NGATCil_AGS_SDB_Status_Send:Found changed OID 11 at index 11.
+NGATCil_AGS_SDB_Status_Send:Found changed OID 12 at index 12.
+NGATCil_AGS_SDB_Status_Send:Found changed OID 13 at index 13.
+NGATCil_AGS_SDB_Status_Send:Found changed OID 14 at index 14.
+NGATCil_AGS_SDB_Status_Send:Found changed OID 15 at index 15.
+NGATCil_AGS_SDB_Status_Send:Found changed OID 16 at index 16.
+NGATCil_AGS_SDB_Status_Send:Found changed OID 17 at index 17.
+NGATCil_AGS_SDB_Status_Send:Found changed OID 18 at index 18.
+NGATCil_AGS_SDB_Status_Send:Found changed OID 19 at index 19.
+NGATCil_AGS_SDB_Status_Send:Found 15 changed OIDs.
+NGATCil_AGS_SDB_Status_Send:Data length 364.
+NGATCil_AGS_SDB_Status_Send:Packet length 392.
+AGS_SDB_Packet_To_Network_Byte_Order:started.
+AGS_SDB_Packet_To_Network_Byte_Order:finished.
+AGS_SDB_Packet_Send:started (392).
+NGATCil_UDP_Raw_Send(socket=3,length=392):started.
+NGATCil_UDP_Raw_Send(3):finished.
+AGS_SDB_Packet_Send:finished.
+NGATCil_AGS_SDB_Status_Send:finished.
+NGATCil_AGS_SDB_Value_Set:started: Setting OID 5 to 5.
+NGATCil_AGS_SDB_Value_Set:finished.
+NGATCil_AGS_SDB_Status_Send:started.
+NGATCil_AGS_SDB_Status_Send:Found changed OID 5 at index 5.
+NGATCil_AGS_SDB_Status_Send:Found 1 changed OIDs.
+NGATCil_AGS_SDB_Status_Send:Data length 28.
+NGATCil_AGS_SDB_Status_Send:Packet length 56.
+AGS_SDB_Packet_To_Network_Byte_Order:started.
+AGS_SDB_Packet_To_Network_Byte_Order:finished.
+AGS_SDB_Packet_Send:started (56).
+NGATCil_UDP_Raw_Send(socket=3,length=56):started.
+NGATCil_UDP_Raw_Send(3):finished.
+AGS_SDB_Packet_Send:finished.
+NGATCil_AGS_SDB_Status_Send:finished.
+NGATCil_UDP_Close(3):started.
+NGATCil_UDP_Close(3):finished.
+test_sdb finished.
+
+/test_sdb -sdb_host ltobs9 -agstate IDLE
+NGATCil_UDP_Open(ltobs9,13011):started.
+NGATCil_UDP_Open:inet_addr didn't work:trying gethostbyname(ltobs9).
+NGATCil_UDP_Open(ltobs9,13011):returned socket 3:finished.
+NGATCil_AGS_SDB_Status_Send:started.
+NGATCil_AGS_SDB_Status_Send:Found changed OID 5 at index 5.
+NGATCil_AGS_SDB_Status_Send:Found changed OID 6 at index 6.
+NGATCil_AGS_SDB_Status_Send:Found changed OID 7 at index 7.
+NGATCil_AGS_SDB_Status_Send:Found changed OID 8 at index 8.
+NGATCil_AGS_SDB_Status_Send:Found changed OID 9 at index 9.
+NGATCil_AGS_SDB_Status_Send:Found changed OID 10 at index 10.
+NGATCil_AGS_SDB_Status_Send:Found changed OID 11 at index 11.
+NGATCil_AGS_SDB_Status_Send:Found changed OID 12 at index 12.
+NGATCil_AGS_SDB_Status_Send:Found changed OID 13 at index 13.
+NGATCil_AGS_SDB_Status_Send:Found changed OID 14 at index 14.
+NGATCil_AGS_SDB_Status_Send:Found changed OID 15 at index 15.
+NGATCil_AGS_SDB_Status_Send:Found changed OID 16 at index 16.
+NGATCil_AGS_SDB_Status_Send:Found changed OID 17 at index 17.
+NGATCil_AGS_SDB_Status_Send:Found changed OID 18 at index 18.
+NGATCil_AGS_SDB_Status_Send:Found changed OID 19 at index 19.
+NGATCil_AGS_SDB_Status_Send:Found 15 changed OIDs.
+NGATCil_AGS_SDB_Status_Send:Data length 364.
+NGATCil_AGS_SDB_Status_Send:Packet length 392.
+AGS_SDB_Packet_To_Network_Byte_Order:started.
+AGS_SDB_Packet_To_Network_Byte_Order:finished.
+AGS_SDB_Packet_Send:started (392).
+NGATCil_UDP_Raw_Send(socket=3,length=392):started.
+NGATCil_UDP_Raw_Send(3):finished.
+AGS_SDB_Packet_Send:finished.
+NGATCil_AGS_SDB_Status_Send:finished.
+NGATCil_AGS_SDB_Value_Set:started: Setting OID 5 to 5.
+NGATCil_AGS_SDB_Value_Set:finished.
+NGATCil_AGS_SDB_Status_Send:started.
+NGATCil_AGS_SDB_Status_Send:Found changed OID 5 at index 5.
+NGATCil_AGS_SDB_Status_Send:Found 1 changed OIDs.
+NGATCil_AGS_SDB_Status_Send:Data length 28.
+NGATCil_AGS_SDB_Status_Send:Packet length 56.
+AGS_SDB_Packet_To_Network_Byte_Order:started.
+AGS_SDB_Packet_To_Network_Byte_Order:finished.
+AGS_SDB_Packet_Send:started (56).
+NGATCil_UDP_Raw_Send(socket=3,length=56):started.
+NGATCil_UDP_Raw_Send(3):finished.
+AGS_SDB_Packet_Send:finished.
+NGATCil_AGS_SDB_Status_Send:finished.
+NGATCil_UDP_Close(3):started.
+NGATCil_UDP_Close(3):finished.
+test_sdb finished.
+
+./test_cil_server -port 13011
+Starting CIL Command UDP server on port 13011.
+NGATCil_UDP_Server_Start(13011):started.
+UDP_Raw_Server_Thread:started.
+UDP_Raw_Server_Thread:listening on socket 3.
+UDP_Raw_Server_Thread:Waiting for UDP packet on socket 3.
+NGATCil_UDP_Server_Start(13011):finished.
+UDP_Raw_Server_Thread:Detected short packet (392 vs 1024).
+UDP_Raw_Server_Thread:Translating packet contents from network to host byte order.
+AGS_CIL_Command_Server_Callback:Source = 0x14, Dest = 0xa, Class = 0x1, Service = 0xd0001,SeqNum = 0.
+AGS_CIL_Command_Server_Callback:Timestamp secs = 0x44ce0f83, Timestamp NanoSecs = 0x85c9060, Unix secs = 0x44ce0f83, Unix nanosecs = 0xb5cef80, Unix Secs-TTL_OFFSET = 0x44ce0f83.
+AGS_CIL_Command_Server_Callback:Word 7 = 0xf Word 8 = 0x14 
+Word 9 = 0x5 Word 10 = 0x2 Word 11 = 0x44ce0f83 Word 12 = 0x7fb0b88 
+Word 13 = 0 Word 14 = 0x14 Word 15 = 0x6 Word 16 = 0x46 
+Word 17 = 0x44ce0f83 Word 18 = 0x7fb0b88 Word 19 = 0 Word 20 = 0x14 
+Word 21 = 0x7 Word 22 = 0x46 Word 23 = 0x44ce0f83 Word 24 = 0x7fb0b88 
+Word 25 = 0 Word 26 = 0x14 Word 27 = 0x8 Word 28 = 0x46 
+Word 29 = 0x44ce0f83 Word 30 = 0x7fb0b88 Word 31 = 0 Word 32 = 0x14 
+Word 33 = 0x9 Word 34 = 0x46 Word 35 = 0x44ce0f83 Word 36 = 0x7fb0b88 
+Word 37 = 0 Word 38 = 0x14 Word 39 = 0xa Word 40 = 0x10 
+Word 41 = 0x44ce0f83 Word 42 = 0x7fb0b88 Word 43 = 0 Word 44 = 0x14 
+Word 45 = 0xb Word 46 = 0x2 Word 47 = 0x44ce0f83 Word 48 = 0x7fb0b88 
+Word 49 = 0 Word 50 = 0x14 Word 51 = 0xc Word 52 = 0x47 
+Word 53 = 0x44ce0f83 Word 54 = 0x7fb0b88 Word 55 = 0 Word 56 = 0x14 
+Word 57 = 0xd Word 58 = 0x46 Word 59 = 0x44ce0f83 Word 60 = 0x7fb0b88 
+Word 61 = 0 Word 62 = 0x14 Word 63 = 0xe Word 64 = 0x46 
+Word 65 = 0x44ce0f83 Word 66 = 0x7fb0b88 Word 67 = 0 Word 68 = 0x14 
+Word 69 = 0xf Word 70 = 0x46 Word 71 = 0x44ce0f83 Word 72 = 0x7fb0b88 
+Word 73 = 0 Word 74 = 0x14 Word 75 = 0x10 Word 76 = 0x2 
+Word 77 = 0x44ce0f83 Word 78 = 0x7fb0b88 Word 79 = 0 Word 80 = 0x14 
+Word 81 = 0x11 Word 82 = 0x6 Word 83 = 0x44ce0f83 Word 84 = 0x7fb0b88 
+Word 85 = 0 Word 86 = 0x14 Word 87 = 0x12 Word 88 = 0x6 
+Word 89 = 0x44ce0f83 Word 90 = 0x7fb0b88 Word 91 = 0 Word 92 = 0x14 
+Word 93 = 0x13 Word 94 = 0x1b Word 95 = 0x44ce0f83 Word 96 = 0x7fb0b88 
+Word 97 = 0 
+UDP_Raw_Server_Thread:Waiting for UDP packet on socket 3.
+UDP_Raw_Server_Thread:Detected short packet (56 vs 1024).
+UDP_Raw_Server_Thread:Translating packet contents from network to host byte order.
+AGS_CIL_Command_Server_Callback:Source = 0x14, Dest = 0xa, Class = 0x1, Service = 0xd0001,SeqNum = 0x1.
+AGS_CIL_Command_Server_Callback:Timestamp secs = 0x44ce0f83, Timestamp NanoSecs = 0x85da1d0, Unix secs = 0x44ce0f83, Unix nanosecs = 0xfeb2648, Unix Secs-TTL_OFFSET = 0x44ce0f83.
+AGS_CIL_Command_Server_Callback:Word 7 = 0x1 Word 8 = 0x14 
+Word 9 = 0x5 Word 10 = 0x2 Word 11 = 0x44ce0f83 Word 12 = 0x85d7ea8 
+Word 13 = 0x5 
+UDP_Raw_Server_Thread:Waiting for UDP packet on socket 3.
+
+
+
+
+I am having some problems submitting datums to the SDB. I keep getting errors like the following in
+/var/log/messages:
+
+Jul 31 13:51:38 mcc.lt.com Sdb: <d0007> Submit message truncated (0 bytes only)
+Jul 31 13:51:38 scc.lt.com Ait: <d0007> Error returned by SDB submission
+
+Can you tell me what this means? It looks to me like the SDB is recognising the submit message
+but thinks there are no datums in the message?
+
+Here is an example of what I am sending in my UDP packets to the SDB.
+This example (in host byte order before conversion) should set AGSTATE to IDLE
+56 bytes:
+Source = 0x14, Dest = 0xa, Class = 0x1, Service = 0xd0001,SeqNum = 0x1.
+Timestamp secs = 0x44ce0f83, Timestamp NanoSecs = 0x85da1d0
+Word 7 = 0x1 Word 8 = 0x14                                   (NumElts = 1,SourceId = E_CIL_AGS)
+Word 9 = 0x5 Word 10 = 0x2                                   (DatumId = D_AGS_AGSTATE,Units = E_SDB_NO_UNITS)
+Word 11 = 0x44ce0f83 Word 12 = 0x85d7ea8                     (Msrment timestamp)
+Word 13 = 0x5                                                (Msrment Value = E_AGS_IDLE)
+
+I suspect I have not noticed some subtlety in your software when crafting this packet. However, although
+I now have your AGS source code, I do not have an up to date copy of your system headers (TtlSystem.h, Ags.h, Mcp.h).
+The copies I have are very old, would it be possible to supply me with up to date versions, as I am concerned some
+of the enumerations I have used from these headers may have changed.
+
+I also don't have an up to date copy of the source code for the Cil library (implementation of eCilSend etc).
+Although I think I know what the internals of this routine does, again looking at the source code may track down this problem.
+
+Finally, your documentation doesn't specify exactly what to put into CIL timestamps (using eTimGetTime). Looking at your heartbeat packets I infer this is the number of seconds since 1st Jan 1970 (as per UNIX), can you confirm this please? 

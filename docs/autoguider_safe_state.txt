@@ -1,0 +1,75 @@
+autoguider_safe_state
+
+Autoguider fails to process SAFE STATE request at the moment, causes ECI to cycle control
+between TCS and MCP when a SAFE state request has been made from the ECI. /var/log/messages
+on the MCC implicates the AGS process.
+
+~dev/src/autoguider/TTL/AGS contains TTL version of the AGS.
+
+AgsUtil.c:
+---------
+	iAgsRequestStateChange calls iAgsProcessSafeState when service is E_MCP_SAFESTATE.
+
+	iAgsSetState sets ActualState and DemandState to SYS_SAFE_STATE
+
+	iAgsGetState returns whichever has the highest priority, the request state or actual state
+
+AgsProcess.c:
+	iAgsProcessSafeState
+	--------------------
+		iAgsActReply
+		iAgsData.SafeStateReq = TRUE; see CheckSafeState in main loop
+  /* Remember sequence no, of safestate cmd (latest one overwrites others) */
+   iAgsData.SafeStateSeqNum = iAgsData.RxMsg.SeqNum;
+   ** Clear the 'Changed' field of the OidTable to force re-submission
+
+
+AgsMain.c
+---------
+	iAgsMonitorAgg
+	--------------
+	Calls:
+	iAgsReceiveMessage
+	------------------
+		Receives CIL message
+		If mesage from MCP (SourceId = I_AGS_CIL_MCP)
+		   Call iAgsRequestStateChange
+
+
+	iAgsCheckSafeState
+	------------------
+	   /* Check if a request has been made to get the AGS to safe-state */
+   if( iAgsData.SafeStateReq == TRUE )
+   {
+      /* Have we reached a safe state yet ? */
+      if( mAgsAggAlreadySafe == TRUE)
+      {
+         /* If we are safe, then we can set the state to safe */
+         iAgsSetState(SYS_SAFE_STATE);
+         /* 
+         ** Tell the MCP that we have completed going safe. 
+         ** The Source and Dest will be flipped by the reply. 
+         */
+         iAgsData.ReplyMsg.SourceId   = E_CIL_MCP; 
+         iAgsData.ReplyMsg.DestId     = iAgsData.CilId;
+
+         Status = iAgsComReply( &(iAgsData.ReplyMsg) );
+      else
+      {
+         Status = mAgsAggGoSafe();
+
+AgsReply.c
+----------
+	iAgsComReply
+	------------
+		Sends COM completed reply
+		Status is set from iAgsGetState
+
+Solution
+---------
+
+I have added a COM reply (safe state completed reply)
+to CIL_Command_MCP_Safe_Process.
+
+That worked but we could not get the telescope to come out of SAFE state.
+The Eci immediately went back into monitor when we took control.
