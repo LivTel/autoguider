@@ -1,0 +1,60 @@
+From ias@astro.livjm.ac.uk Thu May 18 15:29:05 2006
+Date: Thu, 18 May 2006 12:27:51 +0100
+From: Iain Steele <ias@astro.livjm.ac.uk>
+To: Chris Mottram <cjm@astro.livjm.ac.uk>
+Cc: Robert J. Smith <rjs@astro.livjm.ac.uk>
+Subject: autoguider thoughts
+
+
+-1.  Guide star selection.  Two modes:
+
+    a) A user specified pixel.  Pick the guide star nearest that pixel
+
+    b) brightest, non-saturated star on the frame that is more than
+       a configurable number pixels from edge of frame and meets
+       configurable ellipticity and no-near neighbour criteria.
+
+0.  Exposure times when acquiring.  Two modes:
+
+    a)  A fixed user specified time.
+
+    b)  An autoscaling time, starting from a configurable value and
+        attempting to meet criteria b) in guide star selection.  
+Configurable
+        maximum and minimum exposure times.  If you reach max or min and 
+no
+        suitable guide star ACQUISTION_FAILED.
+
+1.  Exposure times when guiding.  Two modes:
+
+     a)  a fixed, user specified time
+
+     b) an autoscaling time, based on the counts of the current guide 
+object,
+        scale factors 0.5x and 2x.  Beware of "borderline" cases where 
+you would
+        keep flicking between the two.  Configurable maximum and minimum
+        exposure times.  If you reach maximum GUIDE_STAR_LOST.  If you 
+reach
+        minimum ???
+
+2.  Need rolling graphs of X, Y, counts and FWHM, reset each time you 
+restart guiding.
+     Also log this information in a separate file for each "guide 
+instance", and
+     put the guide instance ID in the FITS headers for the science 
+instruments so
+     we can reconstruct guide info when we get dodgy RATCam images for 
+example.
+
+3.  May need to worry about scattered light causing field gradients in 
+full frame mode.
+     May need to do 2d background fit to allow decent 
+thresholding/object detection.
+
+4.  Window size.  Two modes:
+
+    a) fixed user specified
+
+    b) autoscaling based on a configurable multiple of  current FWHM
+

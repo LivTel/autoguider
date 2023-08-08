@@ -1,0 +1,32 @@
+- TCP UDP guide packet timecode scaling
+- Guide window status
+
+TCP UDP guide packet timecode scaling
+-------------------------------------
+
+This was previously hardcoded to 2.0f, in other words the TCS UDP guide packet
+(N.B. not the SDB centroid interface) contained a timecode twice the loop cadence.
+According to the docs (Autoguider to TCS Interface Control Document, Guiding corrections interface), this
+is the time in seconds until the next packet is sent - if no packet is received in twice this value the 
+link is assumed broken.
+
+However, Rob was concerned this value may be used to calculate the correction applied to the axes for each packet, so
+I have added some control to the scaling value.
+
+"guide timecode_scaling <float value>" allows you to set the scaling interactively (before or during a guiding run).
+A value of < 0.5 should cause the TCS to assume the link is broken - really value 1.0 or greater should be used.
+"status guide timecode_scaling" gets the current value. The timecode of the last packet is shown in the TCS, 
+however you could figure out what was sent using this value multiplied by "status guide cadence".
+
+To make any new value the default, change the following in the config file:
+
+# What number to multiply the guide loop cadence by to construct the TCS UDP packet timecode with.
+# Should normally be 1.0 or greater, < ~0.5 will probably cause autoguiding to fail.
+guide.timecode.scale			=2.0
+
+The current default is 2.0, same as the hardcoded value was.
+ 
+Guide window status
+-------------------
+
+This can now be retrieved using the "status guide window" command. Might be usful for guide window tracking debugging.

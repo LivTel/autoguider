@@ -1,0 +1,84 @@
+From rjs@astro.livjm.ac.uk Fri Jun  2 11:06:34 2006
+Date: Fri, 26 May 2006 22:15:26 +0100
+From: Robert Smith <rjs@astro.livjm.ac.uk>
+To: Iain Steele <ias@astro.livjm.ac.uk>
+Cc: Chris Mottram <cjm@astro.livjm.ac.uk>
+Subject: Re: autoguider thoughts
+
+A few comments. Most are subtleties and complications not required in 
+version 1.
+
+> -1.  Guide star selection.  Two modes:
+>
+>    a) A user specified pixel.  Pick the guide star nearest that pixel
+>
+>    b) brightest, non-saturated star on the frame that is more than
+>       a configurable number pixels from edge of frame and meets
+>       configurable ellipticity and no-near neighbour criteria.
+Should that be brightest nowhere near saturated star, considering point 
+1b below?
+
+Define T_min as the shortest exposure the AG can do. You could then say 
+brightest star if exposure > 4 T_min, otherwise choose star at about 
+half the full well.
+
+> 0.  Exposure times when acquiring.  Two modes:
+>
+>    a)  A fixed user specified time.
+>
+>    b)  An autoscaling time, starting from a configurable value and
+>        attempting to meet criteria b) in guide star selection.  
+> Configurable
+>        maximum and minimum exposure times.  If you reach max or min 
+> and no
+>        suitable guide star ACQUISTION_FAILED.
+>
+> 1.  Exposure times when guiding.  Two modes:
+>
+>     a)  a fixed, user specified time
+>
+>     b) an autoscaling time, based on the counts of the current guide 
+> object,
+>        scale factors 0.5x and 2x.  Beware of "borderline" cases where 
+> you would
+>        keep flicking between the two.  Configurable maximum and minimum
+>        exposure times.  If you reach maximum GUIDE_STAR_LOST.  If you 
+> reach
+>        minimum ???
+If you reach minimum:
+i) Go to FAIL state
+ii) Go to RETRY state which tells RCS or instrument to abandon the 
+current exposure, but try again and this time the AG uses the second 
+brightest star
+iii) Give up on the current star and try a reacquire looking for a 
+fainter guide star but leave the telescope blindly observing. This 
+seems too risky to me.
+
+> 2.  Need rolling graphs of X, Y, counts and FWHM, reset each time you 
+> restart guiding.
+I'd the like the facility for both X,Y in the guide window and X,Y in 
+the full CCD.
+
+>     Also log this information in a separate file for each "guide 
+> instance", and
+>     put the guide instance ID in the FITS headers for the science 
+> instruments so
+>     we can reconstruct guide info when we get dodgy RATCam images for 
+> example.
+>
+> 3.  May need to worry about scattered light causing field gradients in 
+> full frame mode.
+>     May need to do 2d background fit to allow decent 
+> thresholding/object detection.
+Another common trick to greatly enhance source detection is convolve 
+the image with a 2D gaussian  equal to the seeing. This exaggerates the 
+contrast of objects with profiles similar to the convolution kernel. It 
+takes time of course. You also have the cosmic ray removal algorithm in 
+the crreject.c programs in libdprt if you want them.
+
+> 4.  Window size.  Two modes:
+>
+>    a) fixed user specified
+>
+>    b) autoscaling based on a configurable multiple of  current FWHM
+Within MIN and MAX values.

@@ -1,0 +1,29 @@
+See autoguider_commands.txt:
+
+Basically, follow the "Autoguider control system startup" section to run 
+the control system. (oh, you might have to lose the -ngatcil_log_level 
+bit, that doesn't exist in your version yet).
+
+Logs appear in the '/icc/log' directory to peruse, 
+configuration is in the 'autoguider.properties' file in the 
+/icc/bin/autoguider/c/i386-linux directory.
+
+You interact with the system as follows:
+cd /icc/bin/autoguider/commandserver/test/i386-linux/
+./send_command -h autoguider1 -p 6571 -c "help"
+
+e.g. To take an exposure:
+cd /icc/bin/autoguider/commandserver/test/i386-linux/
+./send_command -h autoguider1 -p 6571 -c "expose 1000"
+./test_getfits_command -h autoguider1 -p 6571 -c "getfits field raw" -f test.fits
+gaia test.fits
+
+There are some more advanced commands in the '/icc/bin/autoguider/scripts'
+directory.
+
+Note the AG is currenly set to run at 0 deg C, see 
+'ccd.temperature.target' in 'autoguider.properties'.
+You should warm the CCD to at least 0C before turning it off (which is why 
+it runs at 0C atm). The 'shutdown' command warms up the CCD automatically 
+so long as the 'ccd.temperature.ramp_to_ambient' configuration is true.
+

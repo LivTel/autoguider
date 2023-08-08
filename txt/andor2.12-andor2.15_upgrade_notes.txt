@@ -1,0 +1,86 @@
+./install_andor 
+Select your CCD Type from the following list:
+1. CCD
+2. ICCD
+3. iStar
+4. iXon
+5. iDus/Newton/Surcam/Luca
+1
+Kernel source not installed. Cannot build device driver.
+
+	if [ ! -d /lib/modules/`uname -r`/build/include ]
+	then
+		echo "Kernel source not installed. Cannot build device driver."
+		exit 7
+	fi
+	
+ls -ld /lib/modules/`uname -r`/build
+/lib/modules/2.6.11-1.1369_FC4/build -> ../../../usr/src/kernels/2.6.11-1.1369_FC4-i686
+
+Actual problem: we installed kernel-devel i586, we needed kernel-devel i686
+
+
+./install_andor 
+Select your CCD Type from the following list:
+1. CCD
+2. ICCD
+3. iStar
+4. iXon
+5. iDus/Newton/Surcam/Luca
+1
+Building Driver module...
+Installing Module andordrvlx into directory /lib/modules/2.6.11-1.1369_FC4
+Updating Module Dependencies...
+Copying andor startup script andordrvlx_load into directory /etc
+Updating local startup script (/etc/rc.local)
+Loading module for immediate use 
+andor driver installed
+libstdc++.so.6: Exists
+Platform: 32 bit
+installing SDK library libandor-stdc++6-i386.so.2.15.0.0 into /usr/local/lib...
+Updating library cache, please wait...
+installing SDK help file into /usr/local/doc...
+installing SDK header file into /usr/local/include...
+installing configuration files into /usr/local/etc/andor...
+updating installed directory list /etc/andor/andor.install for uninstall...
+You MUST now edit the DetectorTemplate.ini file in the /etc/andor directory to configure the SDK for your System. Once edited the file should be renamed detector.ini. See ReleaseNotes file.
+
+find /lib/modules/ -name 'andordrvlx*'
+/lib/modules/2.6.11-1.1369_FC4/andordrvlx.ko
+
+/etc/rc.local:
+#Run Andor Technology Startup Script
+sh /etc/andordrvlx_load
+
+/etc/andordrvlx_load sets up /dev/andordrvlx[01]
+ls -l /usr/local/lib/libandor.so
+/usr/local/lib/libandor.so -> /usr/local/lib/libandor.so.2.15.0.0
+(libandor-stdc++6-i386.so.2.15.0.0 into /usr/local/lib)
+/usr/local/include/atmcdLXd.h (copied from include/atmcdLXd.h)
+
+/usr/local/etc/andor/* from etc/*
+
+/usr/local/etc/andor/DetectorTemplate.ini
+Old install:/icc/bin/autoguider/andor/examples/common/detector.ini
+We can reuse old install - this will work.
+cp /icc/bin/autoguider/andor/examples/common/detector.ini /usr/local/etc/andor/
+
+Andor 2.12 include file:
+~dev/src/autoguider/andor/andor2.12/examples/common/atmcdLXd.h 
+Andor 2.15 include file:
+~dev/src/autoguider/andor/andor/include/atmcdLXd.h
+
+On ltobs9:
+Andor libraries had to be copied into /usr/local/lib to be picked up for linking (test programs).
+cd /usr/local/lib
+ls -l libandor*
+lrwxrwxrwx    1 root     root           33 Jan 17 15:42 libandor.so -> libandor-stdc++5-i386.so.2.15.0.0
+lrwxrwxrwx    1 root     root           11 Jan 17 15:46 libandor.so.2 -> libandor.so
+-rwxr-xr-x    1 root     root      1858216 Jan 17 15:40 libandor-stdc++5-i386.so.2.15.0.0
+-rwxr-xr-x    1 root     root      1862455 Jan 17 15:40 libandor-stdc++6-i386.so.2.15.0.0
+
+Linking on ltobs9 only works if stdc++5 rather than stdc++6 is linked.
+Also a soft link from  libandor.so.2 needs to be made - libandor.so is ignored?
+
+This means we probably need to install compat libraries on autoguider1 (done),
+and redo the /usr/local/lib libandor.so to point to stdc++5.

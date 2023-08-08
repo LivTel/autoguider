@@ -1,0 +1,70 @@
+Latest instructions
+-------------------
+
+See http://telescope/Fault/Bugzilla/show_bug.cgi?id=1141,
+comment 33.
+
+-Use system-config-users
+  -ltdev group was setup (1000)
+  -eng user  (uid 1012, gid 1000) was setup
+-/etc/inittab : runlevel set to 3.
+-ntp setup to 192.168.1.11.
+-/sbin/chkconfig --del cups|yum-updatesd|sendmail
+-Java6 installed
+- /etc/hosts needed entries for autoguider1/acc/tcc/mcc/scc/ltproxy/occ.
+- /etc/exports: /icc/tmp occ.lt.com(rw,no_root_squash)
+- /sbin/chkconfig --levels 35 nfs on
+
+Andor driver install
+--------------------
+Using latest Andor libraries in ~dev/src/andor/andor-2.85.30000. Followed
+INSTALL instructions. 
+./install_andor
+1. CCD
+This installs /etc/andordrvlx_load and adds a call to it in /etc/rc.local.
+Installs /lib/modules/2.6.18-194.el5PAE/andordrvlx.ko
+You MUST now edit the DetectorTemplate.ini file in the /usr/local/etc/andor directory to configure the SDK for your System. Once edited the file should be renamed detector.ini. See ReleaseNotes file.
+cp /usr/local/etc/andor/DetectorTemplate.ini /usr/local/etc/andor/detector.ini
+Andor Head: DV435
+PCI Card: CCI-010
+
+emacs /usr/local/etc/andor/detector.ini
+[System]
+Controller=CCI-010
+Head=DV435
+
+Section:
+[DV435]
+Change:
+CodeFile=pcii29k_sldma.cof
+to
+CodeFile=pcii29k.cof
+
+Changed CodeFile entry in detector.ini to:
+CodeFile=pcii29k.cof
+(from sldma version (single line DMA)).
+
+/etc/rc.local:
+sh /etc/andordrvlx_load DMA_MODE=1
+
+autoguider1 has 4112856k memeory (/proc/meminfo) = 4016Mb
+DV435 has 1024x1024 pixels x 2 images x 4bytes per pixel
+= 8M
+Therefore 4016M - 8M = 4008M
+Therefore changed /etc/grub.conf:
+#Already added acpi=noirq
+Added mem=4000M memap=12M$4000M
+
+Installed robotic software (compiled against andor-2.85.30000). 
+Installed sharutils.
+Installed gaia.
+Ran /icc/bin/autoguider/scripts/autoguider_make_dark_list to create a dark library.
+Ran fits_create_blank -c 1024 -r 1024 -v 1.0 -o /icc/dprt/flat/flat_1_1.fits
+to create a fake blank flat field.
+Installed instrument_archive_logs and created eng crontab.
+
+# minute hour day_of_month month day_of_week command
+35 11 * * * $HOME/scripts/instrument_archive_logs
+35 14 * * * /icc/bin/autoguider/scripts/autoguider_rm_field_frames_cron
+35 15 * * * /icc/bin/autoguider/scripts/autoguider_rm_guide_frames_cron
+* 0-6,18-23 * * * /icc/bin/autoguider/scripts/autoguider_get_guide_frames_cron

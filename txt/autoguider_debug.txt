@@ -1,0 +1,8 @@
+cd /icc/bin/autoguider/c/i386-linux
+gdb autoguider
+
+break autoguider_object.c:Autoguider_Object_List_Get_Object_List_String
+break command_server.c:Command_Server_Write_Binary_Message
+break autoguider_server.c:Send_Binary_Reply
+run -co autoguider.properties -autoguider_log_level 1023 -ccd_log_level 3871 -command_server_log_level 3 -object_log_level 196608
+

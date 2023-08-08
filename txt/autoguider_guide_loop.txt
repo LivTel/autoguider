@@ -1,0 +1,102 @@
+autoguider_guide.c
+==================
+
+Autoguider_Guide_On
+-------------------
+	Setup dark and flat
+	Start thread:Guide_Thread
+
+Autoguider_Guide_Off
+--------------------
+	Set Guide_Data.Quit_Guiding = TRUE;
+
+Guide_Thread
+------------
+	CCD_Setup_Dimensions etc 
+	while(Guide_Data.Quit_Guiding == FALSE)
+		Guide_Data.In_Use_Buffer_Index = (!Guide_Data.Last_Buffer_Index);
+		CCD_Exposure_Expose
+		Guide_Reduce
+		Guide_Exposure_Length_Scale
+		Guide_Packet_Send
+		Guide_Window_Track
+	Guide_Data.Is_Guiding = FALSE;
+	/* send termination packet to TCS */
+
+
+Guide_Reduce
+------------
+	Autoguider_Dark_Subtract
+	Autoguider_Flat_Field
+	Autoguider_Object_Detect
+
+Autoguider_Object_Detect
+------------------------
+	Object_Create_Object_List
+
+Object_Create_Object_List
+-------------------------
+	object.ellipticity.limit
+	Object_Stellar_Ellipticity_Limit_Set	
+	Object_Set_Threshold
+	Object_List_Get
+	Copy list to Object_Data.Object_List
+	Object_List_Free
+
+
+Guide_Exposure_Length_Scale
+---------------------------
+	if(Guide_Data.Exposure_Length_Lock == TRUE)
+	        return TRUE
+	if(Guide_Data.Exposure_Length_Scaling.Autoscale == FALSE)
+                return TRUE;
+	if(object_count > 1)
+		return TRUE
+	else if(object_count < 1)
+	        Guide_Data.Exposure_Length_Scaling.Scale_Index++;
+	else /* object_count == 1 */
+	{
+		if(Guide_Data.Exposure_Length_Scaling.Type == GUIDE_SCALE_TYPE_PEAK)
+		{
+			if(object.Peak_Counts < Guide_Data.Exposure_Length_Scaling.Min_Peak_Counts)
+				Guide_Data.Exposure_Length_Scaling.Scale_Index++;
+			else if(object.Peak_Counts > Guide_Data.Exposure_Length_Scaling.Max_Peak_Counts)
+				Guide_Data.Exposure_Length_Scaling.Scale_Index++;
+			else
+				Guide_Data.Exposure_Length_Scaling.Scale_Index = 0;
+		}
+		else if(Guide_Data.Exposure_Length_Scaling.Type == GUIDE_SCALE_TYPE_INTEGRATED)
+		{
+			if(object.Total_Counts < Guide_Data.Exposure_Length_Scaling.Min_Integrated_Counts)
+				Guide_Data.Exposure_Length_Scaling.Scale_Index++;
+			else if(object.Total_Counts > Guide_Data.Exposure_Length_Scaling.Max_Integrated_Counts)
+				Guide_Data.Exposure_Length_Scaling.Scale_Index++;
+			else
+				Guide_Data.Exposure_Length_Scaling.Scale_Index = 0;
+		}
+	}/* end if on object_count */
+	if(Guide_Data.Exposure_Length_Scaling.Scale_Index >= Guide_Data.Exposure_Length_Scaling.Scale_Count)
+	{
+		Guide_Data.Exposure_Length_Scaling.Scale_Index = 0;
+		if(object_count == 1)
+		{
+			if(Guide_Data.Exposure_Length_Scaling.Type == GUIDE_SCALE_TYPE_PEAK)
+				guide_exposure_length = (int)((float)guide_exposure_length * 
+				       (((float)Guide_Data.Exposure_Length_Scaling.Target_Counts)/object.Peak_Counts));
+			else if(Guide_Data.Exposure_Length_Scaling.Type == GUIDE_SCALE_TYPE_INTEGRATED)
+				guide_exposure_length = (int)((float)guide_exposure_length * 
+				      (((float)Guide_Data.Exposure_Length_Scaling.Target_Counts)/object.Total_Counts));
+		}
+		else /* no objects found */
+		{
+			Autoguider_Dark_Get_Exposure_Length_Nearest(&guide_exposure_length,&guide_exposure_index)
+			/* check we can expose for longer.
+			** If not return FALSE - stop the guide loop - we've lost the guide star. */
+			if(guide_exposure_index >= Autoguider_Dark_Get_Exposure_Length_Count())
+				     "Autoguiding failed as no objects detected at longest exposure length.",
+				     return error
+			Autoguider_Dark_Get_Exposure_Length_Index(guide_exposure_index,&guide_exposure_length)
+		}
+		Autoguider_Guide_Exposure_Length_Set(guide_exposure_length,FALSE)
+		retval = Autoguider_Dark_Set(Guide_Data.Bin_X,Guide_Data.Bin_Y,Guide_Data.Exposure_Length);
+	}/* end if scale index >= scale count */

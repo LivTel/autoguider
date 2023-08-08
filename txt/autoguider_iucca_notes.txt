@@ -1,0 +1,94 @@
+- We don't have an AG GUI (kind of already says this)
+- What subset of the TCS interface do we support?
+     autoguide on brightest
+	       on rank
+	       on pixel x y
+     autoguide off
+START_SESSION?
+END_SESSION?
+
+     All exist in the software - have they ever been tested?
+     We do not support:
+	autoguider on range <mmag1> <mmag2>
+	config exp_time <time> (CIL command only?)
+	config frame_rate <n> (CIL command only?)
+	config frame_average <n> (CIL command only?)
+	config calib <prop> <offset> (configure CCD counts->astro mags) (CIL command only?)
+	AGG_LOGGING (CIL command only?)
+- What version of the TTL SDB/ AG centroid interface are we compatible with?
+- AG system performance i.e. closed loop cycle time - text suggests we are not guaranteeing
+  any particular performance? (fine by me)
+- Linking:
+	Standard AG libraries:
+	libautoguider_commandserver
+	libautoguider_ngatcil
+	libautoguider_ccd_general
+
+	Logging:
+	liblog_udp
+	Note this means the AG emits logging UDP packets - these can be ignored?
+
+	libcfitsio
+	Are we allowed to bundle this as part of software for sale? License issues? 
+	Shouldn't really be a problem as it's free?
+
+	DpRt libraries:
+	libdprt_object
+	libdprt_libfits
+	liblt_filenames
+	Are we OK to release these? Probably.
+
+	General LT libraries
+	libngatastro
+	MJD calc.
+
+	eSTAR libraries
+	libestar_config
+	OK
+- Should we be specifying what telemetry the software generates i.e. log files?
+- TTL comms:
+  - TCC (tcc) : 13021 : TCS CIL UDP port
+  - TCC (tcc) : 13025 : Guide packets sent over this port to TCS
+  - AGS (acc) : 13024 : AGS CIL UDP port (autoguider software CIL server command port)
+  - SCC (scc) : 13002 : CHB (continuous heartbeat) reply port
+  - SCC (scc) : 13001 : Replies to MCP (master control process) requests
+  - MCC (mcc) : 13011 : SDB submissions (centroids, AG state etc)
+
+Cil messages received on AGS CIL UDP port. Services:
+ - CHB packets
+   - send CHB response (scc:13002)
+ - MCP packets
+     - Ignores Shutdown packet
+     - Ignores activate packet (but sends correct response) (scc:13001)
+     - Ignores safestate packet (but sends correct response) (scc:13001)
+ - TCS Packets
+     - autoguide on brightest (tcc:13025)
+     - autoguide on rank  (tcc:13025)
+     - autoguide on pixel x y  (tcc:13025)
+     - autoguide off  (tcc:13025)
+     - AGS_START_SESSION (update SDB State, send TCS reply(tcc:13025))
+     - AGS_END_SESSION (tcc:13025)
+ - SDB packets (not processed yet (SDB request responses).
+
+
+ngatcil_cil.h:
+Derived from "Generic 2.0m Telescope, Autoguider to TCS Interface Control Document, Version 0.01, 6th October 2005".
+Packet contents are derived from "Liverpool 2.0m Telescope, Communications Interface Library User Guide,
+ Version 0.16, 21st May 2001".
+Derived from ngtcs Cil.h (/home/dev/src/cil/ngtcs/Cil.h) which claims to be v1.42 (2001/11/30).
+
+Currently in use on the LT (from Steve):
+--------------------------
+AUTOGUIDE ON BRIGHTEST
+dont think weve ever used rank or pixel and the phase2 doesnt support that now anyway
+
+AUTOGUIDE OFF
+
+SHOW AUTOGUIDER to get ag status 
+
+via the internal telnet interface I use:
+
+status temperature get
+
+status guide active
+

@@ -1,0 +1,32 @@
+RCS->Eng
+
+telnet occ 8221
+iss -mode MANUAL
+iss -tag LT_OPS -user COMISSIONING -prop Autoguider -group 20060716 -obs 1
+
+source PG1525-071 15 28 11.6 -07 16 27 J2000
+next
+rot sky 0
+agsel cass
+agradial 0
+agfocus 2.8
+
+/opt/ttl/util/testinject < inject2.txt
+
+guide exposure_length 1000 lock
+
+autoguide on
+
+OR
+
+field 1000
+guide object 0
+guide on
+
+autoguide receive
+autoguide off (TCS)
+
+autoguide off (autoguider)
+
+iss -mode AUTOMATIC
+RCS->Oper

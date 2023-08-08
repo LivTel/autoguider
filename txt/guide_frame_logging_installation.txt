@@ -1,0 +1,5 @@
+# autoguider guide frame logging                                                
+* 0-7,18-23 * * * /icc/bin/autoguider/scripts/autoguider_get_guide_frames_cron          
+# autoguider guide frame old frame deletion                                     
+06 11 * * * /icc/bin/autoguider/scripts/autoguider_rm_guide_frames_cron         
+ 

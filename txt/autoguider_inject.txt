@@ -1,0 +1,30 @@
+There is additional information required by the Tcs from the Sdb to
+autoguide correctly.
+
+1. The integration time.
+2. A valid autoguider state.
+
+As a short term fix to test the guiding you can use the attached script
+along with the testinject utility to "force" these values in the Sdb,
+i.e. from the mcc
+
+   $ testinject < inj.txt
+
+The inj.txt file contains the following | + comments:
+
+	AGS			|subsystem
+	INTTIME		|datum (integration time)
+	3E8			|integration time, msec, (hex)
+	MSEC_UNITS		|units
+	Y			|another?
+	AGS			|subsystem
+	AGSTATE		|datum (autoguider state)
+	1005			|state (interactive guiding)
+	NO_UNITS		|units
+	N			|another?
+
+The integration time is set to 1000 msec in this example - it is used to
+determine how much of the guiding correction is applied at each 10Hz
+tick. 
+
+/opt/ttl/util/testinject < inject2.txt

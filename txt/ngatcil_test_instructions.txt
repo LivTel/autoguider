@@ -1,0 +1,24 @@
+cd ~dev/bin/autoguider/ngatcil/test/i386-linux
+
+./test_autoguider -cx 5.12.0 -cy 512.0 -r 10.0 -pc 4 -tcc ltobs9
+
+./test_tcs -acc ltobs9
+
+cd ~dev/bin/autoguider/commandserver/test/i386-linux
+
+to tcc:
+./send_command -h ltobs9 -p 1234 -c "help"
+
+to autoguider:
+./send_command -h ltobs9 -p 1235 -c "help"
+
+to tcc:
+./send_command -h ltobs9 -p 1234 -c "autoguider on"
+./send_command -h ltobs9 -p 1234 -c "autoguider off"
+
+
+shutdown:
+test_tcs:
+./send_command -h ltobs9 -p 1234 -c "shutdown"
+test_autoguider:
+./send_command -h ltobs9 -p 1235 -c "shutdown"

@@ -1,0 +1,43 @@
+autoguider_guide.c:
+===================
+New variable: Guide_Window_Tracking used to determine whether to do tracking.
+
+Autoguider_Guide_Set_Guide_Object(int index)
+----------------------------------
+
+Autoguider_Object_List_Get_Object(index,&object)
+CCD_Config_Get_Integer("guide.ncols.default",&default_window_width
+CCD_Config_Get_Integer("guide.nrows.default",&default_window_height
+/* compute window position */
+sx = object.CCD_X_Position-(default_window_width/2);
+if(sx < 1)
+	sx = 1;
+sy = object.CCD_Y_Position-(default_window_height/2);
+if(sy < 1)
+	sy = 1; 
+ex = sx + default_window_width;
+/* guide windows are inclusive i.e. pixel 0..1023 - 1023 is the last pixel where npixels is 1024 */
+if(ex >= Guide_Data.Binned_NCols)
+	ex = Guide_Data.Binned_NCols - 1;
+ey = sy + default_window_height;
+if(ey >= Guide_Data.Binned_NRows)
+	ey = Guide_Data.Binned_NRows - 1;
+/* set guide window data */
+if(!Autoguider_Guide_Window_Set(sx,sy,ex,ey))
+/* only change exposure length if it is not locked */
+if(Guide_Data.Exposure_Length_Lock == FALSE)
+	Exposure length scaling...
+
+Rewrite so guide window part in subroutine with x,y input. (Autoguider_Guide_Window_Set_From_XY)
+
+
+autoguider_command.c:
+=====================
+
+Autoguider_Command_Autoguide_On(enum COMMAND_AG_ON_TYPE on_type,float pixel_x,float pixel_y,int rank)
+-------------------------------
+Autoguider_Field
+Autoguider_Object_Guide_Object_Get(on_type,pixel_x,pixel_y,rank,&selected_object_index)
+Autoguider_Guide_Set_Guide_Object(selected_object_index)
+Autoguider_Guide_On
+

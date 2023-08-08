@@ -1,0 +1,17 @@
+
+AG focus on axis (deploy=110mm) is 3.8mm
+AG focus off axis (deploy=0mm) is 2.8mm
+
+
+AGSELECT CASSEGRAIN
+
+off axis:
+
+AGRADIAL 0
+AGFOCUS 2.8
+
+on axis:
+
+AGRADIAL 110
+AGFOCUS 3.8
+

@@ -1,0 +1,28 @@
+Hi guys,
+
+Many thanks for the extra source code you sent me. I (eventually) managed to figure out what
+I was doing wrong, and I now can talk to the SDB successfully.
+
+And so, onto the next problem. I can't get the TCS to send me an "autoguide on" command, when I issue this to the TUI
+it responds "Autoguider not ready to receive commands." (and I believe no CIL packet is sent to the AGS CIL port). I had previously issued an "agsel cass".
+
+Also on the TCS Display client, screen 2, it reports: 
+
+Autoguider name: CASSEGRAIN
+Autoguider status Autoguider not accepting commands.
+AG service state OKAY.
+
+I'm guessing the "Autoguider status" is what the TCS is checking? 
+
+I'm setting the AGSTATE SDB entry to "IDLE" at this point, though I bypassed the "INITIALISING" state at startup
+(I go straight from OFF to IDLE). This seems to be reflected on the TCS Display, screen 1, which says 
+"Autoguider   NOT GUIDING".
+
+I'm also now responding to CHB heartbeats (with status SYS_OKAY_STATE), 
+this seems to be reflected in the TCS Display screen 2 "AG service state OKAY", and also in the ECI. 
+
+So, can you tell me how the TCS decides the autoguider is "not accepting commands"?
+
+cheers
+
+Chris

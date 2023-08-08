@@ -1,0 +1,129 @@
+AgsUtil.c
+---------
+
+iAgsSendCilMsg : Sends a CIL message to a software process.
+Convers data to network byte order, uses eCilSend to send data.
+
+iAgsCheckAndSet : Sets Oid in OidTable. CHanged flag is set if value changes.
+		Change value always set for D_AGS_GUIDEMAG / D_AGS_CENTROIDX / D_AGS_CENTROIDY / D_AGS_FWHM / D_AGS_INTTIME
+eTimGetTime is used to generate timestamp.
+
+
+AgsMain.c
+---------
+
+main:
+	iAgsSetup
+	iAgsMonitorAgg
+	iAgsShutdown
+
+iAgsMonitorAgg :
+	       eCilFlush
+	       while ( Status != SYS_FAILED_STATE )
+		     iAgsReceiveMessage
+		     if (iAgsData.SdbSubmitReq == TRUE)
+			iAgsSubmitStatus
+	             iAgsCheckSafeState
+
+AgsPrivate.h
+------------
+/* Structure for SDB submissions */
+typedef struct iAgsSdbDat_e iAgsSdbData_t
+
+iAgsOidTable_t;
+
+/*
+** This table is indexed into by Oid.
+** The order of each block of items must be the same as that defined in the
+** SptDataID list in Spt.h. The Oid Table must be in the same order as
+** the enumerated Datum Ids.  When adding new OIDs to this table ensure 
+** that the I_AGS_FINAL_DATA_ID etc are updated if appropriate.
+*/
+
+I_AGS_EXTERN iAgsOidTable_t iAgsOidTable[]
+
+List of function declarations in each file.
+
+AgsReport.c
+-----------
+
+iAgsSubmitStatus : Submits status to the SDB.
+ Uses iAgsSdbData_t and copied Changed entries from iAgsOidTable.
+Put into iAgsData.SdbSubmissionMsg, then iAgsSendCilMsg called.
+
+AgsInit.c
+---------
+iAgsSetup: Sets up common fields in iAgsData.SdbSubmissionMsg.
+
+Ags.h
+-----
+
+/* Enumerated list of states reported to the SDB by the autoguider. */
+typedef enum eAgsState_e
+
+/* Global data for submission to the Status Database (SDB) */
+typedef enum eAgsDataId_e
+
+AgsProcess.c
+------------
+
+iAgsProcessHeartbeat : Processes heartbeat - notice replies with state information.
+
+iAgsProcessSafeState : Resubmits everyhting to the SDB
+
+iAgsProcessActivate : Submits all the fields to the SDB
+
+iAgsReceiveReply : AGG INFO reply submits everything to SDB structure.
+
+AgsReply.c
+----------
+
+Replies to client mesages.
+
+iAgsComReply:
+Replies filled win with Process State, retrieved by iAgsGetState, should be STS_STATE_OKAY.
+Stored oddly in ActualState?
+
+Spurious extra headers may be in : /home/dev/src/cil/ngtcs/include/
+
+
+Dates
+-----
+
+date -d "Jan 1 00:00:00 +00 1970"
+Thu Jan  1 01:00:00 BST 1970
+
+date -d "Jan 1 00:00:00 +00 1970" "+%s"
+0
+
+Steve says:
+
+I use 1980 5th Jan at 0:0:0UT - cant recall where I found this but it was
+in some TTL document - e.g. the Cil 'ICD' or whatever it was called.
+
+I looked this up recently on the web and came up with a different value -
+something like 6th Jan 1980 at noon.
+
+date -d "Jan 5 00:00:00 +00 1980"
+Sat Jan  5 00:00:00 GMT 1980
+
+date -d "Jan 5 00:00:00 +00 1980" "+%s"
+315878400
+
+D_AGS_AG_STATE
+
+See P23 of the AG ICD. Suggests eAgsAgState_t, this really appears to be eAgsState_t.
+
+
+Cil.c
+-----
+
+eCilSend:
+
+BufferLen = I_CIL_HDRBLK_SIZE + MsgPtr->DataLen;
+CilPrivate.h:#define I_CIL_HDRBLK_SIZE  28  /* Number of bytes used in CIL header */
+
+eCilConvert32bitArray:
+Note assumes data buffer is Uint32_t, and casts accordingly.
+
+
