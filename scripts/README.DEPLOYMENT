@@ -1,0 +1,32 @@
+DEPLOYMENT README
+$Header: /home/cjm/cvs/autoguider/scripts/README.DEPLOYMENT,v 1.1 2023-08-08 09:26:11 cjm Exp $
+Version$
+By $Author: cjm $
+
+Autoguider Installation
+-----------------------
+Note, all logs are deleted during installation. Any configuration changes from the default will
+also be lost as all properties file in the /icc/bin tree are overwritten with the original version.
+To preserve changes, copy the properties files (*.properties) somewhere safe before installation.
+Better yet, update the originals on the ARI development account.
+
+Note the FITS images are no longer deleted. To remove all the data frames: 'rm -rf /icc/tmp'
+before installation.
+
+===================================================================================
+= ENSURE the deployment is for the same machine architecture as the deployment OS =
+===================================================================================
+
+To install the autoguider:
+--------------------------
+1. Download from http://ltdevsrv.livjm.ac.uk/~dev/autoguider/deployment:
+	icc_cshrc
+	icc_cshrc_edit.awk
+	README.DEPLOYMENT
+	autoguider_tar_install
+	autoguider_deployment_<machine name>.tar.gz
+	Put the files in ~eng/download/<date>
+2. Login as root.
+3. ./autoguider_tar_install <machine name>
+4. cd /
+5. reboot

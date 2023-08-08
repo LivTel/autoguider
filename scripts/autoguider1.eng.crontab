@@ -1,0 +1,6 @@
+# minute hour day_of_month month day_of_week command
+35 11 * * * $HOME/scripts/instrument_archive_logs
+35 14 * * * /icc/bin/autoguider/scripts/autoguider_rm_field_frames_cron
+35 15 * * * /icc/bin/autoguider/scripts/autoguider_rm_guide_frames_cron
+* 0-6,18-23 * * * /icc/bin/autoguider/scripts/autoguider_get_guide_frames_cron
+2 * * * * /icc/bin/autoguider/scripts/autoguider_get_process_stats
