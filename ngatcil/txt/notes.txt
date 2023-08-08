@@ -1,0 +1,80 @@
+/home/dev/src/cil/ngtcs/Cil.h is the best header file.
+
+/home/dev/src/cil/ngtcs/include/Ags.h contains AGS status codes (eAgsStatus_e)
+typedef enum eAgsStatus_e
+{
+   E_AGS_GEN_ERR = STATUS_START(AGS),/* Miscellaneous error. */
+   E_AGS_UNEXPECTED_MSG,             /* Unexpected message class. */
+   E_AGS_UNKNOWN_SOURCE,             /* Unexpected message source. */
+   E_AGS_NO_HEARTBEATS,              /* Heartbeats have been missed. */
+   E_AGS_INVREPLY,                   /* Invalid reply to an AGS command. */
+   E_AGS_CMDQ_EMPTY,                 /* Command queue empty. */
+   E_AGS_CONFIG_FILE_ERROR,          /* Error reading config file. */
+   E_AGS_INVALID_DATUM,              /* Datum not in range of eAgsDataId_t. */
+   E_AGS_INV_CMD,                    /* Invalid command. */
+   E_AGS_BAD_CMD,                    /* Badly formed command. */
+   E_AGS_CMDQ_ERR,                   /* Error with command queue to Agg. */
+   E_AGS_INV_STATE,                  /* Invalid state requested. */
+   E_AGS_UNKNOWN_OID,                /* Request to set unknown OID. */ 
+   E_AGS_CMDQ_FULL,                  /* Command queue full. */
+   E_AGS_CMD_TIMEOUT,                /* Command to Agg timed out. */
+   E_AGS_CMD_NOT_PERMITTED,          /* Command to Agg not permitted. */
+   E_AGS_LOOP_STOPPING,              /* Command rejected - already stopping. */
+   E_AGS_LOOP_RUNNING,               /* Command rejected - already running. */
+   E_AGS_LOOP_ERROR,                 /* Error starting guide loop. */
+   E_AGS_BAD_FORMAT,                 /* Badly formatted command sent to Agg. */
+   E_AGS_HW_ERR,                     /* Error reported by camera hardware. */
+   E_AGS_STATUS_EOL                  /* End of status list marker (do not use) */
+} eAgsStatus_t;
+
+
+STATUS_START defined in TtlSystem.h:
+
+/*
+** Status return range assignment macro.
+** All status returns are enumerations/integers which are 4 byte values.
+** These are assigned as follows:
+** Most significant 16 bits package id.
+** Least significant 16 bits return value.
+*/
+
+#define STATUS_START(x) ((x) << 16)
+
+STATUS_START(AGS):
+
+AGS defined in TtlSystem.h:
+/*
+** Package number assignments
+*/
+
+enum PackageId {
+...
+   AGG = 0x004e,    /* Autoguider Guiding Task */
+   AGS = 0x004f,    /* Autoguider System Task */
+...
+}
+
+Therefore:
+   E_AGS_GEN_ERR = 0x4f0000,
+   E_AGS_UNEXPECTED_MSG,    0x4f0001          /* Unexpected message class. */
+   E_AGS_UNKNOWN_SOURCE,    0x4f0002          /* Unexpected message source. */
+   E_AGS_NO_HEARTBEATS,     0x4f0003          /* Heartbeats have been missed. */
+   E_AGS_INVREPLY,          0x4f0004          /* Invalid reply to an AGS command. */
+   E_AGS_CMDQ_EMPTY,        0x4f0005          /* Command queue empty. */
+   E_AGS_CONFIG_FILE_ERROR, 0x4f0006         /* Error reading config file. */
+   E_AGS_INVALID_DATUM,     0x4f0007         /* Datum not in range of eAgsDataId_t. */
+   E_AGS_INV_CMD,           0x4f0008         /* Invalid command. */
+   E_AGS_BAD_CMD,           0x4f0009         /* Badly formed command. */
+   E_AGS_CMDQ_ERR,          0x4f000a         /* Error with command queue to Agg. */
+   E_AGS_INV_STATE,         0x4f000b         /* Invalid state requested. */
+   E_AGS_UNKNOWN_OID,       0x4f000c         /* Request to set unknown OID. */ 
+   E_AGS_CMDQ_FULL,         0x4f000d         /* Command queue full. */
+   E_AGS_CMD_TIMEOUT,       0x4f000e         /* Command to Agg timed out. */
+   E_AGS_CMD_NOT_PERMITTED, 0x4f000f         /* Command to Agg not permitted. */
+   E_AGS_LOOP_STOPPING,     0x4f0010         /* Command rejected - already stopping. */
+   E_AGS_LOOP_RUNNING,      0x4f0011         /* Command rejected - already running. */
+   E_AGS_LOOP_ERROR,        0x4f0012         /* Error starting guide loop. */
+   E_AGS_BAD_FORMAT,        0x4f0013         /* Badly formatted command sent to Agg. */
+   E_AGS_HW_ERR,            0x4f0014         /* Error reported by camera hardware. */
+
+STATUS_START(AGS),/* Miscellaneous error. */
