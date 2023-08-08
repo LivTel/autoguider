@@ -1,0 +1,10 @@
+#!/bin/csh
+set date_secs = `date +"%s"`
+test_raw_send -host mcc -port 13011 -w 0x14 -w 0xa -w 0x1 -w 0xd0001 -w 0x1 -w ${date_secs} -w 0x85da1d0 -w 0x1 -w 0x14 -w 0x5 -w 0x2 -w ${date_secs} -w 0x85da1d0 -w 0x5
+
+#Source = 0x14, Dest = 0xa, Class = 0x1, Service = 0xd0001,SeqNum = 0x1.
+#Timestamp secs = 0x44ce0f83, Timestamp NanoSecs = 0x85da1d0
+#Word 7 = 0x1 Word 8 = 0x14                                   (NumElts = 1,SourceId = E_CIL_AGS)
+#Word 9 = 0x5 Word 10 = 0x2                                   (DatumId = D_AGS_AGSTATE,Units = E_SDB_NO_UNITS)
+#Word 11 = 0x44ce0f83 Word 12 = 0x85d7ea8                     (Msrment timestamp)
+#Word 13 = 0x5                                                (Msrment Value = E_AGS_IDLE)
