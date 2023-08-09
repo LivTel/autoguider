@@ -4,7 +4,7 @@
 include ../../Makefile.common
 include ../Makefile.common
 
-DIRS = c andor fli test 
+DIRS = c andor fli 
 top:
 	@for i in $(DIRS); \
 	do \
