@@ -26,7 +26,8 @@ LOG_UDP_CFLAGS		= -I$(LOG_UDP_SRC_HOME)/include
 # -rdynamic ?
 DL_LDFLAGS		= -ldl
 
-CFLAGS 			= -g -I$(INCDIR) $(DEBUG_CFLAGS) $(ESTAR_CONFIG_CFLAGS) $(CFITSIO_CFLAGS) $(LOG_UDP_CFLAGS)
+CFLAGS 			= -g -I$(INCDIR) $(DEBUG_CFLAGS) $(ESTAR_CONFIG_CFLAGS) $(CFITSIO_CFLAGS) $(LOG_UDP_CFLAGS) \
+			  $(SHARED_LIB_CFLAGS)
 DOCFLAGS 		= -static
 
 LIB_SRCS		= ccd_general.c ccd_config.c ccd_driver.c ccd_exposure.c ccd_setup.c ccd_temperature.c
