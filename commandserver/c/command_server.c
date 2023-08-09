@@ -30,7 +30,7 @@
 /**
  * Define this to enable 'gethostname' prototype in 'unistd.h'.
  */
-#define _BSD_SOURCE 1
+#define _DEFAULT_SOURCE 1
 
 #include <arpa/inet.h>
 
@@ -801,7 +801,7 @@ int Command_Server_Read_Message(Command_Server_Handle_T handle,char **message)
 		{
 			read_errno = errno;
 			Command_Server_Error_Number = 42;
-			sprintf(Command_Server_Error_String,"Command_Server_Read_Message: read error(%d,%d,%d,%s).",
+			sprintf(Command_Server_Error_String,"Command_Server_Read_Message: read error(%d,%ld,%ld,%s).",
 				handle->Socket_fd,bytes_read,total_bytes_read,strerror(read_errno));
 			return(FALSE);
 		}
@@ -1029,7 +1029,7 @@ int Command_Server_Read_Binary_Message(Command_Server_Handle_T handle,void **dat
 	{
 		Command_Server_Error_Number = 44;
 		sprintf(Command_Server_Error_String,
-			 "Command_Server_Read_Binary_Message: message length error(%d bytes).",
+			 "Command_Server_Read_Binary_Message: message length error(%ld bytes).",
 			 message_length);
 		return(FALSE);
 	}
@@ -1045,7 +1045,7 @@ int Command_Server_Read_Binary_Message(Command_Server_Handle_T handle,void **dat
 		i = errno;
 		Command_Server_Error_Number = 45;
 		sprintf(Command_Server_Error_String,
-			 "Command_Server_Read_Binary_Message: memory allocation error(%d): %s",
+			 "Command_Server_Read_Binary_Message: memory allocation error(%ld): %s",
 			 (*data_buffer_length),strerror(i));
 		return(FALSE);
 	}
@@ -1377,7 +1377,7 @@ static int Write_Buffer(Command_Server_Handle_T handle,void *buffer,size_t buffe
 			write_errno = errno;
 			Command_Server_Error_Number = 3;
 			sprintf(Command_Server_Error_String,
-				"Write_Buffer: write error(%ld + %ld/%d : %s).",
+				"Write_Buffer: write error(%ld + %ld/%ld : %s).",
 				total_bytes_written,bytes_written,buffer_length,strerror(write_errno));
 			return(FALSE);
 		}
@@ -1415,7 +1415,7 @@ static int Read_Binary_Buffer(Command_Server_Handle_T handle,void *data_buffer,s
 		{
 			read_errno = errno;
 			Command_Server_Error_Number = 43;
-			sprintf(Command_Server_Error_String,"Read_Binary_Buffer:read error(%d vs %d bytes: %s).",
+			sprintf(Command_Server_Error_String,"Read_Binary_Buffer:read error(%ld vs %ld bytes: %s).",
 				total_bytes_read,data_buffer_length,strerror(read_errno));
 			return(FALSE);
 		}
