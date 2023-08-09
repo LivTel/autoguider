@@ -1,0 +1,10 @@
+# LaTeX generated intermediate files
+*.aux
+*.lof
+*.log
+*.lot
+*.toc
+*.dvi
+# Files generatde by convert from .png files
+Network_Connections_1.eps
+Network_Connections_2.eps
