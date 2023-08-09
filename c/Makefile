@@ -38,10 +38,11 @@ OBJECT_CFLAGS		= -I${LT_SRC_HOME}/libdprt/object/include
 OBJECT_LDFLAGS		= -ldprt_object
 
 # libdprt_libfits.a (iterstat used in autoguider_object.c)
-# Today, dprt_libfits requires ccd_dprt for 'buf_base_filename'
-# ccd_dprt requires lt_filenames
 ITERSTAT_CFLAGS		= -I${LT_SRC_HOME}/libdprt/ccd_imager
-ITERSTAT_LDFLAGS	= -ldprt_libfits -lccd_dprt -llt_filenames
+ITERSTAT_LDFLAGS	= -ldprt_libfits
+# Sometimes, dprt_libfits requires ccd_dprt for 'buf_base_filename'
+# ccd_dprt requires lt_filenames
+# -lccd_dprt -llt_filenames
 
 # SLALIB link information - used only for calculating MJD in get_fits at the moment
 #MJD_CFLAGS 		= -DSLALIB=1 -I${LT_SRC_HOME}/astrometry/include
