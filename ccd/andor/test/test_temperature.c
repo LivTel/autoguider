@@ -8,6 +8,7 @@
  * @version $Revision: 1.4 $
  */
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include "ccd_exposure.h"

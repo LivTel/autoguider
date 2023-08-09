@@ -21,7 +21,7 @@ ANDOR_CFLAGS 		= -I$(AUTOGUIDER_ANDOR_SRC_HOME)/include
 
 # Andor 2.85.30000
 # Current master copy on ltdevsrv
-ANDOR_LDFLAGS 		= -L$(LT_SRC_HOME)/andor/andor-2.85.30000/lib/ -lautoguider_ccd_andor \
+ANDOR_LDFLAGS 		= -L$(LT_SRC_HOME)/andor/andor-2.85.30000/lib/$(HOSTTYPE) -lautoguider_ccd_andor \
 			  -landor -lstdc++ -lpthread -ldl
 
 # NB because Andor 2.15 does not come with static libraries, we need the -L here

@@ -31,9 +31,10 @@ LOG_UDP_CFLAGS		= -I$(LOG_UDP_SRC_HOME)/include
 # Andor 2.85.30000
 # Current master copy on ltdevsrv
 ANDOR_CFLAGS 		= -I$(LT_SRC_HOME)/andor/andor-2.85.30000/include/
-ANDOR_LDFLAGS 		= -L$(LT_SRC_HOME)/andor/andor-2.85.30000/lib/ -landor -lstdc++ -lpthread -ldl
+ANDOR_LDFLAGS 		= -L$(LT_SRC_HOME)/andor/andor-2.85.30000/lib/$(HOSTTYPE) -landor -lstdc++ -lpthread -ldl
 
-CFLAGS 			= -g -I$(INCDIR) $(DEBUG_CFLAGS) $(ANDOR_CFLAGS) $(CCD_CFLAGS) $(LOG_UDP_CFLAGS)
+CFLAGS 			= -g -I$(INCDIR) $(DEBUG_CFLAGS) $(ANDOR_CFLAGS) $(CCD_CFLAGS) $(LOG_UDP_CFLAGS) \
+			  $(SHARED_LIB_CFLAGS)
 DOCFLAGS 		= -static
 
 LIB_SRCS		= andor_general.c andor_setup.c andor_exposure.c andor_temperature.c andor_driver.c
