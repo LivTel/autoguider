@@ -33,4 +33,8 @@ The Makefile.common file is included in Makefile's to provide common root direct
 
 * The relevant camera SDK must be installed.
 * The log_udp repo/package must be installed: https://github.com/LivTel/log_udp
+* The eSTAR config repo/package must be installed.
+* The ngat repo/package must be installed: https://github.com/LivTel/ngat
+* Parts of the libdprt real-time data reduction library must be installed (specifically, the object detection library).
+* The ngatastro repo/package must be installed.
 * The software can only be built from within an LT development environment
