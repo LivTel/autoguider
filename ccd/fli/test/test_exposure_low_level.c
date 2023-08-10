@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-
+#include <unistd.h>
 #include "libfli.h"
 #include "fitsio.h"
 
@@ -239,14 +239,14 @@ int main(int argc, char *argv[])
 	if(Use_Window)
 	{
 		image_area = Window;
-		fprintf(stdout,"Using Window with unbinned corners (ulx=%d,uly=%d)(lrx=%d,lry=%d).\n",
+		fprintf(stdout,"Using Window with unbinned corners (ulx=%ld,uly=%ld)(lrx=%ld,lry=%ld).\n",
 			image_area.Upper_Left_X,image_area.Upper_Left_Y,
 			image_area.Lower_Right_X,image_area.Lower_Right_Y);
 	}
 	/* calculate the number of binned pixels */
 	binned_pixels_x = (image_area.Lower_Right_X-image_area.Upper_Left_X)/Bin_X;
 	binned_pixels_y = (image_area.Lower_Right_Y-image_area.Upper_Left_Y)/Bin_Y;
-	fprintf(stdout,"main: Allocating image data (%d x %d).\n",binned_pixels_x,binned_pixels_y);
+	fprintf(stdout,"main: Allocating image data (%ld x %ld).\n",binned_pixels_x,binned_pixels_y);
 	image_data = (unsigned short*)malloc(binned_pixels_x * binned_pixels_y * sizeof(unsigned short));
 	if(image_data == NULL)
 	{
@@ -628,28 +628,28 @@ static int Parse_Arguments(int argc, char *argv[])
 		{
 			if((i+4)<argc)
 			{
-				retval = sscanf(argv[i+1],"%d",&(Window.Upper_Left_X));
+				retval = sscanf(argv[i+1],"%ld",&(Window.Upper_Left_X));
 				if(retval != 1)
 				{
 					fprintf(stderr,"Parse_Arguments:Parsing window upper left X %s failed.\n",
 						argv[i+1]);
 					return FALSE;
 				}
-				retval = sscanf(argv[i+2],"%d",&(Window.Upper_Left_Y));
+				retval = sscanf(argv[i+2],"%ld",&(Window.Upper_Left_Y));
 				if(retval != 1)
 				{
 					fprintf(stderr,"Parse_Arguments:Parsing window upper left Y %s failed.\n",
 						argv[i+2]);
 					return FALSE;
 				}
-				retval = sscanf(argv[i+3],"%d",&(Window.Lower_Right_X));
+				retval = sscanf(argv[i+3],"%ld",&(Window.Lower_Right_X));
 				if(retval != 1)
 				{
 					fprintf(stderr,"Parse_Arguments:Parsing window lower right X %s failed.\n",
 						argv[i+3]);
 					return FALSE;
 				}
-				retval = sscanf(argv[i+4],"%d",&(Window.Lower_Right_Y));
+				retval = sscanf(argv[i+4],"%ld",&(Window.Lower_Right_Y));
 				if(retval != 1)
 				{
 					fprintf(stderr,"Parse_Arguments:Parsing window lower right Y %s failed.\n",

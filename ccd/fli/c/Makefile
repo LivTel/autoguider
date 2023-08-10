@@ -21,9 +21,10 @@ LOG_UDP_CFLAGS		= -I$(LOG_UDP_SRC_HOME)/include
 
 # fli library
 FLI_CFLAGS		= -I$(AUTOGUIDER_NOGIT_HOME)/$(AUTOGUIDER_FLI_HOME)/libfli-1.104/
-FLI_LDFLAGS		= -L$(AUTOGUIDER_NOGIT_HOME)/$(AUTOGUIDER_FLI_HOME)/libfli-1.104/ -lfli
+FLI_LDFLAGS		= -L$(AUTOGUIDER_NOGIT_HOME)/$(AUTOGUIDER_FLI_HOME)/libfli-1.104/$(HOSTTYPE) -lfli
 
-CFLAGS 			= -g -I$(INCDIR) $(DEBUG_CFLAGS) $(FLI_CFLAGS) $(CCD_CFLAGS) $(LOG_UDP_CFLAGS)
+CFLAGS 			= -g -I$(INCDIR) $(DEBUG_CFLAGS) $(FLI_CFLAGS) $(CCD_CFLAGS) $(LOG_UDP_CFLAGS) \
+			  $(SHARED_LIB_CFLAGS)
 DOCFLAGS 		= -static
 LIB_SRCS		= fli_setup.c fli_exposure.c fli_temperature.c fli_driver.c
 # fli_general.c 

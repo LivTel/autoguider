@@ -26,6 +26,7 @@
 #include "ccd_general.h"
 #include "ccd_temperature.h"
 #include "fli_general.h"
+#include "fli_setup.h"
 #include "fli_temperature.h"
 
 /* structs */
@@ -143,7 +144,7 @@ int FLI_Temperature_Set(double target_temperature)
 	if(fli_retval != 0)
 	{
 		CCD_General_Error_Number = 1303;
-		sprintf(CCD_General_Error_String,"FLI_Temperature_Set: FLISetTemperature(%lf) failed %s(%d).",
+		sprintf(CCD_General_Error_String,"FLI_Temperature_Set: FLISetTemperature(%lf) failed %s(%ld).",
 			target_temperature,strerror((int)-fli_retval),fli_retval);
 		return FALSE;
 	}

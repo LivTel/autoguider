@@ -11,7 +11,7 @@ DOCSDIR 		= $(AUTOGUIDER_FLI_DOC_HOME)/test
 
 # fli library
 FLI_CFLAGS 		= -I$(AUTOGUIDER_NOGIT_HOME)/$(AUTOGUIDER_FLI_HOME)/libfli-1.104/
-FLI_LDFLAGS 		= -L$(AUTOGUIDER_NOGIT_HOME)/$(AUTOGUIDER_FLI_HOME)/libfli-1.104/ -lfli
+FLI_LDFLAGS 		= -L$(AUTOGUIDER_NOGIT_HOME)/$(AUTOGUIDER_FLI_HOME)/libfli-1.104/$(HOSTTYPE) -lfli
 
 # CFITSIO library
 CFITSIO_CFLAGS		= -I$(CFITSIOINCDIR) 
@@ -29,7 +29,7 @@ DOCS 			= $(SRCS:%.c=$(DOCSDIR)/%.html)
 top: $(EXES) docs
 
 $(BINDIR)/%: $(BINDIR)/%.o
-	$(CC) $< -o $@  $(CFITSIO_LDFLAGS) $(FLI_LDFLAGS) -lfli
+	$(CC) $< -o $@  $(CFITSIO_LDFLAGS) $(FLI_LDFLAGS) -lm
 
 $(BINDIR)/%.o: %.c
 	$(CC) -c $(CFLAGS) $< -o $@  

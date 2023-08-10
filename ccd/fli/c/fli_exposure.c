@@ -162,7 +162,7 @@ int FLI_Exposure_Expose(int open_shutter,struct timespec start_time,int exposure
 	if(buffer_length < FLI_Setup_Get_Buffer_Length())
 	{
 		CCD_General_Error_Number = 1201;
-		sprintf(CCD_General_Error_String,"FLI_Exposure_Expose: buffer_length (%ld) was too small (%ld).",
+		sprintf(CCD_General_Error_String,"FLI_Exposure_Expose: buffer_length (%ld) was too small (%d).",
 			buffer_length,FLI_Setup_Get_Buffer_Length());
 		return FALSE;
 

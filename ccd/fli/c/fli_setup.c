@@ -300,7 +300,7 @@ int FLI_Setup_Dimensions(int ncols,int nrows,int hbin,int vbin,
 		CCD_General_Error_Number = 1103;
 		sprintf(CCD_General_Error_String,
 			"FLI_Setup_Dimensions: FLISetHBin(fli_dev=%ld,hbin=%ld) failed %s(%ld).",
-			Setup_Data.FLI_Dev,strerror((int)-fli_retval),fli_retval);
+			Setup_Data.FLI_Dev,Setup_Data.Horizontal_Bin,strerror((int)-fli_retval),fli_retval);
 		return FALSE;
 	}
 	fli_retval = FLISetVBin(Setup_Data.FLI_Dev,Setup_Data.Vertical_Bin);
@@ -471,7 +471,7 @@ int FLI_Setup_Allocate_Image_Buffer(void **buffer,size_t *buffer_length)
 	if((*buffer) == NULL)
 	{
 		CCD_General_Error_Number = 1108;
-		sprintf(CCD_General_Error_String,"FLI_Setup_Allocate_Image_Buffer: Failed to allocate buffer (%d).",
+		sprintf(CCD_General_Error_String,"FLI_Setup_Allocate_Image_Buffer: Failed to allocate buffer (%ld).",
 			(*buffer_length));
 		return FALSE;
 	}
