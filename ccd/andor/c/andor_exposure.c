@@ -170,7 +170,7 @@ int Andor_Exposure_Expose(int open_shutter,struct timespec start_time,int exposu
 	if(buffer_length < Andor_Setup_Get_Buffer_Length())
 	{
 		CCD_General_Error_Number = 1105;
-		sprintf(CCD_General_Error_String,"Andor_Exposure_Expose: buffer_length (%ld) was too small (%ld).",
+		sprintf(CCD_General_Error_String,"Andor_Exposure_Expose: buffer_length (%ld) was too small (%d).",
 			buffer_length,Andor_Setup_Get_Buffer_Length());
 		return FALSE;
 

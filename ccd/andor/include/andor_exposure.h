@@ -8,11 +8,6 @@
  * for time.
  */
 #define _POSIX_SOURCE 1
-/**
- * This hash define is needed before including source files give us POSIX.4/IEEE1003.1b-1993 prototypes
- * for time.
- */
-#define _POSIX_C_SOURCE 199309L
 #include <time.h>
 #include "andor_general.h"
 

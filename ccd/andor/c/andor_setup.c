@@ -32,7 +32,7 @@
 /**
  * Data type holding local data to andor_setup. This consists of the following:
  * <dl>
- * <dt>Camera_Handle</dt> <dd>The Andor library camera handle (a long).</dd>
+ * <dt>Camera_Handle</dt> <dd>The Andor library camera handle (an int).</dd>
  * <dt>Detector_X_Pixel_Count</dt> <dd>The number of pixels on the detector in the X direction.</dd>
  * <dt>Detector_Y_Pixel_Count</dt> <dd>The number of pixels on the detector in the Y direction.</dd>
  * <dt>Horizontal_Bin</dt> <dd>Horizontal (X) binning factor.</dd>
@@ -45,7 +45,7 @@
  */
 struct Setup_Struct
 {
-	long Camera_Handle;
+        int Camera_Handle;
 	int Detector_X_Pixel_Count;
 	int Detector_Y_Pixel_Count;
 	int Horizontal_Bin;
@@ -106,6 +106,7 @@ void Andor_Setup_Initialise(void)
  * @see #Setup_Data
  * @see andor_general.html#Andor_General_ErrorCode_To_String
  * @see ../../cdocs/ccd_config.html#CCD_Config_Get_String
+ * @see ../../cdocs/ccd_config.html#CCD_Config_Get_Integer
  * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
  * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
  * @see ../../cdocs/ccd_general.html#CCD_General_Log
@@ -113,7 +114,7 @@ void Andor_Setup_Initialise(void)
 int Andor_Setup_Startup(void)
 {
 	char *config_directory = NULL;
-	long camera_count,selected_camera;
+	int camera_count,selected_camera;
 	int retval;
 	unsigned int andor_retval;
 
@@ -133,7 +134,7 @@ int Andor_Setup_Startup(void)
 	CCD_General_Log_Format("ccd","andor_setup.c","Andor_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,
 			       "Andor library reports %d cameras.",camera_count);
 #endif
-	retval = CCD_Config_Get_Long(ANDOR_SETUP_KEYWORD_ROOT"selected_camera",&selected_camera);
+	retval = CCD_Config_Get_Integer(ANDOR_SETUP_KEYWORD_ROOT"selected_camera",&selected_camera);
 	if(retval == FALSE)
 		return FALSE;
 #ifdef ANDOR_DEBUG
@@ -143,7 +144,7 @@ int Andor_Setup_Startup(void)
 	if((selected_camera >= camera_count) || (selected_camera < 0))
 	{
 		CCD_General_Error_Number = 1000;
-		sprintf(CCD_General_Error_String,"Andor_Setup_Startup: Selected camera %ld out of range [0..%ld].",
+		sprintf(CCD_General_Error_String,"Andor_Setup_Startup: Selected camera %d out of range [0..%d].",
 			selected_camera,camera_count);
 		return FALSE;
 	}
@@ -152,7 +153,7 @@ int Andor_Setup_Startup(void)
 	if(andor_retval != DRV_SUCCESS)
 	{
 		CCD_General_Error_Number = 1004;
-		sprintf(CCD_General_Error_String,"Andor_Setup_Startup: GetCameraHandle(%ld) failed %s(%u).",
+		sprintf(CCD_General_Error_String,"Andor_Setup_Startup: GetCameraHandle(%d) failed %s(%u).",
 			selected_camera,Andor_General_ErrorCode_To_String(andor_retval),andor_retval);
 		return FALSE;
 	}
@@ -467,7 +468,7 @@ int Andor_Setup_Allocate_Image_Buffer(void **buffer,size_t *buffer_length)
 	if((*buffer) == NULL)
 	{
 		CCD_General_Error_Number = 1013;
-		sprintf(CCD_General_Error_String,"Andor_Setup_Allocate_Image_Buffer: Failed to allocate buffer (%d).",
+		sprintf(CCD_General_Error_String,"Andor_Setup_Allocate_Image_Buffer: Failed to allocate buffer (%ld).",
 			(*buffer_length));
 		return FALSE;
 	}
