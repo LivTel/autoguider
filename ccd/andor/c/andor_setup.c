@@ -114,7 +114,7 @@ void Andor_Setup_Initialise(void)
 int Andor_Setup_Startup(void)
 {
 	char *config_directory = NULL;
-	int camera_count,selected_camera;
+	at_32 camera_count,selected_camera;
 	int retval;
 	unsigned int andor_retval;
 
