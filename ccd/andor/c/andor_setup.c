@@ -32,7 +32,7 @@
 /**
  * Data type holding local data to andor_setup. This consists of the following:
  * <dl>
- * <dt>Camera_Handle</dt> <dd>The Andor library camera handle (an int).</dd>
+ * <dt>Camera_Handle</dt> <dd>The Andor library camera handle (an at_32).</dd>
  * <dt>Detector_X_Pixel_Count</dt> <dd>The number of pixels on the detector in the X direction.</dd>
  * <dt>Detector_Y_Pixel_Count</dt> <dd>The number of pixels on the detector in the Y direction.</dd>
  * <dt>Horizontal_Bin</dt> <dd>Horizontal (X) binning factor.</dd>
@@ -45,7 +45,7 @@
  */
 struct Setup_Struct
 {
-        int Camera_Handle;
+        at_32 Camera_Handle;
 	int Detector_X_Pixel_Count;
 	int Detector_Y_Pixel_Count;
 	int Horizontal_Bin;
@@ -107,6 +107,7 @@ void Andor_Setup_Initialise(void)
  * @see andor_general.html#Andor_General_ErrorCode_To_String
  * @see ../../cdocs/ccd_config.html#CCD_Config_Get_String
  * @see ../../cdocs/ccd_config.html#CCD_Config_Get_Integer
+ * @see ../../cdocs/ccd_config.html#CCD_Config_Get_Long
  * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
  * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
  * @see ../../cdocs/ccd_general.html#CCD_General_Log
@@ -134,7 +135,12 @@ int Andor_Setup_Startup(void)
 	CCD_General_Log_Format("ccd","andor_setup.c","Andor_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,
 			       "Andor library reports %d cameras.",camera_count);
 #endif
+	/* at_32 is an integer when compiling 64-bit, and a log when compiling 32-bit. See atmcdLXd.h for details */
+#ifdef _LP64
 	retval = CCD_Config_Get_Integer(ANDOR_SETUP_KEYWORD_ROOT"selected_camera",&selected_camera);
+#else
+	retval = CCD_Config_Get_Long(ANDOR_SETUP_KEYWORD_ROOT"selected_camera",&selected_camera);	
+#endif
 	if(retval == FALSE)
 		return FALSE;
 #ifdef ANDOR_DEBUG
