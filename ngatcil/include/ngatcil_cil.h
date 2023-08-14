@@ -468,10 +468,10 @@ struct NGATCil_Cil_Packet_Struct
 struct NGATCil_Ags_Packet_Struct
 {
 	struct NGATCil_Cil_Packet_Struct Cil_Base;
-	int Command;
-	int Status;
-	int Param1;
-	int Param2;
+	int32_t Command;
+	int32_t Status;
+	int32_t Param1;
+	int32_t Param2;
 };
 
 /**
@@ -490,7 +490,7 @@ struct NGATCil_Ags_Packet_Struct
 struct NGATCil_Status_Reply_Packet_Struct
 {
 	struct NGATCil_Cil_Packet_Struct Cil_Base;
-	int Status;
+	int32_t Status;
 };
 
 /**
@@ -508,7 +508,7 @@ struct NGATCil_Status_Reply_Packet_Struct
 struct NGATCil_Tcs_Reply_Packet_Struct
 {
 	struct NGATCil_Cil_Packet_Struct Cil_Base;
-	int Status;
+	int32_t Status;
 };
 
 int NGATCil_Cil_Packet_Create(int source_id,int dest_id,int class,int service,int seq_num,int command,

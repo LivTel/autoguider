@@ -789,7 +789,7 @@ int NGATCil_AGS_SDB_Status_Send(int socket_id)
 					   LOG_VERBOSITY_VERBOSE,NULL,"Data length %d.",data_length);
 #endif
 		/* packet has 7 int header (CilPrivate.h:I_CIL_HDRBLK_SIZE  28) */
-		packet_length = data_length + (7 * sizeof(int)); 
+		packet_length = data_length + (7 * sizeof(Uint32_t)); 
 #if NGATCIL_DEBUG > 5
 		NGATCil_General_Log_Format("ngatcil","ngatcil_ags_sdb.c","NGATCil_AGS_SDB_Status_Send",
 					   LOG_VERBOSITY_VERBOSE,NULL,"Packet length %d.",packet_length);

@@ -23,6 +23,7 @@
 #include <errno.h>
 #include <netdb.h>
 #include <pthread.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -171,7 +172,7 @@ int NGATCil_UDP_Open(char *hostname,int port_number,int *socket_id)
  */
 int NGATCil_UDP_Raw_To_Network_Byte_Order(void *message_buff,size_t message_buff_len)
 {
-	int *message_buff_int_ptr = NULL;
+	uint32_t *message_buff_int_ptr = NULL;
 	int retval,int_count,i;
 
 #if NGATCIL_DEBUG > 1
@@ -193,8 +194,8 @@ int NGATCil_UDP_Raw_To_Network_Byte_Order(void *message_buff,size_t message_buff
 			message_buff_len);
 		return FALSE;
 	}
-	int_count = message_buff_len/sizeof(int);
-	message_buff_int_ptr = (int*)message_buff;
+	int_count = message_buff_len/sizeof(uint32_t);
+	message_buff_int_ptr = (uint_32t*)message_buff;
 	for(i=0;i<int_count;i++)
 	{
 		message_buff_int_ptr[i] = htonl(message_buff_int_ptr[i]);
@@ -545,7 +546,7 @@ static void *UDP_Raw_Server_Thread(void *arg)
 	struct UDP_Raw_Server_Context_Struct *server_context = NULL;
 	struct sockaddr_in client;
 	void *message_buff = NULL;
-	int *int_message_ptr = NULL;
+	uint32_t *int_message_ptr = NULL;
 	int done,retval,socket_errno,current_client_length,recv_message_length,i;
 
 #if NGATCIL_DEBUG > 1
@@ -621,14 +622,14 @@ static void *UDP_Raw_Server_Thread(void *arg)
 				}
 			}
 			/* network to host */
-			if((recv_message_length % sizeof(int)) == 0)
+			if((recv_message_length % sizeof(uint32_t)) == 0)
 			{
 #if NGATCIL_DEBUG > 9
 				NGATCil_General_Log("ngatcil","ngatcil_udp_raw.c","UDP_Raw_Server_Thread",
 						    LOG_VERBOSITY_VERY_VERBOSE,NULL,
 						    "Translating packet contents from network to host byte order.");
 #endif
-				int_message_ptr = (int*)message_buff;
+				int_message_ptr = (uint32_t*)message_buff;
 				for(i=0;i < (recv_message_length/sizeof(int));i++)
 				{
 					int_message_ptr[i] = ntohl(int_message_ptr[i]);
