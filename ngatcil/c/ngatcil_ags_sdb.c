@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <arpa/inet.h>  /* htonl etc */
 #include "log_udp.h"
 #include "ngatcil_ags_sdb.h"
 #include "ngatcil_general.h"
@@ -708,7 +709,7 @@ int NGATCil_AGS_SDB_Remote_Host_Set(char *hostname,int port_number)
 	{
 		NGATCil_General_Error_Number = 402;
 		sprintf(NGATCil_General_Error_String,
-			"NGATCil_AGS_SDB_Remote_Host_Set: Hostname was too long (%d vs %d.",
+			"NGATCil_AGS_SDB_Remote_Host_Set: Hostname was too long (%ld vs %d.",
 			strlen(hostname),HOSTNAME_LENGTH);
 		return FALSE;
 	}

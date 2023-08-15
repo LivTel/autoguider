@@ -29,7 +29,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-
+#include <unistd.h>
 #include "ngatcil_general.h"
 #include "ngatcil_udp_raw.h"
 #include "ngatcil_tcs_guide_packet.h"

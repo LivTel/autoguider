@@ -161,7 +161,7 @@ int main(int argc, char* argv[])
 			return 3;
 		}
 	}
-	fprintf(stdout,"Packet contains %d words of length %d bytes.\n",Packet_Count,Packet_Count*sizeof(int));
+	fprintf(stdout,"Packet contains %d words of length %ld bytes.\n",Packet_Count,Packet_Count*sizeof(int));
 	for(i=0;i<Packet_Count;i++)
 	{
 		fprintf(stdout,"Word[%d] = %#x.\n",i,Packet[i]);
@@ -177,7 +177,8 @@ int main(int argc, char* argv[])
 		fprintf(stdout,"Sending packet.\n");
 		if(!Send(Socket_Fd,Packet,Packet_Count*sizeof(int)))
 		{
-			fprintf(stderr,"test_raw_send:Send(%d,%p,%d) failed.\n",Socket_Fd,Packet,Packet_Count*sizeof(int));
+			fprintf(stderr,"test_raw_send:Send(%d,%p,%ld) failed.\n",Socket_Fd,Packet,
+				Packet_Count*sizeof(int));
 			Close(Socket_Fd);
 			return 3;
 		}
@@ -187,7 +188,8 @@ int main(int argc, char* argv[])
 		fprintf(stdout,"Sending packet using sendto.\n");
 		if(!SendTo(Socket_Fd,Remote_Hostname,Remote_Port_Number,Packet,Packet_Count*sizeof(int)))
 		{
-			fprintf(stderr,"test_raw_send:Send(%d,%p,%d) failed.\n",Socket_Fd,Packet,Packet_Count*sizeof(int));
+			fprintf(stderr,"test_raw_send:Send(%d,%p,%ld) failed.\n",Socket_Fd,Packet,
+				Packet_Count*sizeof(int));
 			Close(Socket_Fd);
 			return 3;
 		}
@@ -270,7 +272,7 @@ static int Send(int socket_id,void *message_buff,size_t message_buff_len)
 {
 	int retval,send_errno;
 
-	fprintf(stdout,"Send(socket=%d,length=%d):started.",socket_id,message_buff_len);
+	fprintf(stdout,"Send(socket=%d,length=%ld):started.",socket_id,message_buff_len);
 	if(message_buff == NULL)
 	{
 		fprintf(stdout,"Send:message_buff was NULL.");
@@ -285,7 +287,7 @@ static int Send(int socket_id,void *message_buff,size_t message_buff_len)
 	}
 	if(retval != message_buff_len)
 	{
-		fprintf(stderr,"Send:Send returned %d vs %d.",retval,message_buff_len);
+		fprintf(stderr,"Send:Send returned %d vs %ld.",retval,message_buff_len);
 		return FALSE;
 	}
 	fprintf(stdout,"Send(%d):finished.",socket_id);
@@ -407,7 +409,7 @@ static int SendTo(int socket_fd,char *hostname,int port_number,void *message_buf
 	size_t to_len = sizeof(to_addr);
 	int buffer,buffer_size;
 
-	fprintf(stdout,"SendTo(socket_fd = %d,hostname=%s,port_number=%d,length=%d):started.",
+	fprintf(stdout,"SendTo(socket_fd = %d,hostname=%s,port_number=%d,length=%ld):started.",
 		socket_fd,hostname,port_number,message_buff_len);
 	if(hostname == NULL)
 	{
@@ -447,7 +449,7 @@ static int SendTo(int socket_fd,char *hostname,int port_number,void *message_buf
 	}
 	if(retval != message_buff_len)
 	{
-		fprintf(stderr,"SendTo:Send returned %d vs %d.",retval,message_buff_len);
+		fprintf(stderr,"SendTo:Send returned %d vs %ld.",retval,message_buff_len);
 		return FALSE;
 	}
 	fprintf(stdout,"SendTo(%d):finished.",socket_fd);

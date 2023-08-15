@@ -19,6 +19,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 #include "log_udp.h"
 #include "ngatcil_cil.h"
 #include "ngatcil_general.h"
@@ -118,7 +119,7 @@ static int CIL_Command_Server_Callback(int socket_id,void *message_buff,int mess
 	clock_gettime(CLOCK_REALTIME,&current_time);
 	fprintf(stdout,"AGS_CIL_Command_Server_Callback:"
 		"Timestamp secs = %#x, Timestamp NanoSecs = %#x, "
-		"Unix secs = %#x, Unix nanosecs = %#x, Unix Secs-TTL_OFFSET = %#x.\n",
+		"Unix secs = %#lx, Unix nanosecs = %#lx, Unix Secs-TTL_OFFSET = %#lx.\n",
 		cil_packet.Timestamp_Seconds,cil_packet.Timestamp_Nanoseconds,
 		current_time.tv_sec,current_time.tv_nsec,current_time.tv_sec-TTL_TIMESTAMP_OFFSET);
 	/* print out message specific bit */

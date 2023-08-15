@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <arpa/inet.h> /* htonl etc */
 #include "log_udp.h"
 #include "ngatcil_general.h"
 #include "ngatcil_udp_raw.h"

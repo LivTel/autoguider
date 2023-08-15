@@ -17,8 +17,10 @@
 #define _POSIX_C_SOURCE 199309L
 /**
  * Define BSD Source to get BSD prototypes, including gethostbyname_r.
+ * Since glibc 2.19, define DEFAULT SOURCE to get gethostbyname_r.
  */
-#define _BSD_SOURCE (1)
+/*#define _BSD_SOURCE (1)*/
+#define _DEFAULT_SOURCE  (1)
 
 #include <errno.h>
 #include <netdb.h>
@@ -28,8 +30,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <arpa/inet.h>
-#include <netinet/in.h> /* htons etc */
+#include <arpa/inet.h>  /* htonl etc */
+#include <netinet/in.h> 
 #include <sys/types.h>
 #include <sys/socket.h>
 #include "log_udp.h"
@@ -190,12 +192,12 @@ int NGATCil_UDP_Raw_To_Network_Byte_Order(void *message_buff,size_t message_buff
 	{
 		NGATCil_General_Error_Number = 125;
 		sprintf(NGATCil_General_Error_String,
-			"NGATCil_UDP_Raw_To_Network_Byte_Order:message_buff_len %d was not a whole number of ints.",
+			"NGATCil_UDP_Raw_To_Network_Byte_Order:message_buff_len %ld was not a whole number of ints.",
 			message_buff_len);
 		return FALSE;
 	}
 	int_count = message_buff_len/sizeof(uint32_t);
-	message_buff_int_ptr = (uint_32t*)message_buff;
+	message_buff_int_ptr = (uint32_t*)message_buff;
 	for(i=0;i<int_count;i++)
 	{
 		message_buff_int_ptr[i] = htonl(message_buff_int_ptr[i]);
@@ -246,7 +248,7 @@ int NGATCil_UDP_Raw_Send(int socket_id,void *message_buff,size_t message_buff_le
 	{
 		NGATCil_General_Error_Number = 101;
 		sprintf(NGATCil_General_Error_String,"NGATCil_UDP_Raw_Send:"
-			"Send returned %d vs %d.",retval,message_buff_len);
+			"Send returned %d vs %ld.",retval,message_buff_len);
 		return FALSE;
 	}
 #if NGATCIL_DEBUG > 1
@@ -339,7 +341,7 @@ int NGATCil_UDP_Raw_Send_To(int socket_fd,char *hostname,int port_number,void *m
 	{
 		NGATCil_General_Error_Number = 123;
 		sprintf(NGATCil_General_Error_String,"NGATCil_UDP_Raw_Send_To:"
-			"Sendto returned %d vs %d.",retval,message_buff_len);
+			"Sendto returned %d vs %ld.",retval,message_buff_len);
 		return FALSE;
 	}
 #if NGATCIL_DEBUG > 1
@@ -388,7 +390,7 @@ int NGATCil_UDP_Raw_Recv(int socket_id,void *message_buff,size_t message_buff_le
 	{
 		NGATCil_General_Error_Number = 109;
 		sprintf(NGATCil_General_Error_String,"NGATCil_UDP_Raw_Recv:"
-			"Recv returned %d vs %d.",retval,message_buff_len);
+			"Recv returned %d vs %ld.",retval,message_buff_len);
 		return FALSE;
 	}
 #if NGATCIL_DEBUG > 1
@@ -570,7 +572,7 @@ static void *UDP_Raw_Server_Thread(void *arg)
 	if(message_buff == NULL)
 	{
 		NGATCil_General_Error_Number = 118;
-		sprintf(NGATCil_General_Error_String,"UDP_Raw_Server_Thread:failed to allocate message buffer(%d).",
+		sprintf(NGATCil_General_Error_String,"UDP_Raw_Server_Thread:failed to allocate message buffer(%ld).",
 			server_context->Message_Length);
 		return FALSE;
 	}
@@ -716,7 +718,7 @@ static int Get_Host_By_Name(const char *name,struct in_addr *inaddr)
 	if(tmphstbuf == NULL)
 	{
 		NGATCil_General_Error_Number = 128;
-		sprintf(NGATCil_General_Error_String,"Get_Host_By_Name:memory allocation of tmphstbuf failed(%d).",
+		sprintf(NGATCil_General_Error_String,"Get_Host_By_Name:memory allocation of tmphstbuf failed(%ld).",
 			hstbuflen);
 		return FALSE;
 
@@ -731,7 +733,7 @@ static int Get_Host_By_Name(const char *name,struct in_addr *inaddr)
 		{
 			NGATCil_General_Error_Number = 129;
 			sprintf(NGATCil_General_Error_String,
-				"Get_Host_By_Name:memory reallocation of tmphstbuf failed(%d).",hstbuflen);
+				"Get_Host_By_Name:memory reallocation of tmphstbuf failed(%ld).",hstbuflen);
 			return FALSE;
 		}
 #if NGATCIL_DEBUG > 5

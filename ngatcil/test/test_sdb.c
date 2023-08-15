@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include "log_udp.h"
 #include "ngatcil_cil.h"
 #include "ngatcil_general.h"

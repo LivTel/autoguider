@@ -509,7 +509,7 @@ char *NGATCil_TCS_Guide_Packet_To_String(void *packet_buff,int packet_buff_lengt
 	packet_buff_string = (char *)packet_buff;
 	if(strlen(packet_buff_string) > 35)
 	{
-		sprintf(print_packet_buff,"Buffer wrong length:%d,%d.",strlen(packet_buff_string),packet_buff_length);
+		sprintf(print_packet_buff,"Buffer wrong length:%ld,%d.",strlen(packet_buff_string),packet_buff_length);
 		return print_packet_buff;
 	}
 	strcpy(print_packet_buff,packet_buff_string);
