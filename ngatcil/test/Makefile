@@ -36,7 +36,7 @@ DOCS 		= $(SRCS:%.c=$(DOCSDIR)/%.html)
 top: $(EXES) docs
 
 $(BINDIR)/%: $(BINDIR)/%.o
-	$(CC) $< -o $@  -L$(LT_LIB_HOME) $(NGATCIL_LDFLAGS) $(COMMAND_SERVER_LDFLAGS) $(TIMELIB) $(SOCKETLIB) -lm -lc
+	$(CC) $< -o $@  -L$(LT_LIB_HOME) $(NGATCIL_LDFLAGS) $(COMMAND_SERVER_LDFLAGS) -lpthread $(TIMELIB) $(SOCKETLIB) -lm -lc
 
 $(BINDIR)/%.o: %.c
 	$(CC) -c $(CFLAGS) $< -o $@  
