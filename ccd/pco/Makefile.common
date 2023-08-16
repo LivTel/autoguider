@@ -1,0 +1,21 @@
+# Makefile.common
+# $Id$
+
+PCO_HOME			= 	pco
+PCO_LIBRARYNAME			= 	lib$(AUTOGUIDER_HOME)_$(CCD_HOME)_$(PCO_HOME)
+
+AUTOGUIDER_PCO_HOME		=	pco
+AUTOGUIDER_PCO_SRC_HOME		= 	$(LT_SRC_HOME)/$(AUTOGUIDER_HOME)/$(CCD_HOME)/$(PCO_HOME)
+AUTOGUIDER_PCO_BIN_HOME		= 	$(LT_BIN_HOME)/$(AUTOGUIDER_HOME)/$(CCD_HOME)/$(PCO_HOME)
+AUTOGUIDER_PCO_DOC_HOME		= 	$(LT_DOC_HOME)/$(AUTOGUIDER_HOME)/$(CCD_HOME)/$(PCO_HOME)
+
+#
+# PCO SDK
+#
+PCO_CFLAGS	= -I$(LT_SRC_HOME)/autoguider-nogit/pco/pco_camera_1_1_19/pco_usb_pl/pco_classes \
+		  -I$(LT_SRC_HOME)/autoguider-nogit/pco/pco_camera_1_1_19/pco_common/pco_classes/ \
+		  -I$(LT_SRC_HOME)/autoguider-nogit/pco/pco_camera_1_1_19/pco_common/ \
+		  -I$(LT_SRC_HOME)/autoguider-nogit/pco/pco_camera_1_1_19/pco_common/pco_include/
+
+PCO_LIBDIR	= $(LT_SRC_HOME)/autoguider-nogit/pco/pco_camera_1_1_19/pco_usb_pl/lib/
+PCO_LDFLAGS	= -L$(PCO_LIBDIR) -lpcocam_usb -lusb-1.0 -pthread
