@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 
 #include "log_udp.h"
 
@@ -21,6 +22,7 @@
 
 #include "object.h"
 
+#include "ccd_config.h"
 #include "ccd_driver.h"
 #include "ccd_exposure.h"
 #include "ccd_general.h"

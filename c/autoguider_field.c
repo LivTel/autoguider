@@ -26,6 +26,7 @@
 #include "fitsio.h"
 #include "log_udp.h"
 
+#include "ccd_config.h"
 #include "ccd_exposure.h"
 #include "ccd_general.h"
 #include "ccd_setup.h"
@@ -1265,7 +1266,7 @@ int Autoguider_Field_Save_FITS(int successful,int object_index)
 			free(buffer_ptr);
 		Autoguider_General_Error_Number = 502;
 		sprintf(Autoguider_General_Error_String,"Autoguider_Field_Save_FITS:"
-			"Failed to open output filename '%s' (%d).");
+			"Failed to open output filename '%s' (%d).",filename,my_errno);
 		return FALSE;
 	}
 	/* write buffer to file */
@@ -1279,7 +1280,7 @@ int Autoguider_Field_Save_FITS(int successful,int object_index)
 		fclose(fp);
 		Autoguider_General_Error_Number = 503;
 		sprintf(Autoguider_General_Error_String,"Autoguider_Field_Save_FITS:"
-			"Failed to write output (%d of %d) to %s.",retval,buffer_length,filename);
+			"Failed to write output (%d of %ld) to %s.",retval,buffer_length,filename);
 		return FALSE;
 	}
 	/* close file */
@@ -1396,7 +1397,7 @@ static void Field_Save_Raw_Image(unsigned short *image_data, int ncols, int nrow
 	int status=0, retval;
 
 	now_time_s = time(NULL);
-	sprintf(filename, "/icc/tmp/field_raw_%d.fits", now_time_s);
+	sprintf(filename, "/icc/tmp/field_raw_%ld.fits", now_time_s);
 	retval = fits_create_file(&fp,filename,&status);
 	if(retval)
 	{

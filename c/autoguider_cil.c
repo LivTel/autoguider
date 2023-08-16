@@ -19,11 +19,14 @@
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
 
 #include "log_udp.h"
+
+#include "ccd_config.h"
 
 #include "ngatcil_ags_sdb.h"
 #include "ngatcil_general.h"
@@ -175,7 +178,7 @@ int Autoguider_CIL_Server_Initialise(void)
 	{
 		Autoguider_General_Error_Number = 1112;
 		sprintf(Autoguider_General_Error_String,"Autoguider_CIL_Server_Initialise:"
-			"CIL TCS server hostname is too long (%d).",strlen(string_ptr));
+			"CIL TCS server hostname is too long (%ld).",strlen(string_ptr));
 		return FALSE;
 	}
 	strcpy(TCC_Hostname,string_ptr);
@@ -220,7 +223,7 @@ int Autoguider_CIL_Server_Initialise(void)
 	{
 		Autoguider_General_Error_Number = 1138;
 		sprintf(Autoguider_General_Error_String,"Autoguider_CIL_Server_Initialise:"
-			"CIL MCC server hostname is too long (%d).",strlen(string_ptr));
+			"CIL MCC server hostname is too long (%ld).",strlen(string_ptr));
 		return FALSE;
 	}
 	strcpy(mcc_hostname,string_ptr);
@@ -1273,7 +1276,7 @@ static int CIL_Command_TCS_Process(struct NGATCil_Cil_Packet_Struct cil_packet,v
 	{
 		Autoguider_General_Error_Number = 1153;
 		sprintf(Autoguider_General_Error_String,"CIL_Command_TCS_Process:"
-			"received CIL AGS command packet of wrong length %d vs %d.",message_length,
+			"received CIL AGS command packet of wrong length %ld vs %d.",message_length,
 			NGATCIL_CIL_AGS_PACKET_LENGTH);
 		return FALSE;
 	}

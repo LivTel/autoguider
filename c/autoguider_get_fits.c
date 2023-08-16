@@ -42,6 +42,7 @@
 #include "autoguider_guide.h"
 #include "autoguider_object.h"
 
+#include "ccd_config.h"
 #include "ccd_temperature.h"
 #include "ccd_setup.h"
 
@@ -366,7 +367,7 @@ int Autoguider_Get_Fits_From_Buffer(void **buffer_ptr,size_t *buffer_length,int 
 	{
 		Autoguider_General_Error_Number = 608;
 		sprintf(Autoguider_General_Error_String,"Autoguider_Get_Fits_From_Buffer:"
-			"Allocating buffer_ptr failed(%d).",(*buffer_length));
+			"Allocating buffer_ptr failed(%ld).",(*buffer_length));
 		return FALSE;
 	}
 	cfitsio_status=0;

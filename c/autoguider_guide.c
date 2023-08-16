@@ -21,12 +21,14 @@
 #include <pthread.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
 
 #include "log_udp.h"
 
+#include "ccd_config.h"
 #include "ccd_exposure.h"
 #include "ccd_general.h"
 #include "ccd_setup.h"

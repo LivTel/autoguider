@@ -25,6 +25,9 @@
 
 #include "log_udp.h"
 
+#include "object.h"
+
+#include "ccd_config.h"
 #include "ccd_exposure.h"
 #include "ccd_general.h"
 #include "ccd_setup.h"

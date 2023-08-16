@@ -19,6 +19,7 @@
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
@@ -27,6 +28,9 @@
 
 #include "command_server.h"
 
+#include "ccd_config.h"
+
+#include "autoguider_command.h"
 #include "autoguider_general.h"
 
 /* internal data */

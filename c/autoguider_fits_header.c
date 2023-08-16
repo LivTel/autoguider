@@ -280,7 +280,7 @@ int Autoguider_Fits_Header_Add_String(struct Fits_Header_Struct *header,char *ke
 	{
 		Autoguider_General_Error_Number = 1201;
 		sprintf(Autoguider_General_Error_String,"Autoguider_Fits_Header_Add_String:"
-			"Keyword %s (%d) was too long.",keyword,strlen(keyword));
+			"Keyword %s (%ld) was too long.",keyword,strlen(keyword));
 		return FALSE;
 	}
 	if(value == NULL)
@@ -352,7 +352,7 @@ int Autoguider_Fits_Header_Add_Int(struct Fits_Header_Struct *header,char *keywo
 	{
 		Autoguider_General_Error_Number = 1204;
 		sprintf(Autoguider_General_Error_String,"Autoguider_Fits_Header_Add_Int:"
-			"Keyword %s (%d) was too long.",keyword,strlen(keyword));
+			"Keyword %s (%ld) was too long.",keyword,strlen(keyword));
 		return FALSE;
 	}
 	strcpy(card.Keyword,keyword);
@@ -415,7 +415,7 @@ int Autoguider_Fits_Header_Add_Float(struct Fits_Header_Struct *header,char *key
 	{
 		Autoguider_General_Error_Number = 1206;
 		sprintf(Autoguider_General_Error_String,"Autoguider_Fits_Header_Add_Float:"
-			"Keyword %s (%d) was too long.",keyword,strlen(keyword));
+			"Keyword %s (%ld) was too long.",keyword,strlen(keyword));
 		return FALSE;
 	}
 	strcpy(card.Keyword,keyword);
@@ -478,7 +478,7 @@ int Autoguider_Fits_Header_Add_Logical(struct Fits_Header_Struct *header,char *k
 	{
 		Autoguider_General_Error_Number = 1208;
 		sprintf(Autoguider_General_Error_String,"Autoguider_Fits_Header_Add_Logical:"
-			"Keyword %s (%d) was too long.",keyword,strlen(keyword));
+			"Keyword %s (%ld) was too long.",keyword,strlen(keyword));
 		return FALSE;
 	}
 	if(!AUTOGUIDER_GENERAL_IS_BOOLEAN(value))

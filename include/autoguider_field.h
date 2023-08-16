@@ -17,6 +17,7 @@ extern int Autoguider_Field_Set_Do_Flat_Field(int doit);
 extern int Autoguider_Field_Get_Do_Flat_Field(void);
 extern int Autoguider_Field_Set_Do_Object_Detect(int doit);
 extern int Autoguider_Field_Get_Do_Object_Detect(void);
+extern int Autoguider_Field_Get_Exposure_Length(void);
 extern int Autoguider_Field_In_Object_Bounds(float ccd_x,float ccd_y);
 extern int Autoguider_Field_Get_Unbinned_NCols(void);
 extern int Autoguider_Field_Get_Unbinned_NRows(void);

@@ -1421,7 +1421,7 @@ static int Buffer_One_Raw_Copy(struct Buffer_One_Struct *data,int index,unsigned
 	if(buffer_length != (data->Binned_NCols * data->Binned_NRows))
 	{
 		Autoguider_General_Error_Number = 413;
-		sprintf(Autoguider_General_Error_String,"Buffer_One_Raw_Copy:buffer_length %d pixels != %d pixels.",
+		sprintf(Autoguider_General_Error_String,"Buffer_One_Raw_Copy:buffer_length %ld pixels != %d pixels.",
 			buffer_length,(data->Binned_NCols * data->Binned_NRows));
 		return FALSE;
 	}
@@ -1588,7 +1588,8 @@ static int Buffer_One_Reduced_Copy(struct Buffer_One_Struct *data,int index,floa
 	if(buffer_length != (data->Binned_NCols * data->Binned_NRows))
 	{
 		Autoguider_General_Error_Number = 421;
-		sprintf(Autoguider_General_Error_String,"Buffer_One_Reduced_Copy:buffer_length %d pixels != %d pixels.",
+		sprintf(Autoguider_General_Error_String,
+			"Buffer_One_Reduced_Copy:buffer_length %ld pixels != %d pixels.",
 			buffer_length,(data->Binned_NCols * data->Binned_NRows));
 		return FALSE;
 	}

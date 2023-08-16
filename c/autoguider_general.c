@@ -324,7 +324,7 @@ void Autoguider_General_Get_Current_Time_String(char *time_string,int string_len
 	clock_gettime(CLOCK_REALTIME,&current_time);
 	utc_time = gmtime(&(current_time.tv_sec));
 	strftime(time_string,string_length,"%d-%m-%YT%H:%M:%S",utc_time);
-	sprintf(millsecond_string,"%03d",(current_time.tv_nsec/AUTOGUIDER_GENERAL_ONE_MILLISECOND_NS));
+	sprintf(millsecond_string,"%03ld",(current_time.tv_nsec/AUTOGUIDER_GENERAL_ONE_MILLISECOND_NS));
 	strftime(timezone_string,16,"%z",utc_time);
 	if((strlen(time_string)+strlen(millsecond_string)+strlen(timezone_string)+3) < string_length)
 	{
@@ -482,7 +482,7 @@ int Autoguider_General_Log_Set_Directory(char *directory)
 	{
 		Autoguider_General_Error_Number = 104;
 		sprintf(Autoguider_General_Error_String,"Autoguider_General_Log_Set_Directory:"
-			"directory was too long (%d vs %d).",strlen(directory),AUTOGUIDER_GENERAL_FILENAME_LENGTH);
+			"directory was too long (%ld vs %d).",strlen(directory),AUTOGUIDER_GENERAL_FILENAME_LENGTH);
 		return FALSE;
 	}
 	strcpy(General_Data.Log_Directory,directory);
@@ -511,7 +511,7 @@ int Autoguider_General_Log_Set_UDP(int active,char *hostname,int port_number)
 	{
 		Autoguider_General_Error_Number = 112;
 		sprintf(Autoguider_General_Error_String,"Autoguider_General_Log_Set_UDP:"
-			"hostname was too long (%d vs %d).",strlen(hostname),AUTOGUIDER_GENERAL_FILENAME_LENGTH);
+			"hostname was too long (%ld vs %d).",strlen(hostname),AUTOGUIDER_GENERAL_FILENAME_LENGTH);
 		return FALSE;
 	}
 	strcpy(General_Data.Log_UDP_Hostname,hostname);
