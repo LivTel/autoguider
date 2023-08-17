@@ -69,21 +69,25 @@ extern void CCD_General_Get_Current_Time_String(char *time_string,int string_len
 extern int CCD_General_Get_Time_String(struct timespec time,char *time_string,int string_length);
 
 /* logging routines */
-extern void CCD_General_Log_Format(char *sub_system,char *source_filename,char *function,int level,
-				   char *category,char *format,...);
-extern void CCD_General_Log(char *sub_system,char *source_filename,char *function,int level,
-			    char *category,char *string);
-extern void CCD_General_Set_Log_Handler_Function(void (*log_fn)(char *sub_system,char *source_filename,char *function,
-								int level,char *category,char *string));
-extern void CCD_General_Set_Log_Filter_Function(int (*filter_fn)(char *sub_system,char *source_filename,char *function,
-								 int level,char *category,char *string));
-extern void CCD_General_Log_Handler_Stdout(char *sub_system,char *source_filename,char *function,int level,
-					   char *category,char *string);
+extern void CCD_General_Log_Format(const char *sub_system,const char *source_filename,const char *function,int level,
+				   const char *category,const char *format,...);
+extern void CCD_General_Log(const char *sub_system,const char *source_filename,const char *function,int level,
+			    const char *category,const char *string);
+extern void CCD_General_Set_Log_Handler_Function(void (*log_fn)(const char *sub_system,const char *source_filename,
+						 const char *function,int level,const char *category,
+						 const char *string));
+extern void CCD_General_Set_Log_Filter_Function(int (*filter_fn)(const char *sub_system,const char *source_filename,
+						const char *function,int level,const char *category,
+						const char *string));
+extern void CCD_General_Log_Handler_Stdout(const char *sub_system,const char *source_filename,const char *function,
+					   int level,const char *category,const char *string);
 extern void CCD_General_Set_Log_Filter_Level(int level);
-extern int CCD_General_Log_Filter_Level_Absolute(char *sub_system,char *source_filename,char *function,int level,
-						 char *category,char *string);
-extern int CCD_General_Log_Filter_Level_Bitwise(char *sub_system,char *source_filename,char *function,int level,
-						char *category,char *string);
+extern int CCD_General_Log_Filter_Level_Absolute(const char *sub_system,const char *source_filename,
+						 const char *function,int level,
+						 const char *category,const char *string);
+extern int CCD_General_Log_Filter_Level_Bitwise(const char *sub_system,const char *source_filename,
+						const char *function,int level,
+						const char *category,const char *string);
 
 /*
 ** $Log: not supported by cvs2svn $

@@ -55,10 +55,10 @@ char CCD_General_Error_String[CCD_GENERAL_ERROR_STRING_LENGTH] = "";
  */
 struct General_Struct
 {
-	void (*Log_Handler)(char *sub_system,char *source_filename,char *function,
-			    int level,char *category,char *string);
-	int (*Log_Filter)(char *sub_system,char *source_filename,char *function,
-			  int level,char *category,char *string);
+	void (*Log_Handler)(const char *sub_system,const char *source_filename,const char *function,
+			    int level,const char *category,const char *string);
+	int (*Log_Filter)(const char *sub_system,const char *source_filename,const char *function,
+			  int level,const char *category,const char *string);
 	int Log_Filter_Level;
 };
 
@@ -217,8 +217,8 @@ int CCD_General_Get_Time_String(struct timespec time,char *time_string,int strin
  * @see #CCD_General_Log
  * @see #CCD_GENERAL_ERROR_STRING_LENGTH
  */
-void CCD_General_Log_Format(char *sub_system,char *source_filename,char *function,
-			    int level,char *category,char *format,...)
+void CCD_General_Log_Format(const char *sub_system,const char *source_filename,const char *function,
+			    int level,const char *category,const char *format,...)
 {
 	va_list ap;
 	char buff[CCD_GENERAL_ERROR_STRING_LENGTH];
@@ -244,8 +244,8 @@ void CCD_General_Log_Format(char *sub_system,char *source_filename,char *functio
  * @param string The message to log.
  * @see #General_Data
  */
-void CCD_General_Log(char *sub_system,char *source_filename,char *function,
-		     int level,char *category,char *string)
+void CCD_General_Log(const char *sub_system,const char *source_filename,const char *function,
+		     int level,const char *category,const char *string)
 {
 /* If the string is NULL, don't log. */
 	if(string == NULL)
@@ -269,8 +269,8 @@ void CCD_General_Log(char *sub_system,char *source_filename,char *function,
  * @see #General_Data
  * @see #CCD_General_Log
  */
-void CCD_General_Set_Log_Handler_Function(void (*log_fn)(char *sub_system,char *source_filename,char *function,
-							 int level,char *category,char *string))
+void CCD_General_Set_Log_Handler_Function(void (*log_fn)(const char *sub_system,const char *source_filename,
+					  const char *function,int level,const char *category,const char *string))
 {
 	General_Data.Log_Handler = log_fn;
 }
@@ -281,8 +281,9 @@ void CCD_General_Set_Log_Handler_Function(void (*log_fn)(char *sub_system,char *
  * @see #General_Data
  * @see #CCD_General_Log
  */
-void CCD_General_Set_Log_Filter_Function(int (*filter_fn)(char *sub_system,char *source_filename,char *function,
-							  int level,char *category,char *string))
+void CCD_General_Set_Log_Filter_Function(int (*filter_fn)(const char *sub_system,const char *source_filename,
+							  const char *function,int level,const char *category,
+							  const char *string))
 {
 	General_Data.Log_Filter = filter_fn;
 }
@@ -298,8 +299,8 @@ void CCD_General_Set_Log_Filter_Function(int (*filter_fn)(char *sub_system,char 
  * @param category What sort of information is the message. Designed to be used as a filter. Can be NULL.
  * @param string The log message to be logged. 
  */
-void CCD_General_Log_Handler_Stdout(char *sub_system,char *source_filename,char *function,
-				    int level,char *category,char *string)
+void CCD_General_Log_Handler_Stdout(const char *sub_system,const char *source_filename,const char *function,
+				    int level,const char *category,const char *string)
 {
 	if(string == NULL)
 		return;
@@ -328,8 +329,8 @@ void CCD_General_Set_Log_Filter_Level(int level)
  * 	otherwise it returns FALSE.
  * @see #General_Data
  */
-int CCD_General_Log_Filter_Level_Absolute(char *sub_system,char *source_filename,char *function,
-					  int level,char *category,char *string)
+int CCD_General_Log_Filter_Level_Absolute(const char *sub_system,const char *source_filename,const char *function,
+					  int level,const char *category,const char *string)
 {
 	return (level <= General_Data.Log_Filter_Level);
 }
@@ -347,8 +348,8 @@ int CCD_General_Log_Filter_Level_Absolute(char *sub_system,char *source_filename
  * 	General_Data.Log_Filter_Level, otherwise it returns FALSE.
  * @see #General_Data
  */
-int CCD_General_Log_Filter_Level_Bitwise(char *sub_system,char *source_filename,char *function,
-					 int level,char *category,char *string)
+int CCD_General_Log_Filter_Level_Bitwise(const char *sub_system,const char *source_filename,const char *function,
+					 int level,const char *category,const char *string)
 {
 	return ((level & General_Data.Log_Filter_Level) > 0);
 }
