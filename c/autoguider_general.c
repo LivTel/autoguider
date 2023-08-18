@@ -394,7 +394,8 @@ void Autoguider_General_Log(const char *sub_system,const char *source_filename,c
 			return;
 	}
 /* We can log the message */
-	Autoguider_General_Call_Log_Handlers(sub_system,source_filename,function,level,category,message);
+	Autoguider_General_Call_Log_Handlers((char*)sub_system,(char*)source_filename,(char*)function,level,(char*)category,
+					     (char*)message);
 
 }
 
@@ -408,8 +409,33 @@ void Autoguider_General_Log(const char *sub_system,const char *source_filename,c
  * @param category What sort of information is the message. Designed to be used as a filter. Can be NULL.
  * @param message The message to log.
  */
-void Autoguider_General_Call_Log_Handlers(const char *sub_system,const char *source_filename,const char *function,
-					  int level,const char *category,const char *message)
+void Autoguider_General_Call_Log_Handlers(char *sub_system,char *source_filename,char *function,int level,char *category,char *message)
+{
+	int i;
+
+	for(i=0;i<LOG_HANDLER_LIST_COUNT;i++)
+	{
+		if(General_Data.Log_Handler_List[i] != NULL)
+		{
+			(*(General_Data.Log_Handler_List[i]))(sub_system,source_filename,function,level,category,
+							      message);
+		}
+	}
+}
+
+/**
+ * Routine that goes through the General_Data.Log_Handler_List and invokes each non-null handler. This uses const char  * parameters
+ * rather than char * parameters, needed for the CCD library (which now has C++ drivers, which require const char* parameters).
+ * @param sub_system The sub system. Can be NULL.
+ * @param source_file The source filename. Can be NULL.
+ * @param function The function calling the log. Can be NULL.
+ * @param level At what level is the log message (TERSE/high level or VERBOSE/low level), 
+ *         a valid member of LOG_VERBOSITY.
+ * @param category What sort of information is the message. Designed to be used as a filter. Can be NULL.
+ * @param message The message to log.
+ */
+void Autoguider_General_Call_Log_Handlers_Const(const char *sub_system,const char *source_filename,const char *function,int level,
+						const char *category,const char *message)
 {
 	int i;
 
@@ -656,8 +682,8 @@ void Autoguider_General_Log_Handler_Log_UDP(const char *sub_system,const char *s
 			}
 		}
 		/* create a log record */
-		if(!Log_Create_Record("AUTOGUIDER",sub_system,source_filename,NULL,function,LOG_SEVERITY_INFO,
-				      level,category,message,&log_record))
+		if(!Log_Create_Record("AUTOGUIDER",(char*)sub_system,(char*)source_filename,NULL,(char*)function,
+				      LOG_SEVERITY_INFO,level,(char*)category,(char*)message,&log_record))
 		{
 			Log_General_Error();
 		}

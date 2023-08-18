@@ -88,9 +88,11 @@ extern void Autoguider_General_Log_Format(const char *sub_system,const char *sou
 					  int level,const char *category,const char *format,...);
 extern void Autoguider_General_Log(const char *sub_system,const char *source_filename,const char *function,int level,
 				   const char *category,const char *string);
-extern void Autoguider_General_Call_Log_Handlers(const char *sub_system,const char *source_filename,
-						 const char *function,int level,const char *category,
-						 const char *message);
+extern void Autoguider_General_Call_Log_Handlers(char *sub_system,char *source_filename,char *function,int level,
+						 char *category,char *message);
+extern void Autoguider_General_Call_Log_Handlers_Const(const char *sub_system,const char *source_filename,
+						       const char *function,int level,const char *category,
+						       const char *message);
 extern int Autoguider_General_Add_Log_Handler_Function(void (*log_fn)(const char *sub_system,
 						       const char *source_filename,const char *function,int level,
 						       const char *category,const char *message));

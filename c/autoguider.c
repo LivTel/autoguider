@@ -398,6 +398,7 @@ static int Autoguider_Initialise_Signal(void)
  * @see autoguider_general.html#Autoguider_General_Log_Handler_Log_Hourly_File
  * @see autoguider_general.html#Autoguider_General_Log_Handler_Log_UDP
  * @see autoguider_general.html#Autoguider_General_Call_Log_Handlers
+ * @see autoguider_general.html#Autoguider_General_Call_Log_Handlers_Const
  * @see autoguider_general.html#Autoguider_General_Set_Log_Filter_Function
  * @see autoguider_general.html#Autoguider_General_Log_Filter_Level_Absolute
  * @see ../ccd/cdocs/ccd_general.html#CCD_General_Set_Log_Handler_Function
@@ -473,7 +474,7 @@ static int Autoguider_Initialise_Logging(void)
 	Autoguider_General_Add_Log_Handler_Function(Autoguider_General_Log_Handler_Log_UDP);
 	Autoguider_General_Set_Log_Filter_Function(Autoguider_General_Log_Filter_Level_Absolute);
 	/* CCD */
-	CCD_General_Set_Log_Handler_Function(Autoguider_General_Call_Log_Handlers);
+	CCD_General_Set_Log_Handler_Function(Autoguider_General_Call_Log_Handlers_Const);
 	CCD_General_Set_Log_Filter_Function(CCD_General_Log_Filter_Level_Absolute);
 	/* setup command server logging */
 	Command_Server_Set_Log_Handler_Function(Autoguider_General_Call_Log_Handlers);
