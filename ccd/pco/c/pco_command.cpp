@@ -637,6 +637,474 @@ int PCO_Command_Set_Recording_State(int rec_state)
 #endif
 	return TRUE;
 }
+
+/**
+ * Reset the cameras settings to a known (default) state.
+ * @return The routine returns TRUE on success and FALSE if an error occurs.
+ * @see #Command_Data
+ * @see #Command_PCO_Get_Error_Text
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log_Format
+ */
+int PCO_Command_Reset_Settings(void)
+{
+	DWORD pco_err;
+
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Reset_Settings",LOG_VERBOSITY_VERBOSE,NULL,"Started.");
+#endif
+	if(Command_Data.Camera == NULL)
+	{
+		CCD_General_Error_Number = 1122;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Reset_Settings:Camera CPco_com_usb instance not created.");
+		return FALSE;
+	}
+	pco_err = Command_Data.Camera->PCO_ResetSettingsToDefault();
+	if(pco_err != PCO_NOERROR)
+	{
+		CCD_General_Error_Number = 1123;
+		sprintf(CCD_General_Error_String,"PCO_Command_Reset_Settings:"
+			"Camera PCO_ResetSettingsToDefault failed with PCO error code 0x%x (%s).",pco_err,
+			Command_PCO_Get_Error_Text(pco_err));
+		return FALSE;
+	}
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Reset_Settings",LOG_VERBOSITY_VERBOSE,NULL,"Finished.");
+#endif
+	return TRUE;
+}
+
+/**
+ * Set how the camera records timestamps. 
+ * @param mode An PCO_COMMAND_TIMESTAMP_MODE enum: 0x0 (off), 0x1 (binary), 0x2 (binary+ASCII), 0x3 (ASCII).
+ * @return The routine returns TRUE on success and FALSE if an error occurs.
+ * @see #PCO_COMMAND_TIMESTAMP_MODE
+ * @see #Command_Data
+ * @see #Command_PCO_Get_Error_Text
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log_Format
+ */
+int PCO_Command_Set_Timestamp_Mode(enum PCO_COMMAND_TIMESTAMP_MODE mode)
+{
+	DWORD pco_err;
+
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Set_Timestamp_Mode",LOG_VERBOSITY_VERBOSE,NULL,
+			       "PCO_Command_Set_Timestamp_Mode(%d): Started.",mode);
+#endif
+	if((mode < 0)||(mode > 3))
+	{
+		CCD_General_Error_Number = 1124;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Set_Timestamp_Mode:Illegal value for mode parameter (%d).",mode);
+		return FALSE;
+	}
+	if(Command_Data.Camera == NULL)
+	{
+		CCD_General_Error_Number = 1125;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Set_Timestamp_Mode:Camera CPco_com_usb instance not created.");
+		return FALSE;
+	}
+	pco_err = Command_Data.Camera->PCO_SetTimestampMode(mode);
+	if(pco_err != PCO_NOERROR)
+	{
+		CCD_General_Error_Number = 1126;
+		sprintf(CCD_General_Error_String,"PCO_Command_Set_Timestamp_Mode:"
+			"Camera PCO_SetTimestampMode(%d) failed with PCO error code 0x%x (%s).",
+			mode,pco_err,Command_PCO_Get_Error_Text(pco_err));
+		return FALSE;
+	}
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Set_Timestamp_Mode",LOG_VERBOSITY_VERBOSE,NULL,
+			"Finished.");
+#endif
+	return TRUE;
+}
+
+/**
+ * Set the units used for delays and exposures.
+ * @param delay_timebase A PCO_COMMAND_TIMEBASE enumeration , used to set the units used for delays.
+ * @param exposure_timebase A PCO_COMMAND_TIMEBASE enumeration, used to set the units used for exposures.
+ * @return The routine returns TRUE on success and FALSE if an error occurs.
+ * @see #PCO_COMMAND_TIMEBASE
+ * @see #Command_Data
+ * @see #Command_PCO_Get_Error_Text
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log_Format
+ */
+int PCO_Command_Set_Timebase(enum PCO_COMMAND_TIMEBASE delay_timebase,enum PCO_COMMAND_TIMEBASE exposure_timebase)
+{
+	WORD exp_timebase,del_timebase;
+	DWORD pco_err;
+
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Set_Timebase",LOG_VERBOSITY_VERBOSE,NULL,
+			       "PCO_Command_Set_Timebase(delay=%d,exposure=%d): Started.",
+			       delay_timebase,exposure_timebase);
+#endif
+	if((delay_timebase < 0)||(delay_timebase > 2))
+	{
+		CCD_General_Error_Number = 1127;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Set_Timebase:Illegal value for delay_timebase parameter (%d).",delay_timebase);
+		return FALSE;
+	}
+	if((exposure_timebase < 0)||(exposure_timebase > 2))
+	{
+		CCD_General_Error_Number = 1128;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Set_Timebase:Illegal value for exposure_timebase parameter (%d).",
+			exposure_timebase);
+		return FALSE;
+	}
+	if(Command_Data.Camera == NULL)
+	{
+		CCD_General_Error_Number = 1129;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Set_Timebase:Camera CPco_com_usb instance not created.");
+		return FALSE;
+	}
+	del_timebase = delay_timebase;
+	exp_timebase = exposure_timebase;
+	pco_err = Command_Data.Camera->PCO_SetTimebase(del_timebase,exp_timebase);
+	if(pco_err != PCO_NOERROR)
+	{
+		CCD_General_Error_Number = 1130;
+		sprintf(CCD_General_Error_String,"PCO_Command_Set_Timebase:"
+			"Camera PCO_SetTimebase(%d,%d) failed with PCO error code 0x%x (%s).",
+			del_timebase,exp_timebase,pco_err,Command_PCO_Get_Error_Text(pco_err));
+		return FALSE;
+	}
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Set_Timebase",LOG_VERBOSITY_VERBOSE,NULL,"Finished.");
+#endif
+	return TRUE;
+}
+
+/**
+ * Set the delay and exposure time.
+ * @param delay_time An integer, used to set the delay, in units previously specified by PCO_Command_Set_Timebase.
+ * @param exposure_time An integer, used to set the exposure length, 
+ *        in units previously specified by PCO_Command_Set_Timebase.
+ * @return The routine returns TRUE on success and FALSE if an error occurs.
+ * @see #Command_Data
+ * @see #PCO_Command_Set_Timebase
+ * @see #Command_PCO_Get_Error_Text
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log_Format
+ */
+int PCO_Command_Set_Delay_Exposure_Time(int delay_time,int exposure_time)
+{
+	DWORD exp_time_dw,delay_time_dw;
+	DWORD pco_err;
+
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Set_Delay_Exposure_Time",LOG_VERBOSITY_INTERMEDIATE,
+			       NULL,"PCO_Command_Set_Delay_Exposure_Time(delay=%d,exposure=%d): Started.",
+			       delay_time,exposure_time);
+#endif
+	if(Command_Data.Camera == NULL)
+	{
+		CCD_General_Error_Number = 1131;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Set_Delay_Exposure_Time:Camera CPco_com_usb instance not created.");
+		return FALSE;
+	}
+	delay_time_dw = delay_time;
+	exp_time_dw = exposure_time;
+	pco_err = Command_Data.Camera->PCO_SetDelayExposure(delay_time_dw,exp_time_dw);
+	if(pco_err != PCO_NOERROR)
+	{
+		CCD_General_Error_Number = 1132;
+		sprintf(CCD_General_Error_String,"PCO_Command_Set_Delay_Exposure_Time:"
+			"Camera PCO_SetDelayExposure(%d,%d) failed with PCO error code 0x%x (%s).",
+			delay_time_dw,exp_time_dw,pco_err,Command_PCO_Get_Error_Text(pco_err));
+		return FALSE;
+	}
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Set_Delay_Exposure_Time",LOG_VERBOSITY_INTERMEDIATE,NULL,
+			"PCO_Command_Set_Delay_Exposure_Time: Finished.");
+#endif
+	return TRUE;
+}
+
+/**
+ * Set the number of analogue to digital converters used.
+ * @param num_adcs An integer: either 0x1 or 0x2, the number of ADCs to use. 2 is faster, 1 is more linear.
+ * @return The routine returns TRUE on success and FALSE if an error occurs.
+ * @see #Command_Data
+ * @see #Command_PCO_Get_Error_Text
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log_Format
+ */
+int PCO_Command_Set_ADC_Operation(int num_adcs)
+{
+	DWORD pco_err;
+
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Set_ADC_Operation",LOG_VERBOSITY_VERBOSE,NULL,
+			       "PCO_Command_Set_ADC_Operation(%d): Started.",num_adcs);
+#endif
+	if((num_adcs < 1)||(num_adcs > 2))
+	{
+		CCD_General_Error_Number = 1133;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Set_ADC_Operation:Illegal value for num_adcs parameter (%d).",num_adcs);
+		return FALSE;
+	}
+	if(Command_Data.Camera == NULL)
+	{
+		CCD_General_Error_Number = 1134;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Set_ADC_Operation:Camera CPco_com_usb instance not created.");
+		return FALSE;
+	}
+	pco_err = Command_Data.Camera->PCO_SetADCOperation(num_adcs);
+	if(pco_err != PCO_NOERROR)
+	{
+		CCD_General_Error_Number = 1135;
+		sprintf(CCD_General_Error_String,"PCO_Command_Set_ADC_Operation:"
+			"Camera PCO_SetADCOperation(%d) failed with PCO error code 0x%x (%s).",
+			num_adcs,pco_err,Command_PCO_Get_Error_Text(pco_err));
+		return FALSE;
+	}
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Set_ADC_Operation",LOG_VERBOSITY_VERBOSE,NULL,"Finished.");
+#endif
+	return TRUE;
+}
+
+/**
+ * Set the bit alignment used for the output image data.
+ * @param bit_alignment An integer: 0x0 (MSB) or 0x1 (LSB).
+ * @return The routine returns TRUE on success and FALSE if an error occurs.
+ * @see #Command_Data
+ * @see #Command_PCO_Get_Error_Text
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log_Format
+ */
+int PCO_Command_Set_Bit_Alignment(int bit_alignment)
+{
+	DWORD pco_err;
+
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Set_Bit_Alignment",LOG_VERBOSITY_VERBOSE,NULL,
+			       "PCO_Command_Set_Bit_Alignment(%d): Started.",bit_alignment);
+#endif
+	if(Command_Data.Camera == NULL)
+	{
+		CCD_General_Error_Number = 1136;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Set_Bit_Alignment:Camera CPco_com_usb instance not created.");
+		return FALSE;
+	}
+	pco_err = Command_Data.Camera->PCO_SetBitAlignment(bit_alignment);
+	if(pco_err != PCO_NOERROR)
+	{
+		CCD_General_Error_Number = 1137;
+		sprintf(CCD_General_Error_String,"PCO_Command_Set_Bit_Alignment:"
+			"Camera PCO_SetBitAlignment(%d) failed with PCO error code 0x%x (%s).",
+			bit_alignment,pco_err,Command_PCO_Get_Error_Text(pco_err));
+		return FALSE;
+	}
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Set_Bit_Alignment",LOG_VERBOSITY_VERBOSE,NULL,
+			"PCO_Command_Set_Bit_Alignment: Finished.");
+#endif
+	return TRUE;
+}
+
+/**
+ * Set what image corrects the camera performs.
+ * @param mode An integer: 0x0000 (off), 0x0001 (noise filter on), 0x0101 (noise filter on + hot pixel correction).
+ * @return The routine returns TRUE on success and FALSE if an error occurs.
+ * @see #Command_Data
+ * @see #Command_PCO_Get_Error_Text
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log_Format
+ */
+int PCO_Command_Set_Noise_Filter_Mode(int mode)
+{
+	DWORD pco_err;
+
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Set_Noise_Filter_Mode",LOG_VERBOSITY_VERBOSE,NULL,
+			       "PCO_Command_Set_Noise_Filter_Mode(%d): Started.",mode);
+#endif
+	if(Command_Data.Camera == NULL)
+	{
+		CCD_General_Error_Number = 1138;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Set_Noise_Filter_Mode:Camera CPco_com_usb instance not created.");
+		return FALSE;
+	}
+	pco_err = Command_Data.Camera->PCO_SetNoiseFilterMode(mode);
+	if(pco_err != PCO_NOERROR)
+	{
+		CCD_General_Error_Number = 1139;
+		sprintf(CCD_General_Error_String,"PCO_Command_Set_Noise_Filter_Mode:"
+			"Camera PCO_SetNoiseFilterMode(%d) failed with PCO error code 0x%x (%s).",mode,pco_err,
+			Command_PCO_Get_Error_Text(pco_err));
+		return FALSE;
+	}
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Set_Noise_Filter_Mode",LOG_VERBOSITY_VERBOSE,NULL,
+			"Finished.");
+#endif
+	return TRUE;
+}
+
+/**
+ * Set how camera exposures are triggered
+ * @param mode An enum of type PCO_COMMAND_TRIGGER_MODE. Used to select external or internal trigger modes.
+ * @return The routine returns TRUE on success and FALSE if an error occurs.
+ * @see #PCO_COMMAND_TRIGGER_MODE
+ * @see #Command_Data
+ * @see #Command_PCO_Get_Error_Text
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log_Format
+ */
+int PCO_Command_Set_Trigger_Mode(enum PCO_COMMAND_TRIGGER_MODE mode)
+{
+	DWORD pco_err;
+
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Set_Trigger_Mode",LOG_VERBOSITY_VERBOSE,NULL,
+			       "CCD_Command_Set_Trigger_Mode(%d): Started.",mode);
+#endif
+	if(Command_Data.Camera == NULL)
+	{
+		CCD_General_Error_Number = 1140;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Set_Trigger_Mode:Camera CPco_com_usb instance not created.");
+		return FALSE;
+	}
+	pco_err = Command_Data.Camera->PCO_SetTriggerMode(mode);
+	if(pco_err != PCO_NOERROR)
+	{
+		CCD_General_Error_Number = 1141;
+		sprintf(CCD_General_Error_String,"CCD_Command_Set_Trigger_Mode:"
+			"Camera PCO_SetTriggerMode(%d) failed with PCO error code 0x%x (%s).",mode,pco_err,
+			Command_PCO_Get_Error_Text(pco_err));
+		return FALSE;
+	}
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Set_Trigger_Mode",LOG_VERBOSITY_VERBOSE,NULL,"Finished.");
+#endif	
+	return TRUE;
+}
+
+/**
+ * Set the camera binning.
+ * @param bin_x An integer, the horizontal binning.
+ * @param bin_y An integer, the vertical binning.
+ * @return The routine returns TRUE on success and FALSE if an error occurs.
+ * @see #Command_Data
+ * @see #Command_PCO_Get_Error_Text
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log_Format
+ */
+int PCO_Command_Set_Binning(int bin_x,int bin_y)
+{
+	DWORD pco_err;
+
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Set_Binning",LOG_VERBOSITY_VERBOSE,NULL,
+			       "PCO_Command_Set_Binning(%d,%d): Started.",bin_x,bin_y);
+#endif
+	if(Command_Data.Camera == NULL)
+	{
+		CCD_General_Error_Number = 1142;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Set_Binning:Camera CPco_com_usb instance not created.");
+		return FALSE;
+	}
+	pco_err = Command_Data.Camera->PCO_SetBinning(bin_x,bin_y);
+	if(pco_err != PCO_NOERROR)
+	{
+		CCD_General_Error_Number = 1143;
+		sprintf(CCD_General_Error_String,"PCO_Command_Set_Binning:"
+			"Camera PCO_SetBinning(%d,%d) failed with PCO error code 0x%x (%s).",bin_x,bin_y,pco_err,
+			Command_PCO_Get_Error_Text(pco_err));
+		return FALSE;
+	}
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Set_Binning",LOG_VERBOSITY_VERBOSE,NULL,"Finished.");
+#endif
+	return TRUE;
+}
+
+/**
+ * Get the current 'region of interest', given the current binning settings. This is the area of the detector
+ * to read out, in binned pixels.
+ * @param start_x The address of an integer to store the first pixel in x on the detector to read out.
+ * @param start_y The address of an integer to store the first pixel in y on the detector to read out.
+ * @param end_x The address of an integer to store the last pixel in x on the detector to read out.
+ * @param end_y The address of an integer to store the last pixel in y on the detector to read out.
+ * @return The routine returns TRUE on success and FALSE if an error occurs.
+ * @see #Command_Data
+ * @see #Command_PCO_Get_Error_Text
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log_Format
+ */
+int PCO_Command_Set_ROI(int start_x,int start_y,int end_x,int end_y)
+{
+	DWORD pco_err;
+	WORD start_x_w,start_y_w,end_x_w,end_y_w;
+	
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Set_ROI",LOG_VERBOSITY_INTERMEDIATE,NULL,
+			       "PCO_Command_Set_ROI(%d,%d,%d,%d): Started.",
+			       start_x,start_y,end_x,end_y);
+#endif
+	/* check camera instance has been created, if so open should have been called,
+	** and the Description field retrieved from the camera head. */
+	if(Command_Data.Camera == NULL)
+	{
+		CCD_General_Error_Number = 1144;
+		sprintf(CCD_General_Error_String,"PCO_Command_Set_ROI:Camera CPco_com_usb instance not created.");
+		return FALSE;
+	}
+	start_x_w = start_x;
+	start_y_w = start_y;
+	end_x_w = end_x;
+	end_y_w = end_y;
+	pco_err = Command_Data.Camera->PCO_SetROI(start_x_w,start_y_w,end_x_w,end_y_w);
+	if(pco_err != PCO_NOERROR)
+	{
+		CCD_General_Error_Number = 1145;
+		sprintf(CCD_General_Error_String,"PCO_Command_Set_ROI:PCO_SetROI(%d,%d,%d,%d) failed(0x%x) (%s).",
+			start_x_w,start_y_w,end_x_w,end_y_w,pco_err,Command_PCO_Get_Error_Text(pco_err));
+		return FALSE;
+	}
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Set_ROI",LOG_VERBOSITY_INTERMEDIATE,NULL,"Finished.");
+#endif
+	return TRUE;
+}
+
 	
 /* =======================================
 **  internal functions 
