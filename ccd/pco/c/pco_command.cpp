@@ -1530,6 +1530,227 @@ int PCO_Command_Description_Get_Max_Horizontal_Size(int *max_hor_size)
 	return TRUE;
 }
 
+/**
+ * Get the maximum vertical (y) size of the camera sensor (in standard mode), as returned from it's description
+ * (retrieved from the camera head when opening a connection to the camera, and stored in Command_Data.Description).
+ * @param max_ver_size The address of an integer to store the maximum vertical (y) size of the sensor, in pixels.
+ * @return The routine returns TRUE on success and FALSE if an error occurs.
+ * @see #Command_Data
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log_Format
+ */
+int PCO_Command_Description_Get_Max_Vertical_Size(int *max_ver_size)
+{
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Description_Get_Max_Vertical_Size",
+			LOG_VERBOSITY_INTERMEDIATE,NULL,"Started.");
+#endif
+	if(max_ver_size == NULL)
+	{
+		CCD_General_Error_Number = 1162;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Description_Get_Max_Vertical_Size:max_ver_size was NULL.");
+		return FALSE;
+	}
+	/* check camera instance has been created, if so open should have been called,
+	** and the Description field retrieved from the camera head. */
+	if(Command_Data.Camera == NULL)
+	{
+		CCD_General_Error_Number = 1163;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Description_Get_Max_Vertical_Size:Camera CPco_com_usb instance not created.");
+		return FALSE;
+	}
+	(*max_ver_size) = Command_Data.Description.wMaxVertResStdDESC;
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Description_Get_Max_Vertical_Size",
+			       LOG_VERBOSITY_INTERMEDIATE,NULL,
+			       "PCO_Command_Description_Get_Max_Vertical_Size returned %d pixels.",(*max_ver_size));
+#endif
+	return TRUE;
+}
+
+/**
+ * Get the default cooling set-point of the camera sensor, as returned from it's description
+ * (retrieved from the camera head when opening a connection to the camera, and stored in Command_Data.Description).
+ * @param temperature The address of an integer to store the default cooling setpoint, in degrees centigrade.
+ * @return The routine returns TRUE on success and FALSE if an error occurs.
+ * @see #Command_Data
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log_Format
+ */
+int PCO_Command_Description_Get_Default_Cooling_Setpoint(int *temperature)
+{
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Description_Get_Default_Cooling_Setpoint",
+			LOG_VERBOSITY_INTERMEDIATE,NULL,"Started.");
+#endif
+	if(temperature == NULL)
+	{
+		CCD_General_Error_Number = 1164;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Description_Get_Default_Cooling_Setpoint:temperature was NULL.");
+		return FALSE;
+	}
+	/* check camera instance has been created, if so open should have been called,
+	** and the Description field retrieved from the camera head. */
+	if(Command_Data.Camera == NULL)
+	{
+		CCD_General_Error_Number = 1165;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Description_Get_Default_Cooling_Setpoint:Camera CPco_com_usb instance not created.");
+		return FALSE;
+	}
+	(*temperature) = Command_Data.Description.sDefaultCoolSetDESC;
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Description_Get_Default_Cooling_Setpoint",
+			       LOG_VERBOSITY_INTERMEDIATE,NULL,
+			       "PCO_Command_Description_Get_Default_Cooling_Setpoint returned %d C.",(*temperature));
+#endif
+	return TRUE;
+}
+
+/**
+ * Get the minimum cooling set-point of the camera sensor, as returned from it's description
+ * (retrieved from the camera head when opening a connection to the camera, and stored in Command_Data.Description).
+ * @param temperature The address of an integer to store the minimum cooling setpoint, in degrees centigrade.
+ * @return The routine returns TRUE on success and FALSE if an error occurs.
+ * @see #Command_Data
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log_Format
+ */
+int PCO_Command_Description_Get_Min_Cooling_Setpoint(int *temperature)
+{
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Description_Get_Min_Cooling_Setpoint",
+			LOG_VERBOSITY_INTERMEDIATE,NULL,"Started.");
+#endif
+	if(temperature == NULL)
+	{
+		CCD_General_Error_Number = 1166;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Description_Get_Min_Cooling_Setpoint:temperature was NULL.");
+		return FALSE;
+	}
+	/* check camera instance has been created, if so open should have been called,
+	** and the Description field retrieved from the camera head. */
+	if(Command_Data.Camera == NULL)
+	{
+		CCD_General_Error_Number = 1167;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Description_Get_Min_Cooling_Setpoint:Camera CPco_com_usb instance not created.");
+		return FALSE;
+	}
+	(*temperature) = Command_Data.Description.sMinCoolSetDESC;
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Description_Get_Min_Cooling_Setpoint",
+			       LOG_VERBOSITY_INTERMEDIATE,NULL,
+			       "PCO_Command_Description_Get_Min_Cooling_Setpoint returned %d C.",(*temperature));
+#endif
+	return TRUE;
+}
+
+/**
+ * Get the maximum cooling set-point of the camera sensor, as returned from it's description
+ * (retrieved from the camera head when opening a connection to the camera, and stored in Command_Data.Description).
+ * @param temperature The address of an integer to store the maximum cooling setpoint, in degrees centigrade.
+ * @return The routine returns TRUE on success and FALSE if an error occurs.
+ * @see #Command_Data
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log_Format
+ */
+int PCO_Command_Description_Get_Max_Cooling_Setpoint(int *temperature)
+{
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Description_Get_Max_Cooling_Setpoint",
+			LOG_VERBOSITY_INTERMEDIATE,NULL,"Started.");
+#endif
+	if(temperature == NULL)
+	{
+		CCD_General_Error_Number = 1168;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Description_Get_Max_Cooling_Setpoint:temperature was NULL.");
+		return FALSE;
+	}
+	/* check camera instance has been created, if so open should have been called,
+	** and the Description field retrieved from the camera head. */
+	if(Command_Data.Camera == NULL)
+	{
+		CCD_General_Error_Number = 1169;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Description_Get_Max_Cooling_Setpoint:Camera CPco_com_usb instance not created.");
+		return FALSE;
+	}
+	(*temperature) = Command_Data.Description.sMaxCoolSetDESC;
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Description_Get_Max_Cooling_Setpoint",
+			       LOG_VERBOSITY_INTERMEDIATE,NULL,
+			       "PCO_Command_Description_Get_Max_Cooling_Setpoint returned %d C.",(*temperature));
+#endif
+	return TRUE;
+}
+
+/**
+ * Get the type and sub-type of the camera sensor, as returned from it's description
+ * (retrieved from the camera head when opening a connection to the camera, and stored in Command_Data.Description).
+ * The numbers are described in the MA_PCOSDK_V127.pdf SDK manual, Section 2.2.2.3 'Sensor Type Codes', P28.
+ * @param sensor_type The address of an integer to store the sensor type code.
+ * @param sensor_subtype The address of an integer to store the sensor sub-type code.
+ * @return The routine returns TRUE on success and FALSE if an error occurs.
+ * @see #Command_Data
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log_Format
+ */
+int PCO_Command_Description_Get_Sensor_Type(int *sensor_type,int *sensor_subtype)
+{
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Description_Get_Sensor_Type",LOG_VERBOSITY_INTERMEDIATE,
+			NULL,"Started.");
+#endif
+	if(sensor_type == NULL)
+	{
+		CCD_General_Error_Number = 1170;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Description_Get_Sensor_Type:sensor_type was NULL.");
+		return FALSE;
+	}
+	if(sensor_subtype == NULL)
+	{
+		CCD_General_Error_Number = 1171;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Description_Get_Sensor_Type:sensor_subtype was NULL.");
+		return FALSE;
+	}
+	/* check camera instance has been created, if so open should have been called,
+	** and the Description field retrieved from the camera head. */
+	if(Command_Data.Camera == NULL)
+	{
+		CCD_General_Error_Number = 1172;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Description_Get_Sensor_Type:Camera CPco_com_usb instance not created.");
+		return FALSE;
+	}
+	(*sensor_type) = Command_Data.Description.wSensorTypeDESC;
+	(*sensor_subtype) = Command_Data.Description.wSensorSubTypeDESC;
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Description_Get_Sensor_Type",
+			       LOG_VERBOSITY_INTERMEDIATE,NULL,"PCO_Command_Description_Get_Sensor_Type "
+			       "returned sensor type code 0x%x and sensor sub-type code %d.",
+			       (*sensor_type),(*sensor_subtype));
+#endif
+	return TRUE;
+}
+
 	
 /* =======================================
 **  internal functions 
