@@ -7,10 +7,18 @@
 #include "ccd_setup.h"
 
 /**
+ * Is the specified binning value valid. Valid binning numbers are: 1,2,?. 
+ * @param b The binning value to test.
+ * @return TRUE if the binning is a valid number and FALSE if it not.
+ */
+#define PCO_SETUP_BINNING_IS_VALID(b) ((b==1)||(b==2))
+
+/**
  * Root string of setup keywords used by the PCO driver library.
  * @see pco_general.h#PCO_CCD_KEYWORD_ROOT
  */
 #define PCO_SETUP_KEYWORD_ROOT    PCO_CCD_KEYWORD_ROOT"setup."
+
 
 /*  the following 3 lines are needed to support C++ compilers */
 #ifdef __cplusplus

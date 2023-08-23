@@ -44,7 +44,8 @@
  * Data type holding local data to pco_setup. This consists of the following:
  * <dl>
  * <dt>Camera_Board</dt> <dd>The board parameter passed to Open_Cam, to determine which camera to connect to.</dd>
- * <dt>Binning</dt> <dd>The readout binning, stored as an integer. Can be one of 1,2,3,4,8. </dd>
+ * <dt>Horizontal_Binning</dt> <dd>The readout horizontal binning, stored as an integer. Can be one of 1,2,3,4,8. </dd>
+ * <dt>Vertical_Binning</dt> <dd>The readout vertical binning, stored as an integer. Can be one of 1,2,3,4,8. </dd>
  * <dt>Serial_Number</dt> <dd>An integer containing the serial number retrieved from the camera head
  *                            Retrieved from the camera library during PCO_Setup_Startup.</dd>
  * <dt>Pixel_Width</dt> <dd>A double storing the pixel width in micrometers. Setup from the sensor type 
@@ -61,7 +62,8 @@
 struct Setup_Struct
 {
 	int Camera_Board;
-	int Binning;
+	int Horizontal_Binning;
+	int Vertical_Binning;
 	int Serial_Number;
 	double Pixel_Width;
 	double Pixel_Height;
@@ -79,7 +81,8 @@ static char rcsid[] = "$Id$";
  * The instance of Setup_Struct that contains local data for this module. This is initialised as follows:
  * <dl>
  * <dt>Camera_Board</dt> <dd>0</dd>
- * <dt>Binning</dt> <dd>1</dd>
+ * <dt>Horizontal_Binning</dt> <dd>1</dd>
+ * <dt>Vertical_Binning</dt> <dd>1</dd>
  * <dt>Serial_Number</dt> <dd>-1</dd>
  * <dt>Pixel_Width</dt> <dd>0.0</dd>
  * <dt>Pixel_Height</dt> <dd>0.0</dd>
@@ -90,7 +93,7 @@ static char rcsid[] = "$Id$";
  */
 static struct Setup_Struct Setup_Data = 
 {
-	0,1,-1,0.0,0.0,0,0,0
+	0,1,1,-1,0.0,0.0,0,0,0
 };
 
 /* internal functions */
@@ -254,25 +257,120 @@ int PCO_Setup_Startup(void)
 	return TRUE;
 }
 
+/**
+ * Shutdown the connection to the CCD.
+ * <ul>
+ * <li>We close connection to the CCD camera using PCO_Command_Close.
+ * <li>We finalise the libraries used using PCO_Command_Finalise.
+ * <ul>
+ * @return The routine returns TRUE on success and FALSE on failure.
+ * @see pco_command.html#PCO_Command_Close
+ * @see pco_command.html#PCO_Command_Finalise
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log
+ */
 int PCO_Setup_Shutdown(void)
 {
 #ifdef PCO_DEBUG
 	CCD_General_Log("ccd","pco_setup.c","PCO_Setup_Shutdown",LOG_VERBOSITY_INTERMEDIATE,NULL,"Started.");
 #endif
-	
+	/* close the open connection to the CCD camera */
+	if(!PCO_Command_Close())
+		return FALSE;
+	/* shutdown the PCO library */
+	if(!PCO_Command_Finalise())
+		return FALSE;
 #ifdef PCO_DEBUG
 	CCD_General_Log("ccd","pco_setup.c","PCO_Setup_Shutdown",LOG_VERBOSITY_INTERMEDIATE,NULL,"Finished.");
 #endif
 	return TRUE;
 }
 
+/**
+ * Setup binning and other per exposure configuration.
+ * <ul>
+ * <li>We use PCO_SETUP_BINNING_IS_VALID to check the binning parameter is a supported binning.
+ * <li>We store the binning in Setup_Data.Binning.
+ * <li>We call PCO_Command_Set_Binning to set the binning.
+ * <li>We call PCO_Command_Set_ROI to set the region of interest to match the binning,
+ *     with the end positions computed from Setup_Data.Sensor_Width / Setup_Data.Sensor_Height.
+ * <li>We call PCO_Command_Arm_Camera to update the camera's internal settings to use the new binning.
+ * <li>We call PCO_Command_Grabber_Post_Arm to update the grabber's internal settings to use the new binning.
+ * <li>We call PCO_Command_Get_Image_Size_Bytes to update the Setup_Data.Image_Size_Bytes data.
+ * </ul>
+ * @param ncols Number of image columns (X). These appear to be unbinned.
+ * @param nrows Number of image rows (Y). These appear to be unbinned.
+ * @param hbin Binning in X.
+ * @param vbin Binning in Y.
+ * @param window_flags Whether to use the specified window or not.
+ * @param window A structure containing window data. The window is meant to be inclusive, i.e. it goes from
+ *        window.X_Start to window.X_End (with both pixels being included) and the width of the window is
+ *        (window.X_End-window.X_Start)+1.
+ * @return The routine returns TRUE on success and FALSE on failure.
+ * @see #PCO_SETUP_BINNING_IS_VALID
+ * @see #Setup_Data
+ * @see pco_command.html#PCO_Command_Set_Binning
+ * @see pco_command.html#PCO_Command_Set_ROI
+ * @see pco_command.html#PCO_Command_Arm_Camera
+ * @see pco_command.html#PCO_Command_Grabber_Post_Arm
+ * @see pco_command.html#PCO_Command_Get_Image_Size_Bytes
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log_Format
+ * @see ../../cdocs/ccd_setup.html#CCD_Setup_Window_Struct
+ */
 int PCO_Setup_Dimensions(int ncols,int nrows,int hbin,int vbin,
-				int window_flags,struct CCD_Setup_Window_Struct window)
+			 int window_flags,struct CCD_Setup_Window_Struct window)
 {
+	int start_x,start_y,end_x,end_y;
+
 #ifdef PCO_DEBUG
 	CCD_General_Log("ccd","pco_setup.c","PCO_Setup_Dimensions",LOG_VERBOSITY_INTERMEDIATE,NULL,"Started.");
 #endif
-	
+	if(!PCO_SETUP_BINNING_IS_VALID(hbin))
+	{
+		CCD_General_Error_Number = 1301;
+		sprintf(CCD_General_Error_String,"PCO_Setup_Dimensions: Horizontal binning %d not valid.",hbin);
+		return FALSE;
+	}
+	if(!PCO_SETUP_BINNING_IS_VALID(vbin))
+	{
+		CCD_General_Error_Number = 1302;
+		sprintf(CCD_General_Error_String,"PCO_Setup_Dimensions: Vertical binning %d not valid.",hbin);
+		return FALSE;
+	}
+	/* save the binning for later retrieval */
+	Setup_Data.Horizontal_Binning = hbin;
+	Setup_Data.Vertical_Binning = vbin;
+	/* set the actual binning */
+	if(!PCO_Command_Set_Binning(hbin,vbin))
+		return FALSE;
+	if(window_flags > 0)
+	{
+		/* diddly looks like Set_ROI takes binned pixels, are the passed in window binned or not? */ 
+		start_x = window.X_Start;
+		start_y = window.Y_Start;
+		end_x = window.X_End; /* diddly do we need to add 1 to be inclusive? */
+		end_y = window.Y_End; /* diddly do we need to add 1 to be inclusive? */
+	}
+	else
+	{
+		/* set the ROI to the binned pixel area to read out */
+		start_x = 1;
+		start_y = 1;
+		end_x = Setup_Data.Sensor_Width/hbin;
+		end_y = Setup_Data.Sensor_Height/vbin;
+	}
+	if(!PCO_Command_Set_ROI(start_x,start_y,end_x,end_y))
+		return FALSE;
+	/* get camera to update it's internal settings */
+	if(!PCO_Command_Arm_Camera())
+		return FALSE;
+	/* get grabber to update to the new binning */
+	if(!PCO_Command_Grabber_Post_Arm())
+		return FALSE;
+	/* diddly do something with image dimensions Setup_Data.Image_Size_Bytes some thing else? */
+	/* where do we store the window parameters? */
 #ifdef PCO_DEBUG
 	CCD_General_Log("ccd","pco_setup.c","PCO_Setup_Dimensions",LOG_VERBOSITY_INTERMEDIATE,NULL,"Finished.");
 #endif
