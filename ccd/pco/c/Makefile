@@ -24,8 +24,8 @@ LOG_UDP_CFLAGS		= -I$(LOG_UDP_SRC_HOME)/include
 CFLAGS 			= -g -I$(INCDIR) $(DEBUG_CFLAGS) $(PCO_CFLAGS) $(CCD_CFLAGS) $(LOG_UDP_CFLAGS) \
 			  $(SHARED_LIB_CFLAGS)
 DOCFLAGS 		= -static
-LIB_SRCS		= pco_driver.cpp pco_command.cpp
-# pco_setup.cpp pco_exposure.cpp pco_temperature.cpp
+LIB_SRCS		= pco_driver.cpp pco_command.cpp pco_setup.cpp 
+# pco_exposure.cpp pco_temperature.cpp
 
 
 SRCS			= $(LIB_SRCS)

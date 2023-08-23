@@ -24,7 +24,9 @@
 /* diddly
 #include "pco_exposure.h"
 #include "pco_general.h"
+*/
 #include "pco_setup.h"
+/*
 #include "pco_temperature.h"
 */
 
@@ -68,14 +70,12 @@ int PCO_Driver_Register(struct CCD_Driver_Function_Struct *functions)
 		return FALSE;
 	}
 	/* setup */
-	/* diddly
 	functions->Setup_Startup = PCO_Setup_Startup;
 	functions->Setup_Dimensions = PCO_Setup_Dimensions;
 	functions->Setup_Abort = PCO_Setup_Abort;
 	functions->Setup_Get_NCols =PCO_Setup_Get_NCols;
 	functions->Setup_Get_NRows = PCO_Setup_Get_NRows;
 	functions->Setup_Shutdown = PCO_Setup_Shutdown;
-	*/
 	/* exposure */
 	/* diddly
 	functions->Exposure_Expose = PCO_Exposure_Expose;
