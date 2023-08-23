@@ -9,6 +9,13 @@
  */
 #define CCD_CONFIG_KEYWORD_ROOT    "ccd."
 
+/* We now need CCD_General external prototypes to be declared extern C when compiling using C++ compilers.
+** This is required for the PCO camera driver that is compiled with C++ and logs via the CCD_General API.
+** The following 3 lines are needed to support C++ compilers */
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern void CCD_Config_Initialise(void);
 extern int CCD_Config_Load(char *filename);
 extern int CCD_Config_Shutdown(void);
@@ -25,4 +32,8 @@ extern int CCD_Config_Get_Boolean(char *key, int *boolean);
 ** Initial revision
 **
 */
+#ifdef __cplusplus
+}
+#endif
+
 #endif

@@ -54,6 +54,13 @@
  */
 #define CCD_GENERAL_ONE_MICROSECOND_NS	(1000)
 
+/* We now need CCD_General external prototypes to be declared extern C when compiling using C++ compilers.
+** This is required for the PCO camera driver that is compiled with C++ and logs via the CCD_General API.
+** The following 3 lines are needed to support C++ compilers */
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* external variabless */
 extern int CCD_General_Error_Number;
 extern char CCD_General_Error_String[];
@@ -98,4 +105,8 @@ extern int CCD_General_Log_Filter_Level_Bitwise(const char *sub_system,const cha
 ** Initial revision
 **
 */
+#ifdef __cplusplus
+}
+#endif
+
 #endif
