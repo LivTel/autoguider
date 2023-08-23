@@ -25,6 +25,11 @@
 #include "ccd_general.h"
 #include "pco_command.h"
 #include "pco_setup.h"
+/*
+ * CCD_Config calls produce -Wwrite-strings warnings when compiled, so turn off this warning for
+ * this source file.
+ */
+#pragma GCC diagnostic ignored "-Wwrite-strings"
 
 /* hash defines */
 /**
@@ -39,7 +44,6 @@
  * Data type holding local data to pco_setup. This consists of the following:
  * <dl>
  * <dt>Camera_Board</dt> <dd>The board parameter passed to Open_Cam, to determine which camera to connect to.</dd>
- * <dt>Timestamp_Mode</dt> <dd>What kind of timestamp to include in the read out image data.</dd>
  * <dt>Binning</dt> <dd>The readout binning, stored as an integer. Can be one of 1,2,3,4,8. </dd>
  * <dt>Serial_Number</dt> <dd>An integer containing the serial number retrieved from the camera head
  *                            Retrieved from the camera library during PCO_Setup_Startup.</dd>
@@ -53,12 +57,10 @@
  *                       CCD_Setup_Startup.</dd>
  * <dt>Image_Size_Bytes</dt> <dd>An integer storing the image size in bytes.</dd>
  * </dl>
- * @see pco_command.html#PCO_COMMAND_TIMESTAMP_MODE
  */
 struct Setup_Struct
 {
 	int Camera_Board;
-	enum PCO_COMMAND_TIMESTAMP_MODE Timestamp_Mode;
 	int Binning;
 	int Serial_Number;
 	double Pixel_Width;
@@ -77,7 +79,6 @@ static char rcsid[] = "$Id$";
  * The instance of Setup_Struct that contains local data for this module. This is initialised as follows:
  * <dl>
  * <dt>Camera_Board</dt> <dd>0</dd>
- * <dt>Timestamp_Mode</dt> <dd>PCO_COMMAND_TIMESTAMP_MODE_BINARY_ASCII</dd>
  * <dt>Binning</dt> <dd>1</dd>
  * <dt>Serial_Number</dt> <dd>-1</dd>
  * <dt>Pixel_Width</dt> <dd>0.0</dd>
@@ -86,11 +87,10 @@ static char rcsid[] = "$Id$";
  * <dt>Sensor_Height</dt> <dd>0</dd>
  * <dt>Image_Size_Bytes</dt> <dd>0</dd>
  * </dl>
- * @see pco_command.html#PCO_COMMAND_TIMESTAMP_MODE
  */
 static struct Setup_Struct Setup_Data = 
 {
-	0,PCO_COMMAND_TIMESTAMP_MODE_BINARY_ASCII,1,-1,0.0,0.0,0,0,0
+	0,1,-1,0.0,0.0,0,0,0
 };
 
 /* internal functions */
@@ -98,24 +98,196 @@ static struct Setup_Struct Setup_Data =
 /* --------------------------------------------------------
 ** External Functions
 ** -------------------------------------------------------- */
+/**
+ * Do the initial setup for a PCO camera.
+ * <ul>
+ * <li>We initialise the libraries used using PCO_Command_Initialise_Camera.
+ * <li>We retrieve the configured board number from the config file by caling CCD_Config_Get_Integer with the keyword
+ *     "ccd.pco.setup.board_number" and save it to Setup_Data.Camera_Board.
+ * <li>We open a connection to the PCO camera using PCO_Command_Open, using the retrieved board number. 
+ * <li>We set the PCO camera to use the current time by calling PCO_Command_Set_Camera_To_Current_Time.
+ * <li>We stop any ongoing image acquisitions by calling PCO_Command_Set_Recording_State(FALSE).
+ * <li>We reset the camera to a known state by calling PCO_Command_Reset_Settings.
+ * <li>We set the camera timestamps using PCO_Command_Set_Timestamp_Mode to PCO_COMMAND_TIMESTAMP_MODE_BINARY.
+ * <li>We set the camera exposure and delay timebase to microseconds using 
+ *     PCO_Command_Set_Timebase(PCO_COMMAND_TIMEBASE_US,PCO_COMMAND_TIMEBASE_US).
+ * <li>We set an initial delay and exposure time by calling PCO_Command_Set_Delay_Exposure_Time(0,50);
+ * <li>We call PCO_Command_Description_Get_Num_ADCs to get the number of ADCs supported by this camera.
+ * <li>If the returned ADC count is greater than one, we call PCO_Command_Set_ADC_Operation(2) to use the extra ADC.
+ * <li>We call PCO_Command_Set_Bit_Alignment(0x0001) to set the returned data to be LSB.
+ * <li>We call PCO_Command_Set_Noise_Filter_Mode to set noise reduction to off.
+ * <li>We call PCO_Command_Description_Get_Max_Horizontal_Size to get Setup_Data.Sensor_Width from the camera
+ *     description.
+ * <li>We call PCO_Command_Description_Get_Max_Vertical_Size to get Setup_Data.Sensor_Height from the camera
+ *     description.
+ * <li>We call PCO_Command_Get_Camera_Type to get the camera's serial number from it's head.
+ * <li>We call PCO_Command_Description_Get_Sensor_Type to get the camera's sensor type number from it's description.
+ * <li>We call PCO_Command_Arm_Camera to update the cameras internal state to take account of the new settings.
+ * <li>We call PCO_Command_Grabber_Post_Arm to update the grabber's state to match the camera's state.
+ * <ul>
+ * @return The routine returns TRUE on success and FALSE on failure.
+ * @see #PCO_SETUP_KEYWORD_ROOT
+ * @see #Setup_Data
+ * @see pco_command.html#PCO_COMMAND_TIMESTAMP_MODE_BINARY
+ * @see pco_command.html#PCO_COMMAND_TIMEBASE
+ * @see pco_command.html#PCO_Command_Initialise_Camera
+ * @see pco_command.html#PCO_Command_Open
+ * @see pco_command.html#PCO_Command_Set_Camera_To_Current_Time
+ * @see pco_command.html#PCO_Command_Set_Recording_State
+ * @see pco_command.html#PCO_Command_Reset_Settings
+ * @see pco_command.html#PCO_Command_Set_Timestamp_Mode
+ * @see pco_command.html#PCO_Command_Set_Timebase
+ * @see pco_command.html#PCO_Command_Set_Delay_Exposure_Time
+ * @see pco_command.html#PCO_Command_Description_Get_Num_ADCs
+ * @see pco_command.html#PCO_Command_Set_ADC_Operation
+ * @see pco_command.html#PCO_Command_Set_Bit_Alignment
+ * @see pco_command.html#PCO_Command_Set_Noise_Filter_Mode
+ * @see pco_command.html#PCO_Command_Description_Get_Max_Horizontal_Size
+ * @see pco_command.html#PCO_Command_Description_Get_Max_Vertical_Size
+ * @see pco_command.html#PCO_Command_Get_Camera_Type
+ * @see pco_command.html#PCO_Command_Description_Get_Sensor_Type
+ * @see pco_command.html#PCO_Command_Arm_Camera
+ * @see pco_command.html#PCO_Command_Grabber_Post_Arm
+ * @see ../../cdocs/ccd_config.html#CCD_Config_Get_Integer
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log_Format
+ */
 int PCO_Setup_Startup(void)
 {
+	int adc_count,camera_type,sensor_type,sensor_subtype;
+	
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_setup.c","PCO_Setup_Startup",LOG_VERBOSITY_INTERMEDIATE,NULL,"Started.");
+#endif
+	/* initialise the PCO libraries */
+#ifdef FLI_DEBUG
+	CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,
+			       "Initialising PCO camera libraries.",Setup_Data.Camera_Board);
+#endif
+	if(!PCO_Command_Initialise_Camera())
+		return FALSE;
+	/* get the board number to use in PCO_Command_Open */
+	if(!CCD_Config_Get_Integer(PCO_SETUP_KEYWORD_ROOT"board_number",&(Setup_Data.Camera_Board)))
+		return FALSE;
+#ifdef FLI_DEBUG
+	CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,
+			       "Config file PCO board number:%d.",Setup_Data.Camera_Board);
+#endif
+	/* open a connection to the CCD camera */
+#ifdef FLI_DEBUG
+	CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,
+			       "Opening a connection to a PCO camera with board number %d.",Setup_Data.Camera_Board);
+#endif
+	if(!PCO_Command_Open(Setup_Data.Camera_Board))
+		return FALSE;
+	/* initial configuration of the camera */
+#ifdef FLI_DEBUG
+	CCD_General_Log("ccd","pco_setup.c","PCO_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,"Initialising PCO camera.");
+#endif
+	/* set camera to use current time */
+	if(!PCO_Command_Set_Camera_To_Current_Time())
+		return FALSE;
+	/* stop any ongoing exposures */
+	if(!PCO_Command_Set_Recording_State(FALSE))
+		return FALSE;
+	/* reset camera to a known state */
+	if(!PCO_Command_Reset_Settings())
+		return FALSE;
+	/* set what timestamp data to include in the read out image */
+	if(!PCO_Command_Set_Timestamp_Mode(PCO_COMMAND_TIMESTAMP_MODE_BINARY))
+		return FALSE;
+	/* set exposure and delay timebase to microseconds */
+	if(!PCO_Command_Set_Timebase(PCO_COMMAND_TIMEBASE_US,PCO_COMMAND_TIMEBASE_US))
+		return FALSE;
+	/* set an initial delay and exposure time */
+	if(!PCO_Command_Set_Delay_Exposure_Time(0,50))
+		return FALSE;
+	/* get the number of adc's supported by the camera */
+	if(!PCO_Command_Description_Get_Num_ADCs(&adc_count))
+		return FALSE;
+#ifdef FLI_DEBUG
+	CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,
+			       "Camera has %d ADCs.",adc_count);
+#endif
+	if(adc_count > 1)
+	{
+		if(!PCO_Command_Set_ADC_Operation(2))
+			return FALSE;
+	}
+	if(!PCO_Command_Set_Bit_Alignment(0x0001)) /* 0x001 = LSB */
+		return FALSE;
+	if(!PCO_Command_Set_Noise_Filter_Mode(0x0000)) /* 0x0000 = off */
+		return FALSE;	
+	/* get and store some data from the description, for use later */
+	if(!PCO_Command_Description_Get_Max_Horizontal_Size(&Setup_Data.Sensor_Width))
+		return FALSE;
+	if(!PCO_Command_Description_Get_Max_Vertical_Size(&Setup_Data.Sensor_Height))
+		return FALSE;
+	/* get and store camera serial number */
+	if(!PCO_Command_Get_Camera_Type(&camera_type,&(Setup_Data.Serial_Number)))
+		return FALSE;
+	/* get the camera sensor type and subtype */
+	if(!PCO_Command_Description_Get_Sensor_Type(&sensor_type,&sensor_subtype))
+		return FALSE;
+	/* based on sensor type, figure out pixel sizes - PCO library cannot do this directly */
+	switch(sensor_type)
+	{
+		case 0x2002: /* sCMOS CIS1042_V1_FI_BW, as present in out pco.edge 4.2 */
+			/* according to the PCO Edge manual MA_PCOEDGE_V225.pdf, P27 */
+			Setup_Data.Pixel_Width = 6.5;
+			Setup_Data.Pixel_Height = 6.5;
+			break;
+		default:
+			CCD_General_Error_Number = 1300;
+			sprintf(CCD_General_Error_String,"PCO_Setup_Startup: Unknown sensor type 0x%x : "
+				"unable to set pixel size.",0x2002);
+			return FALSE;
+	}
+	/* prepare camera for taking data */
+	if(!PCO_Command_Arm_Camera())
+		return FALSE;
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_setup.c","PCO_Setup_Startup",LOG_VERBOSITY_INTERMEDIATE,NULL,"Finished.");
+#endif
 	return TRUE;
 }
 
 int PCO_Setup_Shutdown(void)
 {
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_setup.c","PCO_Setup_Shutdown",LOG_VERBOSITY_INTERMEDIATE,NULL,"Started.");
+#endif
+	
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_setup.c","PCO_Setup_Shutdown",LOG_VERBOSITY_INTERMEDIATE,NULL,"Finished.");
+#endif
 	return TRUE;
 }
 
 int PCO_Setup_Dimensions(int ncols,int nrows,int hbin,int vbin,
 				int window_flags,struct CCD_Setup_Window_Struct window)
 {
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_setup.c","PCO_Setup_Dimensions",LOG_VERBOSITY_INTERMEDIATE,NULL,"Started.");
+#endif
+	
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_setup.c","PCO_Setup_Dimensions",LOG_VERBOSITY_INTERMEDIATE,NULL,"Finished.");
+#endif
 	return TRUE;
 }
 
 void PCO_Setup_Abort(void)
 {
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_setup.c","PCO_Setup_Abort",LOG_VERBOSITY_INTERMEDIATE,NULL,"Started.");
+#endif
+	
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_setup.c","PCO_Setup_Abort",LOG_VERBOSITY_INTERMEDIATE,NULL,"Finished.");
+#endif
 }
 
 int PCO_Setup_Get_NCols(void)

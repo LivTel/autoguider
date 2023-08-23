@@ -3,6 +3,28 @@
 #ifndef PCO_COMMAND_H
 #define PCO_COMMAND_H
 
+/* get config keyword root. */
+#include "ccd_config.h"
+#include "ccd_general.h"
+
+/* hash defines */
+/**
+ * Root string of keywords used by the PCO driver library.
+ * @see ../cdocs/ccd_config.html#CCD_CONFIG_KEYWORD_ROOT
+ */
+#define PCO_CCD_KEYWORD_ROOT                  CCD_CONFIG_KEYWORD_ROOT"pco."
+
+#ifndef fdifftime
+/**
+ * Return double difference (in seconds) between two struct timespec's.
+ * @param t0 A struct timespec.
+ * @param t1 A struct timespec.
+ * @return A double, in seconds, representing the time elapsed from t0 to t1.
+ * @see #CCD_GENERAL_ONE_SECOND_NS
+ */
+#define fdifftime(t1, t0) (((double)(((t1).tv_sec)-((t0).tv_sec))+(double)(((t1).tv_nsec)-((t0).tv_nsec))/CCD_GENERAL_ONE_SECOND_NS))
+#endif
+
 /* enumerations */
 /**
  * Setup flags used as a parameter to PCO_Command_Set_Camera_Setup - mainly used to control the shutter readout mode.

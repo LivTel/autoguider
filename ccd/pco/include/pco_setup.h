@@ -6,6 +6,12 @@
 /* get CCD_Setup_Window_Struct structure definition. */
 #include "ccd_setup.h"
 
+/**
+ * Root string of setup keywords used by the PCO driver library.
+ * @see pco_general.h#PCO_CCD_KEYWORD_ROOT
+ */
+#define PCO_SETUP_KEYWORD_ROOT    PCO_CCD_KEYWORD_ROOT"setup."
+
 /*  the following 3 lines are needed to support C++ compilers */
 #ifdef __cplusplus
 extern "C" {
