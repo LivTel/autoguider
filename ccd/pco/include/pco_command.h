@@ -121,10 +121,6 @@ extern int PCO_Command_Get_Image_Number_From_Metadata(void *image_buffer,size_t 
 						      int *image_number);
 extern int PCO_Command_Get_Timestamp_From_Metadata(void *image_buffer,size_t image_buffer_length,
 						   struct timespec *camera_timestamp);
-extern int PCO_Command_Get_Error_Number(void);
-extern void PCO_Command_Error(void);
-extern void PCO_Command_Error_String(char *error_string);
-
 #ifdef __cplusplus
 }
 #endif

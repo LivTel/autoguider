@@ -1751,7 +1751,549 @@ int PCO_Command_Description_Get_Sensor_Type(int *sensor_type,int *sensor_subtype
 	return TRUE;
 }
 
+/**
+ * Get the camera type and serial number of the currently connected camera.
+ * @param camera_type The address of an integer to store the camera type number.
+ * @param serial_number The address of an integer to store the serial number of the camera.
+ * @return The routine returns TRUE on success and FALSE if an error occurs.
+ * @see #Command_Data
+ * @see #Command_PCO_Get_Error_Text
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log_Format
+ */
+int PCO_Command_Get_Camera_Type(int *camera_type,int *serial_number)
+{
+	DWORD pco_err;
+	DWORD serial_number_dw;
+	WORD camera_type_w;
 	
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Get_Camera_Type",LOG_VERBOSITY_INTERMEDIATE,
+			NULL,"Started.");
+#endif
+	if(camera_type == NULL)
+	{
+		CCD_General_Error_Number = 1173;
+		sprintf(CCD_General_Error_String,"PCO_Command_Get_Camera_Type:camera_type was NULL.");
+		return FALSE;
+	}
+	if(serial_number == NULL)
+	{
+		CCD_General_Error_Number = 1174;
+		sprintf(CCD_General_Error_String,"PCO_Command_Get_Camera_Type:serial_number was NULL.");
+		return FALSE;
+	}
+	/* check camera instance has been created, if so open should have been called,
+	** and the Description field retrieved from the camera head. */
+	if(Command_Data.Camera == NULL)
+	{
+		CCD_General_Error_Number = 1175;
+		sprintf(CCD_General_Error_String,"PCO_Command_Get_Camera_Type:Camera CPco_com_usb instance not created.");
+		return FALSE;
+	}
+	pco_err = Command_Data.Camera->PCO_GetCameraType(&camera_type_w,&serial_number_dw);
+	if(pco_err != PCO_NOERROR)
+	{
+		CCD_General_Error_Number = 1176;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Get_Camera_Type:PCO_GetCameraType failed(0x%x) (%s).",
+			pco_err,Command_PCO_Get_Error_Text(pco_err));
+		return FALSE;
+	}
+	(*camera_type) = camera_type_w;
+	(*serial_number) = serial_number_dw;
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Get_Camera_Type",
+			       LOG_VERBOSITY_INTERMEDIATE,NULL,
+			       "CCD_Command_Get_Camera_Type returned camera type = 0x%x, serial number = %d.",
+			       (*camera_type),(*serial_number));
+#endif
+	return TRUE;
+}
+
+/**
+ * Get the current 'region of interest', given the current binning settings. This is the area of the detector
+ * to read out, in binned pixels.
+ * @param start_x The address of an integer to store the first pixel in x on the detector to read out.
+ * @param start_y The address of an integer to store the first pixel in y on the detector to read out.
+ * @param end_x The address of an integer to store the last pixel in x on the detector to read out.
+ * @param end_y The address of an integer to store the last pixel in y on the detector to read out.
+ * @return The routine returns TRUE on success and FALSE if an error occurs.
+ * @see #Command_Data
+ * @see #Command_PCO_Get_Error_Text
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log_Format
+ */
+int PCO_Command_Get_ROI(int *start_x,int *start_y,int *end_x,int *end_y)
+{
+	DWORD pco_err;
+	WORD start_x_w,start_y_w,end_x_w,end_y_w;
+
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Get_ROI",LOG_VERBOSITY_INTERMEDIATE,NULL,
+			"Started.");
+#endif
+	if(start_x == NULL)
+	{
+		CCD_General_Error_Number = 1177;
+		sprintf(CCD_General_Error_String,"PCO_Command_Get_ROI:start_x was NULL.");
+		return FALSE;
+	}
+	if(start_y == NULL)
+	{
+		CCD_General_Error_Number = 1178;
+		sprintf(CCD_General_Error_String,"PCO_Command_Get_ROI:start_y was NULL.");
+		return FALSE;
+	}
+	if(end_x == NULL)
+	{
+		CCD_General_Error_Number = 1179;
+		sprintf(CCD_General_Error_String,"PCO_Command_Get_ROI:end_x was NULL.");
+		return FALSE;
+	}
+	if(end_y == NULL)
+	{
+		CCD_General_Error_Number = 1180;
+		sprintf(CCD_General_Error_String,"PCO_Command_Get_ROI:end_y was NULL.");
+		return FALSE;
+	}
+	/* check camera instance has been created, if so open should have been called,
+	** and the Description field retrieved from the camera head. */
+	if(Command_Data.Camera == NULL)
+	{
+		CCD_General_Error_Number = 1181;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Get_ROI:Camera CPco_com_usb instance not created.");
+		return FALSE;
+	}
+	pco_err = Command_Data.Camera->PCO_GetROI(&start_x_w,&start_y_w,&end_x_w,&end_y_w);
+	if(pco_err != PCO_NOERROR)
+	{
+		CCD_General_Error_Number = 1182;
+		sprintf(CCD_General_Error_String,"PCO_Command_Get_ROI:PCO_GetROI failed(0x%x) (%s).",
+			pco_err,Command_PCO_Get_Error_Text(pco_err));
+		return FALSE;
+	}
+	(*start_x) = start_x_w;
+	(*start_y) = start_y_w;
+	(*end_x) = end_x_w;
+	(*end_y) = end_y_w;
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Get_ROI",LOG_VERBOSITY_INTERMEDIATE,NULL,
+			       "PCO_Command_Get_ROI returned start (%d,%d), end = (%d,%d).",
+			       (*start_x),(*start_y),(*end_x),(*end_y));
+#endif
+	return TRUE;
+}
+
+/**
+ * Get the actual size of the image that the camera will return, given the current binning settings.
+ * @param image_width The address of an integer to store the width of the image, in pixels.
+ * @param image_height The address of an integer to store height of the image, in pixels.
+ * @return The routine returns TRUE on success and FALSE if an error occurs.
+ * @see #Command_Data
+ * @see #Command_PCO_Get_Error_Text
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log_Format
+ */
+int PCO_Command_Get_Actual_Size(int *image_width,int *image_height)
+{
+	DWORD pco_err;
+	DWORD image_width_w,image_height_w;
+	
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Get_Actual_Size",LOG_VERBOSITY_INTERMEDIATE,
+			NULL,"Started.");
+#endif
+	if(image_width == NULL)
+	{
+		CCD_General_Error_Number = 1183;
+		sprintf(CCD_General_Error_String,"PCO_Command_Get_Actual_Size:image_width was NULL.");
+		return FALSE;
+	}
+	if(image_height == NULL)
+	{
+		CCD_General_Error_Number = 1184;
+		sprintf(CCD_General_Error_String,"PCO_Command_Get_Actual_Size:image_height was NULL.");
+		return FALSE;
+	}
+	/* check camera instance has been created, if so open should have been called,
+	** and the Description field retrieved from the camera head. */
+	if(Command_Data.Camera == NULL)
+	{
+		CCD_General_Error_Number = 1185;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Get_Actual_Size:Camera CPco_com_usb instance not created.");
+		return FALSE;
+	}
+	pco_err = Command_Data.Camera->PCO_GetActualSize(&image_width_w,&image_height_w);
+	if(pco_err != PCO_NOERROR)
+	{
+		CCD_General_Error_Number = 1186;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Get_Actual_Size:PCO_GetActualSize failed(0x%x) (%s).",
+			pco_err,Command_PCO_Get_Error_Text(pco_err));
+		return FALSE;
+	}
+	(*image_width) = image_width_w;
+	(*image_height) = image_height_w;
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Get_Actual_Size",
+			       LOG_VERBOSITY_INTERMEDIATE,NULL,
+			       "PCO_Command_Get_Actual_Size returned width = %d pixels, height = %d pixels.",
+			       (*image_width),(*image_height));
+#endif
+	return TRUE;
+}
+
+/**
+ * Get the size of the image in bytes.
+ * @param image_size The address of an integer to return the image size, in bytes.
+ * @return The routine returns TRUE on success and FALSE if an error occurs.
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log_Format
+ */ 
+int PCO_Command_Get_Image_Size_Bytes(int *image_size)
+{
+	int image_width,image_height;
+
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Get_Image_Size_Bytes",
+			LOG_VERBOSITY_INTERMEDIATE,NULL,"Started.");
+#endif
+	if(image_size == NULL)
+	{
+		CCD_General_Error_Number = 1187;
+		sprintf(CCD_General_Error_String,"PCO_Command_Get_Image_Size_Bytes:image_size was NULL.");
+		return FALSE;
+	}
+	/* get the binned image dimensions from the camera */
+	if(!PCO_Command_Get_Actual_Size(&image_width,&image_height))
+		return FALSE;
+	/* I think pixels are unsigned shorts, typdefed to WORD in the PCO library (defs.h) */
+	(*image_size) = image_width*image_height*sizeof(WORD);
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Get_Image_Size_Bytes",
+			       LOG_VERBOSITY_INTERMEDIATE,NULL,
+			       "Returned image size in bytes of %d.",(*image_size));
+#endif
+	return TRUE;
+}
+
+/**
+ * Set how camera exposures are triggered
+ * @param mode An enum of type PCO_COMMAND_TRIGGER_MODE. Used to select external or internal trigger modes.
+ * @return The routine returns TRUE on success and FALSE if an error occurs.
+ * @see #PCO_COMMAND_TRIGGER_MODE
+ * @see #Command_Data
+ * @see #Command_PCO_Get_Error_Text
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log_Format
+ */
+int PCO_Command_Get_Trigger_Mode(enum PCO_COMMAND_TRIGGER_MODE *mode)
+{
+	DWORD pco_err;
+	WORD mode_w;
+	
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Get_Trigger_Mode",LOG_VERBOSITY_VERBOSE,NULL,
+			"Started.");
+#endif
+	if(mode == NULL)
+	{
+		CCD_General_Error_Number = 1188;
+		sprintf(CCD_General_Error_String,"PCO_Command_Get_Trigger_Mode:mode was NULL.");
+		return FALSE;
+	}
+	if(Command_Data.Camera == NULL)
+	{
+		CCD_General_Error_Number = 1189;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Get_Trigger_Mode:Camera CPco_com_usb instance not created.");
+		return FALSE;
+	}
+	pco_err = Command_Data.Camera->PCO_GetTriggerMode(&mode_w);
+	if(pco_err != PCO_NOERROR)
+	{
+		CCD_General_Error_Number = 1190;
+		sprintf(CCD_General_Error_String,"PCO_Command_Get_Trigger_Mode:"
+			"Camera PCO_GetTriggerMode failed with PCO error code 0x%x (%s).",pco_err,
+			Command_PCO_Get_Error_Text(pco_err));
+		return FALSE;
+	}
+	switch(mode_w)
+	{
+		case 0x0: /* software/  auto */
+			(*mode) = PCO_COMMAND_TRIGGER_MODE_INTERNAL;
+			break;
+		case 0x2: /* external exposure start & software trigger */
+			(*mode) = PCO_COMMAND_TRIGGER_MODE_EXTERNAL;
+			break;
+		default:
+			CCD_General_Error_Number = 1191;
+			sprintf(CCD_General_Error_String,"PCO_Command_Get_Trigger_Mode:"
+				"Camera PCO_GetTriggerMode returned unsupported trigger mode 0x%x.",mode_w);
+			
+			break;
+	}
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Get_Trigger_Mode",
+			       LOG_VERBOSITY_VERBOSE,NULL,
+			       "Finished and returned trigger mode %d.",(*mode));
+#endif
+	return TRUE;
+}
+
+/**
+ * Get the currently set delay and exposure time.
+ * @param delay_time The address of an integer, to be filled in with the current delay time, 
+ *                    in units previously specified by PCO_Command_Set_Timebase.
+ * @param exposure_time The address of an integer, to be filled in with the current exposure length, 
+ *        in units previously specified by PCO_Command_Set_Timebase.
+ * @return The routine returns TRUE on success and FALSE if an error occurs.
+ * @see #Command_Data
+ * @see #PCO_Command_Set_Timebase
+ * @see #Command_PCO_Get_Error_Text
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log_Format
+ */
+int PCO_Command_Get_Delay_Exposure_Time(int *delay_time,int *exposure_time)
+{
+	DWORD exp_time_dw,delay_time_dw;
+	DWORD pco_err;
+
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Get_Delay_Exposure_Time",
+			LOG_VERBOSITY_INTERMEDIATE,NULL,"CCD_Command_Get_Delay_Exposure_Time: Started.");
+#endif
+	if(Command_Data.Camera == NULL)
+	{
+		CCD_General_Error_Number = 1192;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Get_Delay_Exposure_Time:Camera CPco_com_usb instance not created.");
+		return FALSE;
+	}
+	pco_err = Command_Data.Camera->PCO_GetDelayExposure(&delay_time_dw,&exp_time_dw);
+	if(pco_err != PCO_NOERROR)
+	{
+		CCD_General_Error_Number = 1193;
+		sprintf(CCD_General_Error_String,"PCO_Command_Get_Delay_Exposure_Time:"
+			"Camera PCO_GetDelayExposure failed with PCO error code 0x%x (%s).",pco_err,
+			Command_PCO_Get_Error_Text(pco_err));
+		return FALSE;
+	}
+	if(delay_time != NULL)
+		(*delay_time) = delay_time_dw;
+	if(exposure_time != NULL)
+		(*exposure_time) = exp_time_dw;
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Get_Delay_Exposure_Time",
+			       LOG_VERBOSITY_INTERMEDIATE,NULL,
+			       "Finished returning delay time %d, exposure time %d.",
+			       delay_time_dw,exp_time_dw);
+#endif
+	return TRUE;
+}
+
+/**
+ * Get the current cooling setpoint temperature.
+ * @param temperature The address of an integer, to be filled in with the current setpoint temperature 
+ *                    in degrees C.
+ * @return The routine returns TRUE on success and FALSE if an error occurs.
+ * @see #Command_Data
+ * @see #Command_PCO_Get_Error_Text
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log_Format
+ */
+int PCO_Command_Get_Cooling_Setpoint_Temperature(int *temperature)
+{
+	SHORT temperature_s;
+	DWORD pco_err;
+
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Get_Cooling_Setpoint_Temperature",
+			LOG_VERBOSITY_INTERMEDIATE,NULL,"Started.");
+#endif
+	if(temperature == NULL)
+	{
+		CCD_General_Error_Number = 1194;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Get_Cooling_Setpoint_Temperature:temperature was NULL.");
+		return FALSE;
+	}
+	if(Command_Data.Camera == NULL)
+	{
+		CCD_General_Error_Number = 1195;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Get_Cooling_Setpoint_Temperature:Camera CPco_com_usb instance not created.");
+		return FALSE;
+	}
+	pco_err = Command_Data.Camera->PCO_GetCoolingSetpointTemperature(&temperature_s);
+	if(pco_err != PCO_NOERROR)
+	{
+		CCD_General_Error_Number = 1196;
+		sprintf(CCD_General_Error_String,"PCO_Command_Get_Cooling_Setpoint_Temperature:"
+			"Camera PCO_GetCoolingSetpointTemperature failed with PCO error code 0x%x (%s).",pco_err,
+			Command_PCO_Get_Error_Text(pco_err));
+		return FALSE;
+	}
+	(*temperature) = temperature_s;
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Get_Cooling_Setpoint_Temperature",
+			       LOG_VERBOSITY_INTERMEDIATE,NULL,
+			       "Finished returning setpoint temperature %d C.",temperature_s);
+#endif
+	return TRUE;
+}
+
+/**
+ * Get the image number from the metadata encoded in the first few bytes of the image data.
+ * The algorithm is copied from the example programs. 
+ * The shift is zero for 64-bit linux machines with a PCO edge head.
+ * @param image_buffer A pointer to the image data read out from the camera.
+ * @param image_buffer_length The length of the image buffer.
+ * @param image_number The address of an integer to store the decoded image number.
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log_Format
+ */
+int PCO_Command_Get_Image_Number_From_Metadata(void *image_buffer,size_t image_buffer_length,int *image_number)
+{
+	unsigned short *b;
+	int y,shift;
+	int image_nr=0;
+
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Get_Image_Number_From_Metadata",
+			LOG_VERBOSITY_VERBOSE,NULL,"Started.");
+#endif
+	if(image_buffer == NULL)
+	{
+		CCD_General_Error_Number = 1197;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Get_Image_Number_From_Metadata:image_buffer was NULL.");
+		return FALSE;
+	}
+	if(image_number == NULL)
+	{
+		CCD_General_Error_Number = 1198;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Get_Image_Number_From_Metadata:image_number was NULL.");
+		return FALSE;
+	}
+	shift = 0;
+	b=(unsigned short *)(image_buffer);
+	y=100*100*100;
+	for(;y>0;y/=100)
+	{
+		*b>>=shift;
+		image_nr += (((*b&0x00F0)>>4)*10 + (*b&0x000F))*y;
+		b++;
+	}
+	(*image_number) = image_nr;
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Get_Image_Number_From_Metadata",
+			       LOG_VERBOSITY_VERBOSE,NULL,"Returned image number %d.",(*image_number));
+#endif
+	return TRUE;
+}
+
+/**
+ * Routine to extract the timestamp from the read out image data.
+ * @param image_buffer A pointer to the image data.
+ * @param image_buffer_length The length of the image buffer in bytes.
+ * @param camera_timestamp The address of a timespec structure. On a successful return this will be filled in
+ *        with the extracted timestamp.
+ * @see #Command_BCD_To_Decimal
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log_Format
+ */
+int PCO_Command_Get_Timestamp_From_Metadata(void *image_buffer,size_t image_buffer_length,
+					    struct timespec *camera_timestamp)
+{
+	struct tm timestamp_tm;
+	WORD *picbuf = NULL;
+	int century,year,month,day,hour,mins,secs,csecs,ccsec;
+	
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Get_Timestamp_From_Metadata",
+			LOG_VERBOSITY_VERBOSE,NULL,"Started.");
+#endif	
+	if(image_buffer == NULL)
+	{
+		CCD_General_Error_Number = 1199;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Get_Timestamp_From_Metadata:image_buffer was NULL.");
+		return FALSE;
+	}
+	if(camera_timestamp == NULL)
+	{
+		CCD_General_Error_Number = 1200;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Get_Timestamp_From_Metadata:camera_timestamp was NULL.");
+		return FALSE;
+	}
+	picbuf = (WORD*)image_buffer;
+	century = Command_BCD_To_Decimal(picbuf[4]);
+	year = Command_BCD_To_Decimal(picbuf[5]);
+	month = Command_BCD_To_Decimal(picbuf[6]);
+	day = Command_BCD_To_Decimal(picbuf[7]);
+	hour = Command_BCD_To_Decimal(picbuf[8]);
+	mins = Command_BCD_To_Decimal(picbuf[9]);
+	secs = Command_BCD_To_Decimal(picbuf[10]);
+	csecs = Command_BCD_To_Decimal(picbuf[11]); /* tenths and hundredths of a second */
+	ccsec = Command_BCD_To_Decimal(picbuf[12]); /* thousandths and ten thousandths of a second */
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Get_Timestamp_From_Metadata",
+			       LOG_VERBOSITY_VERY_VERBOSE,NULL,
+			      "PCO_Command_Get_Timestamp_From_Metadata: century = %d, year = %d, month = %d, day = %d.",
+			       century,year,month,day);
+	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Get_Timestamp_From_Metadata",
+			       LOG_VERBOSITY_VERY_VERBOSE,NULL,
+			      "PCO_Command_Get_Timestamp_From_Metadata: hour = %d, minutes = %d, seconds = %d, tenths/hundredths = %d, thousandths and ten thousandths = %d.",
+			       hour,mins,secs,csecs,ccsec);
+#endif
+	/* setup timestamp_tm */
+	timestamp_tm.tm_sec = secs;
+	timestamp_tm.tm_min = mins;
+	timestamp_tm.tm_hour = hour;
+	timestamp_tm.tm_mday = day;
+	timestamp_tm.tm_mon = month-1; /* tm_mon 0..11, month 1..12 */
+	timestamp_tm.tm_year = year; /* tm_year is year - 1900 */
+	if(century == 20)
+		timestamp_tm.tm_year += 100; /* tm_year is year - 1900 */
+	/* ignored by mktime
+	timestamp_tm.tm_wday = ;
+	timestamp_tm.tm_yday = ;
+	*/
+	timestamp_tm.tm_isdst = 0; /* no daylight saving time */
+	/* convert timestamp_tm to a time_t (seconds since the epoch) and store in camera_timestamp.tv_sec */
+	(*camera_timestamp).tv_sec = mktime(&timestamp_tm);
+	(*camera_timestamp).tv_nsec = (csecs*10000000)+(ccsec*100000);
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Get_Timestamp_From_Metadata",
+			LOG_VERBOSITY_VERBOSE,NULL,"Finished.");
+#endif
+	return TRUE;
+}
+		
 /* =======================================
 **  internal functions 
 ** ======================================= */
