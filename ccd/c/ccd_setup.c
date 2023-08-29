@@ -125,12 +125,12 @@ int CCD_Setup_Shutdown(void)
 
 /**
  * Setup dimension information.
- * @param ncols Number of image columns (X).
- * @param nrows Number of image rows (Y).
+ * @param ncols Number of unbinned image columns (X).
+ * @param nrows Number of unbinned image rows (Y).
  * @param hbin Binning in X.
  * @param vbin Binning in Y.
  * @param window_flags Whether to use the specified window or not.
- * @param window A structure containing window data.
+ * @param window A structure containing window data. These dimensions are inclusive, and in binned pixels.
  * @return The routine returns TRUE on success, and FALSE if an error occurs.
  * @see ccd_driver.html#CCD_Driver_Get_Functions
  * @see ccd_driver.html#CCD_Driver_Function_Struct
