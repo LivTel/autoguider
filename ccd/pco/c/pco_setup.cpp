@@ -56,7 +56,10 @@
  *                       CCD_Setup_Startup.</dd>
  * <dt>Sensor_Height</dt> <dd>An integer storing the sensor height in pixels retrieved from the camera during 
  *                       CCD_Setup_Startup.</dd>
- * <dt>Image_Size_Bytes</dt> <dd>An integer storing the image size in bytes.</dd>
+ * <dt>Start_X</dt> <dd>Start X position pixel of the imaging window (inclusive).</dd>
+ * <dt>Start_Y</dt> <dd>Start Y position pixel of the imaging window (inclusive).</dd>
+ * <dt>End_X</dt> <dd>End X position pixel of the imaging window (inclusive).</dd>
+ * <dt>End_Y</dt> <dd>End Y position pixel of the imaging window (inclusive).</dd>
  * </dl>
  */
 struct Setup_Struct
@@ -69,7 +72,10 @@ struct Setup_Struct
 	double Pixel_Height;
 	int Sensor_Width;
 	int Sensor_Height;
-	int Image_Size_Bytes;
+	int Start_X;
+	int Start_Y;
+	int End_X;
+	int End_Y;
 };
 
 /* internal variables */
@@ -88,12 +94,15 @@ static char rcsid[] = "$Id$";
  * <dt>Pixel_Height</dt> <dd>0.0</dd>
  * <dt>Sensor_Width</dt> <dd>0</dd>
  * <dt>Sensor_Height</dt> <dd>0</dd>
- * <dt>Image_Size_Bytes</dt> <dd>0</dd>
+ * <dt>Start_X</dt> <dd>0</dd>
+ * <dt>Start_Y</dt> <dd>0</dd>
+ * <dt>End_X</dt> <dd>0</dd>
+ * <dt>End_Y</dt> <dd>0</dd>
  * </dl>
  */
 static struct Setup_Struct Setup_Data = 
 {
-	0,1,1,-1,0.0,0.0,0,0,0
+	0,1,1,-1,0.0,0.0,0,0,0,0,0,0
 };
 
 /* internal functions */
@@ -214,11 +223,9 @@ int PCO_Setup_Startup(void)
 	CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,
 			       "Camera has %d ADCs.",adc_count);
 #endif
-	if(adc_count > 1)
-	{
-		if(!PCO_Command_Set_ADC_Operation(2))
-			return FALSE;
-	}
+	/* we must use only 1 ADC, otherwise the horizontal ROI must be symetrical. This is slower though */
+	if(!PCO_Command_Set_ADC_Operation(1))
+		return FALSE;
 	if(!PCO_Command_Set_Bit_Alignment(0x0001)) /* 0x001 = LSB */
 		return FALSE;
 	if(!PCO_Command_Set_Noise_Filter_Mode(0x0000)) /* 0x0000 = off */
@@ -295,10 +302,9 @@ int PCO_Setup_Shutdown(void)
  *     with the end positions computed from Setup_Data.Sensor_Width / Setup_Data.Sensor_Height.
  * <li>We call PCO_Command_Arm_Camera to update the camera's internal settings to use the new binning.
  * <li>We call PCO_Command_Grabber_Post_Arm to update the grabber's internal settings to use the new binning.
- * <li>We call PCO_Command_Get_Image_Size_Bytes to update the Setup_Data.Image_Size_Bytes data.
  * </ul>
- * @param ncols Number of image columns (X). These appear to be unbinned.
- * @param nrows Number of image rows (Y). These appear to be unbinned.
+ * @param ncols Number of unbinned image columns (X).
+ * @param nrows Number of unbinned image rows (Y).
  * @param hbin Binning in X.
  * @param vbin Binning in Y.
  * @param window_flags Whether to use the specified window or not.
@@ -312,7 +318,6 @@ int PCO_Setup_Shutdown(void)
  * @see pco_command.html#PCO_Command_Set_ROI
  * @see pco_command.html#PCO_Command_Arm_Camera
  * @see pco_command.html#PCO_Command_Grabber_Post_Arm
- * @see pco_command.html#PCO_Command_Get_Image_Size_Bytes
  * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
  * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
  * @see ../../cdocs/ccd_general.html#CCD_General_Log
@@ -322,8 +327,6 @@ int PCO_Setup_Shutdown(void)
 int PCO_Setup_Dimensions(int ncols,int nrows,int hbin,int vbin,
 			 int window_flags,struct CCD_Setup_Window_Struct window)
 {
-	int start_x,start_y,end_x,end_y;
-
 #ifdef PCO_DEBUG
 	CCD_General_Log("ccd","pco_setup.c","PCO_Setup_Dimensions",LOG_VERBOSITY_INTERMEDIATE,NULL,"Started.");
 #endif
@@ -348,20 +351,20 @@ int PCO_Setup_Dimensions(int ncols,int nrows,int hbin,int vbin,
 	if(window_flags > 0)
 	{
 		/* diddly looks like Set_ROI takes binned pixels, are the passed in window binned or not? */ 
-		start_x = window.X_Start;
-		start_y = window.Y_Start;
-		end_x = window.X_End; /* diddly do we need to add 1 to be inclusive? */
-		end_y = window.Y_End; /* diddly do we need to add 1 to be inclusive? */
+		Setup_Data.Start_X = window.X_Start;
+		Setup_Data.Start_Y = window.Y_Start;
+		Setup_Data.End_X = window.X_End; /* diddly do we need to add 1 to be inclusive? */
+		Setup_Data.End_Y = window.Y_End; /* diddly do we need to add 1 to be inclusive? */
 	}
 	else
 	{
 		/* set the ROI to the binned pixel area to read out */
-		start_x = 1;
-		start_y = 1;
-		end_x = Setup_Data.Sensor_Width/hbin;
-		end_y = Setup_Data.Sensor_Height/vbin;
+		Setup_Data.Start_X = 1;
+		Setup_Data.Start_Y = 1;
+		Setup_Data.End_X = Setup_Data.Sensor_Width/hbin;
+		Setup_Data.End_Y = Setup_Data.Sensor_Height/vbin;
 	}
-	if(!PCO_Command_Set_ROI(start_x,start_y,end_x,end_y))
+	if(!PCO_Command_Set_ROI(Setup_Data.Start_X,Setup_Data.Start_Y,Setup_Data.End_X,Setup_Data.End_Y))
 		return FALSE;
 	/* get camera to update it's internal settings */
 	if(!PCO_Command_Arm_Camera())
@@ -369,8 +372,7 @@ int PCO_Setup_Dimensions(int ncols,int nrows,int hbin,int vbin,
 	/* get grabber to update to the new binning */
 	if(!PCO_Command_Grabber_Post_Arm())
 		return FALSE;
-	/* diddly do something with image dimensions Setup_Data.Image_Size_Bytes some thing else? */
-	/* where do we store the window parameters? */
+	/* diddly where do we store the window parameters? */
 #ifdef PCO_DEBUG
 	CCD_General_Log("ccd","pco_setup.c","PCO_Setup_Dimensions",LOG_VERBOSITY_INTERMEDIATE,NULL,"Finished.");
 #endif
@@ -388,13 +390,22 @@ void PCO_Setup_Abort(void)
 #endif
 }
 
+/**
+ * Return the number of binned pixels in X in the current image.
+ * @return The number of binned pixels in X in the current image.
+ * @see Setup_Data
+ */
 int PCO_Setup_Get_NCols(void)
 {
-	return 0;
+	return (Setup_Data.End_X-Setup_Data.Start_X)+1;
 }
 
+/**
+ * Return the number of binned pixels in Y in the current image.
+ * @return The number of binned pixels in Y in the current image.
+ * @see Setup_Data
+ */
 int PCO_Setup_Get_NRows(void)
 {
-	return 0;
+	return (Setup_Data.End_Y-Setup_Data.Start_Y)+1;
 }
-
