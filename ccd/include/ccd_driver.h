@@ -15,21 +15,29 @@
 /**
  * Structure containing function pointers for driver routines.
  * <ul>
- * <li>Setup_Startup
- * <li>Setup_Dimensions
- * <li>Setup_Abort
- * <li>Setup_Get_NCols
- * <li>Setup_Get_NRows
- * <li>Setup_Shutdown
- * <li>Exposure_Expose
- * <li>Exposure_Bias
- * <li>Exposure_Abort
- * <li>Exposure_Get_Exposure_Start_Time
- * <li>Exposure_Loop_Pause_Length_Set
- * <li>Temperature_Get
- * <li>Temperature_Set
- * <li>Temperature_Cooler_On
- * <li>Temperature_Cooler_Off
+ * <li><b>Setup_Startup</b>
+ * <li><b>Setup_Dimensions</b> with parameters:
+ *     <ul>
+ *     <li><b>ncols</b> Number of unbinned image columns (X).
+ *     <li><b>nrows</b> Number of unbinned image rows (Y).
+ *     <li><b>hbin</b> Binning in the horizontal X direction.
+ *     <li><b>vbin</b> Binning in the vertical Y direction.
+ *     <li><b>window_flags</b> A boolean (TRUE or FALSE), whether to use the specified window or not.
+ *     <li><b>window</b> A structure containing window data. These dimensions are inclusive, and in binned pixels.
+ *     </ul>
+ * <li><b>Setup_Abort</b>
+ * <li><b>Setup_Get_NCols</b>
+ * <li><b>Setup_Get_NRows</b>
+ * <li><b>Setup_Shutdown</b>
+ * <li><b>Exposure_Expose</b>
+ * <li><b>Exposure_Bias</b>
+ * <li><b>Exposure_Abort</b>
+ * <li><b>Exposure_Get_Exposure_Start_Time</b>
+ * <li><b>Exposure_Loop_Pause_Length_Set</b>
+ * <li><b>Temperature_Get</b>
+ * <li><b>Temperature_Set</b>
+ * <li><b>Temperature_Cooler_On</b>
+ * <li><b>Temperature_Cooler_Off</b>
  * </ul>
  */
 struct CCD_Driver_Function_Struct
