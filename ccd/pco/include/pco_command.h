@@ -128,6 +128,8 @@ extern int PCO_Command_Description_Get_Exposure_Time_Min(double *minimum_exposur
 extern int PCO_Command_Description_Get_Exposure_Time_Max(double *maximum_exposure_length_s);
 extern int PCO_Command_Description_Get_Max_Horizontal_Size(int *max_hor_size);
 extern int PCO_Command_Description_Get_Max_Vertical_Size(int *max_ver_size);
+extern int PCO_Command_Description_Get_ROI_Horizontal_Step_Size(int *step_size);
+extern int PCO_Command_Description_Get_ROI_Vertical_Step_Size(int *step_size);
 extern int PCO_Command_Description_Get_Default_Cooling_Setpoint(int *temperature);
 extern int PCO_Command_Description_Get_Min_Cooling_Setpoint(int *temperature);
 extern int PCO_Command_Description_Get_Max_Cooling_Setpoint(int *temperature);

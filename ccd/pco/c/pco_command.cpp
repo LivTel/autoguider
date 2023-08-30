@@ -69,7 +69,9 @@
  * <dt>PCO_Logger</dt> <dd>The instance of CPco_Log used to receive logging from the PCO library.</dd>
  * <dt>Camera_Board</dt> <dd>The board number passed to Open_Cam.</dd>
  * <dt>Grabber_Timeout</dt> <dd>The timeout for grabbing images, in milliseconds.</dd>
- * <dt>Description</dt> <dd>The camera description returned from PCO_GetCameraDescriptor.</dd>
+ * <dt>Description</dt> <dd>The camera description returned from PCO_GetCameraDescriptor. 
+ *                      This is of type SC2_Camera_Description_Response (not PCO_Description as suggested in the SDK manual),
+ *                      and is defined in: pco_camera_1_1_19/pco_common/pco_include/sc2_telegram.h</dd>
  * </dl>
  */
 struct Command_Struct
@@ -1568,6 +1570,94 @@ int PCO_Command_Description_Get_Max_Vertical_Size(int *max_ver_size)
 	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Description_Get_Max_Vertical_Size",
 			       LOG_VERBOSITY_INTERMEDIATE,NULL,
 			       "PCO_Command_Description_Get_Max_Vertical_Size returned %d pixels.",(*max_ver_size));
+#endif
+	return TRUE;
+}
+
+diddly
+
+/**
+ * Get the minimum horizontal (x) size allowed for the region of interest (ROI), as returned from it's description
+ * (retrieved from the camera head when opening a connection to the camera, and stored in Command_Data.Description).
+ * @param min_hor_size The address of an integer to store the minimum horizontal (x) size 
+ *        of the region of interest (ROI), in pixels.
+ * @return The routine returns TRUE on success and FALSE if an error occurs.
+ * @see #Command_Data
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log_Format
+ */
+int PCO_Command_Description_Get_Min_Horizontal_Size(int *min_hor_size)
+{
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Description_Get_Min_Horizontal_Size",
+			LOG_VERBOSITY_INTERMEDIATE,NULL,"Started.");
+#endif
+	if(min_hor_size == NULL)
+	{
+		CCD_General_Error_Number = 1201;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Description_Get_Min_Horizontal_Size:min_hor_size was NULL.");
+		return FALSE;
+	}
+	/* check camera instance has been created, if so open should have been called,
+	** and the Description field retrieved from the camera head. */
+	if(Command_Data.Camera == NULL)
+	{
+		CCD_General_Error_Number = 1202;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Description_Get_Min_Horizontal_Size:Camera CPco_com_usb instance not created.");
+		return FALSE;
+	}
+	(*min_hor_size) = Command_Data.Description.wMinSizeHorzDESC;
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Description_Get_Min_Horizontal_Size",
+			       LOG_VERBOSITY_INTERMEDIATE,NULL,
+			       "PCO_Command_Description_Get_Min_Horizontal_Size returned %d pixels.",(*min_hor_size));
+#endif
+	return TRUE;
+}
+
+/**
+ * Get the minimum vertical (Y) size allowed for the region of interest (ROI), as returned from it's description
+ * (retrieved from the camera head when opening a connection to the camera, and stored in Command_Data.Description).
+ * @param min_ver_size The address of an integer to store the minimum vertical (y) size 
+ *        of the region of interest (ROI), in pixels.
+ * @return The routine returns TRUE on success and FALSE if an error occurs.
+ * @see #Command_Data
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log_Format
+ */
+int PCO_Command_Description_Get_Min_Vertical_Size(int *min_ver_size)
+{
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Description_Get_Min_Vertical_Size",
+			LOG_VERBOSITY_INTERMEDIATE,NULL,"Started.");
+#endif
+	if(min_ver_size == NULL)
+	{
+		CCD_General_Error_Number = 1203;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Description_Get_Min_Vertical_Size:min_ver_size was NULL.");
+		return FALSE;
+	}
+	/* check camera instance has been created, if so open should have been called,
+	** and the Description field retrieved from the camera head. */
+	if(Command_Data.Camera == NULL)
+	{
+		CCD_General_Error_Number = 1204;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Description_Get_Min_Vertical_Size:Camera CPco_com_usb instance not created.");
+		return FALSE;
+	}
+	(*min_ver_size) = Command_Data.Description.wMinSizeVertDESC;
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Description_Get_Min_Vertical_Size",
+			       LOG_VERBOSITY_INTERMEDIATE,NULL,
+			       "PCO_Command_Description_Get_Min_Vertical_Size returned %d pixels.",(*min_ver_size));
 #endif
 	return TRUE;
 }
