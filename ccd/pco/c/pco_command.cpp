@@ -1891,7 +1891,7 @@ int PCO_Command_Get_ROI(int *start_x,int *start_y,int *end_x,int *end_y)
 }
 
 /**
- * Get the actual size of the image that the camera will return, given the current binning settings.
+ * Get the actual size of the image that the camera will return, given the current binning and ROI settings.
  * @param image_width The address of an integer to store the width of the image, in pixels.
  * @param image_height The address of an integer to store height of the image, in pixels.
  * @return The routine returns TRUE on success and FALSE if an error occurs.
