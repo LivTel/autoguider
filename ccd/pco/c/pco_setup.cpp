@@ -174,7 +174,7 @@ int PCO_Setup_Startup(void)
 	CCD_General_Log("ccd","pco_setup.c","PCO_Setup_Startup",LOG_VERBOSITY_INTERMEDIATE,NULL,"Started.");
 #endif
 	/* initialise the PCO libraries */
-#ifdef FLI_DEBUG
+#ifdef PCO_DEBUG
 	CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,
 			       "Initialising PCO camera libraries.",Setup_Data.Camera_Board);
 #endif
@@ -183,19 +183,19 @@ int PCO_Setup_Startup(void)
 	/* get the board number to use in PCO_Command_Open */
 	if(!CCD_Config_Get_Integer(PCO_SETUP_KEYWORD_ROOT"board_number",&(Setup_Data.Camera_Board)))
 		return FALSE;
-#ifdef FLI_DEBUG
+#ifdef PCO_DEBUG
 	CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,
 			       "Config file PCO board number:%d.",Setup_Data.Camera_Board);
 #endif
 	/* open a connection to the CCD camera */
-#ifdef FLI_DEBUG
+#ifdef PCO_DEBUG
 	CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,
 			       "Opening a connection to a PCO camera with board number %d.",Setup_Data.Camera_Board);
 #endif
 	if(!PCO_Command_Open(Setup_Data.Camera_Board))
 		return FALSE;
 	/* initial configuration of the camera */
-#ifdef FLI_DEBUG
+#ifdef PCO_DEBUG
 	CCD_General_Log("ccd","pco_setup.c","PCO_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,"Initialising PCO camera.");
 #endif
 	/* set camera to use current time */
@@ -219,7 +219,7 @@ int PCO_Setup_Startup(void)
 	/* get the number of adc's supported by the camera */
 	if(!PCO_Command_Description_Get_Num_ADCs(&adc_count))
 		return FALSE;
-#ifdef FLI_DEBUG
+#ifdef PCO_DEBUG
 	CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,
 			       "Camera has %d ADCs.",adc_count);
 #endif
