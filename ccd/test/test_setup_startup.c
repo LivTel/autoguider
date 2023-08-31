@@ -36,9 +36,38 @@ static void Help(void);
 ** ----------------------------------------------------------------------------- */
 /**
  * Main program.
+ * <ul>
+ * <li>We call Parse_Arguments to parse the command line, setup logging and config filenames etc...
+ * <li>We set the CCD library log handler function (CCD_General_Set_Log_Handler_Function) 
+ *     to stdout (CCD_General_Log_Handler_Stdout).
+ * <li>We intialise the config module (CCD_Config_Initialise).
+ * <li>We load the config filename (Config_Filename) from disk using CCD_Config_Load.
+ * <li>We get the shared library to use from the config data, by retrieving the 
+ *     "ccd.driver.shared_library" key using CCD_Config_Get_String.
+ * <li>We get the driver registration function to use for the shared library from the config data, by retrieving the
+ *     "ccd.driver.registration_function" string using CCD_Config_Get_String.
+ * <li>We register (dynamically load) the specified driver and register the interface functions by calling 
+ *     CCD_Driver_Register.
+ * <li>We initialise the setup module by calling CCD_Setup_Initialise.
+ * <li>We make a connection to the camera, and initially configure it, by calling CCD_Setup_Startup.
+ * <li>We shut the program down by calling CCD_Setup_Shutdown / CCD_Config_Shutdown.
+ * </ul>
  * @param argc The number of arguments to the program.
  * @param argv An array of argument strings.
  * @return This function returns 0 if the program succeeds, and a positive integer if it fails.
+ * @see #Parse_Arguments
+ * @see #Config_Filename
+ * @see ../cdocs/ccd_general.html#CCD_General_Set_Log_Handler_Function
+ * @see ../cdocs/ccd_general.html#CCD_General_Log_Handler_Stdout
+ * @see ../cdocs/ccd_general.html#CCD_General_Error
+ * @see ../cdocs/ccd_config.html#CCD_Config_Initialise
+ * @see ../cdocs/ccd_config.html#CCD_Config_Load
+ * @see ../cdocs/ccd_config.html#CCD_Config_Get_String
+ * @see ../cdocs/ccd_config.html#CCD_Config_Shutdown
+ * @see ../cdocs/ccd_driver.html#CCD_Driver_Register
+ * @see ../cdocs/ccd_setup.html#CCD_Setup_Initialise
+ * @see ../cdocs/ccd_setup.html#CCD_Setup_Startup
+ * @see ../cdocs/ccd_setup.html#CCD_Setup_Shutdown
  */
 int main(int argc, char *argv[])
 {
@@ -142,6 +171,7 @@ static void Help(void)
  * @see #Help
  * @see #Config_Filename
  * @see ../cdocs/ccd_general.html#CCD_General_Set_Log_Filter_Function
+ * @see ../cdocs/ccd_general.html#CCD_General_Log_Filter_Level_Absolute
  * @see ../cdocs/ccd_general.html#CCD_General_Set_Log_Filter_Level
  */
 static int Parse_Arguments(int argc, char *argv[])
