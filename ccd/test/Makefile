@@ -21,7 +21,7 @@ CFLAGS 			= -g -I$(INCDIR) $(CFITSIO_CFLAGS)
 LDFLAGS			= $(CCD_LDFLAGS) -lcfitsio
 #-lstdc++
 
-EXE_SRCS		= test_setup_startup.c
+EXE_SRCS		= test_setup_startup.c test_setup_dimensions.c
 SRCS			= $(EXE_SRCS)
 EXE_OBJS		= $(EXE_SRCS:%.c=$(BINDIR)/%.o)
 EXES			= $(EXE_SRCS:%.c=$(BINDIR)/%)
