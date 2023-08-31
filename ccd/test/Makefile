@@ -19,7 +19,6 @@ CFITSIO_LDFLAGS		= -L$(LT_LIB_HOME) -lcfitsio
 
 CFLAGS 			= -g -I$(INCDIR) $(CFITSIO_CFLAGS)
 LDFLAGS			= $(CCD_LDFLAGS) -lcfitsio
-#-lstdc++
 
 EXE_SRCS		= test_setup_startup.c test_setup_dimensions.c test_exposure.c test_temperature.c
 SRCS			= $(EXE_SRCS)

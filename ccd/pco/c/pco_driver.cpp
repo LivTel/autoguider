@@ -21,12 +21,9 @@
 #include "log_udp.h"
 #include "ccd_general.h"
 #include "pco_driver.h"
-/* diddly
 #include "pco_exposure.h"
-#include "pco_general.h"
-*/
 #include "pco_setup.h"
-/*
+/* diddly
 #include "pco_temperature.h"
 */
 
@@ -52,6 +49,7 @@ static char rcsid[] = "$Id$";
  * @see pco_exposure.html#PCO_Exposure_Bias
  * @see pco_exposure.html#PCO_Exposure_Abort
  * @see pco_exposure.html#PCO_Exposure_Get_Exposure_Start_Time
+ * @see pco_exposure.html#PCO_Exposure_Loop_Pause_Length_Set
  * @see pco_temperature.html#PCO_Temperature_Get
  * @see pco_temperature.html#PCO_Temperature_Set
  * @see pco_temperature.html#PCO_Temperature_Cooler_On
@@ -77,13 +75,11 @@ int PCO_Driver_Register(struct CCD_Driver_Function_Struct *functions)
 	functions->Setup_Get_NRows = PCO_Setup_Get_NRows;
 	functions->Setup_Shutdown = PCO_Setup_Shutdown;
 	/* exposure */
-	/* diddly
 	functions->Exposure_Expose = PCO_Exposure_Expose;
 	functions->Exposure_Bias = PCO_Exposure_Bias;
 	functions->Exposure_Abort = PCO_Exposure_Abort;
 	functions->Exposure_Get_Exposure_Start_Time = PCO_Exposure_Get_Exposure_Start_Time;
 	functions->Exposure_Loop_Pause_Length_Set = PCO_Exposure_Loop_Pause_Length_Set;
-	*/
 	/* temperature */
 	/* diddly
 	functions->Temperature_Get = PCO_Temperature_Get;
