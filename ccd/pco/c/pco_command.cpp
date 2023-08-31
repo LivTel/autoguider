@@ -1574,12 +1574,12 @@ int PCO_Command_Description_Get_Max_Vertical_Size(int *max_ver_size)
 	return TRUE;
 }
 
-diddly
-
 /**
- * Get the minimum horizontal (x) size allowed for the region of interest (ROI), as returned from it's description
+ * Get the pixel horizontal step size for the region of interest (ROI), as returned from it's description
  * (retrieved from the camera head when opening a connection to the camera, and stored in Command_Data.Description).
- * @param min_hor_size The address of an integer to store the minimum horizontal (x) size 
+ * This is the increment step in pixels the corners of regions of interest are allowed to be specified in the 
+ * horizontal direction.
+ * @param step_size The address of an integer to store the horizontal step size 
  *        of the region of interest (ROI), in pixels.
  * @return The routine returns TRUE on success and FALSE if an error occurs.
  * @see #Command_Data
@@ -1588,17 +1588,17 @@ diddly
  * @see ../../cdocs/ccd_general.html#CCD_General_Log
  * @see ../../cdocs/ccd_general.html#CCD_General_Log_Format
  */
-int PCO_Command_Description_Get_Min_Horizontal_Size(int *min_hor_size)
+int PCO_Command_Description_Get_ROI_Horizontal_Step_Size(int *step_size)
 {
 #ifdef PCO_DEBUG
-	CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Description_Get_Min_Horizontal_Size",
+	CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Description_Get_ROI_Horizontal_Step_Size",
 			LOG_VERBOSITY_INTERMEDIATE,NULL,"Started.");
 #endif
-	if(min_hor_size == NULL)
+	if(step_size == NULL)
 	{
 		CCD_General_Error_Number = 1201;
 		sprintf(CCD_General_Error_String,
-			"PCO_Command_Description_Get_Min_Horizontal_Size:min_hor_size was NULL.");
+			"PCO_Command_Description_Get_ROI_Horizontal_Step_Size:step_size was NULL.");
 		return FALSE;
 	}
 	/* check camera instance has been created, if so open should have been called,
@@ -1607,22 +1607,25 @@ int PCO_Command_Description_Get_Min_Horizontal_Size(int *min_hor_size)
 	{
 		CCD_General_Error_Number = 1202;
 		sprintf(CCD_General_Error_String,
-			"PCO_Command_Description_Get_Min_Horizontal_Size:Camera CPco_com_usb instance not created.");
+		   "PCO_Command_Description_Get_ROI_Horizontal_Step_Size:Camera CPco_com_usb instance not created.");
 		return FALSE;
 	}
-	(*min_hor_size) = Command_Data.Description.wMinSizeHorzDESC;
+	(*step_size) = Command_Data.Description.wRoiHorStepsDESC;
 #ifdef PCO_DEBUG
-	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Description_Get_Min_Horizontal_Size",
+	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Description_Get_ROI_Horizontal_Step_Size",
 			       LOG_VERBOSITY_INTERMEDIATE,NULL,
-			       "PCO_Command_Description_Get_Min_Horizontal_Size returned %d pixels.",(*min_hor_size));
+			       "PCO_Command_Description_Get_ROI_Horizontal_Step_Size returned %d pixel step size.",
+			       (*step_size));
 #endif
 	return TRUE;
 }
 
 /**
- * Get the minimum vertical (Y) size allowed for the region of interest (ROI), as returned from it's description
+ * Get the pixel vertical step size for the region of interest (ROI), as returned from it's description
  * (retrieved from the camera head when opening a connection to the camera, and stored in Command_Data.Description).
- * @param min_ver_size The address of an integer to store the minimum vertical (y) size 
+ * This is the increment step in pixels the corners of regions of interest are allowed to be specified in the 
+ * vertical direction.
+ * @param step_size The address of an integer to store the vertical step size 
  *        of the region of interest (ROI), in pixels.
  * @return The routine returns TRUE on success and FALSE if an error occurs.
  * @see #Command_Data
@@ -1631,17 +1634,17 @@ int PCO_Command_Description_Get_Min_Horizontal_Size(int *min_hor_size)
  * @see ../../cdocs/ccd_general.html#CCD_General_Log
  * @see ../../cdocs/ccd_general.html#CCD_General_Log_Format
  */
-int PCO_Command_Description_Get_Min_Vertical_Size(int *min_ver_size)
+int PCO_Command_Description_Get_ROI_Vertical_Step_Size(int *step_size)
 {
 #ifdef PCO_DEBUG
-	CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Description_Get_Min_Vertical_Size",
+	CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Description_Get_ROI_Vertical_Step_Size",
 			LOG_VERBOSITY_INTERMEDIATE,NULL,"Started.");
 #endif
-	if(min_ver_size == NULL)
+	if(step_size == NULL)
 	{
 		CCD_General_Error_Number = 1203;
 		sprintf(CCD_General_Error_String,
-			"PCO_Command_Description_Get_Min_Vertical_Size:min_ver_size was NULL.");
+			"PCO_Command_Description_Get_ROI_Vertical_Step_Size:step_size was NULL.");
 		return FALSE;
 	}
 	/* check camera instance has been created, if so open should have been called,
@@ -1650,14 +1653,15 @@ int PCO_Command_Description_Get_Min_Vertical_Size(int *min_ver_size)
 	{
 		CCD_General_Error_Number = 1204;
 		sprintf(CCD_General_Error_String,
-			"PCO_Command_Description_Get_Min_Vertical_Size:Camera CPco_com_usb instance not created.");
+		   "PCO_Command_Description_Get_ROI_Vertical_Step_Size:Camera CPco_com_usb instance not created.");
 		return FALSE;
 	}
-	(*min_ver_size) = Command_Data.Description.wMinSizeVertDESC;
+	(*step_size) = Command_Data.Description.wRoiVertStepsDESC;
 #ifdef PCO_DEBUG
-	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Description_Get_Min_Vertical_Size",
+	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Description_Get_ROI_Vertical_Step_Size",
 			       LOG_VERBOSITY_INTERMEDIATE,NULL,
-			       "PCO_Command_Description_Get_Min_Vertical_Size returned %d pixels.",(*min_ver_size));
+			       "PCO_Command_Description_Get_ROI_Vertical_Step_Size returned %d pixel step size.",
+			       (*step_size));
 #endif
 	return TRUE;
 }
