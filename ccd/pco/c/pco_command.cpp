@@ -1109,7 +1109,7 @@ int PCO_Command_Set_ROI(int start_x,int start_y,int end_x,int end_y)
 
 /**
  * Set the temperature the camera head will try and attain.
- * @param temperature The temperature to try and cool the sensor to.
+ * @param temperature The temperature to try and cool the sensor to, in degrees centigrade.
  * @return The routine returns TRUE on success and FALSE if an error occurs.
  * @see #Command_Data
  * @see #Command_PCO_Get_Error_Text
