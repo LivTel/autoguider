@@ -14,6 +14,17 @@ DOCSDIR 		= $(AUTOGUIDER_PCO_DOC_HOME)/cdocs
 #DEBUG_CFLAGS		= 
 DEBUG_CFLAGS		= -DPCO_DEBUG
 
+#
+# PCO SDK
+#
+PCO_CFLAGS	= -I$(LT_SRC_HOME)/autoguider-nogit/pco/pco_camera_1_1_19/pco_usb_pl/pco_classes \
+		  -I$(LT_SRC_HOME)/autoguider-nogit/pco/pco_camera_1_1_19/pco_common/pco_classes/ \
+		  -I$(LT_SRC_HOME)/autoguider-nogit/pco/pco_camera_1_1_19/pco_common/ \
+		  -I$(LT_SRC_HOME)/autoguider-nogit/pco/pco_camera_1_1_19/pco_common/pco_include/
+
+PCO_LIBDIR	= $(LT_SRC_HOME)/autoguider-nogit/pco/pco_camera_1_1_19/pco_usb_pl/lib/
+PCO_LDFLAGS	= -L$(PCO_LIBDIR) -lpcocam_usb -lusb-1.0 -pthread
+
 # autoguider ccd (general) library
 CCD_CFLAGS 		= -I$(AUTOGUIDER_CCD_SRC_HOME)/include
 CCD_LDFLAGS 		= -lautoguider_ccd_general
