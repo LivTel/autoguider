@@ -23,9 +23,7 @@
 #include "pco_driver.h"
 #include "pco_exposure.h"
 #include "pco_setup.h"
-/* diddly
 #include "pco_temperature.h"
-*/
 
 /* internal data */
 /**
@@ -81,12 +79,10 @@ int PCO_Driver_Register(struct CCD_Driver_Function_Struct *functions)
 	functions->Exposure_Get_Exposure_Start_Time = PCO_Exposure_Get_Exposure_Start_Time;
 	functions->Exposure_Loop_Pause_Length_Set = PCO_Exposure_Loop_Pause_Length_Set;
 	/* temperature */
-	/* diddly
 	functions->Temperature_Get = PCO_Temperature_Get;
 	functions->Temperature_Set = PCO_Temperature_Set;
 	functions->Temperature_Cooler_On = PCO_Temperature_Cooler_On;
 	functions->Temperature_Cooler_Off = PCO_Temperature_Cooler_Off;
-*/
 #ifdef PCO_DEBUG
 	CCD_General_Log("ccd","pco_driver.c","PCO_Driver_Register",LOG_VERBOSITY_INTERMEDIATE,NULL,
 			"finished.");
