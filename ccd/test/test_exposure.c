@@ -93,6 +93,7 @@ static int Bin_Y = 1;
 static int Window_Flags = FALSE;
 /**
  * Window data.
+ * @see ../cdocs/ccd_setup.html#CCD_Setup_Window_Struct
  */
 static struct CCD_Setup_Window_Struct Window;
 /**

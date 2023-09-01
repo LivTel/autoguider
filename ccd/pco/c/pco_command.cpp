@@ -1057,12 +1057,12 @@ int PCO_Command_Set_Binning(int bin_x,int bin_y)
 }
 
 /**
- * Get the current 'region of interest', given the current binning settings. This is the area of the detector
+ * Set the current 'region of interest'. This is the area of the detector
  * to read out, in binned pixels.
- * @param start_x The address of an integer to store the first pixel in x on the detector to read out.
- * @param start_y The address of an integer to store the first pixel in y on the detector to read out.
- * @param end_x The address of an integer to store the last pixel in x on the detector to read out.
- * @param end_y The address of an integer to store the last pixel in y on the detector to read out.
+ * @param start_x An integer containing the first binned pixel in x on the detector to read out.
+ * @param start_y An integer containing the first binned pixel in y on the detector to read out.
+ * @param end_x An integer containing the last binned pixel in x on the detector to read out.
+ * @param end_y An integer containing the last binned pixel in y on the detector to read out.
  * @return The routine returns TRUE on success and FALSE if an error occurs.
  * @see #Command_Data
  * @see #Command_PCO_Get_Error_Text

@@ -30,7 +30,7 @@
  * <dt>Exposure_Loop_Pause_Length</dt> <dd>An amount of time to pause/sleep, in milliseconds, each time
  *     round the loop whilst waiting for an exposure to be done.
  * </dl>
- * @see ccd_exposure.html#CCD_EXPOSURE_STATUS
+ * @see ../../cdocs/ccd_exposure.html#CCD_EXPOSURE_STATUS
  */
 struct Exposure_Struct
 {

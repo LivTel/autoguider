@@ -19,6 +19,7 @@ CFITSIO_LDFLAGS		= -L$(LT_LIB_HOME) -lcfitsio
 
 CFLAGS 			= -g -I$(INCDIR) $(CFITSIO_CFLAGS)
 LDFLAGS			= $(CCD_LDFLAGS) -lcfitsio
+DOCFLAGS 		= -static
 
 EXE_SRCS		= test_setup_startup.c test_setup_dimensions.c test_exposure.c test_temperature.c
 SRCS			= $(EXE_SRCS)
@@ -48,7 +49,7 @@ depend:
 	makedepend $(MAKEDEPENDFLAGS) -- $(CFLAGS) -- $(SRCS)
 
 clean:
-	$(RM) $(RM_OPTIONS) $(OBJS) $(PROGS) $(TIDY_OPTIONS)
+	$(RM) $(RM_OPTIONS) $(OBJS) $(PROGS) $(DOCS) $(TIDY_OPTIONS)
 
 tidy:
 	$(RM) $(RM_OPTIONS) $(TIDY_OPTIONS)

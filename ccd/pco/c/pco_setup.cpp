@@ -140,7 +140,7 @@ static struct Setup_Struct Setup_Data =
  * @return The routine returns TRUE on success and FALSE on failure.
  * @see #PCO_SETUP_KEYWORD_ROOT
  * @see #Setup_Data
- * @see pco_command.html#PCO_COMMAND_TIMESTAMP_MODE_BINARY
+ * @see pco_command.html#PCO_COMMAND_TIMESTAMP_MODE
  * @see pco_command.html#PCO_COMMAND_TIMEBASE
  * @see pco_command.html#PCO_Command_Initialise_Camera
  * @see pco_command.html#PCO_Command_Open
