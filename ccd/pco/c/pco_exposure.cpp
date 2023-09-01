@@ -75,11 +75,26 @@ void PCO_Exposure_Initialise(void)
  * Perform an exposure and save it into the specified buffer.
  * <ul>
  * <li>We check the buffer is not NULL, and return an error if it is.
- * <li>We check the buffer length is not too short to hold the read out image.
- * <li>diddly
- * <li>We set the exposure status to NONE and return.
+ * <li>We reset the Exposure_Data Abort flag.
+ * <li>We call PCO_Command_Set_Timebase to set the camera timebase to microseconds.
+ * <li>We convert the exposure length to microseconds using CCD_GENERAL_ONE_MILLISECOND_US.
+ * <li>We set the exposure length by calling PCO_Command_Set_Delay_Exposure_Time.
+ * <li>We set the shutter trigger mode to internal by calling PCO_Command_Set_Trigger_Mode.
+ * <li>We ready the camera with the current configuration by calling PCO_Command_Arm_Camera.
+ * <li>We update the grabber code with the current configuration by calling PCO_Command_Grabber_Post_Arm.
+ * <li>We tell the camera to start recording data by calling PCO_Command_Set_Recording_State(TRUE).
+ * <li>We update the Exposure Data Exposure Status to EXPOSE.
+ * <li>We check whether the exposure has been aborted.
+ * <li>We call PCO_Command_Grabber_Acquire_Image_Async_Wait_Timeout to save an acquired image into the buffer.
+ * <li>We check whether the exposure has been aborted.
+ * <li>We set the Exposure Data Exposure Status to POST_READOUT.
+ * <li>We get the camera image number from the image by calling PCO_Command_Get_Image_Number_From_Metadata.
+ * <li>We get the camera timestamp from the image by calling PCO_Command_Get_Timestamp_From_Metadata.
+ * <li>We set the Exposure Data Start Timestamp to the retrieved camera timestamp.
+ * <li>We tell the camera to stop recording data by calling PCO_Command_Set_Recording_State(FALSE).
+ * <li>We set the Exposure Data Exposure Status to NONE and return.
  * </ul>
- * @param open_shutter A boolean, TRUE to open the shutter, FALSE to leav it closed (dark).
+ * @param open_shutter A boolean, TRUE to open the shutter, FALSE to leave it closed (dark).
  * @param start_time The time to start the exposure. If both the fields in the <i>struct timespec</i> are zero,
  * 	the exposure can be started at any convenient time.
  * @param exposure_length The length of time to open the shutter for in milliseconds. This must be greater than zero.
@@ -88,21 +103,36 @@ void PCO_Exposure_Initialise(void)
  * @param buffer_length The length of the buffer in <b>pixels</b>.
  * @return Returns TRUE if the exposure succeeds and the data read out into the buffer, returns FALSE if an error
  *	occurs or the exposure is aborted.
+ * @see #Exposure_Data
+ * @see ../../cdocs/ccd_exposure.html#CCD_EXPOSURE_STATUS
+ * @see ../../cdocs/ccd_general.html#CCD_GENERAL_ONE_MILLISECOND_US
+ * @see ../../cdocs/ccd_general.html#CCD_GENERAL_ONE_MILLISECOND_NS
  * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
  * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
  * @see ../../cdocs/ccd_general.html#CCD_General_Log
- * @see ../../cdocs/ccd_general.html#CCD_GENERAL_ONE_MILLISECOND_NS
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log_Format
+ * @see pco_command.html#PCO_COMMAND_TIMEBASE
+ * @see pco_command.html#PCO_COMMAND_TRIGGER_MODE
+ * @see pco_command.html#PCO_Command_Set_Timebase
+ * @see pco_command.html#PCO_Command_Set_Delay_Exposure_Time
+ * @see pco_command.html#PCO_Command_Set_Trigger_Mode
+ * @see pco_command.html#PCO_Command_Arm_Camera
+ * @see pco_command.html#PCO_Command_Grabber_Post_Arm
+ * @see pco_command.html#PCO_Command_Set_Recording_State
+ * @see pco_command.html#PCO_Command_Grabber_Acquire_Image_Async_Wait_Timeout
+ * @see pco_command.html#PCO_Command_Get_Image_Number_From_Metadata
+ * @see pco_command.html#PCO_Command_Get_Timestamp_From_Metadata
  */
 int PCO_Exposure_Expose(int open_shutter,struct timespec start_time,int exposure_length,
 			void *buffer,size_t buffer_length)
 {
-	struct timespec sleep_time,current_time;
-#ifndef _POSIX_TIMERS
-	struct timeval gtod_current_time;
-#endif
-	
+	struct timespec sleep_time,current_time,camera_timestamp;
+	int exposure_length_us,timeout_ms,camera_image_number;
+
 #ifdef PCO_DEBUG
-	CCD_General_Log("ccd","fpco_exposure.c","PCO_Exposure_Expose",LOG_VERBOSITY_TERSE,NULL,"started.");
+	CCD_General_Log_Format("ccd","pco_exposure.c","PCO_Exposure_Expose",LOG_VERBOSITY_TERSE,NULL,
+			       "Started with open_shutter = %s, start time {%d,%d}, exposure length %d ms.",
+			       open_shutter ? "TRUE" : "FALSE",start_time.tv_sec,start_time.tv_nsec,exposure_length);
 #endif
 	/* check buffer details */
 	if(buffer == NULL)
@@ -113,7 +143,62 @@ int PCO_Exposure_Expose(int open_shutter,struct timespec start_time,int exposure
 	}
 	/* reset abort */
 	Exposure_Data.Abort = FALSE;
-	/* diddly */
+	/* set exposure and delay timebase to microseconds */
+	if(!PCO_Command_Set_Timebase(PCO_COMMAND_TIMEBASE_US,PCO_COMMAND_TIMEBASE_US))
+		return FALSE;
+	/* convert exposure length to microseconds. */
+	exposure_length_us = (int)(exposure_length*((double)CCD_GENERAL_ONE_MILLISECOND_US));
+	/* set exposure length in microseconds */
+	if(!PCO_Command_Set_Delay_Exposure_Time(0,exposure_length_us))
+		return FALSE;
+	/* set the trigger mode to internal */
+	if(!PCO_Command_Set_Trigger_Mode(PCO_COMMAND_TRIGGER_MODE_INTERNAL))
+		return FALSE;
+	/* get the camera ready with the new settings */
+	if(!PCO_Command_Arm_Camera())
+		return FALSE;
+	/* update the grabber so thats ready */
+	if(!PCO_Command_Grabber_Post_Arm())
+		return FALSE;
+	/* start taking data */
+	if(!PCO_Command_Set_Recording_State(TRUE))
+		return FALSE;
+	/* set exposure data to expose */
+	Exposure_Data.Exposure_Status = CCD_EXPOSURE_STATUS_EXPOSE;
+	/* set the timeout to be twice the exposure length */
+	timeout_ms = exposure_length*2;
+	/* check abort */
+	if(Exposure_Data.Abort)
+	{
+		Exposure_Data.Exposure_Status = CCD_EXPOSURE_STATUS_NONE;
+		CCD_General_Error_Number = 1402;
+		sprintf(CCD_General_Error_String,"PCO_Exposure_Expose: Aborted.");
+		return FALSE;
+	}
+	/* get an acquired image buffer */
+	if(!PCO_Command_Grabber_Acquire_Image_Async_Wait_Timeout(buffer,timeout_ms))
+		return FALSE;
+	/* check abort */
+	if(Exposure_Data.Abort)
+	{
+		Exposure_Data.Exposure_Status = CCD_EXPOSURE_STATUS_NONE;
+		CCD_General_Error_Number = 1403;
+		sprintf(CCD_General_Error_String,"PCO_Exposure_Expose: Aborted.");
+		return FALSE;
+	}
+	/* set exposure data to post readout */
+	Exposure_Data.Exposure_Status = CCD_EXPOSURE_STATUS_POST_READOUT;
+	/* get camera image number */
+	if(!PCO_Command_Get_Image_Number_From_Metadata(buffer,buffer_length,&camera_image_number))
+		return FALSE;
+	/* get camera timestamp */
+	if(!PCO_Command_Get_Timestamp_From_Metadata(buffer,buffer_length,&camera_timestamp))
+		return FALSE;
+	Exposure_Data.Exposure_Start_Time = camera_timestamp;
+	/* stop recording data */
+	if(!PCO_Command_Set_Recording_State(FALSE))
+		return FALSE;
+	/* reset the exposure status */
 	Exposure_Data.Exposure_Status = CCD_EXPOSURE_STATUS_NONE;
 #ifdef PCO_DEBUG
 	CCD_General_Log("ccd","pco_exposure.c","PCO_Exposure_Expose",LOG_VERBOSITY_TERSE,NULL,"finished.");
@@ -122,11 +207,12 @@ int PCO_Exposure_Expose(int open_shutter,struct timespec start_time,int exposure
 }
 
 /**
- * Take a bias.
+ * Take a bias. We call PCO_Exposure_Expose with a start time of 0, 0 length exposure with shutter closed.
  * @param buffer A pointer to a previously allocated area of memory, of length buffer_length. This should have the
  *        correct size to save the read out image into.
  * @param buffer_length The length of the buffer in <b>pixels</b>.
  * @return Returns TRUE on success, and FALSE if an error occurs or the exposure is aborted.
+ * @see #PCO_Exposure_Expose
  * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
  * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
  * @see ../../cdocs/ccd_general.html#CCD_General_Log
@@ -147,13 +233,15 @@ int PCO_Exposure_Bias(void *buffer,size_t buffer_length)
 }
 
 /**
- * Abort an exposure.
+ * Abort an exposure. We set the Exposure Data Abort flag to TRUE, and call PCO_Command_Set_Recording_State to stop
+ * recording frames.
  * @return Returns TRUE on success, and FALSE if an error occurs.
  * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
  * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
  * @see ../../cdocs/ccd_general.html#CCD_General_Log
  * @see #PCO_Exposure_Expose
  * @see #Exposure_Data
+ * @see pco_command.html#PCO_Command_Set_Recording_State
  */
 int PCO_Exposure_Abort(void)
 {
@@ -161,6 +249,9 @@ int PCO_Exposure_Abort(void)
 	CCD_General_Log("ccd","pco_exposure.c","PCO_Exposure_Abort",LOG_VERBOSITY_INTERMEDIATE,NULL,"started.");
 #endif
 	Exposure_Data.Abort = TRUE;
+	/* stop the camera recording */
+	if(!PCO_Command_Set_Recording_State(FALSE))
+		return FALSE;
 #ifdef PCO_DEBUG
 	CCD_General_Log("ccd","pco_exposure.c","PCO_Exposure_Abort",LOG_VERBOSITY_INTERMEDIATE,NULL,"finished.");
 #endif
@@ -180,6 +271,7 @@ struct timespec PCO_Exposure_Get_Exposure_Start_Time(void)
 
 /**
  * Set how long to pause in the loop waiting for an exposure to complete in PCO_Exposure_Expose.
+ * This value is currently unused in the current implementation of PCO_Exposure_Expose.
  * @param ms The length of time to sleep for, in milliseconds (between 1 and 999).
  * @return Returns TRUE on success, and FALSE if an error occurs.
  * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
