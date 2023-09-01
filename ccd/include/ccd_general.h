@@ -53,6 +53,14 @@
  * The number of nanoseconds in one microsecond.
  */
 #define CCD_GENERAL_ONE_MICROSECOND_NS	(1000)
+/**
+ * The number of microseconds in one second. We are currently using an exposure timebase of microseconds
+ */
+#define CCD_GENERAL_ONE_SECOND_US	(1000000)
+/**
+ * The number of microseconds in one millisecond. We are currently using an exposure timebase of microseconds
+ */
+#define CCD_GENERAL_ONE_MILLISECOND_US	(1000)
 
 /* We now need CCD_General external prototypes to be declared extern C when compiling using C++ compilers.
 ** This is required for the PCO camera driver that is compiled with C++ and logs via the CCD_General API.
