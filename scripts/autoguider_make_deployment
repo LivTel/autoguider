@@ -25,6 +25,9 @@ switch ( "${machine_name}" )
     case "autoguider1":
 	set camera_library = "libautoguider_ccd_andor.so"
 	breaksw
+    case "autoguider2":
+	set camera_library = "libautoguider_ccd_pco.so"
+	breaksw
     case "iucaaag":
 	set camera_library = "libautoguider_ccd_fli.so"
 	breaksw
@@ -64,6 +67,11 @@ else if ( "${HOSTTYPE}" == "i386-linux" ) then
     set bin_file_type = "ELF 32-bit LSB executable"
     set kernel_release = `uname -r`
     set init_d_dir = "/etc/rc.d/init.d"
+else if ( "${HOSTTYPE}" == "x86_64-linux" ) then
+    setenv GREP "/bin/grep"
+    set bin_file_type = "ELF 64-bit LSB shared object"
+    set kernel_release = `uname -r`
+    set init_d_dir = "/etc/rc.d/init.d"
 else
     echo "Illegal hosttype ${HOSTTYPE}."
     exit 1
@@ -80,10 +88,13 @@ endif
 #
 echo "Creating directory structure..."
 set dir_count = 0
-set dir_list = "${deployment_dir} ${deployment_dir}/${init_d_dir} ${deployment_icc_dir} ${deployment_bin_dir} ${deployment_dir}/icc/tmp ${deployment_dir}/icc/tmp/log_archive ${deployment_dir}/icc/log ${deployment_icc_dir}/config ${deployment_icc_dir}/dprt/dark ${deployment_icc_dir}/dprt/flat ${deployment_bin_dir}/scripts ${deployment_bin_dir}/autoguider/scripts ${deployment_bin_dir}/autoguider/c/${HOSTTYPE} ${deployment_bin_dir}/autoguider/commandserver/test/${HOSTTYPE} ${deployment_bin_dir}/autoguider/ngatcil/test/${HOSTTYPE} ${deployment_bin_dir}/ics_util/c/${HOSTTYPE} ${deployment_bin_dir}/iboot/${HOSTTYPE} ${deployment_bin_dir}/ccd/misc/${HOSTTYPE} ${deployment_bin_dir}/javalib ${deployment_bin_dir}/lib/${HOSTTYPE} ${deployment_bin_dir}/autoguider/test ${deployment_bin_dir}/libdprt/object/test/${HOSTTYPE} ${deployment_bin_dir}/log_udp/test/${HOSTTYPE} ${deployment_bin_dir}/autobooter/java ${deployment_bin_dir}/autoguider/java/gui"
+set dir_list = "${deployment_dir} ${deployment_dir}/${init_d_dir} ${deployment_icc_dir} ${deployment_bin_dir} ${deployment_dir}/icc/tmp ${deployment_dir}/icc/tmp/log_archive ${deployment_dir}/icc/log ${deployment_icc_dir}/config ${deployment_icc_dir}/dprt/dark ${deployment_icc_dir}/dprt/flat ${deployment_bin_dir}/scripts ${deployment_bin_dir}/autoguider/scripts ${deployment_bin_dir}/autoguider/c/${HOSTTYPE} ${deployment_bin_dir}/autoguider/commandserver/test/${HOSTTYPE} ${deployment_bin_dir}/autoguider/ngatcil/test/${HOSTTYPE} ${deployment_bin_dir}/autoguider/ccd/test/${HOSTTYPE} ${deployment_bin_dir}/ics_util/c/${HOSTTYPE} ${deployment_bin_dir}/iboot/${HOSTTYPE} ${deployment_bin_dir}/ccd/misc/${HOSTTYPE} ${deployment_bin_dir}/javalib ${deployment_bin_dir}/lib/${HOSTTYPE} ${deployment_bin_dir}/autoguider/test ${deployment_bin_dir}/libdprt/object/test/${HOSTTYPE} ${deployment_bin_dir}/log_udp/test/${HOSTTYPE} ${deployment_bin_dir}/autobooter/java ${deployment_bin_dir}/autoguider/java/gui"
 switch ( "${machine_name}" )
     case "autoguider1":
 	set dir_list = "${dir_list} ${deployment_bin_dir}/autoguider/ccd/andor/test/${HOSTTYPE} ${deployment_bin_dir}/andor/examples/console/cooling ${deployment_bin_dir}/andor/examples/console/image"
+	breaksw
+    case "autoguider2":
+	set dir_list = "${dir_list} ${deployment_bin_dir}/autoguider/ccd/pco/test/${HOSTTYPE}"
 	breaksw
     case "iucaaag":
 	set dir_list = "${dir_list} ${deployment_bin_dir}/autoguider/ccd/fli/test/${HOSTTYPE}"
@@ -227,10 +238,13 @@ echo "${clib_count} C libraries copied."
 # C programs
 #
 echo "Copying C program directories..."
-set dir_list = "autoguider/c/${HOSTTYPE} autoguider/commandserver/test/${HOSTTYPE} autoguider/ngatcil/test/${HOSTTYPE} ics_util/c/${HOSTTYPE} iboot/${HOSTTYPE} ccd/misc/${HOSTTYPE} libdprt/object/test/${HOSTTYPE} log_udp/test/${HOSTTYPE}"
+set dir_list = "autoguider/c/${HOSTTYPE} autoguider/commandserver/test/${HOSTTYPE} autoguider/ngatcil/test/${HOSTTYPE} $autoguider/ccd/test/${HOSTTYPE} ics_util/c/${HOSTTYPE} iboot/${HOSTTYPE} ccd/misc/${HOSTTYPE} libdprt/object/test/${HOSTTYPE} log_udp/test/${HOSTTYPE}"
 switch ( "${machine_name}" )
     case "autoguider1":
 	set dir_list = "${dir_list} autoguider/ccd/andor/test/${HOSTTYPE} andor/examples/console/cooling andor/examples/console/image"
+	breaksw
+    case "autoguider2":
+	set dir_list = "${dir_list} autoguider/ccd/pco/test/${HOSTTYPE}"
 	breaksw
     case "iucaaag":
 	set dir_list = "${dir_list} autoguider/ccd/fli/test/${HOSTTYPE}"
@@ -313,6 +327,9 @@ set file_list = "autoguider/c/${HOSTTYPE}/${machine_name}.autoguider.properties 
 switch ( "${machine_name}" )
     case "autoguider1":
 	set file_list = "${file_list} autoguider/ccd/andor/test/${HOSTTYPE}/test_exposure.properties"
+	breaksw
+    case "autoguider2":
+	set file_list = "${file_list}"
 	breaksw
     case "iucaaag":
 	set file_list = "${file_list}"
