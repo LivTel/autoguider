@@ -68,8 +68,10 @@ else if ( "${HOSTTYPE}" == "i386-linux" ) then
     set kernel_release = `uname -r`
     set init_d_dir = "/etc/rc.d/init.d"
 else if ( "${HOSTTYPE}" == "x86_64-linux" ) then
-    setenv GREP "/bin/grep"
-    set bin_file_type = "ELF 64-bit LSB shared object"
+    # 64-bit executables can be either ELF 64-bit LSB shared object or ELF 64-bit LSB executable
+    # On ltdevx64 binaries built under Centos are "ELF 64-bit LSB executable" and binaries built under Ubuntu 18.04 are "ELF 64-bit LSB shared object".
+    setenv GREP "/bin/egrep"
+    set bin_file_type = "ELF 64-bit LSB executable|shared object"
     set kernel_release = `uname -r`
     set init_d_dir = "/etc/rc.d/init.d"
 else
@@ -200,7 +202,8 @@ echo "${java_class_dir_count} Java class directories copied with ${java_class_fi
 # C libraries
 #
 echo "Copying C libraries..."
-set clib_list = "libcfitsio.so libdprt_object.so libdprt_libfits.so libccd_dprt.so liblt_filenames.so libngatastro.so libautoguider_commandserver.so libautoguider_ccd_general.so ${camera_library} libautoguider_ngatcil.so libestar_config.so liblog_udp.so"
+# libccd_dprt.so 
+set clib_list = "libcfitsio.so libdprt_object.so libdprt_libfits.so liblt_filenames.so libngatastro.so libautoguider_commandserver.so libautoguider_ccd_general.so ${camera_library} libautoguider_ngatcil.so libestar_config.so liblog_udp.so"
 set clib_count = 0
 foreach clib ( ${clib_list} )
 	echo "C Library : ${clib}"
@@ -238,7 +241,7 @@ echo "${clib_count} C libraries copied."
 # C programs
 #
 echo "Copying C program directories..."
-set dir_list = "autoguider/c/${HOSTTYPE} autoguider/commandserver/test/${HOSTTYPE} autoguider/ngatcil/test/${HOSTTYPE} $autoguider/ccd/test/${HOSTTYPE} ics_util/c/${HOSTTYPE} iboot/${HOSTTYPE} ccd/misc/${HOSTTYPE} libdprt/object/test/${HOSTTYPE} log_udp/test/${HOSTTYPE}"
+set dir_list = "autoguider/c/${HOSTTYPE} autoguider/commandserver/test/${HOSTTYPE} autoguider/ngatcil/test/${HOSTTYPE} autoguider/ccd/test/${HOSTTYPE} ics_util/c/${HOSTTYPE} iboot/${HOSTTYPE} ccd/misc/${HOSTTYPE} libdprt/object/test/${HOSTTYPE} log_udp/test/${HOSTTYPE}"
 switch ( "${machine_name}" )
     case "autoguider1":
 	set dir_list = "${dir_list} autoguider/ccd/andor/test/${HOSTTYPE} andor/examples/console/cooling andor/examples/console/image"
