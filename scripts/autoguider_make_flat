@@ -40,34 +40,34 @@ if( "${output_filename}" == "" ) then
     exit 1
 endif
 set output_leaf = `echo "${output_filename}" | sed "s/\(.*\).fits/\1/"`
-if ( -r /home/dev/bin/autoguider/commandserver/test/i386-linux/send_command ) then
-    alias send_command "/home/dev/bin/autoguider/commandserver/test/i386-linux/send_command"
-else if ( -r /icc/bin/autoguider/commandserver/test/i386-linux/send_command ) then
-    alias send_command "/icc/bin/autoguider/commandserver/test/i386-linux/send_command"
+if ( -r /home/dev/bin/autoguider/commandserver/test/${HOSTTYPE}/send_command ) then
+    alias send_command "/home/dev/bin/autoguider/commandserver/test/${HOSTTYPE}/send_command"
+else if ( -r /icc/bin/autoguider/commandserver/test/${HOSTTYPE}/send_command ) then
+    alias send_command "/icc/bin/autoguider/commandserver/test/${HOSTTYPE}/send_command"
 else
     echo "Could not find send_command."
     exit 2
 endif
-if ( -r /home/dev/bin/autoguider/commandserver/test/i386-linux/test_getfits_command ) then
-    alias getfits_command "/home/dev/bin/autoguider/commandserver/test/i386-linux/test_getfits_command"
-else if ( -r /icc/bin/autoguider/commandserver/test/i386-linux/test_getfits_command ) then
-    alias getfits_command "/icc/bin/autoguider/commandserver/test/i386-linux/test_getfits_command"
+if ( -r /home/dev/bin/autoguider/commandserver/test/${HOSTTYPE}/test_getfits_command ) then
+    alias getfits_command "/home/dev/bin/autoguider/commandserver/test/${HOSTTYPE}/test_getfits_command"
+else if ( -r /icc/bin/autoguider/commandserver/test/${HOSTTYPE}/test_getfits_command ) then
+    alias getfits_command "/icc/bin/autoguider/commandserver/test/${HOSTTYPE}/test_getfits_command"
 else
     echo "Could not find test_getfits_command."
     exit 2
 endif
-if ( -r /home/dev/bin/ccd/misc/i386-linux/fits_median ) then
-    alias fits_median "/home/dev/bin/ccd/misc/i386-linux/fits_median"
-else if ( -r /icc/bin/ccd/misc/i386-linux/fits_median ) then
-    alias fits_median "/icc/bin/ccd/misc/i386-linux/fits_median"
+if ( -r /home/dev/bin/ccd/misc/${HOSTTYPE}/fits_median ) then
+    alias fits_median "/home/dev/bin/ccd/misc/${HOSTTYPE}/fits_median"
+else if ( -r /icc/bin/ccd/misc/${HOSTTYPE}/fits_median ) then
+    alias fits_median "/icc/bin/ccd/misc/${HOSTTYPE}/fits_median"
 else
     echo "Could not find fits_median."
     exit 2
 endif
-if ( -r /home/dev/bin/ccd/misc/i386-linux/fits_normalise ) then
-    alias fits_normalise "/home/dev/bin/ccd/misc/i386-linux/fits_normalise"
-else if ( -r /icc/bin/ccd/misc/i386-linux/fits_normalise ) then
-    alias fits_normalise "/icc/bin/ccd/misc/i386-linux/fits_normalise"
+if ( -r /home/dev/bin/ccd/misc/${HOSTTYPE}/fits_normalise ) then
+    alias fits_normalise "/home/dev/bin/ccd/misc/${HOSTTYPE}/fits_normalise"
+else if ( -r /icc/bin/ccd/misc/${HOSTTYPE}/fits_normalise ) then
+    alias fits_normalise "/icc/bin/ccd/misc/${HOSTTYPE}/fits_normalise"
 else
     echo "Could not find fits_normalise."
     exit 2
@@ -226,18 +226,3 @@ if( "${gaiadisp}" == "1" ) then
 endif
 echo "Note, field flat-fielding is now turned off, use:send_command -h ${hostname} -p ${port} -c'field flat on' to restore."
 echo "Note, field object detection is now turned off, use:send_command -h ${hostname} -p ${port} -c'field object on' to restore."
-#
-# $Log: not supported by cvs2svn $
-# Revision 1.3  2006/06/19 16:08:06  cjm
-# Now normalises each flat before medianing, to allow for light level changes during data collection.
-# If old intermediate normalised or medianed files exist, they are deleted.
-# fits_median/fits_normalise error codes checked.
-# If old ouput flat exists it is renamed to .old.${date} before the new one is created.
-#
-# Revision 1.2  2006/05/22 18:46:34  cjm
-# Bug-fixed so it now works.
-#
-# Revision 1.1  2006/05/22 17:24:16  cjm
-# Initial revision
-#
-#
