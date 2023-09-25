@@ -117,6 +117,7 @@ static struct Setup_Struct Setup_Data =
  * <li>We retrieve the configured board number from the config file by caling CCD_Config_Get_Integer with the keyword
  *     "ccd.pco.setup.board_number" and save it to Setup_Data.Camera_Board.
  * <li>We open a connection to the PCO camera using PCO_Command_Open, using the retrieved board number. 
+ * <li>We create a grabber reference by calling PCO_Command_Initialise_Grabber.
  * <li>We set the PCO camera to use the current time by calling PCO_Command_Set_Camera_To_Current_Time.
  * <li>We stop any ongoing image acquisitions by calling PCO_Command_Set_Recording_State(FALSE).
  * <li>We reset the camera to a known state by calling PCO_Command_Reset_Settings.
@@ -193,6 +194,9 @@ int PCO_Setup_Startup(void)
 			       "Opening a connection to a PCO camera with board number %d.",Setup_Data.Camera_Board);
 #endif
 	if(!PCO_Command_Open(Setup_Data.Camera_Board))
+		return FALSE;
+	/* initialise grabber reference */
+	if(!PCO_Command_Initialise_Grabber())
 		return FALSE;
 	/* initial configuration of the camera */
 #ifdef PCO_DEBUG
