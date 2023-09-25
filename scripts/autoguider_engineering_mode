@@ -3,7 +3,7 @@ set machine_name = acc
 set port = 6571
 set ambient_temperature = 15.0
 # Setup the ld library path
-foreach dir ( /icc/bin/lib/i386-linux/ )
+foreach dir ( /icc/bin/lib/${HOSTTYPE}/ )
     if ( ${?LD_LIBRARY_PATH} ) then
 	echo ${LD_LIBRARY_PATH} | /bin/grep -q ":${dir}" > /dev/null
 	if ( $status != 0 ) then
@@ -14,11 +14,11 @@ foreach dir ( /icc/bin/lib/i386-linux/ )
     endif
 end
 /bin/echo "Setting autoguider temperature to: ${ambient_temperature}"
-/icc/bin/autoguider/commandserver/test/i386-linux/send_command -h ${machine_name} -p ${port} -c "temperature set ${ambient_temperature}"
+/icc/bin/autoguider/commandserver/test/${HOSTTYPE}/send_command -h ${machine_name} -p ${port} -c "temperature set ${ambient_temperature}"
 set done = 0
 while ( ${done} == 0 )
 	sleep 10
-	set current_temp = `/icc/bin/autoguider/commandserver/test/i386-linux/send_command -h ${machine_name} -p ${port} -c "status temperature get" | awk ' { print $3}'`
+	set current_temp = `/icc/bin/autoguider/commandserver/test/${HOSTTYPE}/send_command -h ${machine_name} -p ${port} -c "status temperature get" | awk ' { print $3}'`
 	echo "Current autoguider temperature is ${current_temp}"
 	set done = `/bin/echo " ( ${current_temp} > 0.0 )" | /usr/bin/bc`
 end
@@ -31,18 +31,9 @@ if ( -x /icc/bin/scripts/killhup.csh ) then
 else
     echo "killhup not found:FAILED to stop running processess."
 endif
-if ( -x /icc/bin/autoguider/commandserver/test/i386-linux/send_command ) then
+if ( -x /icc/bin/autoguider/commandserver/test/${HOSTTYPE}/send_command ) then
     echo "Trying to kill autoguider by sending shutdown command."
-    /icc/bin/autoguider/commandserver/test/i386-linux/send_command -h ${machine_name} -p 6571 -c "shutdown"
+    /icc/bin/autoguider/commandserver/test/${HOSTTYPE}/send_command -h ${machine_name} -p 6571 -c "shutdown"
 else
     echo "send_command not found:FAILED to stop running autoguider."
 endif
-#
-# $Log: not supported by cvs2svn $
-# Revision 1.2  2013/12/02 13:53:06  cjm
-# Added sleep.
-#
-# Revision 1.1  2013/12/02 13:39:36  cjm
-# Initial revision
-#
-#
