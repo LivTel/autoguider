@@ -4,6 +4,7 @@ set hostname = `/bin/hostname --short`
 switch ( ${hostname} )
 	case "acc":
 	case "autoguider1":
+	case "autoguider2":
 	case "iucaaag":
 		set javalib_dir = "/icc/bin/javalib"
 		breaksw
