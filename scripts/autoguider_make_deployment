@@ -73,7 +73,7 @@ else if ( "${HOSTTYPE}" == "x86_64-linux" ) then
     setenv GREP "/bin/egrep"
     set bin_file_type = "ELF 64-bit LSB executable|shared object"
     set kernel_release = `uname -r`
-    set init_d_dir = "/etc/rc.d/init.d"
+    set init_d_dir = "/etc/init.d"
 else
     echo "Illegal hosttype ${HOSTTYPE}."
     exit 1
