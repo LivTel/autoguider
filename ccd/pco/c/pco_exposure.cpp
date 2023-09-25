@@ -85,7 +85,7 @@ void PCO_Exposure_Initialise(void)
  * <li>We tell the camera to start recording data by calling PCO_Command_Set_Recording_State(TRUE).
  * <li>We update the Exposure Data Exposure Status to EXPOSE.
  * <li>We check whether the exposure has been aborted.
- * <li>We call PCO_Command_Grabber_Acquire_Image_Async_Wait_Timeout to save an acquired image into the buffer.
+ * <li>We call PCO_Command_Grabber_Acquire_Image_Async_Wait to save an acquired image into the buffer.
  * <li>We check whether the exposure has been aborted.
  * <li>We set the Exposure Data Exposure Status to POST_READOUT.
  * <li>We get the camera image number from the image by calling PCO_Command_Get_Image_Number_From_Metadata.
@@ -119,7 +119,7 @@ void PCO_Exposure_Initialise(void)
  * @see pco_command.html#PCO_Command_Arm_Camera
  * @see pco_command.html#PCO_Command_Grabber_Post_Arm
  * @see pco_command.html#PCO_Command_Set_Recording_State
- * @see pco_command.html#PCO_Command_Grabber_Acquire_Image_Async_Wait_Timeout
+ * @see pco_command.html#PCO_Command_Grabber_Acquire_Image_Async_Wait
  * @see pco_command.html#PCO_Command_Get_Image_Number_From_Metadata
  * @see pco_command.html#PCO_Command_Get_Timestamp_From_Metadata
  */
@@ -127,7 +127,7 @@ int PCO_Exposure_Expose(int open_shutter,struct timespec start_time,int exposure
 			void *buffer,size_t buffer_length)
 {
 	struct timespec sleep_time,current_time,camera_timestamp;
-	int exposure_length_us,timeout_ms,camera_image_number;
+	int exposure_length_us,camera_image_number;
 
 #ifdef PCO_DEBUG
 	CCD_General_Log_Format("ccd","pco_exposure.c","PCO_Exposure_Expose",LOG_VERBOSITY_TERSE,NULL,
@@ -165,8 +165,6 @@ int PCO_Exposure_Expose(int open_shutter,struct timespec start_time,int exposure
 		return FALSE;
 	/* set exposure data to expose */
 	Exposure_Data.Exposure_Status = CCD_EXPOSURE_STATUS_EXPOSE;
-	/* set the timeout to be twice the exposure length */
-	timeout_ms = exposure_length*2;
 	/* check abort */
 	if(Exposure_Data.Abort)
 	{
@@ -176,7 +174,7 @@ int PCO_Exposure_Expose(int open_shutter,struct timespec start_time,int exposure
 		return FALSE;
 	}
 	/* get an acquired image buffer */
-	if(!PCO_Command_Grabber_Acquire_Image_Async_Wait_Timeout(buffer,timeout_ms))
+	if(!PCO_Command_Grabber_Acquire_Image_Async_Wait(buffer))
 		return FALSE;
 	/* check abort */
 	if(Exposure_Data.Abort)
