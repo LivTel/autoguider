@@ -332,7 +332,10 @@ int PCO_Setup_Dimensions(int ncols,int nrows,int hbin,int vbin,
 			 int window_flags,struct CCD_Setup_Window_Struct window)
 {
 #ifdef PCO_DEBUG
-	CCD_General_Log("ccd","pco_setup.c","PCO_Setup_Dimensions",LOG_VERBOSITY_INTERMEDIATE,NULL,"Started.");
+	CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Dimensions",LOG_VERBOSITY_INTERMEDIATE,NULL,
+			       "Started with ncols=%d, nrows=%d, nsbin=%d, npbin=%d, window_flags=%d, "
+			       "window={xstart=%d,ystart=%d,xend=%d,yend=%d}.",ncols,nrows,nsbin,npbin,window_flags,
+			       window.X_Start,window.Y_Start,window.X_End,window.Y_End);
 #endif
 	if(!PCO_SETUP_BINNING_IS_VALID(hbin))
 	{

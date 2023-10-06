@@ -146,7 +146,10 @@ int CCD_Setup_Dimensions(int ncols,int nrows,int nsbin,int npbin,
 	int retval;
 
 #ifdef CCD_DEBUG
-	CCD_General_Log("ccd","ccd_setup.c","CCD_Setup_Dimensions",LOG_VERBOSITY_TERSE,NULL,"started.");
+	CCD_General_Log_format("ccd","ccd_setup.c","CCD_Setup_Dimensions",LOG_VERBOSITY_TERSE,NULL,
+			       "Started with ncols=%d, nrows=%d, nsbin=%d, npbin=%d, window_flags=%d, "
+			       "window={xstart=%d,ystart=%d,xend=%d,yend=%d}.",ncols,nrows,nsbin,npbin,window_flags,
+			       window.X_Start,window.Y_Start,window.X_End,window.Y_End);
 #endif
 	/* get driver functions */
 	retval = CCD_Driver_Get_Functions(&functions);
@@ -236,7 +239,8 @@ int CCD_Setup_Get_NCols(void)
 	/* call driver function */
 	retval = (*(functions.Setup_Get_NCols))();
 #ifdef CCD_DEBUG
-	CCD_General_Log("ccd","ccd_setup.c","CCD_Setup_Get_NCols",LOG_VERBOSITY_VERY_VERBOSE,NULL,"finished.");
+	CCD_General_Log_Format("ccd","ccd_setup.c","CCD_Setup_Get_NCols",LOG_VERBOSITY_VERY_VERBOSE,NULL,
+			       "finished with ncols %d.",retval);
 #endif
 	return retval;
 }
@@ -273,7 +277,8 @@ int CCD_Setup_Get_NRows(void)
 	/* call driver function */
 	retval = (*(functions.Setup_Get_NRows))();
 #ifdef CCD_DEBUG
-	CCD_General_Log("ccd","ccd_setup.c","CCD_Setup_Get_NRows",LOG_VERBOSITY_VERY_VERBOSE,NULL,"finished.");
+	CCD_General_Log_Format("ccd","ccd_setup.c","CCD_Setup_Get_NRows",LOG_VERBOSITY_VERY_VERBOSE,NULL,
+			       "finished with nrows %d.",retval);
 #endif
 	return retval;
 }
