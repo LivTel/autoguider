@@ -331,10 +331,12 @@ int PCO_Setup_Shutdown(void)
 int PCO_Setup_Dimensions(int ncols,int nrows,int hbin,int vbin,
 			 int window_flags,struct CCD_Setup_Window_Struct window)
 {
+	int actual_w,actual_h,actual_bp;
+	
 #ifdef PCO_DEBUG
 	CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Dimensions",LOG_VERBOSITY_INTERMEDIATE,NULL,
-			       "Started with ncols=%d, nrows=%d, nsbin=%d, npbin=%d, window_flags=%d, "
-			       "window={xstart=%d,ystart=%d,xend=%d,yend=%d}.",ncols,nrows,nsbin,npbin,window_flags,
+			       "Started with ncols=%d, nrows=%d, hbin=%d, vbin=%d, window_flags=%d, "
+			       "window={xstart=%d,ystart=%d,xend=%d,yend=%d}.",ncols,nrows,hbin,vbin,window_flags,
 			       window.X_Start,window.Y_Start,window.X_End,window.Y_End);
 #endif
 	if(!PCO_SETUP_BINNING_IS_VALID(hbin))
@@ -379,7 +381,14 @@ int PCO_Setup_Dimensions(int ncols,int nrows,int hbin,int vbin,
 	/* get grabber to update to the new binning */
 	if(!PCO_Command_Grabber_Post_Arm())
 		return FALSE;
-	/* diddly where do we store the window parameters? */
+	/* what actual dimensions does the PCO library think we should be using? */
+	if(!PCO_Command_Grabber_Get_Actual_Size(&actual_w,&actual_h,&actual_bp))
+		return FALSE;
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Dimensions",LOG_VERBOSITY_VERBOSE,NULL,
+			       "Actual image width/height returned by grabber (w=%d,h=%d,bp=%d).",
+			       actual_w,actual_h,actual_bp);
+#endif
 #ifdef PCO_DEBUG
 	CCD_General_Log("ccd","pco_setup.c","PCO_Setup_Dimensions",LOG_VERBOSITY_INTERMEDIATE,NULL,"Finished.");
 #endif

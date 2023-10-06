@@ -24,7 +24,7 @@ CFITSIO_LDFLAGS		= -L$(LT_LIB_HOME) -lcfitsio
 CFLAGS 			= -g -I$(INCDIR) $(CCD_CFLAGS) $(CFITSIO_CFLAGS)
 LDFLAGS			=  $(PCO_LDFLAGS) $(CCD_LDFLAGS) -lcfitsio -lstdc++
 
-EXE_SRCS		= pco_test_get_roi_step_size.c
+EXE_SRCS		= pco_test_get_roi_step_size.c pco_test_exposure.c
 SRCS			= $(EXE_SRCS)
 EXE_OBJS		= $(EXE_SRCS:%.c=$(BINDIR)/%.o)
 EXES			= $(EXE_SRCS:%.c=$(BINDIR)/%)

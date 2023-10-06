@@ -181,15 +181,22 @@ int PCO_Command_Finalise(void)
 #ifdef PCO_DEBUG
 	CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Finalise",LOG_VERBOSITY_TERSE,NULL,"Started.");
 #endif
+	/* grabber object */
 	if(Command_Data.Grabber != NULL)
 	{
+		/* close the grabber first */
+#ifdef PCO_DEBUG
+		CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Finalise",LOG_VERBOSITY_VERY_VERBOSE,NULL,
+				"Closing Grabber object.");
+#endif
+		Command_Data.Grabber->Close_Grabber();
 #ifdef PCO_DEBUG
 		CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Finalise",LOG_VERBOSITY_VERY_VERBOSE,NULL,
 				"Deleting Grabber object.");
 #endif
 		delete Command_Data.Grabber;
 	}
-	Command_Data.Grabber = NULL;
+	/* camera object */
 	if(Command_Data.Camera != NULL)
 	{
 #ifdef PCO_DEBUG
@@ -199,6 +206,8 @@ int PCO_Command_Finalise(void)
 		delete Command_Data.Camera;
 	}
 	Command_Data.Camera = NULL;
+	Command_Data.Grabber = NULL;
+	/* logger object */
 	if(Command_Data.PCO_Logger != NULL)
 	{
 #ifdef PCO_DEBUG
@@ -1154,6 +1163,75 @@ int PCO_Command_Set_Cooling_Setpoint_Temperature(int temperature)
 	return TRUE;
 }
 
+/**
+ * Routine to return the actual image size the cameras will return, after a PCO_Command_Set_ROI / 
+ * PCO_Command_Arm_Camera / PCO_Command_Grabber_Post_Arm call sequence.
+ * @param w The address of an integer, on successful return filled in with the width of the image 
+ *          returned by the camera.
+ * @param h The address of an integer, on successful return filled in with the height of the image 
+ *          returned by the camera.
+ * @param bp The address of an integer, on successful return filled in with the bits per pixel.
+ * @return The routine returns TRUE on success and FALSE if an error occurs.
+ * @see #Command_Data
+ * @see #Command_PCO_Get_Error_Text
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log_Format
+ */
+int PCO_Command_Grabber_Get_Actual_Size(int *w,int *h,int *bp)
+{
+	DWORD pco_err;
+	unsigned int wui,hui,bpui;
+	
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Grabber_Get_Actual_Size",
+			LOG_VERBOSITY_INTERMEDIATE,NULL,"Started.");
+#endif
+	if(Command_Data.Grabber == NULL)
+	{
+		CCD_General_Error_Number = 1205;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Grabber_Get_Actual_Size:Grabber CPco_grab_usb instance not created.");
+		return FALSE;
+	}
+	if(w == NULL)
+	{
+		CCD_General_Error_Number = 1206;
+		sprintf(CCD_General_Error_String,"PCO_Command_Grabber_Get_Actual_Size:w was NULL.");
+		return FALSE;
+	}
+	if(h == NULL)
+	{
+		CCD_General_Error_Number = 1207;
+		sprintf(CCD_General_Error_String,"PCO_Command_Grabber_Get_Actual_Size:h was NULL.");
+		return FALSE;
+	}
+	if(bp == NULL)
+	{
+		CCD_General_Error_Number = 1208;
+		sprintf(CCD_General_Error_String,"PCO_Command_Grabber_Get_Actual_Size:bp was NULL.");
+		return FALSE;
+	}
+	pco_err = Command_Data.Grabber->Get_actual_size(&wui,&hui,&bpui);
+	if(pco_err != PCO_NOERROR)
+	{
+		CCD_General_Error_Number = 1209;
+		sprintf(CCD_General_Error_String,"PCO_Command_Grabber_Get_Actual_Size:"
+			"Grabber->Get_actual_size failed(0x%x) (%s).",pco_err,Command_PCO_Get_Error_Text(pco_err));
+		return FALSE;
+	}
+	(*w) = wui;
+	(*h) = hui;
+	(*bp) = bpui;
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Grabber_Get_Actual_Size",
+			       LOG_VERBOSITY_INTERMEDIATE,NULL,"Finished and returned w = %d, h = %d, bp = %d.",
+			       (*w),(*h),(*bp));
+#endif
+	return TRUE;
+}
+	
 /**
  * Call the Grabber to acquire 1 frame from the camera, and place the data into the passed in image buffer.
  * @param image_buffer The address of some allocated memory to hold the read out image.

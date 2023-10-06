@@ -329,10 +329,10 @@ echo "Copying machine configuration files..."
 set file_list = "autoguider/c/${HOSTTYPE}/${machine_name}.autoguider.properties autobooter/java/${machine_name}.autobooter.properties autoguider/java/gui/${machine_name}.ag_gui.properties"
 switch ( "${machine_name}" )
     case "autoguider1":
-	set file_list = "${file_list} autoguider/ccd/andor/test/${HOSTTYPE}/test_exposure.properties"
+	set file_list = "${file_list} autoguider/ccd/andor/test/${HOSTTYPE}/test_exposure.properties autoguider/ccd/test/${HOSTTYPE}/andor.properties"
 	breaksw
     case "autoguider2":
-	set file_list = "${file_list}"
+	set file_list = "${file_list} autoguider/ccd/test/${HOSTTYPE}/pco.properties autoguider/ccd/pco/test/${HOSTTYPE}/pco.properties"
 	breaksw
     case "iucaaag":
 	set file_list = "${file_list}"

@@ -119,6 +119,7 @@ extern int PCO_Command_Set_Trigger_Mode(enum PCO_COMMAND_TRIGGER_MODE mode);
 extern int PCO_Command_Set_Binning(int bin_x,int bin_y);
 extern int PCO_Command_Set_ROI(int start_x,int start_y,int end_x,int end_y);
 extern int PCO_Command_Set_Cooling_Setpoint_Temperature(int temperature);
+extern int PCO_Command_Grabber_Get_Actual_Size(int *w,int *h,int *bp);
 extern int PCO_Command_Grabber_Acquire_Image_Async_Wait(void *image_buffer);
 extern int PCO_Command_Grabber_Acquire_Image_Async_Wait_Timeout(void *image_buffer,int timeout_ms);
 extern int PCO_Command_Get_Temperature(int *valid_sensor_temp,double *sensor_temp,int *camera_temp,

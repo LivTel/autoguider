@@ -1,10 +1,10 @@
 /* pco_test_get_roi_step_size.c
  * $Id$
- * Create a connection to the PCO camera and fo an initial setup, and then retrieve the ROI (region of interest)
+ * Create a connection to the PCO camera and do an initial setup, and then retrieve the ROI (region of interest)
  * pixel step size.
  */
 /**
- * Create a connection to the PCO camera and fo an initial setup, and then retrieve the ROI (region of interest)
+ * Create a connection to the PCO camera and do an initial setup, and then retrieve the ROI (region of interest)
  * pixel step size.
  * @author $Author: cjm $
  * @version $Revision$
