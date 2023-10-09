@@ -169,33 +169,18 @@ int PCO_Command_Initialise_Camera(void)
 }
 
 /**
- * Finalise (finish using) the CCD library. 
+ * Finalise (finish using) the PCO Camera object. 
  * @return The routine returns TRUE on success and FALSE if an error occurs.
  * @see #Command_Data
  * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
  * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
  * @see ../../cdocs/ccd_general.html#CCD_General_Log
  */
-int PCO_Command_Finalise(void)
+int PCO_Command_Finalise_Camera(void)
 {
 #ifdef PCO_DEBUG
 	CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Finalise",LOG_VERBOSITY_TERSE,NULL,"Started.");
 #endif
-	/* grabber object */
-	if(Command_Data.Grabber != NULL)
-	{
-		/* close the grabber first */
-#ifdef PCO_DEBUG
-		CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Finalise",LOG_VERBOSITY_VERY_VERBOSE,NULL,
-				"Closing Grabber object.");
-#endif
-		Command_Data.Grabber->Close_Grabber();
-#ifdef PCO_DEBUG
-		CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Finalise",LOG_VERBOSITY_VERY_VERBOSE,NULL,
-				"Deleting Grabber object.");
-#endif
-		delete Command_Data.Grabber;
-	}
 	/* camera object */
 	if(Command_Data.Camera != NULL)
 	{
@@ -299,20 +284,20 @@ int PCO_Command_Open(int board)
  * @see ../../cdocs/ccd_general.html#CCD_General_Log
  * @see ../../cdocs/ccd_general.html#CCD_General_Log_Format
  */
-int PCO_Command_Close(void)
+int PCO_Command_Close_Camera(void)
 {
 #ifdef PCO_DEBUG
-	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Close",LOG_VERBOSITY_TERSE,NULL,"Started.");
+	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Close_Camera",LOG_VERBOSITY_TERSE,NULL,"Started.");
 #endif
 	if(Command_Data.Camera == NULL)
 	{
 		CCD_General_Error_Number = 1105;
-		sprintf(CCD_General_Error_String,"PCO_Command_Close:Camera CPco_com_usb instance not created.");
+		sprintf(CCD_General_Error_String,"PCO_Command_Close_Camera:Camera CPco_com_usb instance not created.");
 		return FALSE;
 	}
 	Command_Data.Camera->Close_Cam();
 #ifdef PCO_DEBUG
-	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Close",LOG_VERBOSITY_TERSE,NULL,"Finished.");	
+	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Close_Camera",LOG_VERBOSITY_TERSE,NULL,"Finished.");	
 #endif
 	return TRUE;
 }
@@ -381,6 +366,58 @@ int PCO_Command_Initialise_Grabber(void)
 #ifdef PCO_DEBUG
 	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Initialise_Grabber",LOG_VERBOSITY_TERSE,NULL,
 			       "Finished.");
+#endif
+	return TRUE;
+}
+
+/**
+ * Finalise (finish using) the PCO Grabber object. 
+ * @return The routine returns TRUE on success and FALSE if an error occurs.
+ * @see #Command_Data
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log
+ */
+int PCO_Command_Finalise_Grabber(void)
+{
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Finalise_Grabber",LOG_VERBOSITY_TERSE,NULL,"Started.");
+#endif
+	/* grabber object */
+	if(Command_Data.Grabber != NULL)
+	{
+#ifdef PCO_DEBUG
+		CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Finalise_Grabber",LOG_VERBOSITY_VERY_VERBOSE,NULL,
+				"Deleting Grabber object.");
+#endif
+		delete Command_Data.Grabber;
+	}
+	return TRUE;
+}
+
+/**
+ * Close an open connection to the grabber.
+ * @return The routine returns TRUE on success and FALSE if an error occurs.
+ * @see #Command_Data
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log_Format
+ */
+int PCO_Command_Close_Grabber(void)
+{
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Close_Grabber",LOG_VERBOSITY_TERSE,NULL,"Started.");
+#endif
+	if(Command_Data.Grabber == NULL)
+	{
+		CCD_General_Error_Number = 1210;
+		sprintf(CCD_General_Error_String,"PCO_Command_CloseGrabber:Grabber CPco_grab_usb instance not created.");
+		return FALSE;
+	}
+	Command_Data.Grabber->Close_Grabber();
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Close_Grabber",LOG_VERBOSITY_TERSE,NULL,"Finished.");	
 #endif
 	return TRUE;
 }
