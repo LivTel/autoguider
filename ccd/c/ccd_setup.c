@@ -146,7 +146,7 @@ int CCD_Setup_Dimensions(int ncols,int nrows,int nsbin,int npbin,
 	int retval;
 
 #ifdef CCD_DEBUG
-	CCD_General_Log_format("ccd","ccd_setup.c","CCD_Setup_Dimensions",LOG_VERBOSITY_TERSE,NULL,
+	CCD_General_Log_Format("ccd","ccd_setup.c","CCD_Setup_Dimensions",LOG_VERBOSITY_TERSE,NULL,
 			       "Started with ncols=%d, nrows=%d, nsbin=%d, npbin=%d, window_flags=%d, "
 			       "window={xstart=%d,ystart=%d,xend=%d,yend=%d}.",ncols,nrows,nsbin,npbin,window_flags,
 			       window.X_Start,window.Y_Start,window.X_End,window.Y_End);
