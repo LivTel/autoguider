@@ -269,14 +269,18 @@ int PCO_Setup_Startup(void)
 }
 
 /**
- * Shutdown the connection to the CCD.
+ * Shutdown the connection to the PCO camera.
  * <ul>
- * <li>We close connection to the CCD camera using PCO_Command_Close.
- * <li>We finalise the libraries used using PCO_Command_Finalise.
+ * <li>We close connection to the PCO Grabber using PCO_Command_Close_Grabber.
+ * <li>We finalise the PCO grabber object used using PCO_Command_Finalise_Grabber.
+ * <li>We close connection to the PCO camera using PCO_Command_Close_Camera.
+ * <li>We finalise the PCO camera and logger objects used using PCO_Command_Finalise_Camera.
  * <ul>
  * @return The routine returns TRUE on success and FALSE on failure.
- * @see pco_command.html#PCO_Command_Close
- * @see pco_command.html#PCO_Command_Finalise
+ * @see pco_command.html#PCO_Command_Close_Grabber
+ * @see pco_command.html#PCO_Command_Finalise_Grabber
+ * @see pco_command.html#PCO_Command_Close_Camera
+ * @see pco_command.html#PCO_Command_Finalise_Camera
  * @see ../../cdocs/ccd_general.html#CCD_General_Log
  */
 int PCO_Setup_Shutdown(void)
@@ -284,11 +288,17 @@ int PCO_Setup_Shutdown(void)
 #ifdef PCO_DEBUG
 	CCD_General_Log("ccd","pco_setup.c","PCO_Setup_Shutdown",LOG_VERBOSITY_INTERMEDIATE,NULL,"Started.");
 #endif
-	/* close the open connection to the CCD camera */
-	if(!PCO_Command_Close())
+	/* close the open connection to the PCO grabber */
+	if(!PCO_Command_Close_Grabber())
 		return FALSE;
-	/* shutdown the PCO library */
-	if(!PCO_Command_Finalise())
+	/* Free up the PCO Grabber objects */
+	if(!PCO_Command_Finalise_Grabber())
+		return FALSE;
+	/* close the open Camera connection  */
+	if(!PCO_Command_Close_Camera())
+		return FALSE;
+	/* Free up the PCO Camera and Logger objects */
+	if(!PCO_Command_Finalise_Camera())
 		return FALSE;
 #ifdef PCO_DEBUG
 	CCD_General_Log("ccd","pco_setup.c","PCO_Setup_Shutdown",LOG_VERBOSITY_INTERMEDIATE,NULL,"Finished.");
