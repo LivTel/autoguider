@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
 	fprintf(stdout,"Parsing Arguments.\n");
 	if(!Parse_Arguments(argc,argv))
 		return 1;
-/* set text/interface options */
+/* setup logging */
 	CCD_General_Set_Log_Handler_Function(CCD_General_Log_Handler_Stdout);
 	/* load config file, this is needed for PCO_Setup_Startup to retrieve the board number */
 	CCD_Config_Initialise();
