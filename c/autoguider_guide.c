@@ -99,6 +99,7 @@ struct Guide_Exposure_Length_Scaling_Struct
  *     the edge of the guide window, set the guide packet "near window edge" flag.</dd>
  * <dt>Guide_Window_Track_Pixel_Count</dt> <dd>In pixels, if guide centroid is closer than this number of pixels to 
  *     the edge of the guide window, recentre the guide window on the guide centroid.</dd>
+ * <dt>Guide_Window_Resize</dt> <dd>A boolean, if TRUE the guide window can be resized, otherwise it must be maintained at the default size.</dd>
  * </dl>
  */
 struct Guide_Window_Tracking_Struct
@@ -106,6 +107,7 @@ struct Guide_Window_Tracking_Struct
 	int Guide_Window_Tracking;
 	int Guide_Window_Edge_Pixel_Count;
 	int Guide_Window_Track_Pixel_Count;
+	int Guide_Window_Resize;
 };
 
 /**
@@ -208,8 +210,8 @@ static struct Guide_Struct Guide_Data =
 	0,0,
 	0.0,
 	{GUIDE_SCALE_TYPE_PEAK,FALSE,0,0,0,0,0,0,0,TRUE},
-	{FALSE,10,10},
-	2.0f, FALSE
+	{FALSE,10,10,FALSE},
+	2.0f, FALSE, 0.0f, 0.0f
 };
 
 /* internal routines */
@@ -234,6 +236,7 @@ static int Guide_Dimension_Config_Load(void);
  * <li>"guide.window.tracking"
  * <li>"guide.window.edge.pixels"
  * <li>"guide.window.track.pixels"
+ * <li>"guide.window.resize"
  * <li>"guide.timecode.scale"
  * <li>"guide.sdb.exposure_length.use_cadence"
  * </ul>
@@ -307,6 +310,15 @@ int Autoguider_Guide_Initialise(void)
 		Autoguider_General_Error_Number = 752;
 		sprintf(Autoguider_General_Error_String,"Autoguider_Guide_Initialise:"
 			"Getting guide window track pixels failed.");
+		return FALSE;
+	}
+	retval = CCD_Config_Get_Boolean("guide.window.resize",
+					&(Guide_Data.Guide_Window_Tracking.Guide_Window_Resize));
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 757;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Guide_Initialise:"
+			"Getting guide window tracking resizing boolean failed.");
 		return FALSE;
 	}
 	/* timecode scaling */
@@ -966,10 +978,22 @@ int Autoguider_Guide_Window_Set_From_XY(int ccd_x_position,int ccd_y_position)
 	ex = sx + default_window_width;
 	/* guide windows are inclusive i.e. pixel 0..1023 - 1023 is the last pixel where npixels is 1024 */
 	if(ex >= Guide_Data.Binned_NCols)
+	{
 		ex = Guide_Data.Binned_NCols - 1;
+		if(Guide_Data.Guide_Window_Tracking.Guide_Window_Resize == FALSE)
+		{
+			sx = ex - default_window_width;
+		}
+	}
 	ey = sy + default_window_height;
 	if(ey >= Guide_Data.Binned_NRows)
+	{
 		ey = Guide_Data.Binned_NRows - 1;
+		if(Guide_Data.Guide_Window_Tracking.Guide_Window_Resize == FALSE)
+		{
+			sy = ey - default_window_height;
+		}		
+	}
 	/* set guide window data */
 	if(!Autoguider_Guide_Window_Set(sx,sy,ex,ey))
 		return FALSE;
