@@ -49,6 +49,13 @@ static void Help(void);
  * <li>We call Parse_Arguments to parse the command line, setup logging and config filenames etc...
  * <li>We set the CCD library log handler function (CCD_General_Set_Log_Handler_Function) 
  *     to stdout (CCD_General_Log_Handler_Stdout).
+ * <li>We call PCO_Command_Initialise_Camera to initialise the PCO camera object reference.
+ * <li>We call PCO_Command_Open to connect to the camera head specified by the Board_Number.
+ * <li>We call PCO_Command_Initialise_Grabber to initialise the PCO grabber object reference.
+ * <li>We call PCO_Command_Close_Grabber to close the connection to the PCO grabber object.
+ * <li>We call PCO_Command_Finalise_Grabber to delete the PCO grabber object.
+ * <li>We call PCO_Command_Close_Camera  to close the connection to the PCO camera.
+ * <li>We call PCO_Command_Finalise_Camera to delete the PCO Camera object.
  * </ul>
  * @param argc The number of arguments to the program.
  * @param argv An array of argument strings.
@@ -56,6 +63,13 @@ static void Help(void);
  * @see #Parse_Arguments
  * @see #Config_Filename
  * @see #Board_Number
+ * @see ../cdocs/pco_command.html#PCO_Command_Initialise_Camera
+ * @see ../cdocs/pco_command.html#PCO_Command_Open
+ * @see ../cdocs/pco_command.html#PCO_Command_Initialise_Grabber
+ * @see ../cdocs/pco_command.html#PCO_Command_Close_Grabber
+ * @see ../cdocs/pco_command.html#PCO_Command_Finalise_Grabber
+ * @see ../cdocs/pco_command.html#PCO_Command_Close_Camera
+ * @see ../cdocs/pco_command.html#PCO_Command_Finalise_Camera
  * @see ../../cdocs/ccd_general.html#CCD_General_Set_Log_Handler_Function
  * @see ../../cdocs/ccd_general.html#CCD_General_Log_Handler_Stdout
  * @see ../../cdocs/ccd_general.html#CCD_General_Error
@@ -105,14 +119,26 @@ int main(int argc, char *argv[])
 	}
 
 	/* and shut everything down again */
-	/* close the open connection to the CCD camera */
-	if(!PCO_Command_Close())
+	/* close the open connection to the PCO grabber */
+	if(!PCO_Command_Close_Grabber())
 	{
 		CCD_General_Error();
 		return 1;
 	}
-	/* shutdown the PCO library */
-	if(!PCO_Command_Finalise())
+	/* Free up the PCO Grabber object */
+	if(!PCO_Command_Finalise_Grabber())
+	{
+		CCD_General_Error();
+		return 1;
+	}
+	/* close the open connection to the CCD camera */
+	if(!PCO_Command_Close_Camera())
+	{
+		CCD_General_Error();
+		return 1;
+	}
+	/* Free up the PCO Camera and logger objects */
+	if(!PCO_Command_Finalise_Camera())
 	{
 		CCD_General_Error();
 		return 1;

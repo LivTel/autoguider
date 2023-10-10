@@ -66,7 +66,7 @@ depend:
 	makedepend $(MAKEDEPENDFLAGS) -- $(CFLAGS) -- $(SRCS)
 
 clean:
-	$(RM) $(RM_OPTIONS) $(OBJS) $(PROGS) $(TIDY_OPTIONS)
+	$(RM) $(RM_OPTIONS) $(OBJS) $(EXES) $(BINDIR)/pco_test_initialise_finalise_low_level $(TIDY_OPTIONS)
 
 tidy:
 	$(RM) $(RM_OPTIONS) $(TIDY_OPTIONS)
