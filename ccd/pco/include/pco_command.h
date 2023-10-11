@@ -103,6 +103,7 @@ extern int PCO_Command_Close_Camera(void);
 extern int PCO_Command_Initialise_Grabber(void);
 extern int PCO_Command_Finalise_Grabber(void);
 extern int PCO_Command_Close_Grabber(void);
+extern int PCO_Command_Get_Camera_Setup(enum PCO_COMMAND_SETUP_FLAG *setup_flag);
 extern int PCO_Command_Set_Camera_Setup(enum PCO_COMMAND_SETUP_FLAG setup_flag);
 extern int PCO_Command_Reboot_Camera(void);
 extern int PCO_Command_Arm_Camera(void);

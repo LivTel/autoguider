@@ -423,6 +423,83 @@ int PCO_Command_Close_Grabber(void)
 }
 
 /**
+ * Get the camera setup. This retrieves the current camera setup (notably shutter readout mode).
+ * @param setup_flag A pointer to an integer, on return from the function contasins the returned setup flagdata. 
+ *        This is currently the shutter mode, set as follows:
+ *        <ul>
+ *        <li>0x00000001 = PCO_COMMAND_SETUP_FLAG_ROLLING_SHUTTER = PCO_EDGE_SETUP_ROLLING_SHUTTER = Rolling Shutter
+ *        <li>0x00000002 = PCO_COMMAND_SETUP_FLAG_GLOBAL_SHUTTER  = PCO_EDGE_SETUP_GLOBAL_SHUTTER  = Global Shutter
+ *        <li>0x00000004 = PCO_COMMAND_SETUP_FLAG_GLOBAL_RESET    = PCO_EDGE_SETUP_GLOBAL_RESET    = Global Reset 
+ *        </ul>
+ * @return The routine returns TRUE on success and FALSE if an error occurs.
+ * @see #PCO_COMMAND_SETUP_FLAG
+ * @see #Command_PCO_Get_Error_Text
+ * @see #Command_Data
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log_Format
+ */
+int PCO_Command_Get_Camera_Setup(enum PCO_COMMAND_SETUP_FLAG *setup_flag)
+{
+	DWORD setup_flag_list[4];
+	WORD setup_flag_list_length;
+	DWORD pco_err;
+
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Get_Camera_Setup",LOG_VERBOSITY_VERBOSE,NULL,"Started");
+#endif
+	if(setup_flag == NULL)
+	{
+		CCD_General_Error_Number = 1211;
+		sprintf(CCD_General_Error_String,"PCO_Command_Get_Camera_Setup:setup_flag was NULL.");
+		return FALSE;
+	}
+	if(Command_Data.Camera == NULL)
+	{
+		CCD_General_Error_Number = 1212;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Get_Camera_Setup:Camera CPco_com_usb instance not created.");
+		return FALSE;
+	}
+	/* To get the current shutter mode input index setup_id must be set to 0. 
+	** The current shutter mode should be returned in setup_flag_list[0]. */
+	setup_flag_list_length = 4;
+	pco_err = Command_Data.Camera->PCO_GetCameraSetup((WORD)0,setup_flag_list,&setup_flag_list_length);
+	if(pco_err != PCO_NOERROR)
+	{
+		CCD_General_Error_Number = 1213;
+		sprintf(CCD_General_Error_String,"PCO_Command_Get_Camera_Setup:"
+			"Camera PCO_GetCameraSetup failed with PCO error code 0x%x (%s).",pco_err,
+			Command_PCO_Get_Error_Text(pco_err));
+		return FALSE;
+	}
+	(*setup_flag) = (enum PCO_COMMAND_SETUP_FLAG)(setup_flag_list[0]);
+#ifdef PCO_DEBUG
+	if((*setup_flag) == PCO_COMMAND_SETUP_FLAG_ROLLING_SHUTTER)
+	{		
+		CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Get_Camera_Setup",LOG_VERBOSITY_VERBOSE
+				,NULL,"Shutter is currently a rolling shutter.");
+	}
+	else if((*setup_flag) == PCO_COMMAND_SETUP_FLAG_GLOBAL_SHUTTER)
+	{		
+		CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Get_Camera_Setup",LOG_VERBOSITY_VERBOSE
+				,NULL,"Shutter is currently a global shutter.");
+	}
+	else if((*setup_flag) == PCO_COMMAND_SETUP_FLAG_GLOBAL_RESET)
+	{		
+		CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Get_Camera_Setup",LOG_VERBOSITY_VERBOSE
+				,NULL,"Shutter is currently a global reset.");
+	}	
+#endif
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Get_Camera_Setup",LOG_VERBOSITY_VERBOSE,NULL,
+			       "Finished and returned setup_flag 0x%x.",(*setup_flag));
+#endif
+	return TRUE;
+}
+	
+/**
  * Setup the camera. This changes some settings (notably shutter readout mode) which then requires a camera reboot
  * (and associated re-connect/open) to cause the camera head to pick up the new settings.
  * @param setup_flag The flag to setup. These are currently the shutter mode, set as follows:
