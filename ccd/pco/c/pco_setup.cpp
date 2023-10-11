@@ -117,6 +117,8 @@ static struct Setup_Struct Setup_Data =
  * <li>We retrieve the configured board number from the config file by caling CCD_Config_Get_Integer with the keyword
  *     "ccd.pco.setup.board_number" and save it to Setup_Data.Camera_Board.
  * <li>We open a connection to the PCO camera using PCO_Command_Open, using the retrieved board number. 
+ * <li>We call PCO_Command_Get_Camera_Setup to get the current camera setup (the current shutter mode). We don't currently 
+ *     reconfigure the mode.
  * <li>We create a grabber reference by calling PCO_Command_Initialise_Grabber.
  * <li>We set the PCO camera to use the current time by calling PCO_Command_Set_Camera_To_Current_Time.
  * <li>We stop any ongoing image acquisitions by calling PCO_Command_Set_Recording_State(FALSE).
@@ -141,10 +143,12 @@ static struct Setup_Struct Setup_Data =
  * @return The routine returns TRUE on success and FALSE on failure.
  * @see #PCO_SETUP_KEYWORD_ROOT
  * @see #Setup_Data
+ * @see pco_command.html#PCO_COMMAND_SETUP_FLAG
  * @see pco_command.html#PCO_COMMAND_TIMESTAMP_MODE
  * @see pco_command.html#PCO_COMMAND_TIMEBASE
  * @see pco_command.html#PCO_Command_Initialise_Camera
  * @see pco_command.html#PCO_Command_Open
+ * @see pco_command.html#PCO_Command_Get_Camera_Setup
  * @see pco_command.html#PCO_Command_Set_Camera_To_Current_Time
  * @see pco_command.html#PCO_Command_Set_Recording_State
  * @see pco_command.html#PCO_Command_Reset_Settings
@@ -169,6 +173,7 @@ static struct Setup_Struct Setup_Data =
  */
 int PCO_Setup_Startup(void)
 {
+	enum PCO_COMMAND_SETUP_FLAG setup_flag;
 	int adc_count,camera_type,sensor_type,sensor_subtype;
 	
 #ifdef PCO_DEBUG
@@ -194,6 +199,10 @@ int PCO_Setup_Startup(void)
 			       "Opening a connection to a PCO camera with board number %d.",Setup_Data.Camera_Board);
 #endif
 	if(!PCO_Command_Open(Setup_Data.Camera_Board))
+		return FALSE;
+	/* get current camera setup, including shutter mode.
+	** If we want to configure the shutter mode, do it here, then close and reboot and reopen */
+	if(!PCO_Command_Get_Camera_Setup(&setup_flag))
 		return FALSE;
 	/* initialise grabber reference */
 	if(!PCO_Command_Initialise_Grabber())
@@ -316,6 +325,9 @@ int PCO_Setup_Shutdown(void)
  *     with the end positions computed from Setup_Data.Sensor_Width / Setup_Data.Sensor_Height.
  * <li>We call PCO_Command_Arm_Camera to update the camera's internal settings to use the new binning.
  * <li>We call PCO_Command_Grabber_Post_Arm to update the grabber's internal settings to use the new binning.
+ * <li> We call PCO_Command_Grabber_Get_Actual_Size to see what actual size the PCO camera thinks the window will be.
+ * <li>We check the PCO camera is going to use the same window size as we have passed it, 
+ *     and return an error if this is not the case.
  * </ul>
  * @param ncols Number of unbinned image columns (X).
  * @param nrows Number of unbinned image rows (Y).
@@ -332,6 +344,7 @@ int PCO_Setup_Shutdown(void)
  * @see pco_command.html#PCO_Command_Set_ROI
  * @see pco_command.html#PCO_Command_Arm_Camera
  * @see pco_command.html#PCO_Command_Grabber_Post_Arm
+ * @see pco_command.html#PCO_Command_Grabber_Get_Actual_Size
  * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
  * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
  * @see ../../cdocs/ccd_general.html#CCD_General_Log
@@ -399,6 +412,24 @@ int PCO_Setup_Dimensions(int ncols,int nrows,int hbin,int vbin,
 			       "Actual image width/height returned by grabber (w=%d,h=%d,bp=%d).",
 			       actual_w,actual_h,actual_bp);
 #endif
+	/* Check ROI dimensions and actuall size returned by the PCO camera API match.
+	** The camera can increase the window size (ours does if the horizontal window width is not divisible by 4).
+	** This would crash the autoguider software (the buffers are not big enough) so return an error is this has been
+	** allowed to happen */
+	if(actual_w != PCO_Setup_Get_NCols())
+	{
+		CCD_General_Error_Number = 1303;
+		sprintf(CCD_General_Error_String,"PCO_Setup_Dimensions: Returned actual width does not match window (%d vs %d).",
+			actual_w,PCO_Setup_Get_NCols());
+		return FALSE;
+	}
+	if(actual_h != PCO_Setup_Get_NRows())
+	{
+		CCD_General_Error_Number = 1304;
+		sprintf(CCD_General_Error_String,"PCO_Setup_Dimensions: Returned actual height does not match window (%d vs %d).",
+			actual_h,PCO_Setup_Get_NRows());
+		return FALSE;
+	}
 #ifdef PCO_DEBUG
 	CCD_General_Log("ccd","pco_setup.c","PCO_Setup_Dimensions",LOG_VERBOSITY_INTERMEDIATE,NULL,"Finished.");
 #endif
