@@ -974,24 +974,24 @@ int Autoguider_Guide_Window_Set_From_XY(int ccd_x_position,int ccd_y_position)
 		sx = 1;
 	sy = ccd_y_position-(default_window_height/2);
 	if(sy < 1)
-		sy = 1; 
-	ex = sx + default_window_width;
+		sy = 1;
+	ex = sx + (default_window_width-1); /* inclusive pixels in window */
 	/* guide windows are inclusive i.e. pixel 0..1023 - 1023 is the last pixel where npixels is 1024 */
 	if(ex >= Guide_Data.Binned_NCols)
 	{
 		ex = Guide_Data.Binned_NCols - 1;
 		if(Guide_Data.Guide_Window_Tracking.Guide_Window_Resize == FALSE)
 		{
-			sx = ex - default_window_width;
+			sx = ex - (default_window_width-1); /* inclusive pixels in window */
 		}
 	}
-	ey = sy + default_window_height;
+	ey = sy + (default_window_height-1);  /* inclusive pixels in window */
 	if(ey >= Guide_Data.Binned_NRows)
 	{
 		ey = Guide_Data.Binned_NRows - 1;
 		if(Guide_Data.Guide_Window_Tracking.Guide_Window_Resize == FALSE)
 		{
-			sy = ey - default_window_height;
+			sy = ey - (default_window_height-1); /* inclusive pixels in window */
 		}		
 	}
 	/* set guide window data */
