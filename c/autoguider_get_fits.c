@@ -597,8 +597,8 @@ static int Get_Fits_Get_Header(int buffer_type,int buffer_state,int object_index
 		window = Autoguider_Guide_Window_Get();
 		ccdwxoff = window.X_Start; /* should be from top, but is this from bottom? */
 		ccdwyoff = window.Y_Start; /* should be from top, but is this from bottom? */
-		ccdwxsiz = window.X_End-window.X_Start;
-		ccdwysiz = window.Y_End-window.Y_Start;
+		ccdwxsiz = (window.X_End-window.X_Start)+1;
+		ccdwysiz = (window.Y_End-window.Y_Start)+1;
 		/* get the last guide buffer index */
 		buffer_index = Autoguider_Guide_Get_Last_Buffer_Index();
 		if(buffer_index < 0)
