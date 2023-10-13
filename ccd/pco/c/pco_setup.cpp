@@ -245,6 +245,9 @@ int PCO_Setup_Startup(void)
 #endif
 	if(!PCO_Command_Open(Setup_Data.Camera_Board))
 		return FALSE;
+	/* stop any ongoing exposures */
+	if(!PCO_Command_Set_Recording_State(FALSE))
+		return FALSE;
 	/* set the camera shutter readout/reset mode */
 	if(!PCO_Command_Set_Camera_Setup(Setup_Data.Camera_Setup_Flag))
 		return FALSE;
@@ -397,6 +400,7 @@ int PCO_Setup_Shutdown(void)
  *     with the end positions computed from Setup_Data.Sensor_Width / Setup_Data.Sensor_Height.
  * <li>We call PCO_Command_Arm_Camera to update the camera's internal settings to use the new binning.
  * <li>We call PCO_Command_Grabber_Post_Arm to update the grabber's internal settings to use the new binning.
+ * <li>We call PCO_Command_Get_ROI to see if the camera's ROI matches what we just set.
  * <li> We call PCO_Command_Grabber_Get_Actual_Size to see what actual size the PCO camera thinks the window will be.
  * <li>We check the PCO camera is going to use the same window size as we have passed it, 
  *     and return an error if this is not the case.
@@ -416,6 +420,7 @@ int PCO_Setup_Shutdown(void)
  * @see pco_command.html#PCO_Command_Set_ROI
  * @see pco_command.html#PCO_Command_Arm_Camera
  * @see pco_command.html#PCO_Command_Grabber_Post_Arm
+ * @see pco_command.html#PCO_Command_Get_ROI
  * @see pco_command.html#PCO_Command_Grabber_Get_Actual_Size
  * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
  * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
@@ -426,6 +431,7 @@ int PCO_Setup_Shutdown(void)
 int PCO_Setup_Dimensions(int ncols,int nrows,int hbin,int vbin,
 			 int window_flags,struct CCD_Setup_Window_Struct window)
 {
+	int actual_roi_sx,actual_roi_sy,actual_roi_ex,actual_roi_ey;
 	int actual_w,actual_h,actual_bp;
 	
 #ifdef PCO_DEBUG
@@ -476,6 +482,20 @@ int PCO_Setup_Dimensions(int ncols,int nrows,int hbin,int vbin,
 	/* get grabber to update to the new binning */
 	if(!PCO_Command_Grabber_Post_Arm())
 		return FALSE;
+	/* get the actual ROI and compare it with what we set it to */
+	if(!PCO_Command_Get_ROI(&actual_roi_sx,&actual_roi_sy,&actual_roi_ex,&actual_roi_ey))
+		return FALSE;
+	if((Setup_Data.Start_X != actual_roi_sx)||(Setup_Data.Start_Y != actual_roi_sy)||
+	   (Setup_Data.End_X != actual_roi_ex)||(Setup_Data.End_Y != actual_roi_ey))
+	{
+		CCD_General_Error_Number = 1306;
+		sprintf(CCD_General_Error_String,
+			"PCO_Setup_Dimensions: Returned ROI (%d,%d,%d,%d) does not match "
+			"configured ROI (%d,%d,%d,%d).",
+			actual_roi_sx,actual_roi_sy,actual_roi_ex,actual_roi_ey,
+			Setup_Data.Start_X,Setup_Data.Start_Y,Setup_Data.End_X,Setup_Data.End_Y);
+		return FALSE;
+	}
 	/* what actual dimensions does the PCO library think we should be using? */
 	if(!PCO_Command_Grabber_Get_Actual_Size(&actual_w,&actual_h,&actual_bp))
 		return FALSE;
