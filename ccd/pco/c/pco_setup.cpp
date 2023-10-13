@@ -44,6 +44,8 @@
  * Data type holding local data to pco_setup. This consists of the following:
  * <dl>
  * <dt>Camera_Board</dt> <dd>The board parameter passed to Open_Cam, to determine which camera to connect to.</dd>
+ * <dt>Camera_Setup_Flag</dt> <dd>The camera setup flag to use, when configuring how the shuttering/readout/reset on the
+ *                                camera is configured.</dd>
  * <dt>Horizontal_Binning</dt> <dd>The readout horizontal binning, stored as an integer. Can be one of 1,2,3,4,8. </dd>
  * <dt>Vertical_Binning</dt> <dd>The readout vertical binning, stored as an integer. Can be one of 1,2,3,4,8. </dd>
  * <dt>Serial_Number</dt> <dd>An integer containing the serial number retrieved from the camera head
@@ -61,10 +63,12 @@
  * <dt>End_X</dt> <dd>End X position pixel of the imaging window (inclusive).</dd>
  * <dt>End_Y</dt> <dd>End Y position pixel of the imaging window (inclusive).</dd>
  * </dl>
+ * @see ccd_command.html#PCO_COMMAND_SETUP_FLAG
  */
 struct Setup_Struct
 {
 	int Camera_Board;
+	enum PCO_COMMAND_SETUP_FLAG Camera_Setup_Flag;
 	int Horizontal_Binning;
 	int Vertical_Binning;
 	int Serial_Number;
@@ -87,6 +91,7 @@ static char rcsid[] = "$Id$";
  * The instance of Setup_Struct that contains local data for this module. This is initialised as follows:
  * <dl>
  * <dt>Camera_Board</dt> <dd>0</dd>
+ * <dt>Camera_Setup_Flag</dt> <dd>PCO_COMMAND_SETUP_FLAG_ROLLING_SHUTTER</dd>
  * <dt>Horizontal_Binning</dt> <dd>1</dd>
  * <dt>Vertical_Binning</dt> <dd>1</dd>
  * <dt>Serial_Number</dt> <dd>-1</dd>
@@ -102,7 +107,7 @@ static char rcsid[] = "$Id$";
  */
 static struct Setup_Struct Setup_Data = 
 {
-	0,1,1,-1,0.0,0.0,0,0,0,0,0,0
+	0,PCO_COMMAND_SETUP_FLAG_ROLLING_SHUTTER,1,1,-1,0.0,0.0,0,0,0,0,0,0
 };
 
 /* internal functions */
@@ -113,12 +118,22 @@ static struct Setup_Struct Setup_Data =
 /**
  * Do the initial setup for a PCO camera.
  * <ul>
- * <li>We initialise the libraries used using PCO_Command_Initialise_Camera.
  * <li>We retrieve the configured board number from the config file by caling CCD_Config_Get_Integer with the keyword
  *     "ccd.pco.setup.board_number" and save it to Setup_Data.Camera_Board.
+ * <li>We retrieve the shutter mode from the config file by caling CCD_Config_Get_String with the keyword
+ *     "ccd.pco.setup.shutter_mode" and save it to Setup_Data.Camera_Board. 
+ *     We convert the returned value to a PCO_COMMAND_SETUP_FLAG.
+ * <li>We initialise the libraries used using PCO_Command_Initialise_Camera.
  * <li>We open a connection to the PCO camera using PCO_Command_Open, using the retrieved board number. 
- * <li>We call PCO_Command_Get_Camera_Setup to get the current camera setup (the current shutter mode). We don't currently 
- *     reconfigure the mode.
+ * <li>We set the camera shutter readout/reset mode, 
+ *     by calling PCO_Command_Set_Camera_Setup with the previously configured Setup_Data.Camera_Setup_Flag as a parameter.
+ * <li>We reboot the camera head, to make the camera setup change take effect, by calling PCO_Command_Reboot_Camera.
+ * <li>We close the open connection to the camera head by calling PCO_Command_Close_Camera.
+ * <li>We delete the camera and logger object reference create in PCO_Command_Initialise_Camera 
+ *      by calling PCO_Command_Finalise_Camera.
+ * <li>We sleep for 10 seconds whilst the camera reboots.
+ * <li>We re-initialise the libraries used using PCO_Command_Initialise_Camera.
+ * <li>We re-open a connection to the PCO camera using PCO_Command_Open, using the retrieved board number. 
  * <li>We create a grabber reference by calling PCO_Command_Initialise_Grabber.
  * <li>We set the PCO camera to use the current time by calling PCO_Command_Set_Camera_To_Current_Time.
  * <li>We stop any ongoing image acquisitions by calling PCO_Command_Set_Recording_State(FALSE).
@@ -148,7 +163,10 @@ static struct Setup_Struct Setup_Data =
  * @see pco_command.html#PCO_COMMAND_TIMEBASE
  * @see pco_command.html#PCO_Command_Initialise_Camera
  * @see pco_command.html#PCO_Command_Open
- * @see pco_command.html#PCO_Command_Get_Camera_Setup
+ * @see ccd_command.html#PCO_Command_Set_Camera_Setup
+ * @see ccd_command.html#PCO_Command_Reboot_Camera
+ * @see ccd_command.html#PCO_Command_Close_Camera
+ * @see ccd_command.html#PCO_Command_Finalise_Camera
  * @see pco_command.html#PCO_Command_Set_Camera_To_Current_Time
  * @see pco_command.html#PCO_Command_Set_Recording_State
  * @see pco_command.html#PCO_Command_Reset_Settings
@@ -173,19 +191,12 @@ static struct Setup_Struct Setup_Data =
  */
 int PCO_Setup_Startup(void)
 {
-	enum PCO_COMMAND_SETUP_FLAG setup_flag;
+	char *shutter_mode_string = NULL;
 	int adc_count,camera_type,sensor_type,sensor_subtype;
 	
 #ifdef PCO_DEBUG
 	CCD_General_Log("ccd","pco_setup.c","PCO_Setup_Startup",LOG_VERBOSITY_INTERMEDIATE,NULL,"Started.");
 #endif
-	/* initialise the PCO libraries */
-#ifdef PCO_DEBUG
-	CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,
-			       "Initialising PCO camera libraries.",Setup_Data.Camera_Board);
-#endif
-	if(!PCO_Command_Initialise_Camera())
-		return FALSE;
 	/* get the board number to use in PCO_Command_Open */
 	if(!CCD_Config_Get_Integer(PCO_SETUP_KEYWORD_ROOT"board_number",&(Setup_Data.Camera_Board)))
 		return FALSE;
@@ -193,16 +204,77 @@ int PCO_Setup_Startup(void)
 	CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,
 			       "Config file PCO board number:%d.",Setup_Data.Camera_Board);
 #endif
-	/* open a connection to the CCD camera */
+	/* get the shutter mode / setup flag to configure the camera with */
+	if(!CCD_Config_Get_String(PCO_SETUP_KEYWORD_ROOT"shutter_mode",&shutter_mode_string))
+		return FALSE;
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,
+			       "Config file shutter mode :%s.",shutter_mode_string);
+#endif
+	if(strcmp(shutter_mode_string,"ROLLING_SHUTTER") == 0)
+		Setup_Data.Camera_Setup_Flag = PCO_COMMAND_SETUP_FLAG_ROLLING_SHUTTER;
+	else if(strcmp(shutter_mode_string,"GLOBAL_SHUTTER") == 0)
+		Setup_Data.Camera_Setup_Flag = PCO_COMMAND_SETUP_FLAG_GLOBAL_SHUTTER;
+	else if(strcmp(shutter_mode_string,"GLOBAL_RESET") == 0)
+		Setup_Data.Camera_Setup_Flag = PCO_COMMAND_SETUP_FLAG_GLOBAL_RESET;
+	else
+	{
+		CCD_General_Error_Number = 1305;
+		sprintf(CCD_General_Error_String,"PCO_Setup_Startup: Unknwon shutter mode string : %s.",shutter_mode_string);
+		if(shutter_mode_string != NULL)
+			free(shutter_mode_string);
+		return FALSE;
+	}
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,
+			       "Shutter mode : %s creates setup flag %d.",shutter_mode_string,Setup_Data.Camera_Setup_Flag);
+#endif
+	if(shutter_mode_string != NULL)
+		free(shutter_mode_string);
+	/* initialise the PCO libraries (first time) */
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,
+			       "Initialising PCO camera libraries.",Setup_Data.Camera_Board);
+#endif
+	if(!PCO_Command_Initialise_Camera())
+		return FALSE;
+	/* open a connection to the CCD camera - first time */
 #ifdef PCO_DEBUG
 	CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,
 			       "Opening a connection to a PCO camera with board number %d.",Setup_Data.Camera_Board);
 #endif
 	if(!PCO_Command_Open(Setup_Data.Camera_Board))
 		return FALSE;
-	/* get current camera setup, including shutter mode.
-	** If we want to configure the shutter mode, do it here, then close and reboot and reopen */
-	if(!PCO_Command_Get_Camera_Setup(&setup_flag))
+	/* set the camera shutter readout/reset mode */
+	if(!PCO_Command_Set_Camera_Setup(Setup_Data.Camera_Setup_Flag))
+		return FALSE;
+	/* reboot the camera head, to make the camera setup change take effect */
+	if(!PCO_Command_Reboot_Camera())
+		return FALSE;
+	/* close camera connection after reboot */
+	if(!PCO_Command_Close_Camera())
+		return FALSE;
+	/* delete camera and logger object reference before recreating */
+	if(!PCO_Command_Finalise_Camera())
+		return FALSE;
+	/* wait 10 seconds before attempting to re-connect. See MA_PCOSDK_V127.pdf,  Section 2.4.8, PCO_SetCameraSetup, P52 */
+#if LOGGING > 0
+	CCD_General_Log_Format(LOG_VERBOSITY_TERSE,"PCO_Setup_Startup: Sleeping for 10 seconds whilst the camera reboots.");
+#endif /* LOGGING */
+	sleep(10);
+	/* initialise the PCO libraries (second time) */
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,
+			       "Initialising PCO camera libraries.",Setup_Data.Camera_Board);
+#endif
+	if(!PCO_Command_Initialise_Camera())
+		return FALSE;
+	/* open a connection to the CCD camera - second time */
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,
+			       "Opening a connection to a PCO camera with board number %d.",Setup_Data.Camera_Board);
+#endif
+	if(!PCO_Command_Open(Setup_Data.Camera_Board))
 		return FALSE;
 	/* initialise grabber reference */
 	if(!PCO_Command_Initialise_Grabber())
@@ -265,7 +337,7 @@ int PCO_Setup_Startup(void)
 		default:
 			CCD_General_Error_Number = 1300;
 			sprintf(CCD_General_Error_String,"PCO_Setup_Startup: Unknown sensor type 0x%x : "
-				"unable to set pixel size.",0x2002);
+				"unable to set pixel size.",sensor_type);
 			return FALSE;
 	}
 	/* prepare camera for taking data */
