@@ -20,8 +20,10 @@
 extern void Andor_Setup_Initialise(void);
 extern int Andor_Setup_Startup(void);
 extern int Andor_Setup_Shutdown(void);
+extern int Andor_Setup_Dimensions_Check(int *ncols,int *nrows,int *hbin,int *vbin,
+					int window_flags,struct CCD_Setup_Window_Struct *window);
 extern int Andor_Setup_Dimensions(int ncols,int nrows,int hbin,int vbin,
-				int window_flags,struct CCD_Setup_Window_Struct window);
+				  int window_flags,struct CCD_Setup_Window_Struct window);
 extern void Andor_Setup_Abort(void);
 extern int Andor_Setup_Get_NCols(void);
 extern int Andor_Setup_Get_NRows(void);

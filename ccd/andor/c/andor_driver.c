@@ -39,6 +39,7 @@ static char rcsid[] = "$Id: andor_driver.c,v 1.4 2009-01-30 15:41:14 cjm Exp $";
  * Fill in the driver function structure.
  * @return The routine returns TRUE on success and FALSE on failure.
  * @see andor_setup.html#Andor_Setup_Startup
+ * @see andor_setup.html#Andor_Setup_Dimensions_Check
  * @see andor_setup.html#Andor_Setup_Dimensions
  * @see andor_setup.html#Andor_Setup_Abort
  * @see andor_setup.html#Andor_Setup_Get_NCols
@@ -67,6 +68,7 @@ int Andor_Driver_Register(struct CCD_Driver_Function_Struct *functions)
 	}
 	/* setup */
 	functions->Setup_Startup = Andor_Setup_Startup;
+	functions->Setup_Dimensions_Check = Andor_Setup_Dimensions_Check;
 	functions->Setup_Dimensions = Andor_Setup_Dimensions;
 	functions->Setup_Abort = Andor_Setup_Abort;
 	functions->Setup_Get_NCols = Andor_Setup_Get_NCols;

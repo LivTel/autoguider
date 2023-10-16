@@ -135,7 +135,7 @@ int Andor_Setup_Startup(void)
 	CCD_General_Log_Format("ccd","andor_setup.c","Andor_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,
 			       "Andor library reports %d cameras.",camera_count);
 #endif
-	/* at_32 is an integer when compiling 64-bit, and a log when compiling 32-bit. See atmcdLXd.h for details */
+	/* at_32 is an integer when compiling 64-bit, and a long when compiling 32-bit. See atmcdLXd.h for details */
 #ifdef _LP64
 	retval = CCD_Config_Get_Integer(ANDOR_SETUP_KEYWORD_ROOT"selected_camera",&selected_camera);
 #else
@@ -296,6 +296,31 @@ int Andor_Setup_Shutdown(void)
 	ShutDown();
 #ifdef ANDOR_DEBUG
 	CCD_General_Log("ccd","andor_setup.c","Andor_Setup_Shutdown",LOG_VERBOSITY_VERBOSE,NULL,"finished.");
+#endif
+	return TRUE;
+}
+
+/**
+ * Check the dimensions (particularily the window dimensions) are valid for the Andor camera. SetImage supports
+ * arbitary windows, so this routine does not modify the window in any way.
+ * @param ncols The address of an integer, on entry to the function containing the number of unbinned image columns (X).
+ * @param nrows The address of an integer, on entry to the function containing the number of unbinned image rows (Y).
+ * @param hbin The address of an integer, on entry to the function containing the binning in X.
+ * @param vbin The address of an integer, on entry to the function containing the binning in Y.
+ * @param window_flags Whether to use the specified window or not.
+ * @param window A pointer to a structure containing window data. These dimensions are inclusive, and in binned pixels.
+ * @return The routine returns TRUE on success, and FALSE if an error occurs.
+ * @see ccd_general.html#CCD_General_Log
+ */
+int Andor_Setup_Dimensions_Check(int *ncols,int *nrows,int *hbin,int *vbin,
+					int window_flags,struct CCD_Setup_Window_Struct *window)
+{
+#ifdef ANDOR_DEBUG
+	CCD_General_Log("ccd","andor_setup.c","Andor_Setup_Dimensions_Check",LOG_VERBOSITY_VERBOSE,NULL,"started.");
+#endif
+	/* do nothing for an andor camera */
+#ifdef ANDOR_DEBUG
+	CCD_General_Log("ccd","andor_setup.c","Andor_Setup_Dimensions_Check",LOG_VERBOSITY_VERBOSE,NULL,"finished.");
 #endif
 	return TRUE;
 }
