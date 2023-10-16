@@ -38,6 +38,7 @@ static char rcsid[] = "$Id$";
  * Fill in the driver function structure.
  * @return The routine returns TRUE on success and FALSE on failure.
  * @see pco_setup.html#PCO_Setup_Startup
+ * @see pco_setup.html#PCO_Setup_Dimensions_Check
  * @see pco_setup.html#PCO_Setup_Dimensions
  * @see pco_setup.html#PCO_Setup_Abort
  * @see pco_setup.html#PCO_Setup_Get_NCols
@@ -67,6 +68,7 @@ int PCO_Driver_Register(struct CCD_Driver_Function_Struct *functions)
 	}
 	/* setup */
 	functions->Setup_Startup = PCO_Setup_Startup;
+	functions->Setup_Dimensions_Check = PCO_Setup_Dimensions_Check;
 	functions->Setup_Dimensions = PCO_Setup_Dimensions;
 	functions->Setup_Abort = PCO_Setup_Abort;
 	functions->Setup_Get_NCols =PCO_Setup_Get_NCols;

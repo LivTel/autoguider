@@ -28,6 +28,8 @@ extern "C" {
 /* functions */
 extern int PCO_Setup_Startup(void);
 extern int PCO_Setup_Shutdown(void);
+extern int PCO_Setup_Dimensions_Check(int *ncols,int *nrows,int *hbin,int *vbin,
+				      int window_flags,struct CCD_Setup_Window_Struct *window);
 extern int PCO_Setup_Dimensions(int ncols,int nrows,int hbin,int vbin,
 				int window_flags,struct CCD_Setup_Window_Struct window);
 extern void PCO_Setup_Abort(void);

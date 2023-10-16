@@ -391,6 +391,149 @@ int PCO_Setup_Shutdown(void)
 }
 
 /**
+ * Check the dimensions (particularily the window dimensions) are valid for the PCO camera. PCO_SetROI is very
+ * picky about valid window positions and sizes, and will silenty modify the actual window, which then
+ * causes dark subtraction, flat fielding and detected object position problems. 
+ * @param ncols The address of an integer, 
+ *              on entry to the function containing the number of unbinned image columns (X).
+ * @param nrows The address of an integer, 
+ *              on entry to the function containing the number of unbinned image rows (Y).
+ * @param hbin The address of an integer, on entry to the function containing the binning in X.
+ * @param vbin The address of an integer, on entry to the function containing the binning in Y.
+ * @param window_flags Whether to use the specified window or not.
+ * @param window A pointer to a structure containing window data. 
+ *        These dimensions are inclusive, and in binned pixels.
+ *        The window data is modified by the routine so the window bounds are legal for the PCO camera.
+ * @return The routine returns TRUE on success, and FALSE if an error occurs.
+ * @see ccd_general.html#CCD_General_Log
+ * @see ccd_command.html#PCO_Command_Description_Get_ROI_Horizontal_Step_Size
+ * @see ccd_command.html#PCO_Command_Description_Get_ROI_Vertical_Step_Size
+ */
+int PCO_Setup_Dimensions_Check(int *ncols,int *nrows,int *hbin,int *vbin,
+				      int window_flags,struct CCD_Setup_Window_Struct *window)
+{
+	int roi_hss,roi_vss,offset_sx,offset_ex,offset_sy,offset_ey;
+	
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_setup.c","PCO_Setup_Dimensions_Check",LOG_VERBOSITY_INTERMEDIATE,NULL,"Started.");
+#endif
+	if(window == NULL)
+	{
+		CCD_General_Error_Number = 1307;
+		sprintf(CCD_General_Error_String,"PCO_Setup_Dimensions_Check: window was NULL.");
+		return FALSE;
+	}
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Dimensions_Check",LOG_VERBOSITY_INTERMEDIATE,NULL,
+			       "Input window (sx=%d,sy=%d,ex=%d,ey=%d).",window->X_Start,window->Y_Start,
+			       window->X_End,window->Y_End);
+#endif
+	/* According to the PCO edge manual, MA_PCOEDGE_V225.pdf, Section 7.3 (P25), ROI table,
+	** pco.edge 4.2 USB 3.0 has a ROI horizontal step (roi_hss) of 4, and a ROI vertical step (roi_vss) of 1, 
+	** with no vertical symmetry.
+	** Note both the x start position , and the x end position (and therefore window size), have to lie
+	** on a 4 pixel boundary.
+	** Note the first pixel is 1, so the valid (roi_hss) 4 pixel boundaries are a not obvious, i.e.
+	** 1,5,9,13 etc...
+	*/
+	/* for the generic case, we can get the ROI Horizontal Step Size and the ROI Vertical Step Size
+	** from the camera description */
+	if(!PCO_Command_Description_Get_ROI_Horizontal_Step_Size(&roi_hss))
+		return FALSE;
+	if(!PCO_Command_Description_Get_ROI_Vertical_Step_Size(&roi_vss))
+		return FALSE;
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Dimensions_Check",LOG_VERBOSITY_VERY_VERBOSE,NULL,
+			       "roi_hss = %d, roi_vss = %d.",roi_hss,roi_vss);
+#endif
+	/* X_Start */
+	offset_sx = (window->X_Start-1)%roi_hss;
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Dimensions_Check",LOG_VERBOSITY_VERY_VERBOSE,NULL,
+			       "offset_sx = %d.",offset_sx);
+#endif
+	if(offset_sx > 0)
+	{
+		window->X_Start -= offset_sx;
+		window->X_End -= offset_sx;
+#ifdef PCO_DEBUG
+		CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Dimensions_Check",LOG_VERBOSITY_VERY_VERBOSE,
+				       NULL,"New window sx = %d, New window ex = %d.",window->X_Start,window->X_End);
+#endif
+	}/* end if offset_sx > 0 */
+	
+	/* check the end x position is also aligned correctly. We can change the window size here,
+	** as the main autoguider code resizes the guide buffer after each CCD_Setup_Dimensions call. Hopefully
+	** the field (full-frame) dimensions will always be sane 
+	** Here we increase the end position to the next 4 aligned boundary.
+	** This should work even at the right hand edge of the detector, 
+	** which should be (roi_hss) 4 pixel aligned (2048),
+	** assuming the input X is not already autside the detector. */
+	/* X_End */
+	offset_ex = (window->X_End-1)%roi_hss;
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Dimensions_Check",LOG_VERBOSITY_VERY_VERBOSE,NULL,
+			       "offset_ex = %d.",offset_ex);
+#endif
+	if(offset_ex > 0)
+	{
+		window->X_End += roi_hss-offset_sx;
+#ifdef PCO_DEBUG
+		CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Dimensions_Check",LOG_VERBOSITY_VERY_VERBOSE,
+				       NULL,"New window ex = %d.",window->X_End);
+#endif
+	}
+	/* Y_Start */
+	offset_sy = (window->Y_Start-1)%roi_vss;
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Dimensions_Check",LOG_VERBOSITY_VERY_VERBOSE,NULL,
+			       "offset_sy = %d.",offset_sy);
+#endif
+	if(offset_sy > 0)
+	{
+		window->Y_Start -= offset_sy;
+		window->Y_End -= offset_sy;
+#ifdef PCO_DEBUG
+		CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Dimensions_Check",LOG_VERBOSITY_VERY_VERBOSE,
+				       NULL,"New window sy = %d, New window ey = %d.",window->Y_Start,window->Y_End);
+#endif
+	}/* end if offset_sy > 0 */
+	
+	/* check the end y position is also aligned correctly. We can change the window size here,
+	** as the main autoguider code resizes the guide buffer after each CCD_Setup_Dimensions call. Hopefully
+	** the field (full-frame) dimensions will always be sane 
+	** Here we increase the end position to the next 4 aligned boundary.
+	** This should work even at the bottom edge of the detector, 
+	** which should be (roi_vss) 4 pixel aligned (2048),
+	** assuming the input Y is not already autside the detector. */
+	/* Y_End */
+	offset_ey = (window->Y_End-1)%roi_vss;
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Dimensions_Check",LOG_VERBOSITY_VERY_VERBOSE,NULL,
+			       "offset_ey = %d.",offset_ey);
+#endif
+	if(offset_ey > 0)
+	{
+		window->Y_End += roi_vss-offset_sy;
+#ifdef PCO_DEBUG
+		CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Dimensions_Check",LOG_VERBOSITY_VERY_VERBOSE,
+				       NULL,"New window ey = %d.",window->Y_End);
+#endif
+	}
+	/* finish */
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Dimensions_Check",LOG_VERBOSITY_INTERMEDIATE,NULL,
+			       "Finished window (sx=%d,sy=%d,ex=%d,ey=%d).",window->X_Start,window->Y_Start,
+			       window->X_End,window->Y_End);
+#endif
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Dimensions_Check",LOG_VERBOSITY_INTERMEDIATE,NULL,
+			       "Finished.");
+#endif
+	return TRUE;
+}
+
+/**
  * Setup binning and other per exposure configuration.
  * <ul>
  * <li>We use PCO_SETUP_BINNING_IS_VALID to check the binning parameter is a supported binning.
