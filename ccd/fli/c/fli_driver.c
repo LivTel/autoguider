@@ -39,6 +39,7 @@ static char rcsid[] = "$Id: fli_driver.c,v 1.1 2013-11-26 16:28:36 cjm Exp $";
  * Fill in the driver function structure.
  * @return The routine returns TRUE on success and FALSE on failure.
  * @see fli_setup.html#FLI_Setup_Startup
+ * @see fli_setup.html#FLI_Setup_Dimensions_Check
  * @see fli_setup.html#FLI_Setup_Dimensions
  * @see fli_setup.html#FLI_Setup_Abort
  * @see fli_setup.html#FLI_Setup_Get_NCols
@@ -67,6 +68,7 @@ int FLI_Driver_Register(struct CCD_Driver_Function_Struct *functions)
 	}
 	/* setup */
 	functions->Setup_Startup = FLI_Setup_Startup;
+	functions->Setup_Dimensions_Check = FLI_Setup_Dimensions_Check;
 	functions->Setup_Dimensions = FLI_Setup_Dimensions;
 	functions->Setup_Abort = FLI_Setup_Abort;
 	functions->Setup_Get_NCols = FLI_Setup_Get_NCols;
