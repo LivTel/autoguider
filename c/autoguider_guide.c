@@ -349,8 +349,13 @@ int Autoguider_Guide_Initialise(void)
 
 /**
  * Setup the autoguider window.
- * Also calls Autoguider_CIL_SDB_Packet_Window_Set to set the internal SDB values, ready to send
- * to the SDB later.
+ * <ul>
+ * <li>We range check the input window values, against the Guide_Data maximum dimensions.
+ * <li>We call CCD_Setup_Dimensions_Check to allow the camera driver to modify the window dimensions
+ *     (not all cameras can support arbitary windows).
+ * <li>We call Autoguider_CIL_SDB_Packet_Window_Set to set the internal SDB values, ready to send
+ *     to the SDB later.
+ * </ul>
  * @param sx The start X position.
  * @param sy The start Y position.
  * @param ex The end X position.
@@ -359,6 +364,7 @@ int Autoguider_Guide_Initialise(void)
  * @see #Guide_Data
  * @see autoguider_cil.html#Autoguider_CIL_SDB_Packet_Window_Set
  * @see ../ccd/cdocs/ccd_setup.html#CCD_Setup_Window_Struct
+ * @see ../ccd/cdocs/ccd_setup.html#CCD_Setup_Dimensions_Check
  */
 int Autoguider_Guide_Window_Set(int sx,int sy,int ex,int ey)
 {
@@ -406,8 +412,21 @@ int Autoguider_Guide_Window_Set(int sx,int sy,int ex,int ey)
 	Guide_Data.Window.Y_Start = sy;
 	Guide_Data.Window.X_End = ex;
 	Guide_Data.Window.Y_End = ey;
-	/* update SDB values */
-	if(!Autoguider_CIL_SDB_Packet_Window_Set(sx,sy,ex,ey))
+	/* Check the window is legal. Some detectors (PCO) don't support arbitary windows, this call
+	** allows the driver to modifiy the window to something that the camera will allow */
+	if(!CCD_Setup_Dimensions_Check(&(Guide_Data.Unbinned_NCols),&(Guide_Data.Unbinned_NRows),
+				       &(Guide_Data.Bin_X),&(Guide_Data.Bin_Y),TRUE,&(Guide_Data.Window)))
+	{
+		Autoguider_General_Error_Number = 758;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Guide_Window_Set:"
+			"CCD_Setup_Dimensions_Check on input Window (%d,%d,%d,%d) failed.",sx,sy,ex,ey);
+		return FALSE;
+	}
+	/* update SDB values
+	** We must now use the Guide_Data.Window values as they may have been modified by 
+	** CCD_Setup_Dimensions_Check */
+	if(!Autoguider_CIL_SDB_Packet_Window_Set(Guide_Data.Window.X_Start,Guide_Data.Window.Y_Start,
+						 Guide_Data.Window.X_End,Guide_Data.Window.Y_End))
 	{
 		Autoguider_General_Error("guide","autoguider_guide.c","Autoguider_Guide_Window_Set",
 					 LOG_VERBOSITY_INTERMEDIATE,"GUIDE"); /* no need to fail */
