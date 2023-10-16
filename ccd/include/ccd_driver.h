@@ -16,6 +16,16 @@
  * Structure containing function pointers for driver routines.
  * <ul>
  * <li><b>Setup_Startup</b>
+ * <li><b>Setup_Dimensions_Check</b> with parameters:
+ *     <ul>
+ *     <li><b>ncols</b> Number of unbinned image columns (X).
+ *     <li><b>nrows</b> Number of unbinned image rows (Y).
+ *     <li><b>hbin</b> Binning in the horizontal X direction.
+ *     <li><b>vbin</b> Binning in the vertical Y direction.
+ *     <li><b>window_flags</b> A boolean (TRUE or FALSE), whether to use the specified window or not.
+ *     <li><b>window</b> A structure containing window data. These dimensions are inclusive, and in binned pixels.
+ *     </ul>
+ *     This function can adjust the dimensions to fit in with any restrictions a particular camera system imposes.
  * <li><b>Setup_Dimensions</b> with parameters:
  *     <ul>
  *     <li><b>ncols</b> Number of unbinned image columns (X).
@@ -43,6 +53,8 @@
 struct CCD_Driver_Function_Struct
 {
 	int (*Setup_Startup)(void);
+	int (*Setup_Dimensions_Check)(int *ncols,int *nrows,int *nsbin,int *npbin,
+				      int window_flags,struct CCD_Setup_Window_Struct *window);
 	int (*Setup_Dimensions)(int ncols,int nrows,int nsbin,int npbin,
 				int window_flags,struct CCD_Setup_Window_Struct window);
 	void (*Setup_Abort)(void);
