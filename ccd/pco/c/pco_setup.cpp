@@ -477,7 +477,7 @@ int PCO_Setup_Dimensions_Check(int *ncols,int *nrows,int *hbin,int *vbin,
 #endif
 	if(offset_ex > 0)
 	{
-		window->X_End += roi_hss-offset_sx;
+		window->X_End += roi_hss-offset_ex;
 #ifdef PCO_DEBUG
 		CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Dimensions_Check",LOG_VERBOSITY_VERY_VERBOSE,
 				       NULL,"New window ex = %d.",window->X_End);
@@ -514,7 +514,7 @@ int PCO_Setup_Dimensions_Check(int *ncols,int *nrows,int *hbin,int *vbin,
 #endif
 	if(offset_ey > 0)
 	{
-		window->Y_End += roi_vss-offset_sy;
+		window->Y_End += roi_vss-offset_ey;
 #ifdef PCO_DEBUG
 		CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Dimensions_Check",LOG_VERBOSITY_VERY_VERBOSE,
 				       NULL,"New window ey = %d.",window->Y_End);
