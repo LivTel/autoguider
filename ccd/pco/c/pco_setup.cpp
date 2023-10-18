@@ -410,9 +410,9 @@ int PCO_Setup_Shutdown(void)
  * @see ccd_command.html#PCO_Command_Description_Get_ROI_Vertical_Step_Size
  */
 int PCO_Setup_Dimensions_Check(int *ncols,int *nrows,int *hbin,int *vbin,
-				      int window_flags,struct CCD_Setup_Window_Struct *window)
+			       int window_flags,struct CCD_Setup_Window_Struct *window)
 {
-	int roi_hss,roi_vss,offset_sx,offset_ex,offset_sy,offset_ey;
+	int roi_hss,roi_vss,offset_sx,offset_sy,offset_wsx,offset_wsy,wsx,wsy;
 	
 #ifdef PCO_DEBUG
 	CCD_General_Log("ccd","pco_setup.c","PCO_Setup_Dimensions_Check",LOG_VERBOSITY_INTERMEDIATE,NULL,"Started.");
@@ -431,8 +431,7 @@ int PCO_Setup_Dimensions_Check(int *ncols,int *nrows,int *hbin,int *vbin,
 	/* According to the PCO edge manual, MA_PCOEDGE_V225.pdf, Section 7.3 (P25), ROI table,
 	** pco.edge 4.2 USB 3.0 has a ROI horizontal step (roi_hss) of 4, and a ROI vertical step (roi_vss) of 1, 
 	** with no vertical symmetry.
-	** Note both the x start position , and the x end position (and therefore window size), have to lie
-	** on a 4 pixel boundary.
+	** Note only the x start position has to lie on a  (roi_hss) 4 pixel boundary.
 	** Note the first pixel is 1, so the valid (roi_hss) 4 pixel boundaries are a not obvious, i.e.
 	** 1,5,9,13 etc...
 	*/
@@ -464,20 +463,21 @@ int PCO_Setup_Dimensions_Check(int *ncols,int *nrows,int *hbin,int *vbin,
 	
 	/* check the end x position is also aligned correctly. We can change the window size here,
 	** as the main autoguider code resizes the guide buffer after each CCD_Setup_Dimensions call. Hopefully
-	** the field (full-frame) dimensions will always be sane 
-	** Here we increase the end position to the next 4 aligned boundary.
-	** This should work even at the right hand edge of the detector, 
-	** which should be (roi_hss) 4 pixel aligned (2048),
-	** assuming the input X is not already autside the detector. */
+	** the field (full-frame) dimensions will always be sane.
+	** Here the window has to be a width that is a whole number of (roi_hss) 4 pixels, 
+	** but the start and end positions are inclusive pixels. Note this guarantees that the end pixel will not be on a 
+	** (roi_hss) 4 pixel boundary! 
+	*/
 	/* X_End */
-	offset_ex = (window->X_End-1)%roi_hss;
+	wsx = (window->X_End-window->X_Start)+1; /* inclusive pixels */
+	offset_wsx = wsx%roi_hss;
 #ifdef PCO_DEBUG
 	CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Dimensions_Check",LOG_VERBOSITY_VERY_VERBOSE,NULL,
-			       "offset_ex = %d.",offset_ex);
+			       "offset_wsx = %d.",offset_wsx);
 #endif
-	if(offset_ex > 0)
+	if(offset_wsx > 0)
 	{
-		window->X_End += roi_hss-offset_ex;
+		window->X_End -= offset_wsx;
 #ifdef PCO_DEBUG
 		CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Dimensions_Check",LOG_VERBOSITY_VERY_VERBOSE,
 				       NULL,"New window ex = %d.",window->X_End);
@@ -501,20 +501,21 @@ int PCO_Setup_Dimensions_Check(int *ncols,int *nrows,int *hbin,int *vbin,
 	
 	/* check the end y position is also aligned correctly. We can change the window size here,
 	** as the main autoguider code resizes the guide buffer after each CCD_Setup_Dimensions call. Hopefully
-	** the field (full-frame) dimensions will always be sane 
-	** Here we increase the end position to the next 4 aligned boundary.
-	** This should work even at the bottom edge of the detector, 
-	** which should be (roi_vss) 4 pixel aligned (2048),
-	** assuming the input Y is not already autside the detector. */
+	** the field (full-frame) dimensions will always be sane.
+	** Here the window has to be a height that is a whole number of roi_vss pixels, 
+	** but the start and end positions are inclusive pixels. Note this guarantees that the end pixel will not be on a 
+	** roi_vss pixel boundary! 
+	*/
 	/* Y_End */
-	offset_ey = (window->Y_End-1)%roi_vss;
+	wsy = (window->Y_End-window->Y_Start)+1; /* inclusive pixels */
+	offset_wsy = wsy%roi_vss;
 #ifdef PCO_DEBUG
 	CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Dimensions_Check",LOG_VERBOSITY_VERY_VERBOSE,NULL,
-			       "offset_ey = %d.",offset_ey);
+			       "offset_wsy = %d.",offset_wsy);
 #endif
-	if(offset_ey > 0)
+	if(offset_wsy > 0)
 	{
-		window->Y_End += roi_vss-offset_ey;
+		window->Y_End -= offset_wsy;
 #ifdef PCO_DEBUG
 		CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Dimensions_Check",LOG_VERBOSITY_VERY_VERBOSE,
 				       NULL,"New window ey = %d.",window->Y_End);
