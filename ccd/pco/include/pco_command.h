@@ -81,6 +81,7 @@ enum PCO_COMMAND_TIMEBASE
  * <li><b>PCO_COMMAND_TIMESTAMP_MODE_ASCII</b> An ASCII representation of the timestamp is 
  *                                            in the top corner of the image.
  * </ul>
+ * @see #PCO_Command_Set_Timestamp_Mode
  */
 enum PCO_COMMAND_TIMESTAMP_MODE
 {

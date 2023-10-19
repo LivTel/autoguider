@@ -18,6 +18,7 @@
 #include "ccd_general.h"
 #include "pco_command.h"
 #include "pco_exposure.h"
+#include "pco_setup.h"
 
 /* data types */
 /**
@@ -76,12 +77,16 @@ void PCO_Exposure_Initialise(void)
  * <ul>
  * <li>We check the buffer is not NULL, and return an error if it is.
  * <li>We reset the Exposure_Data Abort flag.
+ * <li>We call PCO_Setup_Get_Timestamp_Mode to retrieve the timestamp mode the camera was configured with in
+ *     PCO_Setup_Startup.
  * <li>We call PCO_Command_Set_Timebase to set the camera timebase to microseconds.
  * <li>We convert the exposure length to microseconds using CCD_GENERAL_ONE_MILLISECOND_US.
  * <li>We set the exposure length by calling PCO_Command_Set_Delay_Exposure_Time.
  * <li>We set the shutter trigger mode to internal by calling PCO_Command_Set_Trigger_Mode.
  * <li>We ready the camera with the current configuration by calling PCO_Command_Arm_Camera.
  * <li>We update the grabber code with the current configuration by calling PCO_Command_Grabber_Post_Arm.
+ * <li>If the timestamp mode is _not_ PCO_COMMAND_TIMESTAMP_MODE_BINARY, we generate an approximate
+ *     exposure start time timestamp.
  * <li>We tell the camera to start recording data by calling PCO_Command_Set_Recording_State(TRUE).
  * <li>We update the Exposure Data Exposure Status to EXPOSE.
  * <li>We check whether the exposure has been aborted.
@@ -89,7 +94,8 @@ void PCO_Exposure_Initialise(void)
  * <li>We check whether the exposure has been aborted.
  * <li>We set the Exposure Data Exposure Status to POST_READOUT.
  * <li>We get the camera image number from the image by calling PCO_Command_Get_Image_Number_From_Metadata.
- * <li>We get the camera timestamp from the image by calling PCO_Command_Get_Timestamp_From_Metadata.
+ * <li>If the timestamp mode _is_ PCO_COMMAND_TIMESTAMP_MODE_BINARY, 
+ *     we get the camera timestamp from the image by calling PCO_Command_Get_Timestamp_From_Metadata.
  * <li>We set the Exposure Data Start Timestamp to the retrieved camera timestamp.
  * <li>We tell the camera to stop recording data by calling PCO_Command_Set_Recording_State(FALSE).
  * <li>We set the Exposure Data Exposure Status to NONE and return.
@@ -113,6 +119,7 @@ void PCO_Exposure_Initialise(void)
  * @see ../../cdocs/ccd_general.html#CCD_General_Log_Format
  * @see pco_command.html#PCO_COMMAND_TIMEBASE
  * @see pco_command.html#PCO_COMMAND_TRIGGER_MODE
+ * @see pco_command.html#PCO_COMMAND_TIMESTAMP_MODE
  * @see pco_command.html#PCO_Command_Set_Timebase
  * @see pco_command.html#PCO_Command_Set_Delay_Exposure_Time
  * @see pco_command.html#PCO_Command_Set_Trigger_Mode
@@ -122,10 +129,12 @@ void PCO_Exposure_Initialise(void)
  * @see pco_command.html#PCO_Command_Grabber_Acquire_Image_Async_Wait
  * @see pco_command.html#PCO_Command_Get_Image_Number_From_Metadata
  * @see pco_command.html#PCO_Command_Get_Timestamp_From_Metadata
+ * @see pco_setup.html#PCO_Setup_Get_Timestamp_Mode
  */
 int PCO_Exposure_Expose(int open_shutter,struct timespec start_time,int exposure_length,
 			void *buffer,size_t buffer_length)
 {
+	enum PCO_COMMAND_TIMESTAMP_MODE timestamp_mode;
 	struct timespec sleep_time,current_time,camera_timestamp;
 	int exposure_length_us,camera_image_number;
 
@@ -143,6 +152,8 @@ int PCO_Exposure_Expose(int open_shutter,struct timespec start_time,int exposure
 	}
 	/* reset abort */
 	Exposure_Data.Abort = FALSE;
+	/* get the timestamp mode */
+	timestamp_mode = PCO_Setup_Get_Timestamp_Mode();
 	/* set exposure and delay timebase to microseconds */
 	if(!PCO_Command_Set_Timebase(PCO_COMMAND_TIMEBASE_US,PCO_COMMAND_TIMEBASE_US))
 		return FALSE;
@@ -160,6 +171,12 @@ int PCO_Exposure_Expose(int open_shutter,struct timespec start_time,int exposure
 	/* update the grabber so thats ready */
 	if(!PCO_Command_Grabber_Post_Arm())
 		return FALSE;
+	/* If we are not going to get an exposure start timestamp from the readout camera data,
+	** get an approximate exposure start time here */
+	if(timestamp_mode != PCO_COMMAND_TIMESTAMP_MODE_BINARY)
+	{
+		clock_gettime(CLOCK_REALTIME,&camera_timestamp);
+	}
 	/* start taking data */
 	if(!PCO_Command_Set_Recording_State(TRUE))
 		return FALSE;
@@ -189,9 +206,12 @@ int PCO_Exposure_Expose(int open_shutter,struct timespec start_time,int exposure
 	/* get camera image number */
 	if(!PCO_Command_Get_Image_Number_From_Metadata(buffer,buffer_length,&camera_image_number))
 		return FALSE;
-	/* get camera timestamp */
-	if(!PCO_Command_Get_Timestamp_From_Metadata(buffer,buffer_length,&camera_timestamp))
-		return FALSE;
+	/* get camera timestamp from the readout data, if the camera is setup to produce this timestamp */
+	if(timestamp_mode == PCO_COMMAND_TIMESTAMP_MODE_BINARY)
+	{
+		if(!PCO_Command_Get_Timestamp_From_Metadata(buffer,buffer_length,&camera_timestamp))
+			return FALSE;
+	}
 	Exposure_Data.Exposure_Start_Time = camera_timestamp;
 	/* stop recording data */
 	if(!PCO_Command_Set_Recording_State(FALSE))

@@ -5,6 +5,8 @@
 
 /* get CCD_Setup_Window_Struct structure definition. */
 #include "ccd_setup.h"
+/* get PCO_COMMAND_TIMESTAMP_MODE enum */
+#include "pco_command.h"
 
 /**
  * Is the specified binning value valid. Valid binning numbers are: 1,2,?. 
@@ -35,7 +37,8 @@ extern int PCO_Setup_Dimensions(int ncols,int nrows,int hbin,int vbin,
 extern void PCO_Setup_Abort(void);
 extern int PCO_Setup_Get_NCols(void);
 extern int PCO_Setup_Get_NRows(void);
-
+extern enum PCO_COMMAND_TIMESTAMP_MODE PCO_Setup_Get_Timestamp_Mode(void);
+	
 #ifdef __cplusplus
 }
 #endif

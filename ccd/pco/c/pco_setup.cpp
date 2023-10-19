@@ -46,6 +46,9 @@
  * <dt>Camera_Board</dt> <dd>The board parameter passed to Open_Cam, to determine which camera to connect to.</dd>
  * <dt>Camera_Setup_Flag</dt> <dd>The camera setup flag to use, when configuring how the shuttering/readout/reset on the
  *                                camera is configured.</dd>
+ * <dt>Camera_Timestamp_Mode</dt> <dd>The camera timestamp mode, one of off or binary. This determines whether the 
+ *                                camera stores the actual exposure start time in the first 14 pixels of the image, or whether
+ *                                we guess the exposure start time from when we command the camera to take the image.</dd>
  * <dt>Horizontal_Binning</dt> <dd>The readout horizontal binning, stored as an integer. Can be one of 1,2,3,4,8. </dd>
  * <dt>Vertical_Binning</dt> <dd>The readout vertical binning, stored as an integer. Can be one of 1,2,3,4,8. </dd>
  * <dt>Serial_Number</dt> <dd>An integer containing the serial number retrieved from the camera head
@@ -69,6 +72,7 @@ struct Setup_Struct
 {
 	int Camera_Board;
 	enum PCO_COMMAND_SETUP_FLAG Camera_Setup_Flag;
+	enum PCO_COMMAND_TIMESTAMP_MODE Camera_Timestamp_Mode;
 	int Horizontal_Binning;
 	int Vertical_Binning;
 	int Serial_Number;
@@ -92,6 +96,7 @@ static char rcsid[] = "$Id$";
  * <dl>
  * <dt>Camera_Board</dt> <dd>0</dd>
  * <dt>Camera_Setup_Flag</dt> <dd>PCO_COMMAND_SETUP_FLAG_ROLLING_SHUTTER</dd>
+ * <dt>Camera_Timestamp_Mode</dt> <dd>PCO_COMMAND_TIMESTAMP_MODE_BINARY</dd>
  * <dt>Horizontal_Binning</dt> <dd>1</dd>
  * <dt>Vertical_Binning</dt> <dd>1</dd>
  * <dt>Serial_Number</dt> <dd>-1</dd>
@@ -104,10 +109,12 @@ static char rcsid[] = "$Id$";
  * <dt>End_X</dt> <dd>0</dd>
  * <dt>End_Y</dt> <dd>0</dd>
  * </dl>
+ * @see pco_command.html#PCO_COMMAND_SETUP_FLAG
+ * @see pco_command.html#PCO_COMMAND_TIMESTAMP_MODE
  */
 static struct Setup_Struct Setup_Data = 
 {
-	0,PCO_COMMAND_SETUP_FLAG_ROLLING_SHUTTER,1,1,-1,0.0,0.0,0,0,0,0,0,0
+	0,PCO_COMMAND_SETUP_FLAG_ROLLING_SHUTTER,PCO_COMMAND_TIMESTAMP_MODE_BINARY,1,1,-1,0.0,0.0,0,0,0,0,0,0
 };
 
 /* internal functions */
@@ -121,8 +128,11 @@ static struct Setup_Struct Setup_Data =
  * <li>We retrieve the configured board number from the config file by caling CCD_Config_Get_Integer with the keyword
  *     "ccd.pco.setup.board_number" and save it to Setup_Data.Camera_Board.
  * <li>We retrieve the shutter mode from the config file by caling CCD_Config_Get_String with the keyword
- *     "ccd.pco.setup.shutter_mode" and save it to Setup_Data.Camera_Board. 
- *     We convert the returned value to a PCO_COMMAND_SETUP_FLAG.
+ *     "ccd.pco.setup.shutter_mode" and save it to Setup_Data.Camera_Setup_Flag, 
+ *     after converting the returned string to a PCO_COMMAND_SETUP_FLAG.
+ * <li>We retrieve the timestamp mode from the config file by caling CCD_Config_Get_String with the keyword
+ *     "ccd.pco.setup.timestamp_mode" and save it to Setup_Data.Camera_Timestamp_Mode, 
+ *     after converting the returned string to a PCO_COMMAND_TIMESTAMP_MODE.
  * <li>We initialise the libraries used using PCO_Command_Initialise_Camera.
  * <li>We open a connection to the PCO camera using PCO_Command_Open, using the retrieved board number. 
  * <li>We set the camera shutter readout/reset mode, 
@@ -138,7 +148,8 @@ static struct Setup_Struct Setup_Data =
  * <li>We set the PCO camera to use the current time by calling PCO_Command_Set_Camera_To_Current_Time.
  * <li>We stop any ongoing image acquisitions by calling PCO_Command_Set_Recording_State(FALSE).
  * <li>We reset the camera to a known state by calling PCO_Command_Reset_Settings.
- * <li>We set the camera timestamps using PCO_Command_Set_Timestamp_Mode to PCO_COMMAND_TIMESTAMP_MODE_BINARY.
+ * <li>We set the camera timestamps using PCO_Command_Set_Timestamp_Mode to the previously configured
+ *     Setup_Data.Camera_Timestamp_Mode.
  * <li>We set the camera exposure and delay timebase to microseconds using 
  *     PCO_Command_Set_Timebase(PCO_COMMAND_TIMEBASE_US,PCO_COMMAND_TIMEBASE_US).
  * <li>We set an initial delay and exposure time by calling PCO_Command_Set_Delay_Exposure_Time(0,50);
@@ -192,6 +203,7 @@ static struct Setup_Struct Setup_Data =
 int PCO_Setup_Startup(void)
 {
 	char *shutter_mode_string = NULL;
+	char *timestamp_mode_string = NULL;
 	int adc_count,camera_type,sensor_type,sensor_subtype;
 	
 #ifdef PCO_DEBUG
@@ -220,7 +232,7 @@ int PCO_Setup_Startup(void)
 	else
 	{
 		CCD_General_Error_Number = 1305;
-		sprintf(CCD_General_Error_String,"PCO_Setup_Startup: Unknwon shutter mode string : %s.",shutter_mode_string);
+		sprintf(CCD_General_Error_String,"PCO_Setup_Startup: Unknown shutter mode string : %s.",shutter_mode_string);
 		if(shutter_mode_string != NULL)
 			free(shutter_mode_string);
 		return FALSE;
@@ -231,6 +243,32 @@ int PCO_Setup_Startup(void)
 #endif
 	if(shutter_mode_string != NULL)
 		free(shutter_mode_string);
+	/* get the timestamp mode */
+	if(!CCD_Config_Get_String(PCO_SETUP_KEYWORD_ROOT"timestamp_mode",&timestamp_mode_string))
+		return FALSE;
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,
+			       "Config file timestamp mode :%s.",timestamp_mode_string);
+#endif
+	if(strcmp(timestamp_mode_string,"OFF") == 0)
+		Setup_Data.Camera_Timestamp_Mode = PCO_COMMAND_TIMESTAMP_MODE_OFF;
+	else if(strcmp(timestamp_mode_string,"BINARY") == 0)
+		Setup_Data.Camera_Timestamp_Mode = PCO_COMMAND_TIMESTAMP_MODE_BINARY;
+	else
+	{
+		CCD_General_Error_Number = 1308;
+		sprintf(CCD_General_Error_String,"PCO_Setup_Startup: Unknown timestamp mode string : %s.",timestamp_mode_string);
+		if(timestamp_mode_string != NULL)
+			free(timestamp_mode_string);
+		return FALSE;
+	}	
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,
+			       "Timestamp mode : %s creates setup flag %d.",timestamp_mode_string,
+			       Setup_Data.Camera_Timestamp_Mode);
+#endif
+	if(timestamp_mode_string != NULL)
+		free(timestamp_mode_string);
 	/* initialise the PCO libraries (first time) */
 #ifdef PCO_DEBUG
 	CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,
@@ -296,7 +334,7 @@ int PCO_Setup_Startup(void)
 	if(!PCO_Command_Reset_Settings())
 		return FALSE;
 	/* set what timestamp data to include in the read out image */
-	if(!PCO_Command_Set_Timestamp_Mode(PCO_COMMAND_TIMESTAMP_MODE_BINARY))
+	if(!PCO_Command_Set_Timestamp_Mode(Setup_Data.Camera_Timestamp_Mode))
 		return FALSE;
 	/* set exposure and delay timebase to microseconds */
 	if(!PCO_Command_Set_Timebase(PCO_COMMAND_TIMEBASE_US,PCO_COMMAND_TIMEBASE_US))
@@ -701,4 +739,16 @@ int PCO_Setup_Get_NCols(void)
 int PCO_Setup_Get_NRows(void)
 {
 	return (Setup_Data.End_Y-Setup_Data.Start_Y)+1;
+}
+
+/**
+ * Return the camera timestamp mode configured using PCO_Command_Set_Timestamp_Mode during PCO_Setup_Startup.
+ * @return The configured PCO timestamp mode.
+ * @see #Setup_Data
+ * @see #PCO_Setup_Startup
+ * @see #PCO_COMMAND_TIMESTAMP_MODE
+ */
+enum PCO_COMMAND_TIMESTAMP_MODE PCO_Setup_Get_Timestamp_Mode(void)
+{
+	return Setup_Data.Camera_Timestamp_Mode;
 }
