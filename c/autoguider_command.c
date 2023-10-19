@@ -1343,7 +1343,7 @@ int Autoguider_Command_Expose(char *command_string,char **reply_string)
  * Handle a commands of the form: 
  * <ul>
  * <li>guide [on|off]
- * <li>guide window <sx> <sy> <ex> <ey>
+ * <li>guide window <sx> <sy> [<ex> <ey>]
  * <li>guide exposure_length <ms> [lock]
  * <li>guide <dark|flat|object|packet|window_track> <on|off>
  * <li>guide <object> <index>
@@ -1360,6 +1360,7 @@ int Autoguider_Command_Expose(char *command_string,char **reply_string)
  * @see autoguider_guide.html#Autoguider_Guide_On
  * @see autoguider_guide.html#Autoguider_Guide_Off
  * @see autoguider_guide.html#Autoguider_Guide_Window_Set
+ * @see autoguider_guide.html#Autoguider_Guide_Window_Set_From_XY
  * @see autoguider_guide.html#Autoguider_Guide_Exposure_Length_Set
  * @see autoguider_guide.html#Autoguider_Guide_Set_Do_Dark_Subtract
  * @see autoguider_guide.html#Autoguider_Guide_Set_Do_Flat_Field
@@ -1427,7 +1428,7 @@ int Autoguider_Command_Guide(char *command_string,char **reply_string)
 	else if(strncmp(parameter_string1,"window",6) == 0)
 	{
 		retval = sscanf(command_string,"guide window %d %d %d %d",&sx,&sy,&ex,&ey);
-		if(retval != 4)
+		if((retval != 4)&&(retval != 2))
 		{
 			Autoguider_General_Error_Number = 311;
 			sprintf(Autoguider_General_Error_String,"Autoguider_Command_Guide:"
@@ -1438,14 +1439,29 @@ int Autoguider_Command_Guide(char *command_string,char **reply_string)
 #endif
 			return FALSE;
 		}
-		retval = Autoguider_Guide_Window_Set(sx,sy,ex,ey);
-		if(retval == FALSE)
+		if(retval == 2) /* retval is 2, parameters are centre x/y of window */
 		{
-			Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Guide",
-						 LOG_VERBOSITY_TERSE,"COMMAND");
-			if(!Autoguider_General_Add_String(reply_string,"1 Guide window failed."))
-				return FALSE;
-			return TRUE;
+			retval = Autoguider_Guide_Window_Set_From_XY(sx,sy);
+			if(retval == FALSE)
+			{
+				Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Guide",
+							 LOG_VERBOSITY_TERSE,"COMMAND");
+				if(!Autoguider_General_Add_String(reply_string,"1 Guide window failed."))
+					return FALSE;
+				return TRUE;
+			}			
+		}
+		else /* retval is 4, set guide window from corners */
+		{
+			retval = Autoguider_Guide_Window_Set(sx,sy,ex,ey);
+			if(retval == FALSE)
+			{
+				Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Guide",
+							 LOG_VERBOSITY_TERSE,"COMMAND");
+				if(!Autoguider_General_Add_String(reply_string,"1 Guide window failed."))
+					return FALSE;
+				return TRUE;
+			}
 		}
 		if(!Autoguider_General_Add_String(reply_string,"0 Guide window suceeded."))
 			return FALSE;
