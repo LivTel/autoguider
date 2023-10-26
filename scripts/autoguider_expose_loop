@@ -65,7 +65,7 @@ while ( "${done}" == "0" )
     set expose_output = `send_command -h ${hostname} -p ${port} -c "expose ${exposure_length}"`
     echo "expose ${exposure_length} returned : ${expose_output}"
     set expose_output = `echo "${expose_output}" | sed "s/.*client: reply:\(.*\)/\1/"`
-    echo "expose output now ${field_output}."
+    echo "expose output now ${expose_output}."
     set retval = `echo "${expose_output}" | /usr/bin/awk ' { print $1}'`
     echo "retval is ${retval}."
     if( "${retval}" != "0" ) then
@@ -86,6 +86,13 @@ while ( "${done}" == "0" )
 	    xpaset -p ds9 file ${filename}
 	else
 	    ds9 ${filename}&
+	    # And wait for ds9 to startup
+	    set ds9active = `xpaaccess ds9`
+	    while( "${ds9active}" == "no" )
+		echo "ds9 is not yet active."
+		sleep 1
+		set ds9active = `xpaaccess ds9`
+	    end
 	endif
     endif
     #
