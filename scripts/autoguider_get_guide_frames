@@ -6,6 +6,7 @@ set ds9objects = 0
 set delete_frames = 0
 set frame_type_string = "raw"
 set sleep_time = 2
+set filename_dir = "/icc/tmp/"
 if ( $#argv > 0 ) then
     set next_arg = ""
     foreach arg ( $argv )
@@ -67,7 +68,7 @@ set file_number = 0
 set done = 0
 while ( "${done}" == 0 )
 	set date_string = `/bin/date +"%Y-%m-%dT%H:%M:%S"`
-	set filename = "guide_${frame_type_string}_${date_string}_${file_number}.fits"
+	set filename = "${filename_dir}/guide_${frame_type_string}_${date_string}_${file_number}.fits"
 	getfits_command -h ${hostname} -p ${port} -c "getfits guide ${frame_type_string}" -f ${filename}
 	@ file_number ++
 	if( "${gaiadisp}" == "1" ) then
@@ -114,7 +115,7 @@ while ( "${done}" == 0 )
 		#
 		# get object list
 		#
-		set object_filename = "field_${frame_type_string}_${date_string}_${file_number}.txt"
+		set object_filename = "${filename_dir}/field_${frame_type_string}_${date_string}_${file_number}.txt"
 		set object_list_output = `send_command -h ${hostname} -p ${port} -c "status object list" -f ${object_filename}`
 		#
 		# strip offheader lines
@@ -123,7 +124,7 @@ while ( "${done}" == 0 )
 		echo "object output has ${line_count} lines."
 		@ line_count --
 		@ line_count --
-		set object_filename2 = "field_${frame_type_string}_${date_string}_${file_number}_headerless.txt"
+		set object_filename2 = "${filename_dir}/field_${frame_type_string}_${date_string}_${file_number}_headerless.txt"
 		tail -n ${line_count} ${object_filename} > ${object_filename2}
 		echo "Image annotations:"
 		set line_number = 1
@@ -137,6 +138,12 @@ while ( "${done}" == 0 )
 		    # 5. CCD Y
 		    # 6. Buffer X
 		    # 7. Buffer Y
+		    # 8. Total Counts
+		    # 9. Number of Pixels
+		    # 10. Peak Counts
+		    # 11. Is Steller (TRUE/FALSE)
+		    # 12. FWHMX
+		    # 13. FWHMY
 		    set x = `echo ${line} | /usr/bin/awk ' { print $6}' | sed "s/\(.*\)\..*/\1/"`
 		    set y = `echo ${line} | /usr/bin/awk ' { print $7}' | sed "s/\(.*\)\..*/\1/"`
 		    echo "circle $x $y 10"
