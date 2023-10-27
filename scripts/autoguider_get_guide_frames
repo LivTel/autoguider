@@ -115,7 +115,7 @@ while ( "${done}" == 0 )
 		#
 		# get object list
 		#
-		set object_filename = "${filename_dir}/field_${frame_type_string}_${date_string}_${file_number}.txt"
+		set object_filename = "${filename_dir}/guide_${frame_type_string}_${date_string}_${file_number}.txt"
 		set object_list_output = `send_command -h ${hostname} -p ${port} -c "status object list" -f ${object_filename}`
 		#
 		# strip offheader lines
@@ -124,7 +124,7 @@ while ( "${done}" == 0 )
 		echo "object output has ${line_count} lines."
 		@ line_count --
 		@ line_count --
-		set object_filename2 = "${filename_dir}/field_${frame_type_string}_${date_string}_${file_number}_headerless.txt"
+		set object_filename2 = "${filename_dir}/guide_${frame_type_string}_${date_string}_${file_number}_headerless.txt"
 		tail -n ${line_count} ${object_filename} > ${object_filename2}
 		echo "Image annotations:"
 		set line_number = 1
@@ -146,6 +146,9 @@ while ( "${done}" == 0 )
 		    # 13. FWHMY
 		    set x = `echo ${line} | /usr/bin/awk ' { print $6}' | sed "s/\(.*\)\..*/\1/"`
 		    set y = `echo ${line} | /usr/bin/awk ' { print $7}' | sed "s/\(.*\)\..*/\1/"`
+		    set fwhmx = `echo ${line} | /usr/bin/awk ' { print $12}' | sed "s/\(.*\)\..*/\1/"`
+		    set fwhmy = `echo ${line} | /usr/bin/awk ' { print $13}' | sed "s/\(.*\)\..*/\1/"`
+		    set fwhm =  `echo " ( ( ${fwhmx} + ${fwhmy} ) / 2.0 )" | /usr/bin/bc`
 		    echo "circle $x $y 10"
 		    echo "circle $x $y 10" | xpaset ds9 regions
 		    @ line_number ++
@@ -153,7 +156,7 @@ while ( "${done}" == 0 )
             endif
 	endif
 	if( "${delete_frames}" == "1" ) then
-	    /bin/rm ${filename}
+	    /bin/rm ${filename} ${object_filename} ${object_filename2}
 	endif
 	#
 	# Are we still guiding?

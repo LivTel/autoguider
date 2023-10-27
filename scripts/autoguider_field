@@ -142,6 +142,9 @@ while ( "${line_number}" <= "${line_count}" )
 	# 13. FWHMY
 	set x = `echo ${line} | /usr/bin/awk ' { print $6}' | sed "s/\(.*\)\..*/\1/"`
 	set y = `echo ${line} | /usr/bin/awk ' { print $7}' | sed "s/\(.*\)\..*/\1/"`
+	set fwhmx = `echo ${line} | /usr/bin/awk ' { print $12}' | sed "s/\(.*\)\..*/\1/"`
+	set fwhmy = `echo ${line} | /usr/bin/awk ' { print $13}' | sed "s/\(.*\)\..*/\1/"`
+	set fwhm =  `echo " ( ( ${fwhmx} + ${fwhmy} ) / 2.0 )" | /usr/bin/bc`
 	echo "circle $x $y 10"
 	if( "${ds9disp}" == "1" ) then
 	    set ds9active = `xpaaccess ds9`
