@@ -133,6 +133,8 @@ static struct Setup_Struct Setup_Data =
  * <li>We retrieve the timestamp mode from the config file by caling CCD_Config_Get_String with the keyword
  *     "ccd.pco.setup.timestamp_mode" and save it to Setup_Data.Camera_Timestamp_Mode, 
  *     after converting the returned string to a PCO_COMMAND_TIMESTAMP_MODE.
+ * <li>We retrieve the status led configuration from the config file by caling CCD_Config_Get_String with the keyword
+ *     "ccd.pco.setup.status_led" and convert it to a boolean.
  * <li>We initialise the libraries used using PCO_Command_Initialise_Camera.
  * <li>We open a connection to the PCO camera using PCO_Command_Open, using the retrieved board number. 
  * <li>We set the camera shutter readout/reset mode, 
@@ -157,6 +159,8 @@ static struct Setup_Struct Setup_Data =
  * <li>If the returned ADC count is greater than one, we call PCO_Command_Set_ADC_Operation(2) to use the extra ADC.
  * <li>We call PCO_Command_Set_Bit_Alignment(0x0001) to set the returned data to be LSB.
  * <li>We call PCO_Command_Set_Noise_Filter_Mode to set noise reduction to off.
+ * <li>We call PCO_Command_Set_HW_LED_Signal to set the PCO camera status LED to either on or off (depending on the
+ *     previously loaded configuration).
  * <li>We call PCO_Command_Description_Get_Max_Horizontal_Size to get Setup_Data.Sensor_Width from the camera
  *     description.
  * <li>We call PCO_Command_Description_Get_Max_Vertical_Size to get Setup_Data.Sensor_Height from the camera
@@ -182,6 +186,7 @@ static struct Setup_Struct Setup_Data =
  * @see pco_command.html#PCO_Command_Set_Recording_State
  * @see pco_command.html#PCO_Command_Reset_Settings
  * @see pco_command.html#PCO_Command_Set_Timestamp_Mode
+ * @see pco_command.html#PCO_Command_Set_HW_LED_Signal
  * @see pco_command.html#PCO_Command_Set_Timebase
  * @see pco_command.html#PCO_Command_Set_Delay_Exposure_Time
  * @see pco_command.html#PCO_Command_Description_Get_Num_ADCs
@@ -204,7 +209,8 @@ int PCO_Setup_Startup(void)
 {
 	char *shutter_mode_string = NULL;
 	char *timestamp_mode_string = NULL;
-	int adc_count,camera_type,sensor_type,sensor_subtype;
+	char *status_led_string = NULL;
+	int adc_count,camera_type,sensor_type,sensor_subtype,led_onoff;
 	
 #ifdef PCO_DEBUG
 	CCD_General_Log("ccd","pco_setup.c","PCO_Setup_Startup",LOG_VERBOSITY_INTERMEDIATE,NULL,"Started.");
@@ -269,6 +275,32 @@ int PCO_Setup_Startup(void)
 #endif
 	if(timestamp_mode_string != NULL)
 		free(timestamp_mode_string);
+	/* get the status led configuration */
+	if(!CCD_Config_Get_String(PCO_SETUP_KEYWORD_ROOT"status_led",&status_led_string))
+		return FALSE;
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,
+			       "Config file status led :%s.",status_led_string);
+#endif
+	if(strcmp(status_led_string,"OFF") == 0)
+		led_onoff = FALSE;
+	else if(strcmp(status_led_string,"ON") == 0)
+		led_onoff = TRUE;
+	else
+	{
+		CCD_General_Error_Number = 1309;
+		sprintf(CCD_General_Error_String,"PCO_Setup_Startup: Unknown status led string : %s.",
+			status_led_string);
+		if(status_led_string != NULL)
+			free(status_led_string);
+		return FALSE;
+	}	
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,
+			       "Status LED : %s creates status led boolean %d.",status_led_string,led_onoff);
+#endif
+	if(status_led_string != NULL)
+		free(status_led_string);
 	/* initialise the PCO libraries (first time) */
 #ifdef PCO_DEBUG
 	CCD_General_Log_Format("ccd","pco_setup.c","PCO_Setup_Startup",LOG_VERBOSITY_VERBOSE,NULL,
@@ -355,7 +387,9 @@ int PCO_Setup_Startup(void)
 	if(!PCO_Command_Set_Bit_Alignment(0x0001)) /* 0x001 = LSB */
 		return FALSE;
 	if(!PCO_Command_Set_Noise_Filter_Mode(0x0000)) /* 0x0000 = off */
-		return FALSE;	
+		return FALSE;
+	if(!PCO_Command_Set_HW_LED_Signal(led_onoff))
+		return FALSE;
 	/* get and store some data from the description, for use later */
 	if(!PCO_Command_Description_Get_Max_Horizontal_Size(&Setup_Data.Sensor_Width))
 		return FALSE;
