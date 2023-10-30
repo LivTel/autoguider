@@ -36,17 +36,22 @@ CFLAGS 			= -g -I$(INCDIR) $(CCD_CFLAGS) $(CFITSIO_CFLAGS)
 LDFLAGS			=  $(PCO_LDFLAGS) $(CCD_LDFLAGS) -lcfitsio -lstdc++
 
 EXE_SRCS		= pco_test_get_roi_step_size.c pco_test_exposure.c pco_test_initialise_finalise.c
-SRCS			= $(EXE_SRCS)
-EXE_OBJS		= $(EXE_SRCS:%.c=$(BINDIR)/%.o)
+LOW_LEVEL_EXE_SRCS      = pco_test_initialise_finalise_low_level.cpp pco_test_led_control_low_level.cpp
+SRCS			= $(EXE_SRCS) $(LOW_LEVEL_EXE_SRCS)
 EXES			= $(EXE_SRCS:%.c=$(BINDIR)/%)
-DOCS 			= $(SRCS:%.c=$(DOCSDIR)/%.html)
+LOW_LEVEL_EXES		= $(LOW_LEVEL_EXE_SRCS:%.cpp=$(BINDIR)/%)
+EXE_DOCS 		= $(EXE_SRCS:%.c=$(DOCSDIR)/%.html)
+LOW_LEVEL_EXE_DOCS	= $(LOW_LEVEL_EXE_SRCS:%.cpp=$(DOCSDIR)/%.html)
+DOCS			= $(EXE_DOCS) $(LOW_LEVEL_EXE_DOCS)
 CONFIG_SRCS		= pco.properties
 CONFIG_BINS		= $(CONFIG_SRCS:%.properties=$(BINDIR)/%.properties)
 
-top: $(EXES) $(BINDIR)/pco_test_initialise_finalise_low_level $(CONFIG_BINS) docs
+top: $(EXES) $(LOW_LEVEL_EXES) $(CONFIG_BINS) docs
 
-$(BINDIR)/pco_test_initialise_finalise_low_level: pco_test_initialise_finalise_low_level.cpp
-	g++ $(PCO_LOW_LEVEL_CFLAGS) pco_test_initialise_finalise_low_level.cpp -o $(BINDIR)/pco_test_initialise_finalise_low_level $(PCO_LOW_LEVEL_LDFLAGS) -lrt
+#$(BINDIR)/pco_test_initialise_finalise_low_level: pco_test_initialise_finalise_low_level.cpp
+#	g++ $(PCO_LOW_LEVEL_CFLAGS) pco_test_initialise_finalise_low_level.cpp -o $(BINDIR)/pco_test_initialise_finalise_low_level $(PCO_LOW_LEVEL_LDFLAGS) -lrt
+$(BINDIR)/%: %.cpp
+	g++ $(PCO_LOW_LEVEL_CFLAGS) $< -o $@ $(PCO_LOW_LEVEL_LDFLAGS) -lrt
 
 $(BINDIR)/%: $(BINDIR)/%.o
 	$(CC) $< -o $@  $(CFITSIO_LDFLAGS) $(PCO_LDFLAGS) -lm -lc $(LDFLAGS)
@@ -66,7 +71,7 @@ depend:
 	makedepend $(MAKEDEPENDFLAGS) -- $(CFLAGS) -- $(SRCS)
 
 clean:
-	$(RM) $(RM_OPTIONS) $(OBJS) $(EXES) $(BINDIR)/pco_test_initialise_finalise_low_level $(TIDY_OPTIONS)
+	$(RM) $(RM_OPTIONS) $(OBJS) $(EXES) $(LOW_LEVEL_EXES) $(TIDY_OPTIONS)
 
 tidy:
 	$(RM) $(RM_OPTIONS) $(TIDY_OPTIONS)
