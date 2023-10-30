@@ -119,6 +119,7 @@ extern int PCO_Command_Set_Delay_Exposure_Time(int delay_time,int exposure_time)
 extern int PCO_Command_Set_ADC_Operation(int num_adcs);
 extern int PCO_Command_Set_Bit_Alignment(int bit_alignment);
 extern int PCO_Command_Set_Noise_Filter_Mode(int mode);
+extern int PCO_Command_Set_HW_LED_Signal(int onoff);
 extern int PCO_Command_Set_Trigger_Mode(enum PCO_COMMAND_TRIGGER_MODE mode);
 extern int PCO_Command_Set_Binning(int bin_x,int bin_y);
 extern int PCO_Command_Set_ROI(int start_x,int start_y,int end_x,int end_y);

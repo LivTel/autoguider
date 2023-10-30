@@ -1096,6 +1096,60 @@ int PCO_Command_Set_Noise_Filter_Mode(int mode)
 }
 
 /**
+ * Turn the PCO Camera status LED (on the back of the camera) on or off, to stop noise pollution in the A&G box.
+ * @param onoff A boolean as an integer: TRUE to turn the status LED on, FALSE to turn the LED off.
+ * @return The routine returns TRUE on success and FALSE if an error occurs.
+ * @see #Command_Data
+ * @see #Command_PCO_Get_Error_Text
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_Number
+ * @see ../../cdocs/ccd_general.html#CCD_General_Error_String
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log
+ * @see ../../cdocs/ccd_general.html#CCD_General_Log_Format
+ */
+int PCO_Command_Set_HW_LED_Signal(int onoff)
+{
+	DWORD onoff_dword;
+	DWORD pco_err;
+
+#ifdef PCO_DEBUG
+	CCD_General_Log_Format("ccd","pco_command.cpp","PCO_Command_Set_HW_LED_Signal",LOG_VERBOSITY_VERBOSE,NULL,
+			       "PCO_Command_Set_HW_LED_Signal(onoff=%d): Started.",onoff);
+#endif
+	if(Command_Data.Camera == NULL)
+	{
+		CCD_General_Error_Number = 1214;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Set_HW_LED_Signal:Camera CPco_com_usb instance not created.");
+		return FALSE;
+	}
+	if(onoff == FALSE)
+		onoff_dword = 0x00000000;
+	else if(onoff == TRUE)
+		onoff_dword = 0xFFFFFFFF;
+	else
+	{
+		CCD_General_Error_Number = 1215;
+		sprintf(CCD_General_Error_String,
+			"PCO_Command_Set_HW_LED_Signal:onoff parameter %d was not a boolean.",onoff);
+		return FALSE;
+	}
+	pco_err = Command_Data.Camera->PCO_SetHWLEDSignal(onoff_dword);
+	if(pco_err != PCO_NOERROR)
+	{
+		CCD_General_Error_Number = 1216;
+		sprintf(CCD_General_Error_String,"PCO_Command_Set_HW_LED_Signal:"
+			"Camera PCO_SetHWLEDSignal(onoff_dword=%d) failed with PCO error code 0x%x (%s).",onoff_dword,pco_err,
+			Command_PCO_Get_Error_Text(pco_err));
+		return FALSE;
+	}
+#ifdef PCO_DEBUG
+	CCD_General_Log("ccd","pco_command.cpp","PCO_Command_Set_HW_LED_Signal",LOG_VERBOSITY_VERBOSE,NULL,
+			"Finished.");
+#endif
+	return TRUE;
+}
+
+/**
  * Set how camera exposures are triggered
  * @param mode An enum of type PCO_COMMAND_TRIGGER_MODE. Used to select external or internal trigger modes.
  * @return The routine returns TRUE on success and FALSE if an error occurs.
