@@ -6,6 +6,8 @@
 
 /* for CCD_Setup_Window_Struct */
 #include "ccd_setup.h"
+/* for Autoguider_Object_Struct */
+#include "autoguider_object.h"
 
 extern int Autoguider_Guide_Initialise(void);
 extern int Autoguider_Guide_Window_Set(int sx,int sy,int ex,int ey);
@@ -35,6 +37,7 @@ extern int Autoguider_Guide_Binned_NRows_Get(void);
 extern struct CCD_Setup_Window_Struct Autoguider_Guide_Window_Get(void);
 extern int Autoguider_Guide_Timecode_Scaling_Set(float value);
 extern float Autoguider_Guide_Timecode_Scaling_Get(void);
+extern struct Autoguider_Object_Struct Autoguider_Guide_Last_Object_Get(void);
 /*
 ** $Log: not supported by cvs2svn $
 ** Revision 1.4  2007/01/26 18:03:46  cjm

@@ -154,10 +154,12 @@ struct Guide_Window_Tracking_Struct
  * <dt>Initial_Object_CCD_Y_Position</dt> <dd>A float, set to the selected guide objects initial CCD Y position 
  *     (before the guide loop is started). This is used within the guide loop to choose which object to guide upon 
  *     if multiple objects are detected within the guide window.</dd>
+ * <dt>Last_Object</dt> <dd>A copy of the last guide object detected and used to send a guide centroid, for status purposes.</dd>
  * </dl>
  * @see #Guide_Exposure_Length_Scaling_Struct
  * @see #Guide_Window_Tracking_Struct
- * @see ../ccd/cdocs/ccd_setup.html#CCD_Setup_Window_Struct 
+ * @see ../ccd/cdocs/ccd_setup.html#CCD_Setup_Window_Struct
+ * @see autoguider_object.html#Autoguider_Object_Struct
  */
 struct Guide_Struct
 {
@@ -187,6 +189,7 @@ struct Guide_Struct
 	int Use_Cadence_For_SDB_Exp_Time;
 	float Initial_Object_CCD_X_Position;
 	float Initial_Object_CCD_Y_Position;
+	struct Autoguider_Object_Struct Last_Object;
 };
 
 /* internal data */
@@ -211,7 +214,8 @@ static struct Guide_Struct Guide_Data =
 	0.0,
 	{GUIDE_SCALE_TYPE_PEAK,FALSE,0,0,0,0,0,0,0,TRUE},
 	{FALSE,10,10,FALSE},
-	2.0f, FALSE, 0.0f, 0.0f
+	2.0f, FALSE, 0.0f, 0.0f,
+	{0,0.0f,0.0f,0.0f,0.0f,0.0f,0,0.0f,0,0.0f,0.0f}
 };
 
 /* internal routines */
@@ -1145,6 +1149,17 @@ int Autoguider_Guide_Timecode_Scaling_Set(float value)
 float Autoguider_Guide_Timecode_Scaling_Get(void)
 {
 	return Guide_Data.Timecode_Scaling_Factor;
+}
+
+/**
+ * Routine to get the guide object used to generate the last successful guide packet/centroid sent to the TCS/SDB.
+ * @return A struct of type Autoguider_Object_Struct, containing the detected object.
+ * @see #Guide_Data
+ * @see autoguider_guide.html#Autoguider_Object_Struct
+ */
+struct Autoguider_Object_Struct Autoguider_Guide_Last_Object_Get(void)
+{
+	return Guide_Data.Last_Object;
 }
 
 
@@ -2369,6 +2384,7 @@ static int Guide_Window_Track(void)
  * <li>We send the guide packet to the TCS.
  * <li>We use Autoguider_CIL_SDB_Packet_Centroid_Set and Autoguider_CIL_SDB_Packet_Send to
  *     update the SDB centroid.
+ * <li>We update the Guide_Data Last_Object to contain the object used to generate the guide packet/centroid.
  * </ul>
  * If an error occurs during processing, a guide packet with status NGATCIL_TCS_GUIDE_PACKET_STATUS_FAILED
  * and "unreliable packet" timecode is sent, with as much information (centroid etc) filled in as possible.
@@ -2616,6 +2632,7 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 #endif
 			mag = 20.0f;
 		}
+		/* set the SDB guide centroid */		
 		if(!Autoguider_CIL_SDB_Packet_Centroid_Set(object.CCD_X_Position,object.CCD_Y_Position,fwhm,mag))
 		{
 			Autoguider_General_Error("guide","autoguider_guide.c","Guide_Packet_Send",
@@ -2626,6 +2643,8 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 			Autoguider_General_Error("guide","autoguider_guide.c","Guide_Packet_Send",
 						 LOG_VERBOSITY_TERSE,"GUIDE"); /* no need to fail */
 		}
+		/* keep track of the guide object we used to generate the guide centroid, for status purposes */
+		Guide_Data.Last_Object = object;
 	}/* end if object detection enabled */
 	else
 	{
