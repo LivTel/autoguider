@@ -520,7 +520,8 @@ int Autoguider_Command_Config_Load(char *command_string,char **reply_string)
  * <li>status temperature get
  * <li>status temperature status
  * <li>status field &lt;active|dark|flat|object&gt;
- * <li>status guide &lt;active|dark|flat|object|packet|exposure_length|cadence|timecode_scaling|window&gt;
+ * <li>status guide &lt;active|dark|flat|object|packet|cadence|timecode_scaling|exposure_length|window&gt;
+ * <li>status guide &lt;last_object&gt;
  * <li>status object &lt;list|count&gt;
  * </ul>
  * @param command_string The status command. This is not changed during this routine.
@@ -543,6 +544,8 @@ int Autoguider_Command_Config_Load(char *command_string,char **reply_string)
  * @see autoguider_guide.html#Autoguider_Guide_Exposure_Length_Get
  * @see autoguider_guide.html#Autoguider_Guide_Window_Get
  * @see autoguider_guide.html#Autoguider_Guide_Timecode_Scaling_Get
+ * @see autoguider_guide.html#Autoguider_Guide_Last_Object_Get
+ * @see autoguider_object.html#Autoguider_Object_Struct
  * @see autoguider_object.html#Autoguider_Object_List_Get_Count
  * @see autoguider_object.html#Autoguider_Object_List_Get_Object_List_String
  * @see ../ccd/cdocs/ccd_general.html#CCD_General_Error
@@ -556,6 +559,7 @@ int Autoguider_Command_Status(char *command_string,char **reply_string)
 	double temperature;
 	enum CCD_TEMPERATURE_STATUS temperature_status;
 	struct CCD_Setup_Window_Struct window;
+	struct Autoguider_Object_Struct last_object;
 	struct timespec temperature_time_stamp;
 	char type_string[65];
 	char element_string[65];
@@ -822,6 +826,20 @@ int Autoguider_Command_Status(char *command_string,char **reply_string)
 		{
 			window = Autoguider_Guide_Window_Get();
 			sprintf(buff,"0 %d %d %d %d",window.X_Start,window.Y_Start,window.X_End,window.Y_End);
+			if(!Autoguider_General_Add_String(reply_string,buff))
+				return FALSE;
+			return TRUE;
+		}
+		else if(strcmp(element_string,"last_object") == 0)
+		{
+			last_object = Autoguider_Guide_Last_Object_Get();
+			/* 0 CCD_X_Position CCD_Y_Position Buffer_X_Position Buffer_Y_Position 
+			** Total_Counts Pixel_Count Peak_Counts FWHM_X FWHM_Y */
+			sprintf(buff,"0 %.2f %.2f %.2f %.2f %.2f %d %.2f %.2f %.2f",
+				last_object.CCD_X_Position,last_object.CCD_Y_Position,
+				last_object.Buffer_X_Position,last_object.Buffer_Y_Position,
+				last_object.Total_Counts,last_object.Pixel_Count,last_object.Peak_Counts,
+				last_object.FWHM_X,last_object.FWHM_Y);
 			if(!Autoguider_General_Add_String(reply_string,buff))
 				return FALSE;
 			return TRUE;
