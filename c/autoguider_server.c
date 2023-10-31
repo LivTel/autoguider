@@ -527,7 +527,7 @@ static void Autoguider_Server_Connection_Callback(Command_Server_Handle_T connec
 			   "\tstatus field <active|dark|flat|object>\n"
 			   "\tstatus guide <active|dark|flat|object|packet>\n"
 			   "\tstatus guide <cadence|timecode_scaling|exposure_length|window>\n"
-			   "\tstatus guide <last_object>\n"
+			   "\tstatus guide <last_object|initial_position>\n"
 			   "\tstatus object <list|count>\n"
 			   "\ttemperature [set <C>|cooler [on|off]]\n"
 			   "\tshutdown\n");
