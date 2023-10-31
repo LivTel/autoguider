@@ -38,6 +38,9 @@ extern struct CCD_Setup_Window_Struct Autoguider_Guide_Window_Get(void);
 extern int Autoguider_Guide_Timecode_Scaling_Set(float value);
 extern float Autoguider_Guide_Timecode_Scaling_Get(void);
 extern struct Autoguider_Object_Struct Autoguider_Guide_Last_Object_Get(void);
+extern float Autoguider_Guide_Initial_Object_CCD_X_Position_Get(void);
+extern float Autoguider_Guide_Initial_Object_CCD_Y_Position_Get(void);
+
 /*
 ** $Log: not supported by cvs2svn $
 ** Revision 1.4  2007/01/26 18:03:46  cjm

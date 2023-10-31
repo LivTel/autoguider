@@ -1162,6 +1162,24 @@ struct Autoguider_Object_Struct Autoguider_Guide_Last_Object_Get(void)
 	return Guide_Data.Last_Object;
 }
 
+/**
+ * Return the selected guide objects initial CCD X position (before the guide loop is started).
+ * @return The guide objects initial CCD X position, in pixels.
+ * @see #Guide_Data
+ */
+float Autoguider_Guide_Initial_Object_CCD_X_Position_Get(void)
+{
+	return Guide_Data.Initial_Object_CCD_X_Position;
+}
+/**
+ * Return the selected guide objects initial CCD Y position (before the guide loop is started).
+ * @return The guide objects initial CCD Y position, in pixels.
+ * @see #Guide_Data
+ */
+float Autoguider_Guide_Initial_Object_CCD_Y_Position_Get(void)
+{
+	return Guide_Data.Initial_Object_CCD_Y_Position;
+}
 
 /* ----------------------------------------------------------------------------
 ** 		internal functions 
