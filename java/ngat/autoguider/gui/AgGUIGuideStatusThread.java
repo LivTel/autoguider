@@ -99,8 +99,11 @@ public class AgGUIGuideStatusThread extends Thread
 	 * @see #updateTime
 	 * @see #agAddress
 	 * @see #agPortNumber
-	 * @see ngat.autoguider.command.StatusFieldActiveCommand
-	 * @see ngat.autoguider.command.StatusGuideActiveCommand
+	 * @see #statusUpdateListener
+	 * @see #sendStatusGuideExposureLength
+	 * @see #sendStatusGuideCadence
+	 * @see #sendStatusObjectCount
+	 * @see #sendStatusGuideLastObject
 	 */
 	public void run()
 	{
@@ -116,7 +119,9 @@ public class AgGUIGuideStatusThread extends Thread
 			// number of objects detected
 			sendStatusObjectCount();
 			// objects detected
-			sendStatusObjectList();
+			//sendStatusObjectList();
+			// Last guide object used to send a centroid to the TCS/SDB
+			sendStatusGuideLastObject();
 			// diddly if(useGuideCadenceUpdateTime) update updateTime
 		// sleep for a bit
 			try
@@ -134,7 +139,7 @@ public class AgGUIGuideStatusThread extends Thread
 			statusUpdateListener.setGuideExposureLength("Unknown");
 			statusUpdateListener.setGuideCadence("Unknown");
 			statusUpdateListener.setGuideObjectCount("Unknown");
-			setGuideObject(null);
+			setGuideObjectBlank();
 		}
 	}
 
@@ -309,7 +314,7 @@ public class AgGUIGuideStatusThread extends Thread
 				}
 				else
 				{
-					setGuideObject(null);
+					setGuideObjectBlank();
 					parent.log(1,"sendStatusObjectCount:'status object list' "+
 						   "returned wrong number of objects:"+
 						   objectListCommand.getObjectListCount());
@@ -320,14 +325,55 @@ public class AgGUIGuideStatusThread extends Thread
 				parent.error(this.getClass().getName()+
 					     ":sendStatusObjectList:Sending 'status object list' failed and returned:"+
 					     objectListCommand.getReply());
-				setGuideObject(null);
+				setGuideObjectBlank();
 			}
 		}
 		catch(Exception e)
 		{
 			parent.error(this.getClass().getName()+":sendStatusObjectList:"+
 				     "Sending 'status object list' failed:",e);
-			setGuideObject(null);
+			setGuideObjectBlank();
+		}
+	}
+
+	/**
+	 * Send "status guide last_object" command and evaluate result. Update relevant Swing GUI.
+	 * @see #statusUpdateListener
+	 * @see #agAddress
+	 * @see #agPortNumber
+	 * @see #setGuideObject
+	 */
+	protected void sendStatusGuideLastObject()
+	{
+		StatusGuideLastObjectCommand lastObjectCommand = null;
+		boolean retval;
+
+		parent.log(1,"sendStatusGuideLastObject:Sending 'status guide last_object'");
+		lastObjectCommand = new StatusGuideLastObjectCommand();
+		lastObjectCommand.setAddress(agAddress);
+		lastObjectCommand.setPortNumber(agPortNumber);
+		try
+		{
+			lastObjectCommand.sendCommand();
+			if(lastObjectCommand.getParsedReplyOK())
+			{
+				setGuideObject(lastObjectCommand);
+				parent.log(1,"sendStatusGuideLastObject:'status guide last_object' "+
+					   "returned:"+lastObjectCommand);
+			}
+			else
+			{
+				parent.error(this.getClass().getName()+
+					     ":sendStatusObjectList:Sending 'status guide last_object' failed and returned:"+
+					     lastObjectCommand.getReply());
+				setGuideObjectBlank();
+			}
+		}
+		catch(Exception e)
+		{
+			parent.error(this.getClass().getName()+":sendStatusGuideLastObject:"+
+				     "Sending 'status guide last_object' failed:",e);
+			setGuideObjectBlank();
 		}
 	}
 
@@ -335,7 +381,7 @@ public class AgGUIGuideStatusThread extends Thread
 	 * Method to set the guide object Swing data.
 	 * @param object The object to set from, this can be null to set the fields to unknown.
 	 * @see #statusUpdateListener
-	 * @see StatusObjectListObject
+	 * @see ngat.autoguider.command.StatusObjectListObject
 	 */
 	protected void setGuideObject(StatusObjectListObject object)
 	{
@@ -360,7 +406,48 @@ public class AgGUIGuideStatusThread extends Thread
 		}
 	}
 
+	/**
+	 * Method to set the guide object Swing data.
+	 * @param object The object to set from, this can be null to set the fields to unknown.
+	 * @see #statusUpdateListener
+	 * @see ngat.autoguider.command.StatusGuideLastObjectCommand
+	 */
+	protected void setGuideObject(StatusGuideLastObjectCommand object)
+	{
+		if(statusUpdateListener != null)
+		{
+			if(object != null)
+			{
+				statusUpdateListener.setGuideObjectId("Unknown");
+				statusUpdateListener.setGuideObjectCCDPositionX(object.getCCDPositionX());
+				statusUpdateListener.setGuideObjectCCDPositionY(object.getCCDPositionY());
+				statusUpdateListener.setGuideObjectBufferPositionX(object.getBufferPositionX());
+				statusUpdateListener.setGuideObjectBufferPositionY(object.getBufferPositionY());
+			}
+			else
+			{
+				statusUpdateListener.setGuideObjectId("Unknown");
+				statusUpdateListener.setGuideObjectCCDPositionX("Unknown");
+				statusUpdateListener.setGuideObjectCCDPositionY("Unknown");
+				statusUpdateListener.setGuideObjectBufferPositionX("Unknown");
+				statusUpdateListener.setGuideObjectBufferPositionY("Unknown");
+			}
+		}
+	}
+	
+	/**
+	 * Method to set the guide object Swing data to unknowns.
+	 * @see #statusUpdateListener
+	 */
+	protected void setGuideObjectBlank()
+	{
+		if(statusUpdateListener != null)
+		{
+			statusUpdateListener.setGuideObjectId("Unknown");
+			statusUpdateListener.setGuideObjectCCDPositionX("Unknown");
+			statusUpdateListener.setGuideObjectCCDPositionY("Unknown");
+			statusUpdateListener.setGuideObjectBufferPositionX("Unknown");
+			statusUpdateListener.setGuideObjectBufferPositionY("Unknown");
+		}
+	}
 }
-//
-// $Log: not supported by cvs2svn $
-//

@@ -30,7 +30,6 @@ public class StatusObjectListCommand extends Command implements Runnable
 
 	/**
 	 * Default constructor.
-	 * @see IntegerReplyCommand
 	 * @see #commandString
 	 * @see #COMMAND_STRING
 	 */
