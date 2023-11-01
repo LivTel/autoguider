@@ -153,10 +153,13 @@ while ( "${done}" == 0 )
 		    echo "circle $x $y 10" | xpaset ds9 regions
 		    @ line_number ++
 		end
-            endif
+		if( "${delete_frames}" == "1" ) then
+		    /bin/rm ${object_filename} ${object_filename2}
+		endif
+           endif
 	endif
 	if( "${delete_frames}" == "1" ) then
-	    /bin/rm ${filename} ${object_filename} ${object_filename2}
+	    /bin/rm ${filename}
 	endif
 	#
 	# Are we still guiding?
