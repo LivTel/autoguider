@@ -9,6 +9,7 @@ switch ( ${hostname} )
 		set javalib_dir = "/icc/bin/javalib"
 		breaksw
 	case "ltobs9":
+	case "ltdevx64":
 		set javalib_dir = "${LT_JAVALIB_HOME}"
 		breaksw
 	default:
