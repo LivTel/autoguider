@@ -60,6 +60,7 @@
  * <dt>Median</dt> <dd>The median value in Stats_List.</dd>
  * <dt>Mean</dt> <dd>The mean value in Stats_List.</dd>
  * <dt>Background_Standard_Deviation</dt> <dd>The standard deviation of values in Stats_List.</dd>
+ * <dt>Threshold</dt> <dd>The computed ADU threshold, pixels with values above the Threshold are deemed part of an object.</dd>
  * <dt>Id</dt> <dd>A unique Id for this particular guide/field run.</dd>
  * <dt>Frame_Number</dt> <dd>The guide/field frame number that generated these objects .</dd>
  * </dl>
@@ -82,6 +83,7 @@ struct Object_Internal_Struct
 	float Median;
 	float Mean;
 	float Background_Standard_Deviation;
+	float Threshold;
 	int Id;
 	int Frame_Number;
 };
@@ -101,13 +103,13 @@ static struct Object_Internal_Struct Object_Data =
 	NULL,0,PTHREAD_MUTEX_INITIALIZER,
 	NULL,0,0,PTHREAD_MUTEX_INITIALIZER,
 	{0.0f,0.0f,0.0f,0.0f,0.0f},0,
-	0.0f,0.0f,0.0f,0,0
+	0.0f,0.0f,0.0f,0.0f,0,0
 };
 
 static int Object_Buffer_Set(float *buffer,int naxis1,int naxis2);
 static int Object_Buffer_Copy(float *buffer,int naxis1,int naxis2);
 static int Object_Create_Object_List(int use_standard_deviation,int start_x,int start_y);
-static int Object_Set_Threshold(int use_standard_deviation,float *threshold);
+static int Object_Set_Threshold(int use_standard_deviation);
 static void Object_Fill_Stats_List(void);
 static int Object_Get_Mean_Standard_Deviation_Simple(void);
 static int Object_Get_Mean_Standard_Deviation_Sigma_Reject(void);
@@ -133,7 +135,7 @@ static int Object_Sort_Object_List_By_Total_Counts(const void *p1, const void *p
  * @param start_x The start of the buffer's X position on the physical CCD. 0 for full frame.
  * @param start_y The start of the buffer's Y position on the physical CCD. 0 for full frame.
  * @param use_standard_deviation Whether to use the frame's standard deviation when calculating object threshold 
- *        for detection. Set to TRUE for field, FALSE for guide where the window is mainly filled with star.
+ *        for detection. 
  * @param id An identifier for the buffer/exposure that is about to be object detected. 
  * @param frame_number The guide/field frame number that generated these objects.
  * @return The routine returns TRUE on success, and FALSE on failure.
@@ -635,6 +637,46 @@ int Autoguider_Object_List_Get_Object_List_String(char **object_list_string)
 	return TRUE;
 }
 
+/**
+ * Return the median counts in the last image that had the Autoguider_Object_Detect object detection routine run on it.
+ * @return The median counts in ADU of the last buffer passed to Autoguider_Object_Detect, as stored in Object_Data.
+ * @see #Object_Data
+ */
+float Autoguider_Object_Median_Get(void)
+{
+	return Object_Data.Median;
+}
+
+/**
+ * Return the mean counts in the last image that had the Autoguider_Object_Detect object detection routine run on it.
+ * @return The mean counts in ADU of the last buffer passed to Autoguider_Object_Detect, as stored in Object_Data.
+ * @see #Object_Data
+ */
+float Autoguider_Object_Mean_Get(void)
+{
+	return Object_Data.Mean;
+}
+
+/**
+ * Return the background standard deviation in the last image that had the Autoguider_Object_Detect object detection routine run on it.
+ * @return The background standard deviation in ADU of the last buffer passed to Autoguider_Object_Detect, as stored in Object_Data.
+ * @see #Object_Data
+ */
+float Autoguider_Object_Background_Standard_Deviation_Get(void)
+{
+	return Object_Data.Background_Standard_Deviation;
+}
+
+/**
+ * Return the computed threshold used to detect objects in the last image that had the Autoguider_Object_Detect object detection routine run on it.
+ * @return The detect objection threshold in ADU of the last buffer passed to Autoguider_Object_Detect, as stored in Object_Data.
+ * @see #Object_Data
+ */
+float Autoguider_Object_Threshold_Get(void)
+{
+	return Object_Data.Threshold;
+}
+
 /* ----------------------------------------------------------------------------
 ** 		internal functions 
 ** ---------------------------------------------------------------------------- */
@@ -793,7 +835,7 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
 	Object *current_object_ptr = NULL;
 	struct timespec start_time,stop_time;
 	int retval,seeing_flag,index;
-	float ellipticity,threshold,seeing;
+	float ellipticity,seeing;
 
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log("object","autoguider_object.c","Object_Create_Object_List",
@@ -829,7 +871,7 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
 	Autoguider_General_Log("object","autoguider_object.c","Object_Create_Object_List",
 			       LOG_VERBOSITY_VERBOSE,"OBJECT","Getting statistics.");
 #endif
-	if(!Object_Set_Threshold(use_standard_deviation,&threshold))
+	if(!Object_Set_Threshold(use_standard_deviation))
 	{
 		Autoguider_General_Mutex_Unlock(&(Object_Data.Image_Data_Mutex));
 		return FALSE;
@@ -841,7 +883,7 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
 	/* clock_gettime(CLOCK_REALTIME,&start_time);*/
 	/* npix '8' should be a loaded property */
 	retval = Object_List_Get(Object_Data.Image_Data,Object_Data.Median,Object_Data.Binned_NCols,
-				 Object_Data.Binned_NRows,threshold,8,&object_list,&seeing_flag,&seeing);
+				 Object_Data.Binned_NRows,Object_Data.Threshold,8,&object_list,&seeing_flag,&seeing);
 	/* clock_gettime(CLOCK_REALTIME,&stop_time);*/
 	if(retval == FALSE)
 	{
@@ -1002,8 +1044,8 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
  * <b>object.threshold.sigma</b> is loaded from the configuration during execution of this routine.
  * @param use_standard_deviation Whether to use the frame's standard deviation when calculating object threshold 
  *        for detection. Set to TRUE for field, FALSE for guide where the window is mainly filled with star.
- * @param threshold The address of a float to store the calculated threshold value into.
  * @return The routine returns TRUE on success, and FALSE on failure.
+ * @see #Object_Data
  * @see #Object_Sort_Float_List
  * @see #Object_Fill_Stats_List
  * @see #Object_Get_Mean_Standard_Deviation_Simple
@@ -1016,7 +1058,7 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  */
-static int Object_Set_Threshold(int use_standard_deviation,float *threshold)
+static int Object_Set_Threshold(int use_standard_deviation)
 {
 	char *stats_type_string = NULL;
 	int retval;
@@ -1036,7 +1078,7 @@ static int Object_Set_Threshold(int use_standard_deviation,float *threshold)
 				      LOG_VERBOSITY_INTERMEDIATE,"OBJECT",
 				      "Median pixel value %.2f.",Object_Data.Median);
 #endif
-	/* get object.threshold.stats.type to determine whether to use simple or sugma_clip stats. */
+	/* get object.threshold.stats.type to determine whether to use simple or sigma_clip stats. */
 	retval = CCD_Config_Get_String("object.threshold.stats.type",&stats_type_string);
 	if(retval == FALSE)
 	{
@@ -1087,15 +1129,15 @@ static int Object_Set_Threshold(int use_standard_deviation,float *threshold)
 	/* calculate threshold 
 	** NB Median is of all Stats_List pixels, Background_Standard_Deviation may not be if iterstat is used. */
 	if(use_standard_deviation)
-		(*threshold) = Object_Data.Median+threhold_sigma*Object_Data.Background_Standard_Deviation;
+		Object_Data.Threshold = Object_Data.Median+threhold_sigma*Object_Data.Background_Standard_Deviation;
 	else
-		(*threshold) = Object_Data.Median;
+		Object_Data.Threshold = Object_Data.Median;
 #if AUTOGUIDER_DEBUG > 5
 	Autoguider_General_Log_Format("object","autoguider_object.c","Object_Set_Threshold",
 				      LOG_VERBOSITY_INTERMEDIATE,"OBJECT",
 			      "Using standard deviation = %d (%.2f), Threshold Sigma = %.2f, Threshold value %.2f.",
 				      use_standard_deviation,Object_Data.Background_Standard_Deviation,
-				      threhold_sigma,(*threshold));
+				      threhold_sigma,Object_Data.Threshold);
 #endif
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log("object","autoguider_object.c","Object_Set_Threshold",

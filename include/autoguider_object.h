@@ -57,6 +57,11 @@ extern int Autoguider_Object_List_Get_Nearest_Object(float ccd_x_position,float 
 extern int Autoguider_Object_Guide_Object_Get(enum COMMAND_AG_ON_TYPE on_type,float pixel_x,float pixel_y,
 					      int rank,int *selected_object_index);
 extern int Autoguider_Object_List_Get_Object_List_String(char **object_list_string);
+/* get some of the image stats used when finding objects */
+extern float Autoguider_Object_Median_Get(void);
+extern float Autoguider_Object_Mean_Get(void);
+extern float Autoguider_Object_Background_Standard_Deviation_Get(void);
+extern float Autoguider_Object_Threshold_Get(void);
 
 /*
 ** $Log: not supported by cvs2svn $
