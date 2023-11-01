@@ -104,6 +104,10 @@ public class AgGUIGuideStatusThread extends Thread
 	 * @see #sendStatusGuideCadence
 	 * @see #sendStatusObjectCount
 	 * @see #sendStatusGuideLastObject
+	 * @see #sendStatusObjectMedian
+	 * @see #sendStatusObjectMean
+	 * @see #sendStatusObjectBackgroundStandardDeviation
+	 * @see #sendStatusObjectThreshold
 	 */
 	public void run()
 	{
@@ -123,6 +127,14 @@ public class AgGUIGuideStatusThread extends Thread
 			// Last guide object used to send a centroid to the TCS/SDB
 			sendStatusGuideLastObject();
 			// diddly if(useGuideCadenceUpdateTime) update updateTime
+			// last object detection - median counts in image
+			sendStatusObjectMedian();
+			// last object detection - mean counts in image
+			sendStatusObjectMean();
+			// last object detection - background standard deviation in image
+			sendStatusObjectBackgroundStandardDeviation();
+			// last object detection - object detection threshold in image
+			sendStatusObjectThreshold();
 		// sleep for a bit
 			try
 			{
@@ -448,6 +460,177 @@ public class AgGUIGuideStatusThread extends Thread
 			statusUpdateListener.setGuideObjectCCDPositionY("Unknown");
 			statusUpdateListener.setGuideObjectBufferPositionX("Unknown");
 			statusUpdateListener.setGuideObjectBufferPositionY("Unknown");
+		}
+	}
+
+	/**
+	 * Send "status object median" command and evaluate result. Update relevant Swing GUI.
+	 * @see #statusUpdateListener
+	 * @see #agAddress
+	 * @see #agPortNumber
+	 */
+	protected void sendStatusObjectMedian()
+	{
+		StatusObjectMedianCommand objectMedianCommand = null;
+		boolean retval;
+
+		parent.log(1,"sendStatusObjectMedian:Sending 'status object median'");
+		objectMedianCommand = new StatusObjectMedianCommand();
+		objectMedianCommand.setAddress(agAddress);
+		objectMedianCommand.setPortNumber(agPortNumber);
+		try
+		{
+			objectMedianCommand.sendCommand();
+			if(objectMedianCommand.getParsedReplyOK())
+			{
+				if(statusUpdateListener != null)
+					statusUpdateListener.setObjectMedian(objectMedianCommand.getMedian());
+				parent.log(1,"sendStatusObjectMedian:'status object median' "+
+					   "returned:"+objectMedianCommand.getMedian());
+			}
+			else
+			{
+				parent.error(this.getClass().getName()+
+					   ":sendStatusObjectMedian:Sending 'status object median' failed and returned:"+
+					     objectMedianCommand.getReply());
+				if(statusUpdateListener != null)
+					statusUpdateListener.setObjectMedian("Unknown");
+			}
+		}
+		catch(Exception e)
+		{
+			parent.error(this.getClass().getName()+":sendStatusObjectMedian:"+
+				     "Sending 'status object median' failed:",e);
+			if(statusUpdateListener != null)
+				statusUpdateListener.setObjectMedian("Unknown");
+		}
+	}
+	
+	/**
+	 * Send "status object mean" command and evaluate result. Update relevant Swing GUI.
+	 * @see #statusUpdateListener
+	 * @see #agAddress
+	 * @see #agPortNumber
+	 */
+	protected void sendStatusObjectMean()
+	{
+		StatusObjectMeanCommand objectMeanCommand = null;
+		boolean retval;
+
+		parent.log(1,"sendStatusObjectMean:Sending 'status object mean'");
+		objectMeanCommand = new StatusObjectMeanCommand();
+		objectMeanCommand.setAddress(agAddress);
+		objectMeanCommand.setPortNumber(agPortNumber);
+		try
+		{
+			objectMeanCommand.sendCommand();
+			if(objectMeanCommand.getParsedReplyOK())
+			{
+				if(statusUpdateListener != null)
+					statusUpdateListener.setObjectMean(objectMeanCommand.getMean());
+				parent.log(1,"sendStatusObjectMean:'status object mean' "+
+					   "returned:"+objectMeanCommand.getMean());
+			}
+			else
+			{
+				parent.error(this.getClass().getName()+
+					   ":sendStatusObjectMean:Sending 'status object mean' failed and returned:"+
+					     objectMeanCommand.getReply());
+				if(statusUpdateListener != null)
+					statusUpdateListener.setObjectMean("Unknown");
+			}
+		}
+		catch(Exception e)
+		{
+			parent.error(this.getClass().getName()+":sendStatusObjectMean:"+
+				     "Sending 'status object mean' failed:",e);
+			if(statusUpdateListener != null)
+				statusUpdateListener.setObjectMean("Unknown");
+		}
+	}
+	
+	/**
+	 * Send "status object threshold" command and evaluate result. Update relevant Swing GUI.
+	 * @see #statusUpdateListener
+	 * @see #agAddress
+	 * @see #agPortNumber
+	 */
+	protected void sendStatusObjectThreshold()
+	{
+		StatusObjectThresholdCommand objectThresholdCommand = null;
+		boolean retval;
+
+		parent.log(1,"sendStatusObjectThreshold:Sending 'status object threshold'");
+		objectThresholdCommand = new StatusObjectThresholdCommand();
+		objectThresholdCommand.setAddress(agAddress);
+		objectThresholdCommand.setPortNumber(agPortNumber);
+		try
+		{
+			objectThresholdCommand.sendCommand();
+			if(objectThresholdCommand.getParsedReplyOK())
+			{
+				if(statusUpdateListener != null)
+					statusUpdateListener.setObjectThreshold(objectThresholdCommand.getThreshold());
+				parent.log(1,"sendStatusObjectThreshold:'status object threshold' "+
+					   "returned:"+objectThresholdCommand.getThreshold());
+			}
+			else
+			{
+				parent.error(this.getClass().getName()+
+					   ":sendStatusObjectThreshold:Sending 'status object threshold' failed and returned:"+
+					     objectThresholdCommand.getReply());
+				if(statusUpdateListener != null)
+					statusUpdateListener.setObjectThreshold("Unknown");
+			}
+		}
+		catch(Exception e)
+		{
+			parent.error(this.getClass().getName()+":sendStatusObjectThreshold:"+
+				     "Sending 'status object threshold' failed:",e);
+			if(statusUpdateListener != null)
+				statusUpdateListener.setObjectThreshold("Unknown");
+		}
+	}
+	/**
+	 * Send "status object background_standard_deviation" command and evaluate result. Update relevant Swing GUI.
+	 * @see #statusUpdateListener
+	 * @see #agAddress
+	 * @see #agPortNumber
+	 */
+	protected void sendStatusObjectBackgroundStandardDeviation()
+	{
+		StatusObjectBackgroundStandardDeviationCommand objectBackgroundStandardDeviationCommand = null;
+		boolean retval;
+
+		parent.log(1,"sendStatusObjectBackgroundStandardDeviation:Sending 'status object background_standard_deviation'");
+		objectBackgroundStandardDeviationCommand = new StatusObjectBackgroundStandardDeviationCommand();
+		objectBackgroundStandardDeviationCommand.setAddress(agAddress);
+		objectBackgroundStandardDeviationCommand.setPortNumber(agPortNumber);
+		try
+		{
+			objectBackgroundStandardDeviationCommand.sendCommand();
+			if(objectBackgroundStandardDeviationCommand.getParsedReplyOK())
+			{
+				if(statusUpdateListener != null)
+					statusUpdateListener.setObjectBackgroundStandardDeviation(objectBackgroundStandardDeviationCommand.getBackgroundStandardDeviation());
+				parent.log(1,"sendStatusObjectBackgroundStandardDeviation:'status object background_standard_deviation' "+
+					   "returned:"+objectBackgroundStandardDeviationCommand.getBackgroundStandardDeviation());
+			}
+			else
+			{
+				parent.error(this.getClass().getName()+
+					   ":sendStatusObjectBackgroundStandardDeviation:Sending 'status object background_standard_deviation' failed and returned:"+
+					     objectBackgroundStandardDeviationCommand.getReply());
+				if(statusUpdateListener != null)
+					statusUpdateListener.setObjectBackgroundStandardDeviation("Unknown");
+			}
+		}
+		catch(Exception e)
+		{
+			parent.error(this.getClass().getName()+":sendStatusObjectBackgroundStandardDeviation:"+
+				     "Sending 'status object background_standard_deviation' failed:",e);
+			if(statusUpdateListener != null)
+				statusUpdateListener.setObjectBackgroundStandardDeviation("Unknown");
 		}
 	}
 }

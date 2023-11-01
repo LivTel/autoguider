@@ -164,6 +164,22 @@ public class AgGUI
 	 */
 	private JLabel guideObjectFWHMYLabel = null;
 	/**
+	 * Label to put object Median background value into.
+	 */
+	private JLabel objectMedianLabel = null;
+	/**
+	 * Label to put object Mean background value into.
+	 */
+	private JLabel objectMeanLabel = null;
+	/**
+	 * Label to put object background standard deviation value into.
+	 */
+	private JLabel objectBackgroundStandardDeviationLabel = null;
+	/**
+	 * Label to put object Threshold value into.
+	 */
+	private JLabel objectThresholdLabel = null;
+	/**
 	 * Should we poll field status when fielding.
 	 */
 	private JCheckBoxMenuItem fieldStatusActiveMenuItem = null;
@@ -256,6 +272,7 @@ public class AgGUI
 		agGUI.run();
 		agGUI.log(1,"End of main.");
 	}
+	
 	/**
 	 * Initialise the program status, from the configuration files.
 	 * Creates the status object and initialises it.
@@ -636,11 +653,13 @@ public class AgGUI
 	//Finish setting up the frame, and show it.
 		frame.addWindowListener(new AgGUIWindowListener(this));
 	}
+ 	
 	/**
 	 * Initialise the main panel. This consists of setting the panel layout, and then 
 	 * adding the status panel and the log panel.
 	 * @see #initStatusPanel
 	 * @see #initGuidePanel
+	 * @see #initObjectStatsPanel
 	 */
 	private void initMainPanel(JPanel panel)
 	{
@@ -656,6 +675,8 @@ public class AgGUI
 		initStatusPanel(panel,gridBagLayout);
 	// guide panel
 		initGuidePanel(panel,gridBagLayout);
+	// object stats panel
+		initObjectStatsPanel(panel,gridBagLayout);
 	}
 
 	/**
@@ -811,6 +832,61 @@ public class AgGUI
 		gridBagCon.anchor = GridBagConstraints.NORTH;
 		gridBagLayout.setConstraints(guidePanel,gridBagCon);
 		panel.add(guidePanel);
+	}
+	
+	/**
+	 * Initialise object stats area.
+	 * @param panel The panel to put the object stats panel in.
+	 * @param gridBagLayout The grid bag layout to set constraints for, before adding things
+	 * 	to the panel.
+	 * @see #objectMedianLabel
+	 * @see #objectMeanLabel
+	 * @see #objectBackgroundStandardDeviationLabel
+	 * @see #objectThresholdLabel
+	 */
+	private void initObjectStatsPanel(JPanel panel,GridBagLayout gridBagLayout)
+	{
+		JPanel objectStats = new JPanel();
+		JLabel label = null;
+        	GridBagConstraints gridBagCon = new GridBagConstraints();
+
+		objectStats.setLayout(new GridLayout(0,4));
+		objectStats.setMinimumSize(new Dimension(400,200));
+		objectStats.setPreferredSize(new Dimension(1024,200));
+		objectStats.setMaximumSize(new Dimension(1024,200));
+	// Median Background Counts
+		label = new JLabel("Median Background:");
+		objectStats.add(label);
+		objectMedianLabel = new JLabel("Unknown");
+		objectStats.add(objectMedianLabel);
+	// Mean Background Counts
+		label = new JLabel("Mean Background:");
+		objectStats.add(label);
+		objectMeanLabel = new JLabel("Unknown");
+		objectStats.add(objectMeanLabel);
+	// Background Standard Deviation
+		label = new JLabel("Background Standard Deviation:");
+		objectStats.add(label);
+		objectBackgroundStandardDeviationLabel = new JLabel("Unknown");
+		objectStats.add(objectBackgroundStandardDeviationLabel);
+	// Threshold
+		label = new JLabel("Threshold:");
+		objectStats.add(label);
+		objectThresholdLabel = new JLabel("Unknown");
+		objectStats.add(objectThresholdLabel);
+	// add border
+		objectStats.setBorder(new TitledSmallerBorder("Object Stats"));
+	// these constraints mean that the GridBagLayout can't alter the size of objectStats
+		gridBagCon.gridx = 0;
+		gridBagCon.gridy = 1;
+		gridBagCon.gridwidth = GridBagConstraints.REMAINDER;
+		gridBagCon.gridheight = 1;
+		gridBagCon.fill = GridBagConstraints.HORIZONTAL;
+		gridBagCon.weightx = 1.0;
+		gridBagCon.weighty = 0.0;
+		gridBagCon.anchor = GridBagConstraints.NORTH;
+		gridBagLayout.setConstraints(objectStats,gridBagCon);
+		panel.add(objectStats);
 	}
 
 	/**
@@ -1158,6 +1234,46 @@ public class AgGUI
 	public void setGuideObjectFWHMYLabel(String s)
 	{
 		guideObjectFWHMYLabel.setText(s);
+	}
+
+	/**
+	 * Set the contents of the object status Median Counts label.
+	 * @param s The string to display in the label.
+	 * @see #objectMedianLabel
+	 */
+	public void setObjectMedianLabel(String s)
+	{
+		objectMedianLabel.setText(s);
+	}
+
+	/**
+	 * Set the contents of the object status Mean Counts label.
+	 * @param s The string to display in the label.
+	 * @see #objectMeanLabel
+	 */
+	public void setObjectMeanLabel(String s)
+	{
+		objectMeanLabel.setText(s);
+	}
+
+	/**
+	 * Set the contents of the object status Background Standard Deviation label.
+	 * @param s The string to display in the label.
+	 * @see #objectBackgroundStandardDeviationLabel
+	 */
+	public void setObjectBackgroundStandardDeviationLabel(String s)
+	{
+		objectBackgroundStandardDeviationLabel.setText(s);
+	}
+
+	/**
+	 * Set the contents of the object status Threshold label.
+	 * @param s The string to display in the label.
+	 * @see #objectThresholdLabel
+	 */
+	public void setObjectThresholdLabel(String s)
+	{
+		objectThresholdLabel.setText(s);
 	}
 
 	/**

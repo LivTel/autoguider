@@ -32,8 +32,12 @@ public interface AgGUIStatusUpdateListener
 	public void setGuideObjectBufferPositionX(String s);
 	public void setGuideObjectBufferPositionY(double d);
 	public void setGuideObjectBufferPositionY(String s);
-
+	public void setObjectMedian(double m);
+	public void setObjectMedian(String s);
+	public void setObjectMean(double m);
+	public void setObjectMean(String s);
+	public void setObjectBackgroundStandardDeviation(double sd);
+	public void setObjectBackgroundStandardDeviation(String s);
+	public void setObjectThreshold(double t);
+	public void setObjectThreshold(String s);
 }
-//
-// $Log: not supported by cvs2svn $
-//

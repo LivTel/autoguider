@@ -259,7 +259,104 @@ public class AgGUIStatusUpdater implements AgGUIStatusUpdateListener
 	{
 		parent.setGuideObjectBufferPositionYLabel(s);
 	}
+
+	/**
+	 * Set the last object detection image median ADU value label.
+	 * @param m The last object detection image median ADU value, in counts.
+	 */
+	public void setObjectMedian(double m)
+	{
+		DecimalFormat decimalFormat = null;
+		String s = null;
+
+		decimalFormat = new DecimalFormat("####0.00");
+		s = decimalFormat.format(m);
+		setObjectMedian(s);
+	}
+	
+	/**
+	 * Set object median label to the specified string.
+	 * @param s The string.
+	 * @see #parent
+	 * @see AgGUI#setObjectMedianLabel
+	 */
+	public void setObjectMedian(String s)
+	{
+		parent.setObjectMedianLabel(s);
+	}
+
+	/**
+	 * Set the last object detection image mean ADU value label.
+	 * @param m The last object detection image mean ADU value, in counts.
+	 */
+	public void setObjectMean(double m)
+	{
+		DecimalFormat decimalFormat = null;
+		String s = null;
+
+		decimalFormat = new DecimalFormat("####0.00");
+		s = decimalFormat.format(m);
+		setObjectMean(s);
+	}
+
+	/**
+	 * Set object mean label to the specified string.
+	 * @param s The string.
+	 * @see #parent
+	 * @see AgGUI#setObjectMeanLabel
+	 */
+	public void setObjectMean(String s)
+	{
+		parent.setObjectMeanLabel(s);
+	}
+
+	/**
+	 * Set the last object detection image standard deviation value label.
+	 * @param m The last object detection image standard deviation value, in counts.
+	 */
+	public void setObjectBackgroundStandardDeviation(double sd)
+	{
+		DecimalFormat decimalFormat = null;
+		String s = null;
+
+		decimalFormat = new DecimalFormat("####0.00");
+		s = decimalFormat.format(sd);
+		setObjectBackgroundStandardDeviation(s);
+	}
+
+	/**
+	 * Set object background standard deviation label to the specified string.
+	 * @param s The string.
+	 * @see #parent
+	 * @see AgGUI#setObjectBackgroundStandardDeviationLabel
+	 */
+	public void setObjectBackgroundStandardDeviation(String s)
+	{
+		parent.setObjectBackgroundStandardDeviationLabel(s);
+	}
+
+	/**
+	 * Set the last object detection image threshold value label.
+	 * @param m The last object detection image threshold value, in counts.
+	 */
+	public void setObjectThreshold(double t)
+	{
+		DecimalFormat decimalFormat = null;
+		String s = null;
+
+		decimalFormat = new DecimalFormat("####0.00");
+		s = decimalFormat.format(t);
+		setObjectThreshold(s);
+	}
+	
+	/**
+	 * Set object threshold label to the specified string.
+	 * @param s The string.
+	 * @see #parent
+	 * @see AgGUI#setObjectThresholdLabel
+	 */
+	public void setObjectThreshold(String s)
+	{
+		parent.setObjectThresholdLabel(s);
+	}
 }
-//
-// $Log: not supported by cvs2svn $
-//
