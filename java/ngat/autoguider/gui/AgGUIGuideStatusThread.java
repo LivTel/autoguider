@@ -406,6 +406,12 @@ public class AgGUIGuideStatusThread extends Thread
 				statusUpdateListener.setGuideObjectCCDPositionY(object.getCCDPositionY());
 				statusUpdateListener.setGuideObjectBufferPositionX(object.getBufferPositionX());
 				statusUpdateListener.setGuideObjectBufferPositionY(object.getBufferPositionY());
+				statusUpdateListener.setGuideObjectTotalCounts(object.getTotalCounts());
+				statusUpdateListener.setGuideObjectPeakCounts(object.getPeakCounts());
+				statusUpdateListener.setGuideObjectNoOfPixels(object.getNumberOfPixels());
+				statusUpdateListener.setGuideObjectIsStellar(object.isStellar());
+				statusUpdateListener.setGuideObjectFWHMX(object.getFWHMX());
+				statusUpdateListener.setGuideObjectFWHMY(object.getFWHMY());
 			}
 			else
 			{
@@ -414,6 +420,12 @@ public class AgGUIGuideStatusThread extends Thread
 				statusUpdateListener.setGuideObjectCCDPositionY("Unknown");
 				statusUpdateListener.setGuideObjectBufferPositionX("Unknown");
 				statusUpdateListener.setGuideObjectBufferPositionY("Unknown");
+				statusUpdateListener.setGuideObjectTotalCounts("Unknown");
+				statusUpdateListener.setGuideObjectPeakCounts("Unknown");
+				statusUpdateListener.setGuideObjectNoOfPixels("Unknown");
+				statusUpdateListener.setGuideObjectIsStellar("Unknown");
+				statusUpdateListener.setGuideObjectFWHMX("Unknown");
+				statusUpdateListener.setGuideObjectFWHMY("Unknown");
 			}
 		}
 	}
@@ -435,6 +447,12 @@ public class AgGUIGuideStatusThread extends Thread
 				statusUpdateListener.setGuideObjectCCDPositionY(object.getCCDPositionY());
 				statusUpdateListener.setGuideObjectBufferPositionX(object.getBufferPositionX());
 				statusUpdateListener.setGuideObjectBufferPositionY(object.getBufferPositionY());
+				statusUpdateListener.setGuideObjectTotalCounts(object.getTotalCounts());
+				statusUpdateListener.setGuideObjectPeakCounts(object.getPeakCounts());
+				statusUpdateListener.setGuideObjectNoOfPixels(object.getNumberOfPixels());
+				statusUpdateListener.setGuideObjectIsStellar("Unknown");
+				statusUpdateListener.setGuideObjectFWHMX(object.getFWHMX());
+				statusUpdateListener.setGuideObjectFWHMY(object.getFWHMY());
 			}
 			else
 			{
@@ -443,6 +461,12 @@ public class AgGUIGuideStatusThread extends Thread
 				statusUpdateListener.setGuideObjectCCDPositionY("Unknown");
 				statusUpdateListener.setGuideObjectBufferPositionX("Unknown");
 				statusUpdateListener.setGuideObjectBufferPositionY("Unknown");
+				statusUpdateListener.setGuideObjectTotalCounts("Unknown");
+				statusUpdateListener.setGuideObjectPeakCounts("Unknown");
+				statusUpdateListener.setGuideObjectNoOfPixels("Unknown");
+				statusUpdateListener.setGuideObjectIsStellar("Unknown");
+				statusUpdateListener.setGuideObjectFWHMX("Unknown");
+				statusUpdateListener.setGuideObjectFWHMY("Unknown");
 			}
 		}
 	}
@@ -460,6 +484,12 @@ public class AgGUIGuideStatusThread extends Thread
 			statusUpdateListener.setGuideObjectCCDPositionY("Unknown");
 			statusUpdateListener.setGuideObjectBufferPositionX("Unknown");
 			statusUpdateListener.setGuideObjectBufferPositionY("Unknown");
+			statusUpdateListener.setGuideObjectTotalCounts("Unknown");
+			statusUpdateListener.setGuideObjectPeakCounts("Unknown");
+			statusUpdateListener.setGuideObjectNoOfPixels("Unknown");
+			statusUpdateListener.setGuideObjectIsStellar("Unknown");
+			statusUpdateListener.setGuideObjectFWHMX("Unknown");
+			statusUpdateListener.setGuideObjectFWHMY("Unknown");
 		}
 	}
 

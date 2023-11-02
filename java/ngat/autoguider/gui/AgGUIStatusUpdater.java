@@ -261,6 +261,142 @@ public class AgGUIStatusUpdater implements AgGUIStatusUpdateListener
 	}
 
 	/**
+	 * Set Guide object total counts label.
+	 * @param d The guide object total counts, in ADU.
+	 */
+	public void setGuideObjectTotalCounts(double d)
+	{
+		DecimalFormat decimalFormat = null;
+		String s = null;
+
+		decimalFormat = new DecimalFormat("####0.00");
+		s = decimalFormat.format(d);
+		setGuideObjectTotalCounts(s);
+	}
+
+	/**
+	 * Set Guide object total counts label to the specified string.
+	 * @param s The string.
+	 */
+	public void setGuideObjectTotalCounts(String s)
+	{
+		parent.setGuideObjectTotalCountsLabel(s);
+	}
+	
+	/**
+	 * Set Guide object peak counts label.
+	 * @param d The guide object peak counts, in ADU.
+	 */
+	public void setGuideObjectPeakCounts(double d)
+	{
+		DecimalFormat decimalFormat = null;
+		String s = null;
+
+		decimalFormat = new DecimalFormat("####0.00");
+		s = decimalFormat.format(d);
+		setGuideObjectPeakCounts(s);
+	}
+
+	/**
+	 * Set Guide object peak counts label to the specified string.
+	 * @param s The string.
+	 */
+	public void setGuideObjectPeakCounts(String s)
+	{
+		parent.setGuideObjectPeakCountsLabel(s);
+	}
+	
+	/**
+	 * Set Guide object No. of pixels label.
+	 * @param n The number of pixels in the guide object, in pixels.
+	 */
+	public void setGuideObjectNoOfPixels(int n)
+	{
+		DecimalFormat decimalFormat = null;
+		String s = null;
+
+		decimalFormat = new DecimalFormat("#######0");
+		s = decimalFormat.format(n);
+		setGuideObjectNoOfPixels(s);
+	}
+
+	/**
+	 * Set Guide object peak counts label to the specified string.
+	 * @param s The string.
+	 */
+	public void setGuideObjectNoOfPixels(String s)
+	{
+		parent.setGuideObjectNoOfPixelsLabel(s);
+	}
+	
+	/**
+	 * Set Guide object is stellar label.
+	 * @param b A boolea, true if the guide object is stellar, false if it is not.
+	 */
+	public void setGuideObjectIsStellar(boolean b)
+	{
+		if(b)
+			setGuideObjectIsStellar("true");
+		else
+			setGuideObjectIsStellar("false");
+	}
+	
+	/**
+	 * Set Guide object is stellar label to the specified string.
+	 * @param s The string.
+	 */
+	public void setGuideObjectIsStellar(String s)
+	{
+		parent.setGuideObjectIsStellarLabel(s);
+	}
+	
+	/**
+	 * Set Guide object FWHM X label.
+	 * @param d The guide object FWHM in X, in pixels.
+	 */
+	public void setGuideObjectFWHMX(double d)
+	{
+		DecimalFormat decimalFormat = null;
+		String s = null;
+
+		decimalFormat = new DecimalFormat("####0.00");
+		s = decimalFormat.format(d);
+		setGuideObjectFWHMX(s);
+	}
+
+	/**
+	 * Set Guide object FWHM X label to the specified string.
+	 * @param s The string.
+	 */
+	public void setGuideObjectFWHMX(String s)
+	{
+		parent.setGuideObjectFWHMXLabel(s);
+	}
+	
+	/**
+	 * Set Guide object FWHM Y label.
+	 * @param d The guide object FWHM in Y, in pixels.
+	 */
+	public void setGuideObjectFWHMY(double d)
+	{
+		DecimalFormat decimalFormat = null;
+		String s = null;
+
+		decimalFormat = new DecimalFormat("####0.00");
+		s = decimalFormat.format(d);
+		setGuideObjectFWHMY(s);
+	}
+
+	/**
+	 * Set Guide object FWHM Y label to the specified string.
+	 * @param s The string.
+	 */
+	public void setGuideObjectFWHMY(String s)
+	{
+		parent.setGuideObjectFWHMYLabel(s);
+	}
+	
+	/**
 	 * Set the last object detection image median ADU value label.
 	 * @param m The last object detection image median ADU value, in counts.
 	 */

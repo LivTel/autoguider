@@ -32,6 +32,18 @@ public interface AgGUIStatusUpdateListener
 	public void setGuideObjectBufferPositionX(String s);
 	public void setGuideObjectBufferPositionY(double d);
 	public void setGuideObjectBufferPositionY(String s);
+	public void setGuideObjectTotalCounts(double d);
+	public void setGuideObjectTotalCounts(String s);
+	public void setGuideObjectPeakCounts(double d);
+	public void setGuideObjectPeakCounts(String s);
+	public void setGuideObjectNoOfPixels(int n);
+	public void setGuideObjectNoOfPixels(String s);
+	public void setGuideObjectIsStellar(boolean b);
+	public void setGuideObjectIsStellar(String s);
+	public void setGuideObjectFWHMX(double d);
+	public void setGuideObjectFWHMX(String s);
+	public void setGuideObjectFWHMY(double d);
+	public void setGuideObjectFWHMY(String s);
 	public void setObjectMedian(double m);
 	public void setObjectMedian(String s);
 	public void setObjectMean(double m);
