@@ -887,7 +887,7 @@ public class AgGUI
 		objectThresholdLabel = new JLabel("Unknown");
 		objectStatsPanel.add(objectThresholdLabel);
 	// add border
-		objectStatsPanel.setBorder(new TitledSmallerBorder("Object Stats"));
+		objectStatsPanel.setBorder(new TitledSmallerBorder("Image Stats"));
 	// these constraints mean that the GridBagLayout can't alter the size of objectStatsPanel
 		gridBagCon.gridx = 0;
 		gridBagCon.gridy = 2;
