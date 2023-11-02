@@ -27,47 +27,47 @@ public class StatusGuideLastObjectCommand extends Command implements Runnable
 	 * Field index in object string, used for parsing.
 	 * @see #parseReplyString
 	 */
-	public final static int FIELD_INDEX_CCD_POSITION_X    = 1;
+	public final static int FIELD_INDEX_CCD_POSITION_X    = 0;
 	/**
 	 * Field index in object string, used for parsing.
 	 * @see #parseReplyString
 	 */
-	public final static int FIELD_INDEX_CCD_POSITION_Y    = 2;
+	public final static int FIELD_INDEX_CCD_POSITION_Y    = 1;
 	/**
 	 * Field index in object string, used for parsing.
 	 * @see #parseReplyString
 	 */
-	public final static int FIELD_INDEX_BUFFER_POSITION_X = 3;
+	public final static int FIELD_INDEX_BUFFER_POSITION_X = 2;
 	/**
 	 * Field index in object string, used for parsing.
 	 * @see #parseReplyString
 	 */
-	public final static int FIELD_INDEX_BUFFER_POSITION_Y = 4;
+	public final static int FIELD_INDEX_BUFFER_POSITION_Y = 3;
 	/**
 	 * Field index in object string, used for parsing.
 	 * @see #parseReplyString
 	 */
-	public final static int FIELD_INDEX_TOTAL_COUNTS      = 5;
+	public final static int FIELD_INDEX_TOTAL_COUNTS      = 4;
 	/**
 	 * Field index in object string, used for parsing.
 	 * @see #parseReplyString
 	 */
-	public final static int FIELD_INDEX_NUMBER_OF_PIXELS  = 6;
+	public final static int FIELD_INDEX_NUMBER_OF_PIXELS  = 5;
 	/**
 	 * Field index in object string, used for parsing.
 	 * @see #parseReplyString
 	 */
-	public final static int FIELD_INDEX_PEAK_COUNTS       = 7;
+	public final static int FIELD_INDEX_PEAK_COUNTS       = 6;
 	/**
 	 * Field index in object string, used for parsing.
 	 * @see #parseReplyString
 	 */
-	public final static int FIELD_INDEX_FWHM_X            = 8;
+	public final static int FIELD_INDEX_FWHM_X            = 7;
 	/**
 	 * Field index in object string, used for parsing.
 	 * @see #parseReplyString
 	 */
-	public final static int FIELD_INDEX_FWHM_Y            = 9;
+	public final static int FIELD_INDEX_FWHM_Y            = 8;
 	/**
 	 * Object field.
 	 */
