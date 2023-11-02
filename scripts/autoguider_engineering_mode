@@ -1,7 +1,19 @@
 #!/bin/csh
-set machine_name = acc
+set machine_name = `/bin/hostname --short`
+switch ( "${machine_name}" )
+    case "acc": #autoguider1 - Andor
+	set ambient_temperature = 15.0
+	breaksw
+    case "autoguider2": # autoguider2 - PCO
+	set ambient_temperature = 0.0
+	breaksw
+    default:
+	set ambient_temperature = 15.0
+	breaksw
+endsw
+#set machine_name = acc
 set port = 6571
-set ambient_temperature = 15.0
+#set ambient_temperature = 15.0
 # Setup the ld library path
 foreach dir ( /icc/bin/lib/${HOSTTYPE}/ )
     if ( ${?LD_LIBRARY_PATH} ) then
@@ -20,7 +32,7 @@ while ( ${done} == 0 )
 	sleep 10
 	set current_temp = `/icc/bin/autoguider/commandserver/test/${HOSTTYPE}/send_command -h ${machine_name} -p ${port} -c "status temperature get" | awk ' { print $3}'`
 	echo "Current autoguider temperature is ${current_temp}"
-	set done = `/bin/echo " ( ${current_temp} > 0.0 )" | /usr/bin/bc`
+	set done = `/bin/echo " ( ${current_temp} >= 0.0 )" | /usr/bin/bc`
 end
 #
 # Kill any running processes

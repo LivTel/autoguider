@@ -30,6 +30,3 @@ echo "CLASSPATH : ${CLASSPATH}"
 echo "Starting Autoguider Runtime System Evaluator..."
 cd ${LT_BIN_HOME}/autoguider/java/gui
 java -Djava.net.preferIPv4Stack=true ngat.autoguider.gui.AgGUI $*
-#
-# $Log: not supported by cvs2svn $
-#
