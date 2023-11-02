@@ -217,6 +217,19 @@ int main(int argc, char *argv[])
 		Autoguider_Shutdown_CCD();
 		return 5;
 	}
+	/* initialise object variables - object shutdown routine frees different stuff, this just loads config */
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP",
+			       "Autoguider_Object_Initialise.");
+#endif
+	retval = Autoguider_Object_Initialise();
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP");
+		/* ensure CCD is warmed up */
+		Autoguider_Shutdown_CCD();
+		return 5;
+	}
 	/* initialise CIL command server/CIL SDB connection */
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP",
@@ -347,7 +360,7 @@ int main(int argc, char *argv[])
 		Autoguider_General_Error("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP");
 		return 6;
 	}
-	/* always call Config shutdown, which free config memory */
+	/* always call Config shutdown, which frees config memory */
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP","CCD_Config_Shutdown");
 #endif

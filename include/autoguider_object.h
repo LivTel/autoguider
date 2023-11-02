@@ -45,7 +45,7 @@ struct Autoguider_Object_Struct
 	float FWHM_Y;
 };
 
-/* extern int Autoguider_Object_Initialise(void);*/
+extern int Autoguider_Object_Initialise(void);
 /* extern int Autoguider_Object_Set_Dimension(int ncols,int nrows,int x_bin,int y_bin);*/
 extern int Autoguider_Object_Detect(float *buffer,int naxis1,int naxis2,int start_x,int start_y,
 				    int use_standard_deviation,int id,int frame_number);

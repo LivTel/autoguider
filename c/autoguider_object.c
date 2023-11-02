@@ -44,8 +44,29 @@
 
 /* data types */
 /**
+ * Object threshold stats type enumeration. What algorithm we use to compute the object detection threshold, pixels
+ * above this value are deemed to be part of an object.
+ * <ul>
+ * <li>OBJECT_THRESHOLD_STATS_TYPE_SIMPLE
+ * <li>OBJECT_THRESHOLD_STATS_TYPE_SIGMA_CLIP
+ * </ul>
+ */
+enum OBJECT_THRESHOLD_STATS_TYPE
+{
+	OBJECT_THRESHOLD_STATS_TYPE_SIMPLE,OBJECT_THRESHOLD_STATS_TYPE_SIGMA_CLIP
+};
+
+/**
  * Data type holding local data to autoguider_object. This consists of the following:
  * <dl>
+ * <dt>Ellipticity_Limit</dt> <dd>Loaded from config, passed into the object detection routine, how round
+ *                            an object has to be to be deemed a valid object</dd>
+ * <dt>Threshold_Stats_Type</dt> <dd>A variable of type OBJECT_THRESHOLD_STATS_TYPE, loaded from config,
+ *                                   used to determine the algorithm used to determine the background S.D.</dd>
+ * <dt>Threshold_Sigma</dt> <dd>Loaded from config, used to compute the object detection threshold 
+ *                              above the background.</dd>
+ * <dt>Threshold_Sigma_Reject</dt> <dd>Loaded from config, used to compute the background S.D. 
+ *                                 when Threshold_Stats_Type is OBJECT_THRESHOLD_STATS_TYPE_SIGMA_CLIP.</dd>
  * <dt>Binned_NCols</dt> <dd>Number of binned columns in the image_data.</dd>
  * <dt>Binned_NRows</dt> <dd>Number of binned rows in the image_data.</dd>
  * <dt>Image_Data</dt> <dd>Pointer to float data containing the image data.</dd>
@@ -64,26 +85,36 @@
  * <dt>Id</dt> <dd>A unique Id for this particular guide/field run.</dd>
  * <dt>Frame_Number</dt> <dd>The guide/field frame number that generated these objects .</dd>
  * </dl>
+ * @see #OBJECT_THRESHOLD_STATS_TYPE
  * @see #Autoguider_Object_Struct
  * @see #MAXIMUM_STATS_COUNT
  */
 struct Object_Internal_Struct
 {
+	/* loaded config values */
+	float Ellipticity_Limit;
+	enum OBJECT_THRESHOLD_STATS_TYPE Threshold_Stats_Type;
+	float Threshold_Sigma;
+	float Threshold_Sigma_Reject;
+	/* input image related data */
 	int Binned_NCols;
 	int Binned_NRows;
 	float *Image_Data;
 	int Image_Data_Allocated_Pixel_Count;
 	pthread_mutex_t Image_Data_Mutex;
+	/* object data */
 	struct Autoguider_Object_Struct *Object_List;
 	int Object_Count;
 	int Allocated_Object_Count;
 	pthread_mutex_t Object_List_Mutex;
+	/* stats data */
 	float Stats_List[MAXIMUM_STATS_COUNT];
 	int Stats_Count;
 	float Median;
 	float Mean;
 	float Background_Standard_Deviation;
 	float Threshold;
+	/* frame data */
 	int Id;
 	int Frame_Number;
 };
@@ -99,6 +130,7 @@ static char rcsid[] = "$Id: autoguider_object.c,v 1.18 2014-01-31 17:15:45 cjm E
  */
 static struct Object_Internal_Struct Object_Data = 
 {
+	0.5,OBJECT_THRESHOLD_STATS_TYPE_SIGMA_CLIP,7.0,5.0,
 	-1,-1,
 	NULL,0,PTHREAD_MUTEX_INITIALIZER,
 	NULL,0,0,PTHREAD_MUTEX_INITIALIZER,
@@ -119,6 +151,98 @@ static int Object_Sort_Object_List_By_Total_Counts(const void *p1, const void *p
 /* ----------------------------------------------------------------------------
 ** 		external functions 
 ** ---------------------------------------------------------------------------- */
+/**
+ * Initialise the object detection module.
+ * <ul>
+ * <li>Load the "object.ellipticity.limit" config from the configuration file and stored in Object_Data.Ellipticity_Limit.
+ * <li>Set the object detection library stellar ellipticity by calling Object_Stellar_Ellipticity_Limit_Set with the 
+ *     loaded config.
+ * <li>We load the "object.threshold.stats.type" as a string, and set Object_Data.Threshold_Stats_Type based on whether 
+ *     it is "simple" or "sigma_clip".
+ * <li>We load "object.threshold.sigma" from config and set Object_Data.Threshold_Sigma, used to set the sigma above the
+ *     background for object detection.
+ * <li>We load "object.threshold.sigma.reject" from config and set Object_Data.Threshold_Sigma_Reject,which is 
+ *     used to compute the background S.D. when Threshold_Stats_Type is OBJECT_THRESHOLD_STATS_TYPE_SIGMA_CLIP.
+ * </ul>
+ * @see #Object_Data
+ * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Float
+ * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_String
+ * @see ../../libdprt/object/cdocs/object.html#Object_Stellar_Ellipticity_Limit_Set
+ */
+int Autoguider_Object_Initialise(void)
+{
+	char *stats_type_string = NULL;
+	int retval;
+	
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log("object","autoguider_object.c","Autoguider_Object_Detect",LOG_VERBOSITY_TERSE,
+			       "OBJECT","started.");
+#endif
+	/* load object module config */
+	/* get/set ellipticity/is_stellar threshold */
+	if(!CCD_Config_Get_Float("object.ellipticity.limit",&(Object_Data.Ellipticity_Limit)))
+	{
+		Autoguider_General_Error_Number = 1017;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Object_Initialise:"
+			"Failed to load config:'object.ellipticity.limit'.");
+		return FALSE;
+	}
+	/* we can set this once here */
+	if(!Object_Stellar_Ellipticity_Limit_Set(Object_Data.Ellipticity_Limit))
+	{
+		Autoguider_General_Error_Number = 1018;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Object_Initialise:"
+			"Failed to object stellar ellipticity to %f.",Object_Data.Ellipticity_Limit);
+		return FALSE;
+	}
+	/* get object.threshold.stats.type to determine whether to use simple or sigma_clip stats. */
+	retval = CCD_Config_Get_String("object.threshold.stats.type",&stats_type_string);
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 1020;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Object_Initialise:"
+			"Failed to load config:'object.threshold.stats.type'.");
+		return FALSE;
+	}
+	if(strcmp(stats_type_string,"simple")==0)
+		Object_Data.Threshold_Stats_Type = OBJECT_THRESHOLD_STATS_TYPE_SIMPLE;
+	else if(strcmp(stats_type_string,"sigma_clip")==0)
+		Object_Data.Threshold_Stats_Type = OBJECT_THRESHOLD_STATS_TYPE_SIGMA_CLIP;
+	else
+	{
+		Autoguider_General_Error_Number = 1022;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Object_Initialise:"
+			"Config:'object.threshold.stats.type' had illegal value : %s.",stats_type_string);
+		free(stats_type_string);
+		return FALSE;
+	}
+	/* free allocated stats type string */
+	free(stats_type_string);
+	/* get object threshold sigma */
+	retval = CCD_Config_Get_Float("object.threshold.sigma",&(Object_Data.Threshold_Sigma));
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 1023;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Object_Initialise:"
+			"Failed to load config:'object.threshold.sigma'.");
+		return FALSE;
+	}
+	/* get threshold sigma reject */
+	retval = CCD_Config_Get_Float("object.threshold.sigma.reject",&(Object_Data.Threshold_Sigma_Reject));
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 1024;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Object_Initialise:"
+			"Failed to load config:'object.threshold.sigma.reject'.");
+		return FALSE;
+	}
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log("object","autoguider_object.c","Autoguider_Object_Initialise",LOG_VERBOSITY_TERSE,
+			       "OBJECT","finished.");
+#endif
+	return TRUE;
+}
+
 /**
  * Detect objects on the passed in image data.
  * <ul>
@@ -827,7 +951,6 @@ static int Object_Buffer_Copy(float *buffer,int naxis1,int naxis2)
  * @see ../../libdprt/object/cdocs/object.html#Object_Get_Error_Number
  * @see ../../libdprt/object/cdocs/object.html#Object_Warning
  * @see ../../libdprt/object/cdocs/object.html#Object_Stellar_Ellipticity_Limit_Set
- * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Float
  */
 static int Object_Create_Object_List(int use_standard_deviation,int start_x,int start_y)
 {
@@ -835,7 +958,7 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
 	Object *current_object_ptr = NULL;
 	struct timespec start_time,stop_time;
 	int retval,seeing_flag,index;
-	float ellipticity,seeing;
+	float seeing;
 
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log("object","autoguider_object.c","Object_Create_Object_List",
@@ -852,16 +975,10 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
 	retval = Autoguider_General_Mutex_Lock(&(Object_Data.Image_Data_Mutex));
 	if(retval == FALSE)
 		return FALSE;
-	/* get/set ellipticity/is_stellar threshold */
-	if(!CCD_Config_Get_Float("object.ellipticity.limit",&ellipticity))
-	{
-		Autoguider_General_Error_Number = 1022;
-		sprintf(Autoguider_General_Error_String,"Object_Create_Object_List:"
-			"Failed to load config:'object.ellipticity.limit'.");
-		Autoguider_General_Mutex_Unlock(&(Object_Data.Image_Data_Mutex));
-		return FALSE;
-	}
-	if(!Object_Stellar_Ellipticity_Limit_Set(ellipticity))
+	/* This is already done in initialise.
+	** We don't need to do this every time we call this routine, unless we add an API to dynamically allow 
+	** modification of the value during runtime */
+	if(!Object_Stellar_Ellipticity_Limit_Set(Object_Data.Ellipticity_Limit))
 	{
 		Autoguider_General_Mutex_Unlock(&(Object_Data.Image_Data_Mutex));
 		return FALSE;
@@ -934,7 +1051,7 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
 					   Object_Data.Object_Count);
 #endif
 			Object_Data.Object_List = (struct Autoguider_Object_Struct*)malloc(Object_Data.Object_Count*
-								    sizeof(struct Autoguider_Object_Struct));
+						   sizeof(struct Autoguider_Object_Struct));
 		}
 		else
 		{
@@ -1039,9 +1156,11 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
  * Object_Get_Mean_Standard_Deviation_Sigma_Reject.
  * Assumes the Image_Data_Mutex has <b>already</b> been locked external to this routine, as it access
  * the Image_Data_List to create the Stats_List.
- * <b>object.threshold.stats.type</b> is loaded from the configuration to determine whether to use simple
- *   or sigma clipping stats when determining the threshold value.
- * <b>object.threshold.sigma</b> is loaded from the configuration during execution of this routine.
+ * We use Object_Data.Threshold_Stats_Type, loaded from the config file during initialisation from 
+ * <b>object.threshold.stats.type</b>,  to determine whether to use simple or sigma clipping stats 
+ * when determining the threshold value.
+ * We use Object_Data.Threshold_Sigma, loaded from the config file during initialisation from 
+ *  <b>object.threshold.sigma</b> to determine the threshold value in this routine.
  * @param use_standard_deviation Whether to use the frame's standard deviation when calculating object threshold 
  *        for detection. Set to TRUE for field, FALSE for guide where the window is mainly filled with star.
  * @return The routine returns TRUE on success, and FALSE on failure.
@@ -1051,7 +1170,6 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
  * @see #Object_Get_Mean_Standard_Deviation_Simple
  * @see #Object_Get_Mean_Standard_Deviation_Sigma_Reject
  * @see #Image_Data
- * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Float
  * @see autoguider_general.html#Autoguider_General_Log
  * @see autoguider_general.html#Autoguider_General_Mutex_Lock
  * @see autoguider_general.html#Autoguider_General_Mutex_Unlock
@@ -1060,9 +1178,8 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
  */
 static int Object_Set_Threshold(int use_standard_deviation)
 {
-	char *stats_type_string = NULL;
 	int retval;
-	float total_value,difference_squared_total,tmp_float,variance,threhold_sigma;
+	float total_value,difference_squared_total,tmp_float,variance,threshold_sigma;
 
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log("object","autoguider_object.c","Object_Set_Threshold",
@@ -1078,32 +1195,22 @@ static int Object_Set_Threshold(int use_standard_deviation)
 				      LOG_VERBOSITY_INTERMEDIATE,"OBJECT",
 				      "Median pixel value %.2f.",Object_Data.Median);
 #endif
-	/* get object.threshold.stats.type to determine whether to use simple or sigma_clip stats. */
-	retval = CCD_Config_Get_String("object.threshold.stats.type",&stats_type_string);
-	if(retval == FALSE)
-	{
-		Autoguider_General_Error_Number = 1018;
-		sprintf(Autoguider_General_Error_String,"Object_Set_Threshold:"
-			"Failed to load config:'object.threshold.stats.type'.");
-		return FALSE;
-	}
-	if(strcmp(stats_type_string,"simple")==0)
+	/* calculate the mean and standard deviation using the algorithm determined from config at Initialise time */
+	if(Object_Data.Threshold_Stats_Type = OBJECT_THRESHOLD_STATS_TYPE_SIMPLE)
 	{
 		/* get a simple mean and standard devation from the Stats_List/Stats_Count 
 		 * and save into Object_Data.Mean / Object_Data.Background_Standard_Deviation */
 		if(!Object_Get_Mean_Standard_Deviation_Simple())
 		{
-			free(stats_type_string);
 			return FALSE;
 		}
 	}
-	else if(strcmp(stats_type_string,"sigma_clip")==0)
+	else if(Object_Data.Threshold_Stats_Type = OBJECT_THRESHOLD_STATS_TYPE_SIGMA_CLIP)
 	{
 		/* get mean and standard devation from the Stats_List/Stats_Count using sigma clipping/rejection 
 		 * and save into Object_Data.Mean / Object_Data.Background_Standard_Deviation */
 		if(!Object_Get_Mean_Standard_Deviation_Sigma_Reject())
 		{
-			free(stats_type_string);
 			return FALSE;
 		}
 	}
@@ -1111,25 +1218,14 @@ static int Object_Set_Threshold(int use_standard_deviation)
 	{
 		Autoguider_General_Error_Number = 1019;
 		sprintf(Autoguider_General_Error_String,"Object_Set_Threshold:"
-			"Config:'object.threshold.stats.type' had illegal value : %s.",stats_type_string);
-		free(stats_type_string);
-		return FALSE;
-	}
-	/* free allocated stats type string */
-	free(stats_type_string);
-	/* get threshold sigma */
-	retval = CCD_Config_Get_Float("object.threshold.sigma",&threhold_sigma);
-	if(retval == FALSE)
-	{
-		Autoguider_General_Error_Number = 1017;
-		sprintf(Autoguider_General_Error_String,"Object_Set_Threshold:"
-			"Failed to load config:'object.threshold.sigma'.");
+			"Object_Data.Threshold_Stats_Type had illegal value : %d.",Object_Data.Threshold_Stats_Type);
 		return FALSE;
 	}
 	/* calculate threshold 
 	** NB Median is of all Stats_List pixels, Background_Standard_Deviation may not be if iterstat is used. */
 	if(use_standard_deviation)
-		Object_Data.Threshold = Object_Data.Median+threhold_sigma*Object_Data.Background_Standard_Deviation;
+		Object_Data.Threshold = Object_Data.Median+(Object_Data.Threshold_Sigma*
+							    Object_Data.Background_Standard_Deviation);
 	else
 		Object_Data.Threshold = Object_Data.Median;
 #if AUTOGUIDER_DEBUG > 5
@@ -1137,7 +1233,7 @@ static int Object_Set_Threshold(int use_standard_deviation)
 				      LOG_VERBOSITY_INTERMEDIATE,"OBJECT",
 			      "Using standard deviation = %d (%.2f), Threshold Sigma = %.2f, Threshold value %.2f.",
 				      use_standard_deviation,Object_Data.Background_Standard_Deviation,
-				      threhold_sigma,Object_Data.Threshold);
+				      Object_Data.Threshold_Sigma,Object_Data.Threshold);
 #endif
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log("object","autoguider_object.c","Object_Set_Threshold",
@@ -1216,24 +1312,16 @@ static int Object_Get_Mean_Standard_Deviation_Simple(void)
 
 /**
  * Get Mean and Standard deviation using a sigma clipped RMS.
- * This routine calls iterstat in dprt_libfits.c (DpRt).
+ * This routine calls iterstat in dprt_libfits.c (DpRt). The sigma reject parameter is used from 
+ * Object_Data.Threshold_Sigma_Reject, which is loaded from the configuration fail during initialisation.
+ * @see #Object_Data
  */
 static int Object_Get_Mean_Standard_Deviation_Sigma_Reject(void)
 {
-	float sigma_reject;
 	int retval;
 
-	/* get threshold sigma */
-	retval = CCD_Config_Get_Float("object.threshold.sigma.reject",&sigma_reject);
-	if(retval == FALSE)
-	{
-		Autoguider_General_Error_Number = 1020;
-		sprintf(Autoguider_General_Error_String,"Object_Get_Mean_Standard_Deviation_Sigma_Reject:"
-			"Failed to load config:'object.threshold.sigma.reject'.");
-		return FALSE;
-	}
-	retval = iterstat(Object_Data.Stats_List,Object_Data.Stats_Count,sigma_reject,&(Object_Data.Mean),
-			  &(Object_Data.Background_Standard_Deviation));
+	retval = iterstat(Object_Data.Stats_List,Object_Data.Stats_Count,Object_Data.Threshold_Sigma_Reject,
+			  &(Object_Data.Mean),&(Object_Data.Background_Standard_Deviation));
 #if AUTOGUIDER_DEBUG > 5
 	Autoguider_General_Log_Format("object","autoguider_object.c","Object_Get_Mean_Standard_Deviation_Sigma_Reject",
 				      LOG_VERBOSITY_INTERMEDIATE,"OBJECT",
