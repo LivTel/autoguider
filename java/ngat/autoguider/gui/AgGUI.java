@@ -605,7 +605,9 @@ public class AgGUI
 		Image image = null;
 		String titleString = null;
 
-		// optimise for remote X?
+		log(1,"initGUI:Started.");
+		System.err.println("initGUI:Started.");
+        // optimise for remote X?
 		if(remoteX)
 		{
 			RepaintManager.currentManager(null).setDoubleBufferingEnabled(false);
@@ -652,7 +654,9 @@ public class AgGUI
 
 	//Finish setting up the frame, and show it.
 		frame.addWindowListener(new AgGUIWindowListener(this));
-	}
+		log(1,"initGUI:Finished.");
+		System.err.println("initGUI:Finished.");
+ 	}
  	
 	/**
 	 * Initialise the main panel. This consists of setting the panel layout, and then 
@@ -663,13 +667,15 @@ public class AgGUI
 	 */
 	private void initMainPanel(JPanel panel)
 	{
-	// create the frame level layout manager
+		log(1,"initMainPanel:Started.");
+		System.err.println("initMainPanel:Started.");
+ 	// create the frame level layout manager
 		GridBagLayout gridBagLayout = new GridBagLayout();
 	// setup panel
 		panel.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));
 		panel.setLayout(gridBagLayout);
-		panel.setMinimumSize(new Dimension(600,300));
-		panel.setPreferredSize(new Dimension(600,300));
+		panel.setMinimumSize(new Dimension(600,320));
+		panel.setPreferredSize(new Dimension(600,320));
 		panel.setMaximumSize(new Dimension(1024,1024));
 	//  status labels
 		initStatusPanel(panel,gridBagLayout);
@@ -691,7 +697,9 @@ public class AgGUI
 		JLabel label = null;
         	GridBagConstraints gridBagCon = new GridBagConstraints();
 
-		isStatusPanel.setLayout(new GridLayout(0,4));
+		log(1,"initStatusPanel:Started.");
+		System.err.println("initStatusPanel:Started.");
+ 		isStatusPanel.setLayout(new GridLayout(0,4));
 		isStatusPanel.setMinimumSize(new Dimension(600,40));
 		isStatusPanel.setPreferredSize(new Dimension(600,40));
 		isStatusPanel.setMaximumSize(new Dimension(1024,40));
@@ -734,7 +742,9 @@ public class AgGUI
 		JLabel label = null;
         	GridBagConstraints gridBagCon = new GridBagConstraints();
 
-		guidePanel.setLayout(new GridLayout(0,4));
+		log(1,"initGuidePanel:Started.");
+		System.err.println("initGuidePanel:Started.");
+ 		guidePanel.setLayout(new GridLayout(0,4));
 		guidePanel.setMinimumSize(new Dimension(400,200));
 		guidePanel.setPreferredSize(new Dimension(1024,200));
 		guidePanel.setMaximumSize(new Dimension(1024,200));
@@ -846,47 +856,49 @@ public class AgGUI
 	 */
 	private void initObjectStatsPanel(JPanel panel,GridBagLayout gridBagLayout)
 	{
-		JPanel objectStats = new JPanel();
+		JPanel objectStatsPanel = new JPanel();
 		JLabel label = null;
         	GridBagConstraints gridBagCon = new GridBagConstraints();
 
-		objectStats.setLayout(new GridLayout(0,4));
-		objectStats.setMinimumSize(new Dimension(400,200));
-		objectStats.setPreferredSize(new Dimension(1024,200));
-		objectStats.setMaximumSize(new Dimension(1024,200));
+		log(1,"initObjectStatsPanel:Started.");
+		System.err.println("initObjectStatsPanel:Started.");
+ 		objectStatsPanel.setLayout(new GridLayout(0,4));
+		objectStatsPanel.setMinimumSize(new Dimension(400,60));
+		objectStatsPanel.setPreferredSize(new Dimension(1024,60));
+		objectStatsPanel.setMaximumSize(new Dimension(1024,60));
 	// Median Background Counts
 		label = new JLabel("Median Background:");
-		objectStats.add(label);
+		objectStatsPanel.add(label);
 		objectMedianLabel = new JLabel("Unknown");
-		objectStats.add(objectMedianLabel);
+		objectStatsPanel.add(objectMedianLabel);
 	// Mean Background Counts
 		label = new JLabel("Mean Background:");
-		objectStats.add(label);
+		objectStatsPanel.add(label);
 		objectMeanLabel = new JLabel("Unknown");
-		objectStats.add(objectMeanLabel);
+		objectStatsPanel.add(objectMeanLabel);
 	// Background Standard Deviation
-		label = new JLabel("Background Standard Deviation:");
-		objectStats.add(label);
+		label = new JLabel("Background S.D.:");
+		objectStatsPanel.add(label);
 		objectBackgroundStandardDeviationLabel = new JLabel("Unknown");
-		objectStats.add(objectBackgroundStandardDeviationLabel);
+		objectStatsPanel.add(objectBackgroundStandardDeviationLabel);
 	// Threshold
 		label = new JLabel("Threshold:");
-		objectStats.add(label);
+		objectStatsPanel.add(label);
 		objectThresholdLabel = new JLabel("Unknown");
-		objectStats.add(objectThresholdLabel);
+		objectStatsPanel.add(objectThresholdLabel);
 	// add border
-		objectStats.setBorder(new TitledSmallerBorder("Object Stats"));
-	// these constraints mean that the GridBagLayout can't alter the size of objectStats
+		objectStatsPanel.setBorder(new TitledSmallerBorder("Object Stats"));
+	// these constraints mean that the GridBagLayout can't alter the size of objectStatsPanel
 		gridBagCon.gridx = 0;
-		gridBagCon.gridy = 1;
+		gridBagCon.gridy = 2;
 		gridBagCon.gridwidth = GridBagConstraints.REMAINDER;
 		gridBagCon.gridheight = 1;
 		gridBagCon.fill = GridBagConstraints.HORIZONTAL;
 		gridBagCon.weightx = 1.0;
 		gridBagCon.weighty = 0.0;
 		gridBagCon.anchor = GridBagConstraints.NORTH;
-		gridBagLayout.setConstraints(objectStats,gridBagCon);
-		panel.add(objectStats);
+		gridBagLayout.setConstraints(objectStatsPanel,gridBagCon);
+		panel.add(objectStatsPanel);
 	}
 
 	/**
