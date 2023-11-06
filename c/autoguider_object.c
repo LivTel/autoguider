@@ -67,6 +67,7 @@ enum OBJECT_THRESHOLD_STATS_TYPE
  *                              above the background.</dd>
  * <dt>Threshold_Sigma_Reject</dt> <dd>Loaded from config, used to compute the background S.D. 
  *                                 when Threshold_Stats_Type is OBJECT_THRESHOLD_STATS_TYPE_SIGMA_CLIP.</dd>
+ * <dt>Min_Connected_Pixel_Count</dt> <dd>Number of connected pixels required for an object to be considered valid.</dd>
  * <dt>Binned_NCols</dt> <dd>Number of binned columns in the image_data.</dd>
  * <dt>Binned_NRows</dt> <dd>Number of binned rows in the image_data.</dd>
  * <dt>Image_Data</dt> <dd>Pointer to float data containing the image data.</dd>
@@ -96,6 +97,7 @@ struct Object_Internal_Struct
 	enum OBJECT_THRESHOLD_STATS_TYPE Threshold_Stats_Type;
 	float Threshold_Sigma;
 	float Threshold_Sigma_Reject;
+	int Min_Connected_Pixel_Count;
 	/* input image related data */
 	int Binned_NCols;
 	int Binned_NRows;
@@ -130,7 +132,7 @@ static char rcsid[] = "$Id: autoguider_object.c,v 1.18 2014-01-31 17:15:45 cjm E
  */
 static struct Object_Internal_Struct Object_Data = 
 {
-	0.5,OBJECT_THRESHOLD_STATS_TYPE_SIGMA_CLIP,7.0,5.0,
+	0.5,OBJECT_THRESHOLD_STATS_TYPE_SIGMA_CLIP,7.0,5.0,8,
 	-1,-1,
 	NULL,0,PTHREAD_MUTEX_INITIALIZER,
 	NULL,0,0,PTHREAD_MUTEX_INITIALIZER,
@@ -163,9 +165,12 @@ static int Object_Sort_Object_List_By_Total_Counts(const void *p1, const void *p
  *     background for object detection.
  * <li>We load "object.threshold.sigma.reject" from config and set Object_Data.Threshold_Sigma_Reject,which is 
  *     used to compute the background S.D. when Threshold_Stats_Type is OBJECT_THRESHOLD_STATS_TYPE_SIGMA_CLIP.
+ * <li>We load "object.min_connected_pixel_count" from config and set Object_Data.Min_Connected_Pixel_Count,
+ *     which is the number of connected pixels required for an object to be considered valid.
  * </ul>
  * @see #Object_Data
  * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Float
+ * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Integer
  * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_String
  * @see ../../libdprt/object/cdocs/object.html#Object_Stellar_Ellipticity_Limit_Set
  */
@@ -234,6 +239,14 @@ int Autoguider_Object_Initialise(void)
 		Autoguider_General_Error_Number = 1024;
 		sprintf(Autoguider_General_Error_String,"Autoguider_Object_Initialise:"
 			"Failed to load config:'object.threshold.sigma.reject'.");
+		return FALSE;
+	}
+	/* min connected pixel count */
+	if(!CCD_Config_Get_Integer("object.min_connected_pixel_count",&(Object_Data.Min_Connected_Pixel_Count)))
+	{
+		Autoguider_General_Error_Number = 1025;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Object_Initialise:"
+			"Failed to load config:'object.min_connected_pixel_count'.");
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 1
@@ -932,6 +945,9 @@ static int Object_Buffer_Copy(float *buffer,int naxis1,int naxis2)
  * Locks the Image_Data_Mutex whilst accessing the image data.
  * Locks the Object_List_Mutex whilst modifying the object list.
  * Currently sorted (after setting the index!) into total count order (Object_Sort_Object_List_By_Total_Counts).
+ * Object_Set_Threshold is used to compute the threshold pixel value, above which pixels are deemed to be part of objects.
+ * The minimum number of connected pixels needed for an object to be valid is read from the Object_Data.Min_Connected_Pixel_Count
+ * variable, which has been loaded from config as part of Autoguider_Object_Initialise.
  * @param use_standard_deviation A boolean, whether to use standard deviation when calculating the object 
  *        threshold value. The SD is useful for sky gradients on field buffers, but the guide buffer SD is
  *        skewed by being mostly filled (hopefully) with a star, and so this variable should be set to FALSE
@@ -998,9 +1014,10 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
 			       LOG_VERBOSITY_VERBOSE,"OBJECT","Starting object detection.");
 #endif
 	/* clock_gettime(CLOCK_REALTIME,&start_time);*/
-	/* npix '8' should be a loaded property */
+	/* Call the object detection code */
 	retval = Object_List_Get(Object_Data.Image_Data,Object_Data.Median,Object_Data.Binned_NCols,
-				 Object_Data.Binned_NRows,Object_Data.Threshold,8,&object_list,&seeing_flag,&seeing);
+				 Object_Data.Binned_NRows,Object_Data.Threshold,Object_Data.Min_Connected_Pixel_Count,
+				 &object_list,&seeing_flag,&seeing);
 	/* clock_gettime(CLOCK_REALTIME,&stop_time);*/
 	if(retval == FALSE)
 	{
