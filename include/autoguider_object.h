@@ -62,6 +62,7 @@ extern float Autoguider_Object_Median_Get(void);
 extern float Autoguider_Object_Mean_Get(void);
 extern float Autoguider_Object_Background_Standard_Deviation_Get(void);
 extern float Autoguider_Object_Threshold_Get(void);
+extern int Autoguider_Object_Min_Connected_Pixel_Count_Get(void);
 
 /*
 ** $Log: not supported by cvs2svn $

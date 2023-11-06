@@ -814,6 +814,18 @@ float Autoguider_Object_Threshold_Get(void)
 	return Object_Data.Threshold;
 }
 
+/**
+ * Return the number of connected pixels with above-threshold pixel values required for a detected object to be deemed
+ * valid, as loaded as a config value, and passed into the object detection routine.
+ * @return The number of connected pixels with above-threshold pixel values required for a detected object 
+ *         to be deemed valid, as stored in Object_Data.
+ * @see #Object_Data
+ */
+int Autoguider_Object_Min_Connected_Pixel_Count_Get(void)
+{
+	return Object_Data.Min_Connected_Pixel_Count;
+}
+
 /* ----------------------------------------------------------------------------
 ** 		internal functions 
 ** ---------------------------------------------------------------------------- */
