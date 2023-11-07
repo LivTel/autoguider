@@ -529,6 +529,7 @@ static void Autoguider_Server_Connection_Callback(Command_Server_Handle_T connec
 			   "\tstatus guide <cadence|timecode_scaling|exposure_length|window>\n"
 			   "\tstatus guide <last_object|initial_position>\n"
 			   "\tstatus object <list|count|median|mean|background_standard_deviation|threshold>\n"
+			   "\tstatus object <sigma|sigma_reject|ellipticity_limit|min_con_pix>\n"
 			   "\ttemperature [set <C>|cooler [on|off]]\n"
 			   "\tshutdown\n");
 	}

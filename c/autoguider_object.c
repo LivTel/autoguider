@@ -795,8 +795,10 @@ float Autoguider_Object_Mean_Get(void)
 }
 
 /**
- * Return the background standard deviation in the last image that had the Autoguider_Object_Detect object detection routine run on it.
- * @return The background standard deviation in ADU of the last buffer passed to Autoguider_Object_Detect, as stored in Object_Data.
+ * Return the background standard deviation in the last image that had the Autoguider_Object_Detect 
+ * object detection routine run on it.
+ * @return The background standard deviation in ADU of the last buffer passed to Autoguider_Object_Detect, 
+ *         as stored in Object_Data.
  * @see #Object_Data
  */
 float Autoguider_Object_Background_Standard_Deviation_Get(void)
@@ -805,13 +807,48 @@ float Autoguider_Object_Background_Standard_Deviation_Get(void)
 }
 
 /**
- * Return the computed threshold used to detect objects in the last image that had the Autoguider_Object_Detect object detection routine run on it.
- * @return The detect objection threshold in ADU of the last buffer passed to Autoguider_Object_Detect, as stored in Object_Data.
+ * Return the computed threshold used to detect objects in the last image that had the Autoguider_Object_Detect 
+ * object detection routine run on it.
+ * @return The detect objection threshold in ADU of the last buffer passed to Autoguider_Object_Detect, 
+ *         as stored in Object_Data.
  * @see #Object_Data
  */
 float Autoguider_Object_Threshold_Get(void)
 {
 	return Object_Data.Threshold;
+}
+
+/**
+ * Return the object detection threshold sigma used to compute the currently used threshold used to detect objects.
+ * @return The object detection threshold sigma used to compute the currently used threshold for object detection.
+ * @see #Object_Data
+ */
+float Autoguider_Object_Threshold_Sigma_Get(void)
+{
+	return Object_Data.Threshold_Sigma;
+}
+
+/**
+ * Return the object detection threshold sigma reject used to compute the mean used to compute 
+ * the currently used threshold used to detect objects.
+ * @return The object detection threshold sigma reject used to compute the mean used to the 
+ *         currently used threshold for object detection.
+ * @see #Object_Data
+ */
+float Autoguider_Object_Threshold_Sigma_Reject_Get(void)
+{
+	return Object_Data.Threshold_Sigma_Reject;
+}
+
+/**
+ * Return the ellipticity limit used to configure the object detection routine 
+ * (by calling Object_Stellar_Ellipticity_Limit_Set).
+ * @return The ellipticity limit used to configure the object detection routine.
+ * @see #Object_Data
+ */
+float Autoguider_Object_Ellipticity_Limit_Get(void)
+{
+	return Object_Data.Ellipticity_Limit;
 }
 
 /**

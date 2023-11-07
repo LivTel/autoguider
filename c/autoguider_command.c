@@ -523,6 +523,7 @@ int Autoguider_Command_Config_Load(char *command_string,char **reply_string)
  * <li>status guide &lt;active|dark|flat|object|packet|cadence|timecode_scaling|exposure_length|window&gt;
  * <li>status guide &lt;last_object|initial_position&gt;
  * <li>status object &lt;list|count|median|mean|background_standard_deviation|threshold&gt;
+ * <li>status object &lt;sigma|sigma_reject|ellipticity_limit|min_con_pix&gt;
  * </ul>
  * @param command_string The status command. This is not changed during this routine.
  * @param reply_string The address of a pointer to allocate and set the reply string.
@@ -554,6 +555,10 @@ int Autoguider_Command_Config_Load(char *command_string,char **reply_string)
  * @see autoguider_object.html#Autoguider_Object_Mean_Get
  * @see autoguider_object.html#Autoguider_Object_Background_Standard_Deviation_Get
  * @see autoguider_object.html#Autoguider_Object_Threshold_Get
+ * @see autoguider_object.html#Autoguider_Object_Threshold_Sigma_Get
+ * @see autoguider_object.html#Autoguider_Object_Threshold_Sigma_Reject_Get
+ * @see autoguider_object.html#Autoguider_Object_Ellipticity_Limit_Get
+ * @see autoguider_object.html#Autoguider_Object_Min_Connected_Pixel_Count_Get
  * @see ../ccd/cdocs/ccd_general.html#CCD_General_Error
  * @see ../ccd/cdocs/ccd_general.html#CCD_General_Get_Time_String
  * @see ../ccd/cdocs/ccd_setup.html#CCD_Setup_Window_Struct
@@ -948,6 +953,38 @@ int Autoguider_Command_Status(char *command_string,char **reply_string)
 		{
 			fvalue = Autoguider_Object_Threshold_Get();
 			sprintf(buff,"0 %.6f",fvalue);
+			if(!Autoguider_General_Add_String(reply_string,buff))
+				return FALSE;
+			return TRUE;
+		}
+		else if(strcmp(element_string,"sigma") == 0)
+		{
+			fvalue = Autoguider_Object_Threshold_Sigma_Get();
+			sprintf(buff,"0 %.6f",fvalue);
+			if(!Autoguider_General_Add_String(reply_string,buff))
+				return FALSE;
+			return TRUE;
+		}
+		else if(strcmp(element_string,"sigma_reject") == 0)
+		{
+			fvalue = Autoguider_Object_Threshold_Sigma_Reject_Get();
+			sprintf(buff,"0 %.6f",fvalue);
+			if(!Autoguider_General_Add_String(reply_string,buff))
+				return FALSE;
+			return TRUE;
+		}
+		else if(strcmp(element_string,"ellipticity_limit") == 0)
+		{
+			fvalue = Autoguider_Object_Ellipticity_Limit_Get();
+			sprintf(buff,"0 %.6f",fvalue);
+			if(!Autoguider_General_Add_String(reply_string,buff))
+				return FALSE;
+			return TRUE;
+		}
+		else if(strcmp(element_string,"min_con_pix") == 0)
+		{
+			ivalue = Autoguider_Object_Min_Connected_Pixel_Count_Get();
+			sprintf(buff,"0 %d",ivalue);
 			if(!Autoguider_General_Add_String(reply_string,buff))
 				return FALSE;
 			return TRUE;
