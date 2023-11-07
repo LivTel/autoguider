@@ -846,11 +846,12 @@ int Autoguider_Command_Status(char *command_string,char **reply_string)
 		{
 			last_object = Autoguider_Guide_Last_Object_Get();
 			/* 0 CCD_X_Position CCD_Y_Position Buffer_X_Position Buffer_Y_Position 
-			** Total_Counts Pixel_Count Peak_Counts FWHM_X FWHM_Y */
-			sprintf(buff,"0 %.2f %.2f %.2f %.2f %.2f %d %.2f %.2f %.2f",
+			** Total_Counts Pixel_Count Peak_Counts Is_Stellar FWHM_X FWHM_Y */
+			sprintf(buff,"0 %.2f %.2f %.2f %.2f %.2f %d %.2f %s %.2f %.2f",
 				last_object.CCD_X_Position,last_object.CCD_Y_Position,
 				last_object.Buffer_X_Position,last_object.Buffer_Y_Position,
 				last_object.Total_Counts,last_object.Pixel_Count,last_object.Peak_Counts,
+				(last_object.Is_Stellar ? "TRUE" : "FALSE"),
 				last_object.FWHM_X,last_object.FWHM_Y);
 			if(!Autoguider_General_Add_String(reply_string,buff))
 				return FALSE;

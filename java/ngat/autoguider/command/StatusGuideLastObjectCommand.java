@@ -62,12 +62,17 @@ public class StatusGuideLastObjectCommand extends Command implements Runnable
 	 * Field index in object string, used for parsing.
 	 * @see #parseReplyString
 	 */
-	public final static int FIELD_INDEX_FWHM_X            = 7;
+	public final static int FIELD_INDEX_IS_STELLAR        = 7;
 	/**
 	 * Field index in object string, used for parsing.
 	 * @see #parseReplyString
 	 */
-	public final static int FIELD_INDEX_FWHM_Y            = 8;
+	public final static int FIELD_INDEX_FWHM_X            = 8;
+	/**
+	 * Field index in object string, used for parsing.
+	 * @see #parseReplyString
+	 */
+	public final static int FIELD_INDEX_FWHM_Y            = 9;
 	/**
 	 * Object field.
 	 */
@@ -96,6 +101,10 @@ public class StatusGuideLastObjectCommand extends Command implements Runnable
 	 * Object field.
 	 */
 	protected double peakCounts = 0.0;
+	/**
+	 * Object field.
+	 */
+	protected boolean isStellar = false;
 	/**
 	 * Object field.
 	 */
@@ -136,7 +145,7 @@ public class StatusGuideLastObjectCommand extends Command implements Runnable
 	 * This string has the format:
 	 * <pre>
 	 * CCD_X_Position CCD_Y_Position Buffer_X_Position Buffer_Y_Position 
-	 * Total_Counts Pixel_Count Peak_Counts FWHM_X FWHM_Y
+	 * Total_Counts Pixel_Count Peak_Counts Is_Stellar FWHM_X FWHM_Y
 	 * </pre>
 	 * See autoguider_command.c, Autoguider_Command_Status for the code that generates this string.
 	 * @see <a href="http://ltdevsrv.livjm.ac.uk/~dev/autoguider/cdocs/autoguider_command.html#Autoguider_Command_Status">autoguider_command.c:Autoguider_Command_Status</a>
@@ -147,6 +156,7 @@ public class StatusGuideLastObjectCommand extends Command implements Runnable
 	 * @see #FIELD_INDEX_TOTAL_COUNTS
 	 * @see #FIELD_INDEX_NUMBER_OF_PIXELS
 	 * @see #FIELD_INDEX_PEAK_COUNTS
+	 * @see #FIELD_INDEX_IS_STELLAR
 	 * @see #FIELD_INDEX_FWHM_X
 	 * @see #FIELD_INDEX_FWHM_Y
 	 * @see #replyString
@@ -178,6 +188,7 @@ public class StatusGuideLastObjectCommand extends Command implements Runnable
 			totalCounts = 0.0;
 			numberOfPixels = 0;
 			peakCounts = 0.0;
+			isStellar = false;
 			fwhmX = 0.0;
 			fwhmY = 0.0;
 			return;
@@ -212,6 +223,19 @@ public class StatusGuideLastObjectCommand extends Command implements Runnable
 					case FIELD_INDEX_PEAK_COUNTS:
 						peakCounts = Double.parseDouble(fieldString);
 						break;
+					case FIELD_INDEX_IS_STELLAR:
+						if(fieldString.equals("TRUE"))
+							isStellar = true;
+						else if(fieldString.equals("FALSE"))
+							isStellar = false;
+						else
+						{
+							throw new Exception(this.getClass().getName()+
+									    ":parseReplyString:Illegal field string:"+
+									    fieldString+" at is_stellar index "+
+									    fieldIndex);
+						}
+						break;
 					case FIELD_INDEX_FWHM_X:
 						fwhmX = Double.parseDouble(fieldString);
 						break;
@@ -237,6 +261,7 @@ public class StatusGuideLastObjectCommand extends Command implements Runnable
 			totalCounts = 0.0;
 			numberOfPixels = 0;
 			peakCounts = 0.0;
+			isStellar = false;
 			fwhmX = 0.0;
 			fwhmY = 0.0;
 		}
@@ -314,6 +339,16 @@ public class StatusGuideLastObjectCommand extends Command implements Runnable
 
 	/**
 	 * Object field getter.
+	 * @return Whether the object is deemed by the object detection routine to be stellar (round).
+	 * @see #isStellar
+	 */
+	public boolean getIsStellar()
+	{
+		return isStellar;
+	}
+
+	/**
+	 * Object field getter.
 	 * @return The full width half maximum in X of the object, in pixels.
 	 * @see #fwhmX
 	 */
@@ -353,6 +388,7 @@ public class StatusGuideLastObjectCommand extends Command implements Runnable
 	 * @see #totalCounts
 	 * @see #numberOfPixels
 	 * @see #peakCounts
+	 * @see #isStellar
 	 * @see #fwhmX
 	 * @see #fwhmY
 	 */
@@ -361,13 +397,14 @@ public class StatusGuideLastObjectCommand extends Command implements Runnable
 		DecimalFormat df = null;
 
 		df = new DecimalFormat("0.00");
-		return new String(prefix+"Last object:ccdx"+df.format(ccdPositionX)+
+		return new String(prefix+"Last object:ccdx:"+df.format(ccdPositionX)+
 				  " ccdy:"+df.format(ccdPositionY)+
 				  " bufferx:"+df.format(bufferPositionX)+
-				  " buffery"+df.format(bufferPositionY)+
+				  " buffery:"+df.format(bufferPositionY)+
 				  " total counts:"+df.format(totalCounts)+
 				  " number of pixels:"+numberOfPixels+
 				  " peak counts:"+df.format(peakCounts)+" "+
+				  " is stellar:"+isStellar+" "+
 				  " fwhmx:"+df.format(fwhmX)+" fwhmy:"+df.format(fwhmY));
 	}
 	
@@ -401,14 +438,15 @@ public class StatusGuideLastObjectCommand extends Command implements Runnable
 			System.out.println("Reply Parsed OK:"+command.getParsedReplyOK());
 			// print out results
 			df = new DecimalFormat("0.00");
-			System.out.println("Last object:ccdx"+df.format(command.ccdPositionX)+
+			System.out.println("Last object:ccdx:"+df.format(command.ccdPositionX)+
 					   " ccdy:"+df.format(command.ccdPositionY)+
 					   " bufferx:"+df.format(command.bufferPositionX)+
-					   " buffery"+df.format(command.bufferPositionY)+
+					   " buffery:"+df.format(command.bufferPositionY)+
 					   " total counts:"+df.format(command.totalCounts)+
 					   " number of pixels:"+command.numberOfPixels+
 					   " peak counts:"+df.format(command.peakCounts)+" "+
-					   " fwhmx:"+df.format(command.fwhmX)+" fwhmy"+df.format(command.fwhmY));
+					   " is stellar:"+command.isStellar+" "+
+					   " fwhmx:"+df.format(command.fwhmX)+" fwhmy:"+df.format(command.fwhmY));
 		}
 		catch(Exception e)
 		{
