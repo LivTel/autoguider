@@ -148,6 +148,7 @@ public class StatusObjectListObject
 
 	/**
 	 * Object field getter.
+	 * @return The object id as an integer.
 	 */
 	public int getId()
 	{
@@ -156,6 +157,7 @@ public class StatusObjectListObject
 
 	/**
 	 * Object field getter.
+	 * @return The object frame number as an integer.
 	 */
 	public int getFrameNumber()
 	{
@@ -164,6 +166,7 @@ public class StatusObjectListObject
 
 	/**
 	 * Object field getter.
+	 * @return The object index as an integer.
 	 */
 	public int getIndex()
 	{
@@ -172,6 +175,7 @@ public class StatusObjectListObject
 
 	/**
 	 * Object field getter.
+	 * @return The object's X position on the CCD as a double.
 	 */
 	public double getCCDPositionX()
 	{
@@ -180,6 +184,7 @@ public class StatusObjectListObject
 
 	/**
 	 * Object field getter.
+	 * @return The object's Y position on the CCD as a double.
 	 */
 	public double getCCDPositionY()
 	{
@@ -188,6 +193,7 @@ public class StatusObjectListObject
 
 	/**
 	 * Object field getter.
+	 * @return The object's X position in the image buffer as a double.
 	 */
 	public double getBufferPositionX()
 	{
@@ -196,6 +202,7 @@ public class StatusObjectListObject
 
 	/**
 	 * Object field getter.
+	 * @return The object's Y position in the image buffer as a double.
 	 */
 	public double getBufferPositionY()
 	{
@@ -204,6 +211,7 @@ public class StatusObjectListObject
 
 	/**
 	 * Object field getter.
+	 * @return The object's total integrated counts in ADU as a double.
 	 */
 	public double getTotalCounts()
 	{
@@ -212,6 +220,7 @@ public class StatusObjectListObject
 
 	/**
 	 * Object field getter.
+	 * @return The number of connected pixel making up the object, as an integer. 
 	 */
 	public int getNumberOfPixels()
 	{
@@ -220,6 +229,7 @@ public class StatusObjectListObject
 
 	/**
 	 * Object field getter.
+	 * @return The counts, in ADU, of the pixel with the greatest ADU value in the object as a double.
 	 */
 	public double getPeakCounts()
 	{
@@ -228,6 +238,7 @@ public class StatusObjectListObject
 
 	/**
 	 * Object field getter.
+	 * @return A boolean, if true the object detection thinks the object is stellar (round(ish)), false otherwise.
 	 */
 	public boolean isStellar()
 	{
@@ -236,6 +247,7 @@ public class StatusObjectListObject
 
 	/**
 	 * Object field getter.
+	 * @return The full width half maximum of the object in X in pixels, as a double.
 	 */
 	public double getFWHMX()
 	{
@@ -244,6 +256,7 @@ public class StatusObjectListObject
 
 	/**
 	 * Object field getter.
+	 * @return The full width half maximum of the object in Y in pixels, as a double.
 	 */
 	public double getFWHMY()
 	{
@@ -349,13 +362,19 @@ public class StatusObjectListObject
 		}// end while on tokens
 	}
 
+	/**
+	 * Generate a string version of the object.
+	 * @return The generated string.
+	 */
 	public String toString()
 	{
 		return toString("");
 	}
 
 	/**
-	 * Print out values.
+	 * Generate a string version of the object.
+	 * @param prefix A string to prepend to the generated string.
+	 * @return The generated string.
 	 * @see #id
 	 * @see #frameNumber
 	 * @see #index

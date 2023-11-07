@@ -448,7 +448,7 @@ public class AgGUIStatusUpdater implements AgGUIStatusUpdateListener
 
 	/**
 	 * Set the last object detection image standard deviation value label.
-	 * @param m The last object detection image standard deviation value, in counts.
+	 * @param sd The last object detection image standard deviation value, in counts.
 	 */
 	public void setObjectBackgroundStandardDeviation(double sd)
 	{
@@ -473,7 +473,7 @@ public class AgGUIStatusUpdater implements AgGUIStatusUpdateListener
 
 	/**
 	 * Set the last object detection image threshold value label.
-	 * @param m The last object detection image threshold value, in counts.
+	 * @param t The last object detection image threshold value, in counts.
 	 */
 	public void setObjectThreshold(double t)
 	{

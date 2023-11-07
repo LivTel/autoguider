@@ -215,6 +215,7 @@ public class AgGUI
 	 * <li>Calls initGUI, to create the screens.
 	 * <li>Calls run.
 	 * </ul>
+	 * @param args The command line arguments as an array of Strings.
 	 * @see #parsePropertyFilenameArgument
 	 * @see #initStatus
 	 * @see #parseArguments
@@ -661,6 +662,7 @@ public class AgGUI
 	/**
 	 * Initialise the main panel. This consists of setting the panel layout, and then 
 	 * adding the status panel and the log panel.
+	 * @param panel The JPanel instance to put the sub-panel's into.
 	 * @see #initStatusPanel
 	 * @see #initGuidePanel
 	 * @see #initObjectStatsPanel
@@ -1362,6 +1364,7 @@ public class AgGUI
 
 	/**
 	 * Return the GUI's parent frame.
+	 * @return The GUI's parent JFrame instance.
 	 * @see #frame
 	 */
 	public JFrame getFrame()
@@ -1370,7 +1373,8 @@ public class AgGUI
 	}
 
 	/**
-	 * Return the status object
+	 * Return the status object.
+	 * @return The AgGUIStatus instance.
 	 * @see #status
 	 * @see AgGUIStatus
 	 */
@@ -1451,6 +1455,7 @@ public class AgGUI
 
 	/**
 	 * Get the field status active checkbox.
+	 * @return The JCheckBoxMenuItem for the field status active checkbox.
 	 * @see #fieldStatusActiveMenuItem
 	 */
 	public JCheckBoxMenuItem getFieldStatusActiveMenuItem()
@@ -1460,6 +1465,7 @@ public class AgGUI
 
 	/**
 	 * Get the guide status active checkbox.
+	 * @return The JCheckBoxMenuItem for the guide status active checkbox.
 	 * @see #guideStatusActiveMenuItem
 	 */
 	public JCheckBoxMenuItem getGuideStatusActiveMenuItem()
@@ -1474,8 +1480,9 @@ public class AgGUI
 	 * @param args The list of arguments to parse.
 	 * @see #propertyFilename
 	 * @see #parseArguments
+	 * @see #error
 	 */
-	private void parsePropertyFilenameArgument(String[] args) throws NumberFormatException,UnknownHostException
+	private void parsePropertyFilenameArgument(String[] args)
 	{
 	// look through the argument list.
 		for(int i = 0; i < args.length;i++)
@@ -1506,6 +1513,8 @@ public class AgGUI
 	 * @see #remoteX
 	 * @see #help
 	 * @see #parsePropertyFilenameArgument
+	 * @exception NumberFormatException Thrown if the numberic arguments cannot be parsed as numbers.
+	 * @exception UnknownHostException Thrown if the host arguments cannot be parsed into InetAddress objects.
 	 */
 	private void parseArguments(String[] args) throws NumberFormatException,UnknownHostException
 	{

@@ -75,6 +75,7 @@ public class StatusGuideInitialPositionCommand extends Command implements Runnab
 	 * Initial_Object_CCD_X_Position Initial_Object_CCD_Y_Position 
 	 * </pre>
 	 * See autoguider_command.c, Autoguider_Command_Status for the code that generates this string.
+	 * @see <a href="http://ltdevsrv.livjm.ac.uk/~dev/autoguider/cdocs/autoguider_command.html#Autoguider_Command_Status">autoguider_command.c:Autoguider_Command_Status</a>
 	 * @see #FIELD_INDEX_CCD_POSITION_X
 	 * @see #FIELD_INDEX_CCD_POSITION_Y
 	 * @see #replyString
@@ -82,7 +83,6 @@ public class StatusGuideInitialPositionCommand extends Command implements Runnab
 	 * @see #parsedReplyOk
 	 * @see #ccdPositionX
 	 * @see #ccdPositionY
-	 * @link http://ltdevsrv.livjm.ac.uk/~dev/autoguider/cdocs/autoguider_command.html#Autoguider_Command_Status
 	 */
 	public void parseReplyString() throws Exception
 	{

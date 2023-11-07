@@ -139,6 +139,7 @@ public class StatusGuideLastObjectCommand extends Command implements Runnable
 	 * Total_Counts Pixel_Count Peak_Counts FWHM_X FWHM_Y
 	 * </pre>
 	 * See autoguider_command.c, Autoguider_Command_Status for the code that generates this string.
+	 * @see <a href="http://ltdevsrv.livjm.ac.uk/~dev/autoguider/cdocs/autoguider_command.html#Autoguider_Command_Status">autoguider_command.c:Autoguider_Command_Status</a>
 	 * @see #FIELD_INDEX_CCD_POSITION_X
 	 * @see #FIELD_INDEX_CCD_POSITION_Y
 	 * @see #FIELD_INDEX_BUFFER_POSITION_X
@@ -160,7 +161,6 @@ public class StatusGuideLastObjectCommand extends Command implements Runnable
 	 * @see #peakCounts
 	 * @see #fwhmX
 	 * @see #fwhmY
-	 * @link http://ltdevsrv.livjm.ac.uk/~dev/autoguider/cdocs/autoguider_command.html#Autoguider_Command_Status
 	 */
 	public void parseReplyString() throws Exception
 	{
