@@ -450,7 +450,7 @@ public class AgGUIGuideStatusThread extends Thread
 				statusUpdateListener.setGuideObjectTotalCounts(object.getTotalCounts());
 				statusUpdateListener.setGuideObjectPeakCounts(object.getPeakCounts());
 				statusUpdateListener.setGuideObjectNoOfPixels(object.getNumberOfPixels());
-				statusUpdateListener.setGuideObjectIsStellar("Unknown");
+				statusUpdateListener.setGuideObjectIsStellar(object.getIsStellar());
 				statusUpdateListener.setGuideObjectFWHMX(object.getFWHMX());
 				statusUpdateListener.setGuideObjectFWHMY(object.getFWHMY());
 			}
