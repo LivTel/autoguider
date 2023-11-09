@@ -863,6 +863,97 @@ int Autoguider_Object_Min_Connected_Pixel_Count_Get(void)
 	return Object_Data.Min_Connected_Pixel_Count;
 }
 
+/**
+ * Dynamically set/override the config value for the threshold sigma used to calculate the object detection threshold.
+ * The object detection threshold is usually set as follows in Object_Set_Threshold:
+ * Object_Data.Median+(Object_Data.Threshold_Sigma*Object_Data.Background_Standard_Deviation).
+ * @param sigma The new value of threshold sigma to use when calculating the threshold.
+ * @return The routine returns TRUE if the threshold sigma was updated successfully, and FALSE if there was a problem.
+ * @see #Object_Set_Threshold
+ * @see #Object_Data
+ */
+int Autoguider_Object_Threshold_Sigma_Set(float sigma)
+{
+	if(sigma <= 0.0)
+	{
+		Autoguider_General_Error_Number = 1026;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Object_Threshold_Sigma_Set:sigma %.2f too small.",
+			sigma);
+		return FALSE;
+	}
+	Object_Data.Threshold_Sigma = sigma;
+	return TRUE;
+}
+
+/**
+ * Dynamically set/override the config value for the threshold sigma reject used used to compute the 
+ * background S.D. when Threshold_Stats_Type is OBJECT_THRESHOLD_STATS_TYPE_SIGMA_CLIP.
+ * The object detection threshold is usually set as follows in Object_Set_Threshold:
+ * Object_Data.Median+(Object_Data.Threshold_Sigma*Object_Data.Background_Standard_Deviation).
+ * @param sigma_reject The new value of threshold sigma reject to use when calculating the background S.D.
+ * @return The routine returns TRUE if the threshold sigma reject was updated successfully, 
+ *         and FALSE if there was a problem.
+ * @see #Object_Set_Threshold
+ * @see #Object_Data
+ */
+int Autoguider_Object_Threshold_Sigma_Reject_Set(float sigma_reject)
+{
+	if(sigma_reject <= 0.0)
+	{
+		Autoguider_General_Error_Number = 1027;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Object_Threshold_Sigma_Reject_Set:"
+			"sigma_reject %.2f too small.",sigma_reject);
+		return FALSE;
+	}
+	Object_Data.Threshold_Sigma_Reject = sigma_reject;
+	return TRUE;
+}
+
+/**
+ * Dynamically set/override the config value for the ellipticity limit used used to accept/reject
+ * valid objects detected by the object detection routine.
+ * @param ellipticity_limit The new value of the ellipticity limit to use when detecting objects.
+ * @return The routine returns TRUE if the ellipticity limit was updated successfully, 
+ *         and FALSE if there was a problem.
+ * @see #Object_Data
+ * @see ../../libdprt/object/cdocs/object.html#Object_List_Get
+ * @see ../../libdprt/object/cdocs/object.html#Object_Stellar_Ellipticity_Limit_Set
+ */
+int Autoguider_Object_Ellipticity_Limit_Set(float ellipticity_limit)
+{
+	if(ellipticity_limit <= 0.0)
+	{
+		Autoguider_General_Error_Number = 1028;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Object_Ellipticity_Limit_Set:"
+			"ellipticity_limit %.2f too small.",ellipticity_limit);
+		return FALSE;
+	}
+	Object_Data.Ellipticity_Limit = ellipticity_limit;
+	return TRUE;
+}
+
+/**
+ * Dynamically set/override the config value for the minimum number of connected pixels above the threshold 
+ * for an object to be deemed valid by the object detection code.
+ * @param npix The new value of the minimum number of connected pixels to use when detecting objects.
+ * @return The routine returns TRUE if the minimum number of connected pixels was updated successfully, 
+ *         and FALSE if there was a problem.
+ * @see #Object_Data
+ * @see ../../libdprt/object/cdocs/object.html#Object_List_Get
+ */
+int Autoguider_Object_Min_Connected_Pixel_Count_Set(int npix)
+{
+	if(npix <= 0)
+	{
+		Autoguider_General_Error_Number = 1029;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Object_Min_Connected_Pixel_Count_Get:"
+			"minimum connected pixel count %d too small.",npix);
+		return FALSE;
+	}
+	Object_Data.Min_Connected_Pixel_Count = npix;
+	return TRUE;
+}
+
 /* ----------------------------------------------------------------------------
 ** 		internal functions 
 ** ---------------------------------------------------------------------------- */

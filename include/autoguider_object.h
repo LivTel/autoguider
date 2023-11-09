@@ -66,14 +66,10 @@ extern float Autoguider_Object_Threshold_Sigma_Get(void);
 extern float Autoguider_Object_Threshold_Sigma_Reject_Get(void);
 extern float Autoguider_Object_Ellipticity_Limit_Get(void);
 extern int Autoguider_Object_Min_Connected_Pixel_Count_Get(void);
-
-/*
-** $Log: not supported by cvs2svn $
-** Revision 1.2  2006/06/27 20:44:15  cjm
-** Added Autoguider_Object_Guide_Object_Get.
-**
-** Revision 1.1  2006/06/01 15:19:05  cjm
-** Initial revision
-**
-*/
+/* Dynamically modify some of the configuration values used to calculate the object detection threshold value */
+extern int Autoguider_Object_Threshold_Sigma_Set(float sigma);
+extern int Autoguider_Object_Threshold_Sigma_Reject_Set(float sigma_reject);
+extern int Autoguider_Object_Ellipticity_Limit_Set(float ellipticity_limit);
+extern int Autoguider_Object_Min_Connected_Pixel_Count_Set(int npix);
+						   
 #endif
