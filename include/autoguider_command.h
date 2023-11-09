@@ -25,6 +25,7 @@ extern int Autoguider_Command_Agstate(char *command_string,char **reply_string);
 extern int Autoguider_Command_Autoguide(char *command_string,char **reply_string);
 extern int Autoguider_Command_Autoguide_On(enum COMMAND_AG_ON_TYPE on_type,float pixel_x,float pixel_y,int rank);
 extern int Autoguider_Command_Config_Load(char *command_string,char **reply_string);
+extern int Autoguider_Command_Object(char *command_string,char **reply_string);
 extern int Autoguider_Command_Status(char *command_string,char **reply_string);
 extern int Autoguider_Command_Temperature(char *command_string,char **reply_string);
 extern int Autoguider_Command_Expose(char *command_string,char **reply_string);

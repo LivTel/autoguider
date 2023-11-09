@@ -515,6 +515,148 @@ int Autoguider_Command_Config_Load(char *command_string,char **reply_string)
 }
 
 /**
+ * Handle a command of the form: "object <variable> <n>". This allows us to set various object variables
+ * used to determine the treshold and object detection dynamically.
+ * <ul>
+ * <li>object sigma <n>
+ * <li>object sigma_reject <n>
+ * <li>object ellipticity_limit <n>
+ * <li>object min_con_pix <n>
+ * </ul>
+ * @param command_string The status command. This is not changed during this routine.
+ * @param reply_string The address of a pointer to allocate and set the reply string.
+ * @return The routine returns TRUE on success and FALSE on failure.
+ * @see autoguider_general.html#Autoguider_General_Add_String
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#Autoguider_General_Error_Number
+ * @see autoguider_general.html#Autoguider_General_Error_String
+ * @see autoguider_object.html#Autoguider_Object_Threshold_Sigma_Set
+ * @see autoguider_object.html#Autoguider_Object_Threshold_Sigma_Reject_Set
+ * @see autoguider_object.html#Autoguider_Object_Ellipticity_Limit_Set
+ * @see autoguider_object.html#Autoguider_Object_Min_Connected_Pixel_Count_Set
+ */
+int Autoguider_Command_Object(char *command_string,char **reply_string)
+{
+	char variable_string[65];
+	char value_string[65];
+	char buff[64];
+	float fvalue;
+	int retval,ivalue;
+	
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Object",
+			       LOG_VERBOSITY_TERSE,"COMMAND","started.");
+#endif
+	if(command_string == NULL)
+	{
+		Autoguider_General_Error_Number = 331;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Command_Object:command_string was NULL.");
+		return FALSE;
+	}
+	if(reply_string == NULL)
+	{
+		Autoguider_General_Error_Number = 332;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Command_Object:reply_string was NULL.");
+		return FALSE;
+	}
+#if AUTOGUIDER_DEBUG > 5
+	Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Object",
+			       LOG_VERBOSITY_TERSE,"COMMAND","Autoguider_Command_Object:parsing command string.");
+#endif
+	retval = sscanf(command_string,"object %64s %64s",variable_string,value_string);
+	if(retval != 2)
+	{
+		Autoguider_General_Error_Number = 333;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Command_Object:"
+			"Failed to parse object command '%s' (%d).",command_string,retval);
+		return FALSE;
+	}
+	/* usually the value is a float */
+	retval = sscanf(value_string,"%f",&fvalue);
+	if(retval != 1)
+	{
+		Autoguider_General_Error_Number = 334;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Command_Object:"
+			"Failed to parse value string '%s' (%d).",value_string,retval);
+		return FALSE;
+	}
+	/* do something based on variable */
+	if(strcmp(variable_string,"sigma") == 0)
+	{
+		if(!Autoguider_Object_Threshold_Sigma_Set(fvalue))
+			return FALSE;
+		if(!Autoguider_General_Add_String(reply_string,"0 object sigma set to:"))
+			return FALSE;
+		sprintf(buff,"%.3f",fvalue);
+		if(!Autoguider_General_Add_String(reply_string,buff))
+			return FALSE;
+		if(!Autoguider_General_Add_String(reply_string,"."))
+			return FALSE;
+		return TRUE;
+	}
+	else if(strcmp(variable_string,"sigma_reject") == 0)
+	{
+		if(!Autoguider_Object_Threshold_Sigma_Reject_Set(fvalue))
+			return FALSE;
+		if(!Autoguider_General_Add_String(reply_string,"0 object sigma reject set to:"))
+			return FALSE;
+		sprintf(buff,"%.3f",fvalue);
+		if(!Autoguider_General_Add_String(reply_string,buff))
+			return FALSE;
+		if(!Autoguider_General_Add_String(reply_string,"."))
+			return FALSE;
+		return TRUE;
+	}
+	else if(strcmp(variable_string,"ellipticity_limit") == 0)
+	{
+		if(!Autoguider_Object_Ellipticity_Limit_Set(fvalue))
+			return FALSE;
+		if(!Autoguider_General_Add_String(reply_string,"0 object ellipticity limit set to:"))
+			return FALSE;
+		sprintf(buff,"%.3f",fvalue);
+		if(!Autoguider_General_Add_String(reply_string,buff))
+			return FALSE;
+		if(!Autoguider_General_Add_String(reply_string,"."))
+			return FALSE;
+		return TRUE;
+	}
+	else if(strcmp(variable_string,"min_con_pix") == 0)
+	{
+		/* reparse value_string as an integer in this case */
+		retval = sscanf(value_string,"%d",&ivalue);
+		if(retval != 1)
+		{
+			Autoguider_General_Error_Number = 335;
+			sprintf(Autoguider_General_Error_String,"Autoguider_Command_Object:"
+				"Failed to parse value string '%s' as an integer (%d).",value_string,retval);
+			return FALSE;
+		}
+		if(!Autoguider_Object_Min_Connected_Pixel_Count_Set(ivalue))
+			return FALSE;
+		if(!Autoguider_General_Add_String(reply_string,"0 object minimum connected pixels set to:"))
+			return FALSE;
+		sprintf(buff,"%d",ivalue);
+		if(!Autoguider_General_Add_String(reply_string,buff))
+			return FALSE;
+		if(!Autoguider_General_Add_String(reply_string,"."))
+			return FALSE;
+		return TRUE;
+	}
+	else
+	{
+		if(!Autoguider_General_Add_String(reply_string,"1 Unknown variable:"))
+			return FALSE;
+		if(!Autoguider_General_Add_String(reply_string,variable_string))
+			return FALSE;
+		if(!Autoguider_General_Add_String(reply_string,"."))
+			return FALSE;
+		return TRUE;
+	}
+	return TRUE;
+}
+
+
+/**
  * Handle a command of the form: "status <type> <element>".
  * <ul>
  * <li>status temperature get
