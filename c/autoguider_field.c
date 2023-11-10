@@ -1558,8 +1558,11 @@ static int Field_Reduce(int buffer_index)
 	/* object detect */
 	if(Field_Data.Do_Object_Detect)
 	{
+		/* Whole detector image dimensions start at (1,1) not (0,0) (for at least Andor/PCO)
+		** We therefore pass in (1,1) as the start x/y pixel so the returned centroids have
+		** the same pixel position mapping as the windowed guide frames (1-based rather than 0-based) */
 		retval = Autoguider_Object_Detect(reduced_buffer_ptr,Field_Data.Binned_NCols,Field_Data.Binned_NRows,
-						  0,0,TRUE,Field_Data.Field_Id,Field_Data.Frame_Number);
+						  1,1,TRUE,Field_Data.Field_Id,Field_Data.Frame_Number);
 		if(retval == FALSE)
 		{
 			Autoguider_Buffer_Reduced_Field_Unlock(buffer_index);
