@@ -40,6 +40,7 @@ alias autoguider_get_guide_frames 	'/icc/bin/autoguider/scripts/autoguider_get_g
 alias autoguider_make_dark 		'/icc/bin/autoguider/scripts/autoguider_make_dark'
 alias autoguider_make_flat 		'/icc/bin/autoguider/scripts/autoguider_make_flat'
 alias autoguider_temperature_get	'/icc/bin/autoguider/commandserver/test/${HOSTTYPE}/send_command -h acc -p 6571 -c "status temperature get"'
+alias check_alive 			autoguider_temperature_get
 alias autoguider_temperature_ambient	'/icc/bin/autoguider/commandserver/test/${HOSTTYPE}/send_command -h acc -p 6571 -c "temperature set 15.0"'
 alias autoguider_runtime_system_evaluator '/icc/bin/autoguider/java/gui/autoguider_runtime_system_evaluator'
 # Do not delete the next comment, it delimits the cshrc updated by the autoguider_install script.
