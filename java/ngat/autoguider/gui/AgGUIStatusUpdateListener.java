@@ -52,4 +52,6 @@ public interface AgGUIStatusUpdateListener
 	public void setObjectBackgroundStandardDeviation(String s);
 	public void setObjectThreshold(double t);
 	public void setObjectThreshold(String s);
+	public void addCCDXPositionToGraph(double d);
+	public void addCCDYPositionToGraph(double d);
 }

@@ -19,6 +19,17 @@ import ngat.swing.*;
 import ngat.util.*;
 import ngat.util.logging.*;
 
+// charting
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.ChartPanel;
+import org.jfree.chart.JFreeChart;
+import org.jfree.chart.axis.ValueAxis;
+import org.jfree.chart.plot.XYPlot;
+import org.jfree.data.time.DynamicTimeSeriesCollection;
+import org.jfree.data.time.Second;
+import org.jfree.data.xy.XYDataset;
+
+
 /**
  * This class is the start point for the Autoguider GUI.
  * @author Chris Mottram
@@ -179,6 +190,14 @@ public class AgGUI
 	 * Label to put object Threshold value into.
 	 */
 	private JLabel objectThresholdLabel = null;
+	/**
+	 * Dataset for the CCD X position graph.
+	 */
+	private DynamicTimeSeriesCollection ccdxDataset = null;
+	/**
+	 * Dataset for the CCD Y position graph.
+	 */
+	private DynamicTimeSeriesCollection ccdyDataset = null;
 	/**
 	 * Should we poll field status when fielding.
 	 */
@@ -685,6 +704,8 @@ public class AgGUI
 		initGuidePanel(panel,gridBagLayout);
 	// object stats panel
 		initObjectStatsPanel(panel,gridBagLayout);
+	// guide centroid graph panel
+		initGuideCentroidGraphPanel(panel,gridBagLayout);
 	}
 
 	/**
@@ -901,6 +922,79 @@ public class AgGUI
 		gridBagCon.anchor = GridBagConstraints.NORTH;
 		gridBagLayout.setConstraints(objectStatsPanel,gridBagCon);
 		panel.add(objectStatsPanel);
+	}
+
+	/**
+	 * Initialise guide centroid graph panel.
+	 * @param panel The panel to put the guide centroid graph panel in.
+	 * @param gridBagLayout The grid bag layout to set constraints for, before adding things
+	 * 	to the panel.
+	 * @see #ccdxDataset
+	 * @see #ccdyDataset
+	 */
+	private void initGuideCentroidGraphPanel(JPanel panel,GridBagLayout gridBagLayout)
+	{
+		JPanel guideCentroidGraphPanel = new JPanel();
+		GridBagConstraints gridBagCon = new GridBagConstraints();
+		JFreeChart ccdxChart = null;
+		JFreeChart ccdyChart = null;
+		
+		log(1,"initGuideCentroidGraphPanel:Started.");
+		System.err.println("initGuideCentroidGraphPanel:Started.");
+ 		guideCentroidGraphPanel.setLayout(new GridLayout(0,1));
+		guideCentroidGraphPanel.setMinimumSize(new Dimension(400,400));
+		guideCentroidGraphPanel.setPreferredSize(new Dimension(1024,400));
+		guideCentroidGraphPanel.setMaximumSize(new Dimension(1024,400));
+		// ccdx
+		ccdxDataset = new DynamicTimeSeriesCollection(1, 120, new Second());
+		ccdxDataset.setTimeBase(new Second());
+		//ccdxDataset.addSeries(gaussianData(), 0, "CCD X Position");
+		ccdxChart = createChart("CCD X Position",ccdxDataset,0,2048);
+		guideCentroidGraphPanel.add(new ChartPanel(ccdxChart));
+		// ccdy
+		ccdyDataset = new DynamicTimeSeriesCollection(1, 120, new Second());
+		ccdyDataset.setTimeBase(new Second());
+		//ccdyDataset.addSeries(gaussianData(), 0, "CCD Y Position");
+		ccdyChart = createChart("CCD Y Position",ccdyDataset,0,2048);
+		guideCentroidGraphPanel.add(new ChartPanel(ccdyChart));
+
+		// buffx
+
+		// buffy
+		
+	// add border
+		guideCentroidGraphPanel.setBorder(new TitledSmallerBorder("Guide Centroids"));
+	// these constraints mean that the GridBagLayout can't alter the size of guideCentroidGraphPanel
+		gridBagCon.gridx = 0;
+		gridBagCon.gridy = 3;
+		gridBagCon.gridwidth = GridBagConstraints.REMAINDER;
+		gridBagCon.gridheight = 1;
+		gridBagCon.fill = GridBagConstraints.HORIZONTAL;
+		gridBagCon.weightx = 1.0;
+		gridBagCon.weighty = 0.0;
+		gridBagCon.anchor = GridBagConstraints.NORTH;
+		gridBagLayout.setConstraints(guideCentroidGraphPanel,gridBagCon);
+		panel.add(guideCentroidGraphPanel);
+	}
+
+	/**
+	 * Create a chart from the input dataset.
+	 * @param dataset The dataset to be plotted.
+	 * @param miny The minimum y value to display.
+	 * @param maxy The maximum y value to display.
+	 */
+	private JFreeChart createChart(String titleString,XYDataset dataset,int miny,int maxy)
+	{
+		JFreeChart chart = null;
+		
+		chart = ChartFactory.createTimeSeriesChart(titleString, "hh:mm:ss", "position", dataset,
+								      true, true, false);
+		XYPlot plot = chart.getXYPlot();
+		ValueAxis domain = plot.getDomainAxis();
+		domain.setAutoRange(true);
+		ValueAxis range = plot.getRangeAxis();
+		range.setRange(miny,maxy);
+		return chart;
 	}
 
 	/**
@@ -1290,6 +1384,36 @@ public class AgGUI
 		objectThresholdLabel.setText(s);
 	}
 
+	/**
+	 * Add a CCD X position datum to the ccdx position dataset/graph.
+	 * @param ccdxPosition The New CCD X position of the centroid to add.
+	 * @see #ccdxDataset
+	 */
+	public void addCCDXPositionToGraph(float ccdxPosition)
+	{
+		float[] newData = new float[1];
+
+		newData[0] = ccdxPosition;
+		ccdxDataset.advanceTime();
+		ccdxDataset.appendData(newData);
+		System.err.println("addCCDXPositionToGraph:Added "+ccdxPosition+" to CCD X position dataset.");
+	}
+	
+	/**
+	 * Add a CCD Y position datum to the ccdy position dataset/graph.
+	 * @param ccdxPosition The New CCD Y position of the centroid to add.
+	 * @see #ccdyDataset
+	 */
+	public void addCCDYPositionToGraph(float ccdyPosition)
+	{
+		float[] newData = new float[1];
+
+		newData[0] = ccdyPosition;
+		ccdyDataset.advanceTime();
+		ccdyDataset.appendData(newData);
+		System.err.println("addCCDYPositionToGraph:Added "+ccdyPosition+" to CCD Y position dataset.");
+	}
+	
 	/**
 	 * Main program exit routine. Waits for command to complete before exiting, if n is zero,
 	 * otherwise just terminates.

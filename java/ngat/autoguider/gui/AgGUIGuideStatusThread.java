@@ -412,6 +412,8 @@ public class AgGUIGuideStatusThread extends Thread
 				statusUpdateListener.setGuideObjectIsStellar(object.isStellar());
 				statusUpdateListener.setGuideObjectFWHMX(object.getFWHMX());
 				statusUpdateListener.setGuideObjectFWHMY(object.getFWHMY());
+				statusUpdateListener.addCCDXPositionToGraph(object.getCCDPositionX());
+				statusUpdateListener.addCCDYPositionToGraph(object.getCCDPositionY());
 			}
 			else
 			{
@@ -453,6 +455,8 @@ public class AgGUIGuideStatusThread extends Thread
 				statusUpdateListener.setGuideObjectIsStellar(object.getIsStellar());
 				statusUpdateListener.setGuideObjectFWHMX(object.getFWHMX());
 				statusUpdateListener.setGuideObjectFWHMY(object.getFWHMY());
+				statusUpdateListener.addCCDXPositionToGraph(object.getCCDPositionX());
+				statusUpdateListener.addCCDYPositionToGraph(object.getCCDPositionY());
 			}
 			else
 			{

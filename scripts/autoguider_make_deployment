@@ -131,8 +131,9 @@ echo "${dir_count} directories created."
 # Copy jars
 #
 echo "Copying jars..."
-set jar_list = "ngat_net.jar ngat_util.jar ngat_util_logging.jar ngat_autoguider.jar ngat_swing.jar ngat_sound.jar"
 set jar_count = 0
+# javalib
+set jar_list = "ngat_net.jar ngat_util.jar ngat_util_logging.jar ngat_autoguider.jar ngat_swing.jar ngat_sound.jar"
 foreach jar ( ${jar_list} )
 	echo "jar : ${jar}"
 # copy jar to deployment location
@@ -147,6 +148,36 @@ foreach jar ( ${jar_list} )
 	rm -rf ${deployment_tmp_dir}
 	mkdir ${deployment_tmp_dir}
 	cp ${dev_bin_dir}/javalib/${jar} ${deployment_tmp_dir}
+	cd ${deployment_tmp_dir}
+	jar xvf ${jar} > ${deployment_tmp_dir}/jar_output.txt
+	find . -name '*.class' -print > ${deployment_tmp_dir}/class_list.txt
+	foreach class ( `cat ${deployment_tmp_dir}/class_list.txt` )
+		( ident ${class} > ${deployment_tmp_dir}/ident.txt ) >& ${deployment_tmp_dir}/ident_error.txt
+		set ident_string = `cat ${deployment_tmp_dir}/ident.txt`
+		echo "${ident_string}" >>! ${deployment_tmp_dir}/ident_list.txt
+	end
+	if ( -r ${deployment_tmp_dir}/ident_list.txt) then
+		cat ${deployment_tmp_dir}/ident_list.txt >>! ${deployment_icc_dir}/ident_list.txt 
+	endif
+# keep track of number of jars processed
+	@ jar_count ++
+end
+# javalib_third_party
+set jar_list = "jcommon-1.0.23.jar jfreechart-1.5.4.jar"
+foreach jar ( ${jar_list} )
+	echo "jar : ${jar}"
+# copy jar to deployment location
+	cp ${dev_bin_dir}/javalib_third_party/${jar} ${deployment_bin_dir}/javalib
+	set cp_status = $status
+	if( ${cp_status} != 0 ) then
+	    echo "Copy failed: ${dev_bin_dir}/javalib_third_party/${jar} to ${deployment_bin_dir}/javalib"
+	    exit 3
+	endif
+# ident contents of jar
+	cd ${deployment_dir}
+	rm -rf ${deployment_tmp_dir}
+	mkdir ${deployment_tmp_dir}
+	cp ${dev_bin_dir}/javalib_third_party/${jar} ${deployment_tmp_dir}
 	cd ${deployment_tmp_dir}
 	jar xvf ${jar} > ${deployment_tmp_dir}/jar_output.txt
 	find . -name '*.class' -print > ${deployment_tmp_dir}/class_list.txt

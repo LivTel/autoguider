@@ -495,4 +495,26 @@ public class AgGUIStatusUpdater implements AgGUIStatusUpdateListener
 	{
 		parent.setObjectThresholdLabel(s);
 	}
+
+	/**
+	 * Add the specified ccd x position to the graph.
+	 * @param d An object centroid X position in pixels.
+	 * @see #parent
+	 * @see AgGUI#addCCDXPositionToGraph
+	 */
+	public void addCCDXPositionToGraph(double d)
+	{
+		parent.addCCDXPositionToGraph((float)d);
+	}
+
+	/**
+	 * Add the specified ccd y position to the graph.
+	 * @param d An object centroid Y position in pixels.
+	 * @see #parent
+	 * @see AgGUI#addCCDYPositionToGraph
+	 */
+	public void addCCDYPositionToGraph(double d)
+	{
+		parent.addCCDYPositionToGraph((float)d);
+	}
 }
