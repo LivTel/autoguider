@@ -1395,7 +1395,6 @@ public class AgGUI
 	public void addCCDXPositionToGraph(float ccdxPosition)
 	{
 		ccdxTimeSeries.addOrUpdate(new Millisecond(),ccdxPosition);
-		System.err.println("addCCDXPositionToGraph:Added "+ccdxPosition+" to CCD X position dataset.");
 	}
 	
 	/**
@@ -1406,7 +1405,6 @@ public class AgGUI
 	public void addCCDYPositionToGraph(float ccdyPosition)
 	{
 		ccdyTimeSeries.addOrUpdate(new Millisecond(),ccdyPosition);
-		System.err.println("addCCDYPositionToGraph:Added "+ccdyPosition+" to CCD Y position dataset.");
 	}
 	
 	/**
