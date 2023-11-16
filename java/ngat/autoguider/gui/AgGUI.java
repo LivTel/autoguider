@@ -25,8 +25,9 @@ import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.ValueAxis;
 import org.jfree.chart.plot.XYPlot;
-import org.jfree.data.time.DynamicTimeSeriesCollection;
-import org.jfree.data.time.Second;
+import org.jfree.data.time.Millisecond;
+import org.jfree.data.time.TimeSeries;
+import org.jfree.data.time.TimeSeriesCollection;
 import org.jfree.data.xy.XYDataset;
 
 
@@ -193,11 +194,11 @@ public class AgGUI
 	/**
 	 * Dataset for the CCD X position graph.
 	 */
-	private DynamicTimeSeriesCollection ccdxDataset = null;
+	private TimeSeries ccdxTimeSeries = null;
 	/**
 	 * Dataset for the CCD Y position graph.
 	 */
-	private DynamicTimeSeriesCollection ccdyDataset = null;
+	private TimeSeries ccdyTimeSeries = null;
 	/**
 	 * Should we poll field status when fielding.
 	 */
@@ -929,13 +930,14 @@ public class AgGUI
 	 * @param panel The panel to put the guide centroid graph panel in.
 	 * @param gridBagLayout The grid bag layout to set constraints for, before adding things
 	 * 	to the panel.
-	 * @see #ccdxDataset
-	 * @see #ccdyDataset
+	 * @see #ccdxTimeSeries
+	 * @see #ccdyTimeSeries
 	 */
 	private void initGuideCentroidGraphPanel(JPanel panel,GridBagLayout gridBagLayout)
 	{
 		JPanel guideCentroidGraphPanel = new JPanel();
 		GridBagConstraints gridBagCon = new GridBagConstraints();
+		TimeSeriesCollection ccdxtsc, ccdytsc;
 		JFreeChart ccdxChart = null;
 		JFreeChart ccdyChart = null;
 		
@@ -946,16 +948,14 @@ public class AgGUI
 		guideCentroidGraphPanel.setPreferredSize(new Dimension(1024,400));
 		guideCentroidGraphPanel.setMaximumSize(new Dimension(1024,400));
 		// ccdx
-		ccdxDataset = new DynamicTimeSeriesCollection(1, 120, new Second());
-		ccdxDataset.setTimeBase(new Second());
-		//ccdxDataset.addSeries(gaussianData(), 0, "CCD X Position");
-		ccdxChart = createChart("CCD X Position",ccdxDataset,0,2048);
+		ccdxTimeSeries = new TimeSeries("CCD X Position");
+		ccdxtsc = new TimeSeriesCollection(ccdxTimeSeries);
+		ccdxChart = createChart("CCD X Position",ccdxtsc,0,2048);
 		guideCentroidGraphPanel.add(new ChartPanel(ccdxChart));
 		// ccdy
-		ccdyDataset = new DynamicTimeSeriesCollection(1, 120, new Second());
-		ccdyDataset.setTimeBase(new Second());
-		//ccdyDataset.addSeries(gaussianData(), 0, "CCD Y Position");
-		ccdyChart = createChart("CCD Y Position",ccdyDataset,0,2048);
+		ccdyTimeSeries = new TimeSeries("CCD Y position");
+		ccdytsc = new TimeSeriesCollection(ccdyTimeSeries);
+		ccdyChart = createChart("CCD Y Position",ccdytsc,0,2048);
 		guideCentroidGraphPanel.add(new ChartPanel(ccdyChart));
 
 		// buffx
@@ -994,6 +994,7 @@ public class AgGUI
 		XYPlot plot = chart.getXYPlot();
 		ValueAxis domain = plot.getDomainAxis();
 		domain.setAutoRange(true);
+		domain.setFixedAutoRange(120000.0);// milliseconds
 		ValueAxis range = plot.getRangeAxis();
 		range.setRange(miny,maxy);
 		return chart;
@@ -1389,30 +1390,22 @@ public class AgGUI
 	/**
 	 * Add a CCD X position datum to the ccdx position dataset/graph.
 	 * @param ccdxPosition The New CCD X position of the centroid to add.
-	 * @see #ccdxDataset
+	 * @see #ccdxTimeSeries
 	 */
 	public void addCCDXPositionToGraph(float ccdxPosition)
 	{
-		float[] newData = new float[1];
-
-		newData[0] = ccdxPosition;
-		ccdxDataset.advanceTime();
-		ccdxDataset.appendData(newData);
+		ccdxTimeSeries.addOrUpdate(new Millisecond(),ccdxPosition);
 		System.err.println("addCCDXPositionToGraph:Added "+ccdxPosition+" to CCD X position dataset.");
 	}
 	
 	/**
 	 * Add a CCD Y position datum to the ccdy position dataset/graph.
 	 * @param ccdyPosition The New CCD Y position of the centroid to add.
-	 * @see #ccdyDataset
+	 * @see #ccdyTimeSeries
 	 */
 	public void addCCDYPositionToGraph(float ccdyPosition)
 	{
-		float[] newData = new float[1];
-
-		newData[0] = ccdyPosition;
-		ccdyDataset.advanceTime();
-		ccdyDataset.appendData(newData);
+		ccdyTimeSeries.addOrUpdate(new Millisecond(),ccdyPosition);
 		System.err.println("addCCDYPositionToGraph:Added "+ccdyPosition+" to CCD Y position dataset.");
 	}
 	
