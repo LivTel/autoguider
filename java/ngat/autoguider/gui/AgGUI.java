@@ -979,9 +979,11 @@ public class AgGUI
 
 	/**
 	 * Create a chart from the input dataset.
+	 * @param titleString The title of the chart.
 	 * @param dataset The dataset to be plotted.
 	 * @param miny The minimum y value to display.
 	 * @param maxy The maximum y value to display.
+	 * @return The created chart.
 	 */
 	private JFreeChart createChart(String titleString,XYDataset dataset,int miny,int maxy)
 	{
@@ -1401,7 +1403,7 @@ public class AgGUI
 	
 	/**
 	 * Add a CCD Y position datum to the ccdy position dataset/graph.
-	 * @param ccdxPosition The New CCD Y position of the centroid to add.
+	 * @param ccdyPosition The New CCD Y position of the centroid to add.
 	 * @see #ccdyDataset
 	 */
 	public void addCCDYPositionToGraph(float ccdyPosition)
