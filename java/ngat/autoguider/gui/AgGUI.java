@@ -696,8 +696,8 @@ public class AgGUI
 	// setup panel
 		panel.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));
 		panel.setLayout(gridBagLayout);
-		panel.setMinimumSize(new Dimension(600,320));
-		panel.setPreferredSize(new Dimension(600,320));
+		panel.setMinimumSize(new Dimension(600,640));
+		panel.setPreferredSize(new Dimension(600,800));
 		panel.setMaximumSize(new Dimension(1024,1024));
 	//  status labels
 		initStatusPanel(panel,gridBagLayout);
