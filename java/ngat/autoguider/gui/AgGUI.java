@@ -645,7 +645,7 @@ public class AgGUI
 		{
 			titleString = new String(status.getProperty("ag_gui.title")+"None");
 		}
-		frame = new MinimumSizeFrame(titleString,new Dimension(400,300));
+		frame = new MinimumSizeFrame(titleString,new Dimension(400,640));
 	// set icon image
 		image = Toolkit.getDefaultToolkit().getImage(status.getProperty("ag_gui.icon.filename"));
 		frame.setIconImage(image);
@@ -697,7 +697,7 @@ public class AgGUI
 		panel.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));
 		panel.setLayout(gridBagLayout);
 		panel.setMinimumSize(new Dimension(600,640));
-		panel.setPreferredSize(new Dimension(600,800));
+		panel.setPreferredSize(new Dimension(600,700));
 		panel.setMaximumSize(new Dimension(1024,1024));
 	//  status labels
 		initStatusPanel(panel,gridBagLayout);
