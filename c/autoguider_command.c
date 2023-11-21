@@ -1955,7 +1955,7 @@ int Autoguider_Command_Guide(char *command_string,char **reply_string)
 }
 
 /**
- * Handle a command of the form: "getfits <field|guide> <raw|reduced>".
+ * Handle a command of the form: "getfits <field|guide|object> <raw|reduced>".
  * @param command_string The command. This is not changed during this routine.
  * @param buffer_ptr The address of a pointer to allocate and store a FITS image in memory.
  * @param buffer_length The address of a word to store the length of the created returned data.
@@ -1994,6 +1994,8 @@ int Autoguider_Command_Get_Fits(char *command_string,void **buffer_ptr,size_t *b
 		buffer_type = AUTOGUIDER_GET_FITS_BUFFER_TYPE_FIELD;
 	else if(strcmp(type_parameter_string,"guide") == 0)
 		buffer_type = AUTOGUIDER_GET_FITS_BUFFER_TYPE_GUIDE;
+	else if(strcmp(type_parameter_string,"object") == 0)
+		buffer_type = AUTOGUIDER_GET_FITS_BUFFER_TYPE_OBJECT;
 	else
 	{
 		Autoguider_General_Error_Number = 309;

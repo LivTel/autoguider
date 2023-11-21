@@ -962,6 +962,60 @@ int Autoguider_Object_Min_Connected_Pixel_Count_Set(int npix)
 	return TRUE;
 }
 
+/**
+ * Return the number of columns in the allocated object data pixel array.
+ * @return The number of columns in the allocated object data pixel array, Object_Data.Binned_NCols.
+ * @see #Object_Data
+ */
+int Autoguider_Object_Get_Binned_NCols(void)
+{
+	return Object_Data.Binned_NCols;
+}
+
+/**
+ * Return the number of rows in the allocated object data pixel array.
+ * @return The number of rows in the allocated object data pixel array, Object_Data.Binned_NRows.
+ * @see #Object_Data
+ */
+int Autoguider_Object_Get_Binned_NRows(void)
+{
+	return Object_Data.Binned_NRows;
+}
+
+/**
+ * Return a copy of the Object mask data in the specified memory.
+ * @param buffer_ptr An address pointing to an array of unsigned shorts of buffer_length_pixels length.
+ *        On a successful return a copy of the current object mask will be in the array.
+ * @param buffer_length_pixels The number of pixels in the array pointed to by buffer_ptr.
+ * @return The routine returns TRUE on success and FALSE on failure.
+ * @see #Object_Data
+ */
+int Autoguider_Object_Mask_Copy(unsigned short *buffer_ptr,size_t buffer_length_pixels)
+{
+	int retval;
+	
+	if(buffer_length_pixels != (Object_Data.Binned_NCols*Object_Data.Binned_NRows))
+	{
+		Autoguider_General_Error_Number = 1031;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Object_Mask_Copy:"
+			"mismatched buffer sizes: %ld vs (%d x %d).",buffer_length_pixels,
+			Object_Data.Binned_NCols,Object_Data.Binned_NRows);
+		return FALSE;
+	}
+	/* lock mutex */
+	retval = Autoguider_General_Mutex_Lock(&(Object_Data.Image_Data_Mutex));
+	if(retval == FALSE)
+		return FALSE;
+	/* do copy */
+	memcpy(buffer_ptr,Object_Data.Object_Mask_Data,
+	       ((Object_Data.Binned_NCols*Object_Data.Binned_NRows)*sizeof(unsigned short)));
+	/* unlock mutex */
+	retval = Autoguider_General_Mutex_Unlock(&(Object_Data.Image_Data_Mutex));
+	if(retval == FALSE)
+		return FALSE;	
+	return TRUE;
+}
+
 /* ----------------------------------------------------------------------------
 ** 		internal functions 
 ** ---------------------------------------------------------------------------- */

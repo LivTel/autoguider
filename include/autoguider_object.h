@@ -71,5 +71,9 @@ extern int Autoguider_Object_Threshold_Sigma_Set(float sigma);
 extern int Autoguider_Object_Threshold_Sigma_Reject_Set(float sigma_reject);
 extern int Autoguider_Object_Ellipticity_Limit_Set(float ellipticity_limit);
 extern int Autoguider_Object_Min_Connected_Pixel_Count_Set(int npix);
-						   
+/* object mask access routines */
+extern int Autoguider_Object_Get_Binned_NCols(void);
+extern int Autoguider_Object_Get_Binned_NRows(void);
+extern int Autoguider_Object_Mask_Copy(unsigned short *buffer_ptr,size_t buffer_length_pixels);
+
 #endif

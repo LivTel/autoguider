@@ -577,7 +577,7 @@ static void Autoguider_Server_Connection_Callback(Command_Server_Handle_T connec
 			   "\texpose <ms>\n"
 			   "\tfield [<ms> [lock]]\n"
 			   "\tfield <dark|flat|object> <on|off>\n"
-			   "\tgetfits [field|guide] [raw|reduced]\n"
+			   "\tgetfits [field|guide|object] [raw|reduced]\n"
 			   "\tguide [on|off]\n"
 			   "\tguide window <sx> <sy> <ex> <ey>\n"
 			   "\tguide window <cx> <cy>\n"

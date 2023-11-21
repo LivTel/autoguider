@@ -78,6 +78,7 @@ static int Get_Fits_TimeSpec_To_Mjd(struct timespec time,int leap_second_correct
  * @return The routine returns TRUE on success and FALSE on failure.
  * @see #AUTOGUIDER_GET_FITS_BUFFER_TYPE_FIELD
  * @see #AUTOGUIDER_GET_FITS_BUFFER_TYPE_GUIDE
+ * @see #AUTOGUIDER_GET_FITS_BUFFER_TYPE_OBJECT
  * @see #AUTOGUIDER_GET_FITS_BUFFER_STATE_RAW
  * @see #AUTOGUIDER_GET_FITS_BUFFER_STATE_REDUCED
  * @see #Get_Fits_Get_Header
@@ -93,6 +94,9 @@ static int Get_Fits_TimeSpec_To_Mjd(struct timespec time,int leap_second_correct
  * @see autoguider_buffer.html#Autoguider_Buffer_Get_Guide_Binned_NCols
  * @see autoguider_buffer.html#Autoguider_Buffer_Get_Guide_Binned_NRows
  * @see autoguider_guide.html#Autoguider_Guide_Get_Last_Buffer_Index
+ * @see autoguider_object.html#Autoguider_Object_Get_Binned_NCols
+ * @see autoguider_object.html#Autoguider_Object_Get_Binned_NRows
+ * @see autoguider_object.html#Autoguider_Object_Mask_Copy
  * @see autoguider_general.html#Autoguider_General_Log
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
@@ -112,7 +116,8 @@ int Autoguider_Get_Fits(int buffer_type,int buffer_state,int object_index,void *
 #endif
 	/* check parameters */
 	if((buffer_type != AUTOGUIDER_GET_FITS_BUFFER_TYPE_FIELD) &&
-	   (buffer_type != AUTOGUIDER_GET_FITS_BUFFER_TYPE_GUIDE))
+	   (buffer_type != AUTOGUIDER_GET_FITS_BUFFER_TYPE_GUIDE) &&
+	   (buffer_type != AUTOGUIDER_GET_FITS_BUFFER_TYPE_OBJECT))
 	{
 		Autoguider_General_Error_Number = 600;
 		sprintf(Autoguider_General_Error_String,"Autoguider_Get_Fits:Illegal buffer type %d.",buffer_type);
@@ -148,13 +153,21 @@ int Autoguider_Get_Fits(int buffer_type,int buffer_state,int object_index,void *
 		Autoguider_General_Error("get_fits","autoguider_get_fits.c","Autoguider_Get_Fits",
 					 LOG_VERBOSITY_INTERMEDIATE,"FITS");
 	}
-	/* pixel_length based on whether raw or reduced: raw is unsigned short, reduced is float */
-	if(buffer_state == AUTOGUIDER_GET_FITS_BUFFER_STATE_RAW)
+	/* pixel_length based on whether raw or reduced: raw is unsigned short, reduced is float, 
+	** and always unsigned short for object */
+	if(buffer_type == AUTOGUIDER_GET_FITS_BUFFER_TYPE_OBJECT)
+	{
 		pixel_length = sizeof(unsigned short);
-	else if(buffer_state == AUTOGUIDER_GET_FITS_BUFFER_STATE_REDUCED)
-		pixel_length = sizeof(float);
-	else /* this can never happen - see test above */
-		pixel_length = 0;
+	}
+	else
+	{
+		if(buffer_state == AUTOGUIDER_GET_FITS_BUFFER_STATE_RAW)
+			pixel_length = sizeof(unsigned short);
+		else if(buffer_state == AUTOGUIDER_GET_FITS_BUFFER_STATE_REDUCED)
+			pixel_length = sizeof(float);
+		else /* this can never happen - see test above */
+			pixel_length = 0;
+	}
 	if(buffer_type == AUTOGUIDER_GET_FITS_BUFFER_TYPE_FIELD)
 	{
 		/* get the last field buffer index */
@@ -261,6 +274,44 @@ int Autoguider_Get_Fits(int buffer_type,int buffer_state,int object_index,void *
 		nrows = Autoguider_Buffer_Get_Guide_Binned_NRows();
 		/* create fits in memory */
 		retval = Autoguider_Get_Fits_From_Buffer(buffer_ptr,buffer_length,buffer_state,
+							 buffer_data_ptr,buffer_data_length,ncols,nrows,&fits_header);
+		if(retval == FALSE)
+		{
+			/* free allocated data */
+			if(buffer_data_ptr != NULL)
+				free(buffer_data_ptr);
+			return FALSE;
+		}
+		/* free allocated data */
+		if(buffer_data_ptr != NULL)
+			free(buffer_data_ptr);
+	}
+	else if(buffer_type == AUTOGUIDER_GET_FITS_BUFFER_TYPE_OBJECT)
+	{
+		/* get dimensions */
+		ncols = Autoguider_Object_Get_Binned_NCols();
+		nrows = Autoguider_Object_Get_Binned_NRows();
+		/* copy data into data buffer */
+		buffer_data_length = ncols*nrows;
+		buffer_data_ptr = (void *)malloc(buffer_data_length*pixel_length);
+		if(buffer_data_ptr == NULL)
+		{
+			Autoguider_General_Error_Number = 625;
+			sprintf(Autoguider_General_Error_String,"Autoguider_Get_Fits:"
+				"Allocating buffer_data_ptr failed (%ld,%ld).",buffer_data_length,pixel_length);
+			return FALSE;
+		}
+		retval = Autoguider_Object_Mask_Copy(buffer_data_ptr,buffer_data_length);
+		if(retval == FALSE)
+		{
+			/* free allocated data */
+			if(buffer_data_ptr != NULL)
+				free(buffer_data_ptr);
+			return FALSE;
+		}
+		/* create fits in memory 
+		** buffer state always raw (unsigned short) in this case*/
+		retval = Autoguider_Get_Fits_From_Buffer(buffer_ptr,buffer_length,AUTOGUIDER_GET_FITS_BUFFER_STATE_RAW,
 							 buffer_data_ptr,buffer_data_length,ncols,nrows,&fits_header);
 		if(retval == FALSE)
 		{
@@ -497,6 +548,8 @@ int Autoguider_Get_Fits_From_Buffer(void **buffer_ptr,size_t *buffer_length,int 
  * @see autoguider_guide.html#Autoguider_Guide_Window_Get
  * @see autoguider_object.html#Autoguider_Object_Struct
  * @see autoguider_object.html#Autoguider_Object_List_Get_Object
+ * @see autoguider_object.html#Autoguider_Object_Get_Binned_NCols
+ * @see autoguider_object.html#Autoguider_Object_Get_Binned_NRows
  * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Double
  * @see ../ccd/cdocs/ccd_setup.html#CCD_Setup_Window_Struct
  */
@@ -518,7 +571,8 @@ static int Get_Fits_Get_Header(int buffer_type,int buffer_state,int object_index
 #endif
 	/* check parameters */
 	if((buffer_type != AUTOGUIDER_GET_FITS_BUFFER_TYPE_FIELD) &&
-	   (buffer_type != AUTOGUIDER_GET_FITS_BUFFER_TYPE_GUIDE))
+	   (buffer_type != AUTOGUIDER_GET_FITS_BUFFER_TYPE_GUIDE)&&
+	   (buffer_type != AUTOGUIDER_GET_FITS_BUFFER_TYPE_OBJECT))
 	{
 		Autoguider_General_Error_Number = 618;
 		sprintf(Autoguider_General_Error_String,"Get_Fits_Get_Header:Illegal buffer type %d.",
@@ -624,6 +678,20 @@ static int Get_Fits_Get_Header(int buffer_type,int buffer_state,int object_index
 			Autoguider_General_Error("get_fits","autoguider_get_fits.c","Autoguider_Get_Fits",
 						 LOG_VERBOSITY_INTERMEDIATE,"FITS");
 		}
+	}
+	else if (buffer_type == AUTOGUIDER_GET_FITS_BUFFER_TYPE_OBJECT)
+	{
+		Autoguider_Fits_Header_Add_String(fits_header,"OBSTYPE","OBJECT",
+						  "Type of observation");
+		ccdxbin = 1;
+		ccdybin = 1;
+		ccdximsi = Autoguider_Object_Get_Binned_NCols();
+		ccdyimsi = Autoguider_Object_Get_Binned_NRows();
+		ccdwmode = FALSE;
+		ccdwxoff = 0;
+		ccdwyoff = 0;
+		ccdwxsiz = 0;
+		ccdwysiz = 0;
 	}/* end if buffer_type */
 	Autoguider_Fits_Header_Add_Int(fits_header,"CCDXIMSI",ccdximsi,
 				       "Size of binned imaging area (pixels)");
@@ -636,21 +704,6 @@ static int Get_Fits_Get_Header(int buffer_type,int buffer_state,int object_index
 	Autoguider_Fits_Header_Add_Int(fits_header,"CCDWYOFF",ccdwyoff,"Offset of top left corner of window");
 	Autoguider_Fits_Header_Add_Int(fits_header,"CCDWXSIZ",ccdwxsiz,"Width of window in pixels");
 	Autoguider_Fits_Header_Add_Int(fits_header,"CCDWYSIZ",ccdwysiz,"Height of window in pixels");
-	/* EXPTIME */
-	exptime = ((double)exposure_length_ms)/1000.0;
-	Autoguider_Fits_Header_Add_Float(fits_header,"EXPTIME",exptime,"Exposure length in seconds.");
-	/* DATE */
-	Get_Fits_TimeSpec_To_Date_String(start_time,date_string);
-        Autoguider_Fits_Header_Add_String(fits_header,"DATE",date_string,"The date of the observation");
-	/* DATE-OBS */
-        Get_Fits_TimeSpec_To_Date_Obs_String(start_time,date_string);
-        Autoguider_Fits_Header_Add_String(fits_header,"DATE-OBS",date_string,"The date of the observation");
-	/* UTSTART */
-        Get_Fits_TimeSpec_To_UtStart_String(start_time,date_string);
-        Autoguider_Fits_Header_Add_String(fits_header,"UTSTART",date_string,"The date of the observation");
-	/* MJD */
-	Get_Fits_TimeSpec_To_Mjd(start_time,FALSE,&mjd);
-	Autoguider_Fits_Header_Add_Float(fits_header,"MJD",mjd,"Modified Julian Date");
 	/* field - raw or reduced? */
 	if(buffer_state == AUTOGUIDER_GET_FITS_BUFFER_STATE_RAW)
 	{
@@ -662,21 +715,40 @@ static int Get_Fits_Get_Header(int buffer_type,int buffer_state,int object_index
 		Autoguider_Fits_Header_Add_String(fits_header,"REDTYPE","REDUCED",
 						  "Is this raw data or has it been reduced");
 	}
-	/* CCDATEMP */
-	ccdatemp = (int)(current_temperature+CENTIGRADE_TO_KELVIN);
-#if AUTOGUIDER_DEBUG > 9
-	Autoguider_General_Log_Format("get_fits","autoguider_get_fits.c","Get_Fits_Get_Header",
-				      LOG_VERBOSITY_INTERMEDIATE,"FITS","ccdatemp is %.d K.",ccdatemp);
-#endif
-	Autoguider_Fits_Header_Add_Int(fits_header,"CCDATEMP",ccdatemp,
-					       "CCD Temperature at time of writing FITS header (Kelvin)");
-	/* target temperature */
-	retval = CCD_Config_Get_Double("ccd.temperature.target",&target_temperature);
-	if(retval)
+	/* these do not make sense for object mask data */
+	if((buffer_type == AUTOGUIDER_GET_FITS_BUFFER_TYPE_FIELD)||(buffer_type == AUTOGUIDER_GET_FITS_BUFFER_TYPE_GUIDE))
 	{
-		ccdstemp = (int)(target_temperature+CENTIGRADE_TO_KELVIN);
-		Autoguider_Fits_Header_Add_Int(fits_header,"CCDSTEMP",ccdstemp,"Target Temperature (Kelvin)");
-	}
+		/* EXPTIME */
+		exptime = ((double)exposure_length_ms)/1000.0;
+		Autoguider_Fits_Header_Add_Float(fits_header,"EXPTIME",exptime,"Exposure length in seconds.");
+		/* DATE */
+		Get_Fits_TimeSpec_To_Date_String(start_time,date_string);
+		Autoguider_Fits_Header_Add_String(fits_header,"DATE",date_string,"The date of the observation");
+		/* DATE-OBS */
+		Get_Fits_TimeSpec_To_Date_Obs_String(start_time,date_string);
+		Autoguider_Fits_Header_Add_String(fits_header,"DATE-OBS",date_string,"The date of the observation");
+		/* UTSTART */
+		Get_Fits_TimeSpec_To_UtStart_String(start_time,date_string);
+		Autoguider_Fits_Header_Add_String(fits_header,"UTSTART",date_string,"The date of the observation");
+		/* MJD */
+		Get_Fits_TimeSpec_To_Mjd(start_time,FALSE,&mjd);
+		Autoguider_Fits_Header_Add_Float(fits_header,"MJD",mjd,"Modified Julian Date");
+		/* CCDATEMP */
+		ccdatemp = (int)(current_temperature+CENTIGRADE_TO_KELVIN);
+#if AUTOGUIDER_DEBUG > 9
+		Autoguider_General_Log_Format("get_fits","autoguider_get_fits.c","Get_Fits_Get_Header",
+					      LOG_VERBOSITY_INTERMEDIATE,"FITS","ccdatemp is %.d K.",ccdatemp);
+#endif
+		Autoguider_Fits_Header_Add_Int(fits_header,"CCDATEMP",ccdatemp,
+					       "CCD Temperature at time of writing FITS header (Kelvin)");
+		/* target temperature */
+		retval = CCD_Config_Get_Double("ccd.temperature.target",&target_temperature);
+		if(retval)
+		{
+			ccdstemp = (int)(target_temperature+CENTIGRADE_TO_KELVIN);
+			Autoguider_Fits_Header_Add_Int(fits_header,"CCDSTEMP",ccdstemp,"Target Temperature (Kelvin)");
+		}
+	}/* end if */
 	/* object data if applicable */
 	if(object_index > -1)
 	{
