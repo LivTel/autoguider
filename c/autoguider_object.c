@@ -73,6 +73,8 @@ enum OBJECT_THRESHOLD_STATS_TYPE
  * <dt>Image_Data</dt> <dd>Pointer to float data containing the image data.</dd>
  * <dt>Image_Data_Allocated_Pixel_Count</dt> <dd>Number of pixels allocated for Image_Data.</dd>
  * <dt>Image_Data_Mutex</dt> <dd>A mutex to lock access to the image data.</dd>
+ * <dt>Object_Mask_Data</dt> <dd>Pointer to an allocated array of unsigned short data containing mask data for each 
+ *                               detected object in the image.</dd>
  * <dt>Object_List</dt> <dd>A list of Autoguider_Object_Struct containing the objects found in the image data.</dd>
  * <dt>Object_Count</dt> <dd>The number of objects currently in Object_List.</dd>
  * <dt>Allocated_Object_Count</dt> <dd>The number of objects allocated space for in Object_List.</dd>
@@ -104,6 +106,8 @@ struct Object_Internal_Struct
 	float *Image_Data;
 	int Image_Data_Allocated_Pixel_Count;
 	pthread_mutex_t Image_Data_Mutex;
+	/* a generated object mask image showing pixels belonging to each detected image */
+	unsigned short *Object_Mask_Data;
 	/* object data */
 	struct Autoguider_Object_Struct *Object_List;
 	int Object_Count;
@@ -134,7 +138,7 @@ static struct Object_Internal_Struct Object_Data =
 {
 	0.5,OBJECT_THRESHOLD_STATS_TYPE_SIGMA_CLIP,7.0,5.0,8,
 	-1,-1,
-	NULL,0,PTHREAD_MUTEX_INITIALIZER,
+	NULL,0,PTHREAD_MUTEX_INITIALIZER,NULL,
 	NULL,0,0,PTHREAD_MUTEX_INITIALIZER,
 	{0.0f,0.0f,0.0f,0.0f,0.0f},0,
 	0.0f,0.0f,0.0f,0.0f,0,0
@@ -147,6 +151,7 @@ static int Object_Set_Threshold(int use_standard_deviation);
 static void Object_Fill_Stats_List(void);
 static int Object_Get_Mean_Standard_Deviation_Simple(void);
 static int Object_Get_Mean_Standard_Deviation_Sigma_Reject(void);
+static void Object_Mask_Create(Object *object_list);
 static int Object_Sort_Float_List(const void *p1, const void *p2);
 static int Object_Sort_Object_List_By_Total_Counts(const void *p1, const void *p2);
 
@@ -339,6 +344,9 @@ int Autoguider_Object_Shutdown(void)
 		free(Object_Data.Image_Data);
 	Object_Data.Image_Data = NULL;
 	Object_Data.Image_Data_Allocated_Pixel_Count = 0;
+	/* and also free object mask data */
+	if(Object_Data.Object_Mask_Data != NULL)
+		free(Object_Data.Object_Mask_Data);
 	/* unlock mutex */
 	retval = Autoguider_General_Mutex_Unlock(&(Object_Data.Image_Data_Mutex));
 	if(retval == FALSE)
@@ -959,7 +967,7 @@ int Autoguider_Object_Min_Connected_Pixel_Count_Set(int npix)
 ** ---------------------------------------------------------------------------- */
 /**
  * Setup buffer for object detection.
- * Locks the Image_Data_Mutex whilst resizing the buffer.
+ * Locks the Image_Data_Mutex whilst resizing the buffer. Now also resizes the object mask buffer.
  * @param buffer A float array containing the buffer with reduced data in it.
  * @param naxis1 The number of columns in the buffer.
  * @param naxis2 The number of rows in the buffer.
@@ -1016,6 +1024,35 @@ static int Object_Buffer_Set(float *buffer,int naxis1,int naxis2)
 			return FALSE;
 		}
 		Object_Data.Image_Data_Allocated_Pixel_Count = naxis1*naxis2;
+		/* also allocate space for the object mask */
+		if(Object_Data.Object_Mask_Data == NULL)
+		{
+#if AUTOGUIDER_DEBUG > 9
+			Autoguider_General_Log_Format("object","autoguider_object.c","Object_Buffer_Set",
+						      LOG_VERBOSITY_VERBOSE,"OBJECT","Allocating Object_Mask_Data (%d,%d).",
+						      naxis1,naxis2);
+#endif
+			Object_Data.Object_Mask_Data = (unsigned short *)malloc((naxis1*naxis2)*sizeof(unsigned short));
+		}
+		else
+		{
+#if AUTOGUIDER_DEBUG > 9
+			Autoguider_General_Log_Format("object","autoguider_object.c","Object_Buffer_Set",
+						      LOG_VERBOSITY_VERBOSE,"OBJECT",
+						      "Reallocating Object_Mask_Data (%d,%d).",naxis1,naxis2);
+#endif
+			Object_Data.Object_Mask_Data = (unsigned short *)realloc(Object_Data.Object_Mask_Data,
+								  (naxis1*naxis2)*sizeof(unsigned short));
+		}
+		if(Object_Data.Object_Mask_Data == NULL)
+		{
+			Object_Data.Image_Data_Allocated_Pixel_Count = 0;
+			Autoguider_General_Mutex_Unlock(&(Object_Data.Image_Data_Mutex));
+			Autoguider_General_Error_Number = 1030;
+			sprintf(Autoguider_General_Error_String,"Object_Buffer_Set:"
+				"failed to allocate object mask buffer (%d,%d).",naxis1,naxis2);
+			return FALSE;
+		}
 	}
 	/* update dimensional information */
 	Object_Data.Binned_NCols = naxis1;
@@ -1034,7 +1071,7 @@ static int Object_Buffer_Set(float *buffer,int naxis1,int naxis2)
 /**
  * Copy buffer for object detection. Assumes Object_Buffer_Set has been already called, so the buffer is
  * the right size.
- * Locks the Image_Data_Mutex whilst copying.
+ * Locks the Image_Data_Mutex whilst copying. Now also initialises the object mask buffer to 0.
  * @param buffer A float array containing the buffer with reduced data in it.
  * @param naxis1 The number of columns in the buffer.
  * @param naxis2 The number of rows in the buffer.
@@ -1069,6 +1106,8 @@ static int Object_Buffer_Copy(float *buffer,int naxis1,int naxis2)
 	memcpy(Object_Data.Image_Data,buffer,(naxis1*naxis2)*sizeof(float));
 	Object_Data.Binned_NCols = naxis1;
 	Object_Data.Binned_NRows = naxis2;
+	/* and initialise object mask buffer to 0 */
+	memset(Object_Data.Object_Mask_Data,0,(naxis1*naxis2)*sizeof(unsigned short));
 	/* unlock mutex */
 	retval = Autoguider_General_Mutex_Unlock(&(Object_Data.Image_Data_Mutex));
 	if(retval == FALSE)
@@ -1096,6 +1135,7 @@ static int Object_Buffer_Copy(float *buffer,int naxis1,int naxis2)
  * @param start_y The start of the buffer's Y position on the physical CCD. 0 for full frame.
  * @return The routine returns TRUE on success, and FALSE on failure.
  * @see #Object_Data
+ * @see #Object_Mask_Create
  * @see #Object_Set_Threshold
  * @see #Object_Sort_Object_List_By_Total_Counts
  * @see autoguider_general.html#Autoguider_General_Log
@@ -1170,6 +1210,8 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
 	Autoguider_General_Log("object","autoguider_object.c","Object_Create_Object_List",
 			       LOG_VERBOSITY_VERBOSE,"OBJECT","Object detection finished.");
 #endif
+	/* create an object mask of created objects */
+	Object_Mask_Create(object_list);
 	/* unlock image data mutex */
 	retval = Autoguider_General_Mutex_Unlock(&(Object_Data.Image_Data_Mutex));
 	if(retval == FALSE)
@@ -1486,6 +1528,45 @@ static int Object_Get_Mean_Standard_Deviation_Sigma_Reject(void)
 				      Object_Data.Mean,Object_Data.Background_Standard_Deviation,retval);
 #endif
 	return TRUE;
+}
+
+/**
+ * Create an output object mask from pixel data in object list.
+ * @param object_list The objects to create.
+ * @return TRUE on success, FALSE on failure.
+ * @see #Object_Data
+ */
+static void Object_Mask_Create(Object *object_list)
+{
+	Object *object = NULL;
+	HighPixel *high_pixel = NULL;
+	int x,y,objnum;
+
+	object = object_list;
+	while(object != NULL)
+	{
+		objnum = object->objnum;
+		objnum = (objnum % 65536);
+		high_pixel = object->highpixel;
+		while(high_pixel != NULL)
+		{
+			x = high_pixel->x;
+			y = high_pixel->y;
+			if((x > -1) &&(x < Object_Data.Binned_NCols)&&(y > -1) &&(y < Object_Data.Binned_NRows))
+				Object_Data.Object_Mask_Data[(y*Object_Data.Binned_NCols)+x] = objnum;
+			/* and to next pixel */
+			high_pixel = high_pixel->next_pixel;
+		}
+		/* highlight centre-point */
+		/* diddly
+		x = (int)(object->xpos);
+		y = (int)(object->ypos);
+		if((x > -1) &&(x < Object_Data.Binned_NCols)&&(y > -1) &&(y < Object_Data.Binned_NRows))
+			Object_Mask_Data[(y*Object_Data.Binned_NCols)+x] = 65535;
+		*/
+		/* and to next object */
+		object = object->nextobject;
+	}
 }
 
 /**
