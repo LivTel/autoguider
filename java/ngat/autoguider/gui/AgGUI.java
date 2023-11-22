@@ -208,6 +208,10 @@ public class AgGUI
 	 */
 	private JCheckBoxMenuItem guideStatusActiveMenuItem = null;
 	/**
+	 * Should we add any guide centroids to the graph?
+	 */
+	private JCheckBoxMenuItem graphGuideCentroidsMenuItem = null;
+	/**
 	 * Thread for generating basic status.
 	 */
 	private AgGUIStatusThread statusThread = null;
@@ -1002,6 +1006,9 @@ public class AgGUI
 
 	/**
 	 * Method to initialise the top-level menu bar.
+	 * @see #fieldStatusActiveMenuItem
+	 * @see #guideStatusActiveMenuItem
+	 * @see #graphGuideCentroidsMenuItem
 	 */
 	private void initMenuBar()
 	{
@@ -1057,6 +1064,12 @@ public class AgGUI
 			setAccessibleDescription("Enable/Disable Guide Status");
 		guideStatusActiveMenuItem.addActionListener(menuItemListener);
 		menu.add(guideStatusActiveMenuItem);
+	// Graph guide centroids
+		graphGuideCentroidsMenuItem = new JCheckBoxMenuItem("Graph Guide Centroids",true);
+		graphGuideCentroidsMenuItem.getAccessibleContext().
+			setAccessibleDescription("Enable/Disable Graphing of Guide Centroids");
+		graphGuideCentroidsMenuItem.addActionListener(menuItemListener);
+		menu.add(graphGuideCentroidsMenuItem);
 	}
 
 	/**
@@ -1389,22 +1402,32 @@ public class AgGUI
 
 	/**
 	 * Add a CCD X position datum to the ccdx position dataset/graph.
+	 * We only do this if the graph guide centroid checkbox is ticked.
 	 * @param ccdxPosition The New CCD X position of the centroid to add.
+	 * @see #graphGuideCentroidsMenuItem
 	 * @see #ccdxTimeSeries
 	 */
 	public void addCCDXPositionToGraph(float ccdxPosition)
 	{
-		ccdxTimeSeries.addOrUpdate(new Millisecond(),ccdxPosition);
+		if(graphGuideCentroidsMenuItem.getState())
+		{
+			ccdxTimeSeries.addOrUpdate(new Millisecond(),ccdxPosition);
+		}
 	}
 	
 	/**
 	 * Add a CCD Y position datum to the ccdy position dataset/graph.
+	 * We only do this if the graph guide centroid checkbox is ticked.
 	 * @param ccdyPosition The New CCD Y position of the centroid to add.
+	 * @see #graphGuideCentroidsMenuItem
 	 * @see #ccdyTimeSeries
 	 */
 	public void addCCDYPositionToGraph(float ccdyPosition)
 	{
-		ccdyTimeSeries.addOrUpdate(new Millisecond(),ccdyPosition);
+		if(graphGuideCentroidsMenuItem.getState())
+		{
+			ccdyTimeSeries.addOrUpdate(new Millisecond(),ccdyPosition);
+		}
 	}
 	
 	/**
@@ -1591,6 +1614,16 @@ public class AgGUI
 	}
 
 	/**
+	 * Get the graph guide centroids checkbox.
+	 * @return The JCheckBoxMenuItem for the graph guide centroids checkbox.
+	 * @see #graphGuideCentroidsMenuItem
+	 */
+	public JCheckBoxMenuItem getGraphGuideCentroidsMenuItem()
+	{
+		return graphGuideCentroidsMenuItem;
+	}
+	
+	/**
 	 * This routine parses arguments passed into the GUI. It only looks for property filename argument
 	 * config, which is needed before the status is inited, and therfore needs a special parseArguments
 	 * method (as other arguments affect the status).
@@ -1616,7 +1649,6 @@ public class AgGUI
 			}
 		}
 	}
-
 
 	/**
 	 * This routine parses arguments passed into the GUI. It gets some default arguments from the configuration
