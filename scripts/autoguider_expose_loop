@@ -16,8 +16,12 @@ if ( $#argv > 0 ) then
 	else if( "$arg" == "-exposure_length" ) then
 		set next_arg = "exposure_length"
 	else if( "$arg" == "-help" ) then
-		echo "autoguider_expose_loop [-exposure_length <ms>][-help][-ds9disp][-delete_frames]"
+		echo "autoguider_expose_loop [-exposure_length <ms>][-help][-ds9disp][-delete_frames][-raw|-reduced]"
 		exit 1
+	else if( "$arg" == "-raw" ) then
+		set frame_type_string = "raw"
+	else if( "$arg" == "-reduced" ) then
+		set frame_type_string = "reduced"
 	else 
 		if( "${next_arg}" == "exposure_length" ) then
 		    set exposure_length = "${arg}"
