@@ -44,13 +44,37 @@
 
 /* data types */
 /**
+ * Object threshold stats type enumeration. What algorithm we use to compute the object detection threshold, pixels
+ * above this value are deemed to be part of an object.
+ * <ul>
+ * <li>OBJECT_THRESHOLD_STATS_TYPE_SIMPLE
+ * <li>OBJECT_THRESHOLD_STATS_TYPE_SIGMA_CLIP
+ * </ul>
+ */
+enum OBJECT_THRESHOLD_STATS_TYPE
+{
+	OBJECT_THRESHOLD_STATS_TYPE_SIMPLE,OBJECT_THRESHOLD_STATS_TYPE_SIGMA_CLIP
+};
+
+/**
  * Data type holding local data to autoguider_object. This consists of the following:
  * <dl>
+ * <dt>Ellipticity_Limit</dt> <dd>Loaded from config, passed into the object detection routine, how round
+ *                            an object has to be to be deemed a valid object</dd>
+ * <dt>Threshold_Stats_Type</dt> <dd>A variable of type OBJECT_THRESHOLD_STATS_TYPE, loaded from config,
+ *                                   used to determine the algorithm used to determine the background S.D.</dd>
+ * <dt>Threshold_Sigma</dt> <dd>Loaded from config, used to compute the object detection threshold 
+ *                              above the background.</dd>
+ * <dt>Threshold_Sigma_Reject</dt> <dd>Loaded from config, used to compute the background S.D. 
+ *                                 when Threshold_Stats_Type is OBJECT_THRESHOLD_STATS_TYPE_SIGMA_CLIP.</dd>
+ * <dt>Min_Connected_Pixel_Count</dt> <dd>Number of connected pixels required for an object to be considered valid.</dd>
  * <dt>Binned_NCols</dt> <dd>Number of binned columns in the image_data.</dd>
  * <dt>Binned_NRows</dt> <dd>Number of binned rows in the image_data.</dd>
  * <dt>Image_Data</dt> <dd>Pointer to float data containing the image data.</dd>
  * <dt>Image_Data_Allocated_Pixel_Count</dt> <dd>Number of pixels allocated for Image_Data.</dd>
  * <dt>Image_Data_Mutex</dt> <dd>A mutex to lock access to the image data.</dd>
+ * <dt>Object_Mask_Data</dt> <dd>Pointer to an allocated array of unsigned short data containing mask data for each 
+ *                               detected object in the image.</dd>
  * <dt>Object_List</dt> <dd>A list of Autoguider_Object_Struct containing the objects found in the image data.</dd>
  * <dt>Object_Count</dt> <dd>The number of objects currently in Object_List.</dd>
  * <dt>Allocated_Object_Count</dt> <dd>The number of objects allocated space for in Object_List.</dd>
@@ -60,28 +84,43 @@
  * <dt>Median</dt> <dd>The median value in Stats_List.</dd>
  * <dt>Mean</dt> <dd>The mean value in Stats_List.</dd>
  * <dt>Background_Standard_Deviation</dt> <dd>The standard deviation of values in Stats_List.</dd>
+ * <dt>Threshold</dt> <dd>The computed ADU threshold, pixels with values above the Threshold are deemed part of an object.</dd>
  * <dt>Id</dt> <dd>A unique Id for this particular guide/field run.</dd>
  * <dt>Frame_Number</dt> <dd>The guide/field frame number that generated these objects .</dd>
  * </dl>
+ * @see #OBJECT_THRESHOLD_STATS_TYPE
  * @see #Autoguider_Object_Struct
  * @see #MAXIMUM_STATS_COUNT
  */
 struct Object_Internal_Struct
 {
+	/* loaded config values */
+	float Ellipticity_Limit;
+	enum OBJECT_THRESHOLD_STATS_TYPE Threshold_Stats_Type;
+	float Threshold_Sigma;
+	float Threshold_Sigma_Reject;
+	int Min_Connected_Pixel_Count;
+	/* input image related data */
 	int Binned_NCols;
 	int Binned_NRows;
 	float *Image_Data;
 	int Image_Data_Allocated_Pixel_Count;
 	pthread_mutex_t Image_Data_Mutex;
+	/* a generated object mask image showing pixels belonging to each detected image */
+	unsigned short *Object_Mask_Data;
+	/* object data */
 	struct Autoguider_Object_Struct *Object_List;
 	int Object_Count;
 	int Allocated_Object_Count;
 	pthread_mutex_t Object_List_Mutex;
+	/* stats data */
 	float Stats_List[MAXIMUM_STATS_COUNT];
 	int Stats_Count;
 	float Median;
 	float Mean;
 	float Background_Standard_Deviation;
+	float Threshold;
+	/* frame data */
 	int Id;
 	int Frame_Number;
 };
@@ -97,26 +136,131 @@ static char rcsid[] = "$Id: autoguider_object.c,v 1.18 2014-01-31 17:15:45 cjm E
  */
 static struct Object_Internal_Struct Object_Data = 
 {
+	0.5,OBJECT_THRESHOLD_STATS_TYPE_SIGMA_CLIP,7.0,5.0,8,
 	-1,-1,
-	NULL,0,PTHREAD_MUTEX_INITIALIZER,
+	NULL,0,PTHREAD_MUTEX_INITIALIZER,NULL,
 	NULL,0,0,PTHREAD_MUTEX_INITIALIZER,
 	{0.0f,0.0f,0.0f,0.0f,0.0f},0,
-	0.0f,0.0f,0.0f,0,0
+	0.0f,0.0f,0.0f,0.0f,0,0
 };
 
 static int Object_Buffer_Set(float *buffer,int naxis1,int naxis2);
 static int Object_Buffer_Copy(float *buffer,int naxis1,int naxis2);
 static int Object_Create_Object_List(int use_standard_deviation,int start_x,int start_y);
-static int Object_Set_Threshold(int use_standard_deviation,float *threshold);
+static int Object_Set_Threshold(int use_standard_deviation);
 static void Object_Fill_Stats_List(void);
 static int Object_Get_Mean_Standard_Deviation_Simple(void);
 static int Object_Get_Mean_Standard_Deviation_Sigma_Reject(void);
+static void Object_Mask_Create(Object *object_list);
 static int Object_Sort_Float_List(const void *p1, const void *p2);
 static int Object_Sort_Object_List_By_Total_Counts(const void *p1, const void *p2);
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
 ** ---------------------------------------------------------------------------- */
+/**
+ * Initialise the object detection module.
+ * <ul>
+ * <li>Load the "object.ellipticity.limit" config from the configuration file and stored in Object_Data.Ellipticity_Limit.
+ * <li>Set the object detection library stellar ellipticity by calling Object_Stellar_Ellipticity_Limit_Set with the 
+ *     loaded config.
+ * <li>We load the "object.threshold.stats.type" as a string, and set Object_Data.Threshold_Stats_Type based on whether 
+ *     it is "simple" or "sigma_clip".
+ * <li>We load "object.threshold.sigma" from config and set Object_Data.Threshold_Sigma, used to set the sigma above the
+ *     background for object detection.
+ * <li>We load "object.threshold.sigma.reject" from config and set Object_Data.Threshold_Sigma_Reject,which is 
+ *     used to compute the background S.D. when Threshold_Stats_Type is OBJECT_THRESHOLD_STATS_TYPE_SIGMA_CLIP.
+ * <li>We load "object.min_connected_pixel_count" from config and set Object_Data.Min_Connected_Pixel_Count,
+ *     which is the number of connected pixels required for an object to be considered valid.
+ * </ul>
+ * @see #Object_Data
+ * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Float
+ * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Integer
+ * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_String
+ * @see ../../libdprt/object/cdocs/object.html#Object_Stellar_Ellipticity_Limit_Set
+ */
+int Autoguider_Object_Initialise(void)
+{
+	char *stats_type_string = NULL;
+	int retval;
+	
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log("object","autoguider_object.c","Autoguider_Object_Detect",LOG_VERBOSITY_TERSE,
+			       "OBJECT","started.");
+#endif
+	/* load object module config */
+	/* get/set ellipticity/is_stellar threshold */
+	if(!CCD_Config_Get_Float("object.ellipticity.limit",&(Object_Data.Ellipticity_Limit)))
+	{
+		Autoguider_General_Error_Number = 1017;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Object_Initialise:"
+			"Failed to load config:'object.ellipticity.limit'.");
+		return FALSE;
+	}
+	/* we can set this once here */
+	if(!Object_Stellar_Ellipticity_Limit_Set(Object_Data.Ellipticity_Limit))
+	{
+		Autoguider_General_Error_Number = 1018;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Object_Initialise:"
+			"Failed to object stellar ellipticity to %f.",Object_Data.Ellipticity_Limit);
+		return FALSE;
+	}
+	/* get object.threshold.stats.type to determine whether to use simple or sigma_clip stats. */
+	retval = CCD_Config_Get_String("object.threshold.stats.type",&stats_type_string);
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 1020;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Object_Initialise:"
+			"Failed to load config:'object.threshold.stats.type'.");
+		return FALSE;
+	}
+	if(strcmp(stats_type_string,"simple")==0)
+		Object_Data.Threshold_Stats_Type = OBJECT_THRESHOLD_STATS_TYPE_SIMPLE;
+	else if(strcmp(stats_type_string,"sigma_clip")==0)
+		Object_Data.Threshold_Stats_Type = OBJECT_THRESHOLD_STATS_TYPE_SIGMA_CLIP;
+	else
+	{
+		Autoguider_General_Error_Number = 1022;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Object_Initialise:"
+			"Config:'object.threshold.stats.type' had illegal value : %s.",stats_type_string);
+		free(stats_type_string);
+		return FALSE;
+	}
+	/* free allocated stats type string */
+	free(stats_type_string);
+	/* get object threshold sigma */
+	retval = CCD_Config_Get_Float("object.threshold.sigma",&(Object_Data.Threshold_Sigma));
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 1023;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Object_Initialise:"
+			"Failed to load config:'object.threshold.sigma'.");
+		return FALSE;
+	}
+	/* get threshold sigma reject */
+	retval = CCD_Config_Get_Float("object.threshold.sigma.reject",&(Object_Data.Threshold_Sigma_Reject));
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 1024;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Object_Initialise:"
+			"Failed to load config:'object.threshold.sigma.reject'.");
+		return FALSE;
+	}
+	/* min connected pixel count */
+	if(!CCD_Config_Get_Integer("object.min_connected_pixel_count",&(Object_Data.Min_Connected_Pixel_Count)))
+	{
+		Autoguider_General_Error_Number = 1025;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Object_Initialise:"
+			"Failed to load config:'object.min_connected_pixel_count'.");
+		return FALSE;
+	}
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log("object","autoguider_object.c","Autoguider_Object_Initialise",LOG_VERBOSITY_TERSE,
+			       "OBJECT","finished.");
+#endif
+	return TRUE;
+}
+
 /**
  * Detect objects on the passed in image data.
  * <ul>
@@ -133,7 +277,7 @@ static int Object_Sort_Object_List_By_Total_Counts(const void *p1, const void *p
  * @param start_x The start of the buffer's X position on the physical CCD. 0 for full frame.
  * @param start_y The start of the buffer's Y position on the physical CCD. 0 for full frame.
  * @param use_standard_deviation Whether to use the frame's standard deviation when calculating object threshold 
- *        for detection. Set to TRUE for field, FALSE for guide where the window is mainly filled with star.
+ *        for detection. 
  * @param id An identifier for the buffer/exposure that is about to be object detected. 
  * @param frame_number The guide/field frame number that generated these objects.
  * @return The routine returns TRUE on success, and FALSE on failure.
@@ -200,6 +344,9 @@ int Autoguider_Object_Shutdown(void)
 		free(Object_Data.Image_Data);
 	Object_Data.Image_Data = NULL;
 	Object_Data.Image_Data_Allocated_Pixel_Count = 0;
+	/* and also free object mask data */
+	if(Object_Data.Object_Mask_Data != NULL)
+		free(Object_Data.Object_Mask_Data);
 	/* unlock mutex */
 	retval = Autoguider_General_Mutex_Unlock(&(Object_Data.Image_Data_Mutex));
 	if(retval == FALSE)
@@ -635,12 +782,246 @@ int Autoguider_Object_List_Get_Object_List_String(char **object_list_string)
 	return TRUE;
 }
 
+/**
+ * Return the median counts in the last image that had the Autoguider_Object_Detect object detection routine run on it.
+ * @return The median counts in ADU of the last buffer passed to Autoguider_Object_Detect, as stored in Object_Data.
+ * @see #Object_Data
+ */
+float Autoguider_Object_Median_Get(void)
+{
+	return Object_Data.Median;
+}
+
+/**
+ * Return the mean counts in the last image that had the Autoguider_Object_Detect object detection routine run on it.
+ * @return The mean counts in ADU of the last buffer passed to Autoguider_Object_Detect, as stored in Object_Data.
+ * @see #Object_Data
+ */
+float Autoguider_Object_Mean_Get(void)
+{
+	return Object_Data.Mean;
+}
+
+/**
+ * Return the background standard deviation in the last image that had the Autoguider_Object_Detect 
+ * object detection routine run on it.
+ * @return The background standard deviation in ADU of the last buffer passed to Autoguider_Object_Detect, 
+ *         as stored in Object_Data.
+ * @see #Object_Data
+ */
+float Autoguider_Object_Background_Standard_Deviation_Get(void)
+{
+	return Object_Data.Background_Standard_Deviation;
+}
+
+/**
+ * Return the computed threshold used to detect objects in the last image that had the Autoguider_Object_Detect 
+ * object detection routine run on it.
+ * @return The detect objection threshold in ADU of the last buffer passed to Autoguider_Object_Detect, 
+ *         as stored in Object_Data.
+ * @see #Object_Data
+ */
+float Autoguider_Object_Threshold_Get(void)
+{
+	return Object_Data.Threshold;
+}
+
+/**
+ * Return the object detection threshold sigma used to compute the currently used threshold used to detect objects.
+ * @return The object detection threshold sigma used to compute the currently used threshold for object detection.
+ * @see #Object_Data
+ */
+float Autoguider_Object_Threshold_Sigma_Get(void)
+{
+	return Object_Data.Threshold_Sigma;
+}
+
+/**
+ * Return the object detection threshold sigma reject used to compute the mean used to compute 
+ * the currently used threshold used to detect objects.
+ * @return The object detection threshold sigma reject used to compute the mean used to the 
+ *         currently used threshold for object detection.
+ * @see #Object_Data
+ */
+float Autoguider_Object_Threshold_Sigma_Reject_Get(void)
+{
+	return Object_Data.Threshold_Sigma_Reject;
+}
+
+/**
+ * Return the ellipticity limit used to configure the object detection routine 
+ * (by calling Object_Stellar_Ellipticity_Limit_Set).
+ * @return The ellipticity limit used to configure the object detection routine.
+ * @see #Object_Data
+ */
+float Autoguider_Object_Ellipticity_Limit_Get(void)
+{
+	return Object_Data.Ellipticity_Limit;
+}
+
+/**
+ * Return the number of connected pixels with above-threshold pixel values required for a detected object to be deemed
+ * valid, as loaded as a config value, and passed into the object detection routine.
+ * @return The number of connected pixels with above-threshold pixel values required for a detected object 
+ *         to be deemed valid, as stored in Object_Data.
+ * @see #Object_Data
+ */
+int Autoguider_Object_Min_Connected_Pixel_Count_Get(void)
+{
+	return Object_Data.Min_Connected_Pixel_Count;
+}
+
+/**
+ * Dynamically set/override the config value for the threshold sigma used to calculate the object detection threshold.
+ * The object detection threshold is usually set as follows in Object_Set_Threshold:
+ * Object_Data.Median+(Object_Data.Threshold_Sigma*Object_Data.Background_Standard_Deviation).
+ * @param sigma The new value of threshold sigma to use when calculating the threshold.
+ * @return The routine returns TRUE if the threshold sigma was updated successfully, and FALSE if there was a problem.
+ * @see #Object_Set_Threshold
+ * @see #Object_Data
+ */
+int Autoguider_Object_Threshold_Sigma_Set(float sigma)
+{
+	if(sigma <= 0.0)
+	{
+		Autoguider_General_Error_Number = 1026;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Object_Threshold_Sigma_Set:sigma %.2f too small.",
+			sigma);
+		return FALSE;
+	}
+	Object_Data.Threshold_Sigma = sigma;
+	return TRUE;
+}
+
+/**
+ * Dynamically set/override the config value for the threshold sigma reject used used to compute the 
+ * background S.D. when Threshold_Stats_Type is OBJECT_THRESHOLD_STATS_TYPE_SIGMA_CLIP.
+ * The object detection threshold is usually set as follows in Object_Set_Threshold:
+ * Object_Data.Median+(Object_Data.Threshold_Sigma*Object_Data.Background_Standard_Deviation).
+ * @param sigma_reject The new value of threshold sigma reject to use when calculating the background S.D.
+ * @return The routine returns TRUE if the threshold sigma reject was updated successfully, 
+ *         and FALSE if there was a problem.
+ * @see #Object_Set_Threshold
+ * @see #Object_Data
+ */
+int Autoguider_Object_Threshold_Sigma_Reject_Set(float sigma_reject)
+{
+	if(sigma_reject <= 0.0)
+	{
+		Autoguider_General_Error_Number = 1027;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Object_Threshold_Sigma_Reject_Set:"
+			"sigma_reject %.2f too small.",sigma_reject);
+		return FALSE;
+	}
+	Object_Data.Threshold_Sigma_Reject = sigma_reject;
+	return TRUE;
+}
+
+/**
+ * Dynamically set/override the config value for the ellipticity limit used used to accept/reject
+ * valid objects detected by the object detection routine.
+ * @param ellipticity_limit The new value of the ellipticity limit to use when detecting objects.
+ * @return The routine returns TRUE if the ellipticity limit was updated successfully, 
+ *         and FALSE if there was a problem.
+ * @see #Object_Data
+ * @see ../../libdprt/object/cdocs/object.html#Object_List_Get
+ * @see ../../libdprt/object/cdocs/object.html#Object_Stellar_Ellipticity_Limit_Set
+ */
+int Autoguider_Object_Ellipticity_Limit_Set(float ellipticity_limit)
+{
+	if(ellipticity_limit <= 0.0)
+	{
+		Autoguider_General_Error_Number = 1028;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Object_Ellipticity_Limit_Set:"
+			"ellipticity_limit %.2f too small.",ellipticity_limit);
+		return FALSE;
+	}
+	Object_Data.Ellipticity_Limit = ellipticity_limit;
+	return TRUE;
+}
+
+/**
+ * Dynamically set/override the config value for the minimum number of connected pixels above the threshold 
+ * for an object to be deemed valid by the object detection code.
+ * @param npix The new value of the minimum number of connected pixels to use when detecting objects.
+ * @return The routine returns TRUE if the minimum number of connected pixels was updated successfully, 
+ *         and FALSE if there was a problem.
+ * @see #Object_Data
+ * @see ../../libdprt/object/cdocs/object.html#Object_List_Get
+ */
+int Autoguider_Object_Min_Connected_Pixel_Count_Set(int npix)
+{
+	if(npix <= 0)
+	{
+		Autoguider_General_Error_Number = 1029;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Object_Min_Connected_Pixel_Count_Get:"
+			"minimum connected pixel count %d too small.",npix);
+		return FALSE;
+	}
+	Object_Data.Min_Connected_Pixel_Count = npix;
+	return TRUE;
+}
+
+/**
+ * Return the number of columns in the allocated object data pixel array.
+ * @return The number of columns in the allocated object data pixel array, Object_Data.Binned_NCols.
+ * @see #Object_Data
+ */
+int Autoguider_Object_Get_Binned_NCols(void)
+{
+	return Object_Data.Binned_NCols;
+}
+
+/**
+ * Return the number of rows in the allocated object data pixel array.
+ * @return The number of rows in the allocated object data pixel array, Object_Data.Binned_NRows.
+ * @see #Object_Data
+ */
+int Autoguider_Object_Get_Binned_NRows(void)
+{
+	return Object_Data.Binned_NRows;
+}
+
+/**
+ * Return a copy of the Object mask data in the specified memory.
+ * @param buffer_ptr An address pointing to an array of unsigned shorts of buffer_length_pixels length.
+ *        On a successful return a copy of the current object mask will be in the array.
+ * @param buffer_length_pixels The number of pixels in the array pointed to by buffer_ptr.
+ * @return The routine returns TRUE on success and FALSE on failure.
+ * @see #Object_Data
+ */
+int Autoguider_Object_Mask_Copy(unsigned short *buffer_ptr,size_t buffer_length_pixels)
+{
+	int retval;
+	
+	if(buffer_length_pixels != (Object_Data.Binned_NCols*Object_Data.Binned_NRows))
+	{
+		Autoguider_General_Error_Number = 1031;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Object_Mask_Copy:"
+			"mismatched buffer sizes: %ld vs (%d x %d).",buffer_length_pixels,
+			Object_Data.Binned_NCols,Object_Data.Binned_NRows);
+		return FALSE;
+	}
+	/* lock mutex */
+	retval = Autoguider_General_Mutex_Lock(&(Object_Data.Image_Data_Mutex));
+	if(retval == FALSE)
+		return FALSE;
+	/* do copy */
+	memcpy(buffer_ptr,Object_Data.Object_Mask_Data,
+	       ((Object_Data.Binned_NCols*Object_Data.Binned_NRows)*sizeof(unsigned short)));
+	/* unlock mutex */
+	retval = Autoguider_General_Mutex_Unlock(&(Object_Data.Image_Data_Mutex));
+	if(retval == FALSE)
+		return FALSE;	
+	return TRUE;
+}
+
 /* ----------------------------------------------------------------------------
 ** 		internal functions 
 ** ---------------------------------------------------------------------------- */
 /**
  * Setup buffer for object detection.
- * Locks the Image_Data_Mutex whilst resizing the buffer.
+ * Locks the Image_Data_Mutex whilst resizing the buffer. Now also resizes the object mask buffer.
  * @param buffer A float array containing the buffer with reduced data in it.
  * @param naxis1 The number of columns in the buffer.
  * @param naxis2 The number of rows in the buffer.
@@ -697,6 +1078,35 @@ static int Object_Buffer_Set(float *buffer,int naxis1,int naxis2)
 			return FALSE;
 		}
 		Object_Data.Image_Data_Allocated_Pixel_Count = naxis1*naxis2;
+		/* also allocate space for the object mask */
+		if(Object_Data.Object_Mask_Data == NULL)
+		{
+#if AUTOGUIDER_DEBUG > 9
+			Autoguider_General_Log_Format("object","autoguider_object.c","Object_Buffer_Set",
+						      LOG_VERBOSITY_VERBOSE,"OBJECT","Allocating Object_Mask_Data (%d,%d).",
+						      naxis1,naxis2);
+#endif
+			Object_Data.Object_Mask_Data = (unsigned short *)malloc((naxis1*naxis2)*sizeof(unsigned short));
+		}
+		else
+		{
+#if AUTOGUIDER_DEBUG > 9
+			Autoguider_General_Log_Format("object","autoguider_object.c","Object_Buffer_Set",
+						      LOG_VERBOSITY_VERBOSE,"OBJECT",
+						      "Reallocating Object_Mask_Data (%d,%d).",naxis1,naxis2);
+#endif
+			Object_Data.Object_Mask_Data = (unsigned short *)realloc(Object_Data.Object_Mask_Data,
+								  (naxis1*naxis2)*sizeof(unsigned short));
+		}
+		if(Object_Data.Object_Mask_Data == NULL)
+		{
+			Object_Data.Image_Data_Allocated_Pixel_Count = 0;
+			Autoguider_General_Mutex_Unlock(&(Object_Data.Image_Data_Mutex));
+			Autoguider_General_Error_Number = 1030;
+			sprintf(Autoguider_General_Error_String,"Object_Buffer_Set:"
+				"failed to allocate object mask buffer (%d,%d).",naxis1,naxis2);
+			return FALSE;
+		}
 	}
 	/* update dimensional information */
 	Object_Data.Binned_NCols = naxis1;
@@ -715,7 +1125,7 @@ static int Object_Buffer_Set(float *buffer,int naxis1,int naxis2)
 /**
  * Copy buffer for object detection. Assumes Object_Buffer_Set has been already called, so the buffer is
  * the right size.
- * Locks the Image_Data_Mutex whilst copying.
+ * Locks the Image_Data_Mutex whilst copying. Now also initialises the object mask buffer to 0.
  * @param buffer A float array containing the buffer with reduced data in it.
  * @param naxis1 The number of columns in the buffer.
  * @param naxis2 The number of rows in the buffer.
@@ -750,6 +1160,8 @@ static int Object_Buffer_Copy(float *buffer,int naxis1,int naxis2)
 	memcpy(Object_Data.Image_Data,buffer,(naxis1*naxis2)*sizeof(float));
 	Object_Data.Binned_NCols = naxis1;
 	Object_Data.Binned_NRows = naxis2;
+	/* and initialise object mask buffer to 0 */
+	memset(Object_Data.Object_Mask_Data,0,(naxis1*naxis2)*sizeof(unsigned short));
 	/* unlock mutex */
 	retval = Autoguider_General_Mutex_Unlock(&(Object_Data.Image_Data_Mutex));
 	if(retval == FALSE)
@@ -766,6 +1178,9 @@ static int Object_Buffer_Copy(float *buffer,int naxis1,int naxis2)
  * Locks the Image_Data_Mutex whilst accessing the image data.
  * Locks the Object_List_Mutex whilst modifying the object list.
  * Currently sorted (after setting the index!) into total count order (Object_Sort_Object_List_By_Total_Counts).
+ * Object_Set_Threshold is used to compute the threshold pixel value, above which pixels are deemed to be part of objects.
+ * The minimum number of connected pixels needed for an object to be valid is read from the Object_Data.Min_Connected_Pixel_Count
+ * variable, which has been loaded from config as part of Autoguider_Object_Initialise.
  * @param use_standard_deviation A boolean, whether to use standard deviation when calculating the object 
  *        threshold value. The SD is useful for sky gradients on field buffers, but the guide buffer SD is
  *        skewed by being mostly filled (hopefully) with a star, and so this variable should be set to FALSE
@@ -774,6 +1189,7 @@ static int Object_Buffer_Copy(float *buffer,int naxis1,int naxis2)
  * @param start_y The start of the buffer's Y position on the physical CCD. 0 for full frame.
  * @return The routine returns TRUE on success, and FALSE on failure.
  * @see #Object_Data
+ * @see #Object_Mask_Create
  * @see #Object_Set_Threshold
  * @see #Object_Sort_Object_List_By_Total_Counts
  * @see autoguider_general.html#Autoguider_General_Log
@@ -785,7 +1201,6 @@ static int Object_Buffer_Copy(float *buffer,int naxis1,int naxis2)
  * @see ../../libdprt/object/cdocs/object.html#Object_Get_Error_Number
  * @see ../../libdprt/object/cdocs/object.html#Object_Warning
  * @see ../../libdprt/object/cdocs/object.html#Object_Stellar_Ellipticity_Limit_Set
- * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Float
  */
 static int Object_Create_Object_List(int use_standard_deviation,int start_x,int start_y)
 {
@@ -793,7 +1208,7 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
 	Object *current_object_ptr = NULL;
 	struct timespec start_time,stop_time;
 	int retval,seeing_flag,index;
-	float ellipticity,threshold,seeing;
+	float seeing;
 
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log("object","autoguider_object.c","Object_Create_Object_List",
@@ -810,16 +1225,10 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
 	retval = Autoguider_General_Mutex_Lock(&(Object_Data.Image_Data_Mutex));
 	if(retval == FALSE)
 		return FALSE;
-	/* get/set ellipticity/is_stellar threshold */
-	if(!CCD_Config_Get_Float("object.ellipticity.limit",&ellipticity))
-	{
-		Autoguider_General_Error_Number = 1022;
-		sprintf(Autoguider_General_Error_String,"Object_Create_Object_List:"
-			"Failed to load config:'object.ellipticity.limit'.");
-		Autoguider_General_Mutex_Unlock(&(Object_Data.Image_Data_Mutex));
-		return FALSE;
-	}
-	if(!Object_Stellar_Ellipticity_Limit_Set(ellipticity))
+	/* This is already done in initialise.
+	** We don't need to do this every time we call this routine, unless we add an API to dynamically allow 
+	** modification of the value during runtime */
+	if(!Object_Stellar_Ellipticity_Limit_Set(Object_Data.Ellipticity_Limit))
 	{
 		Autoguider_General_Mutex_Unlock(&(Object_Data.Image_Data_Mutex));
 		return FALSE;
@@ -829,7 +1238,7 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
 	Autoguider_General_Log("object","autoguider_object.c","Object_Create_Object_List",
 			       LOG_VERBOSITY_VERBOSE,"OBJECT","Getting statistics.");
 #endif
-	if(!Object_Set_Threshold(use_standard_deviation,&threshold))
+	if(!Object_Set_Threshold(use_standard_deviation))
 	{
 		Autoguider_General_Mutex_Unlock(&(Object_Data.Image_Data_Mutex));
 		return FALSE;
@@ -839,9 +1248,10 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
 			       LOG_VERBOSITY_VERBOSE,"OBJECT","Starting object detection.");
 #endif
 	/* clock_gettime(CLOCK_REALTIME,&start_time);*/
-	/* npix '8' should be a loaded property */
+	/* Call the object detection code */
 	retval = Object_List_Get(Object_Data.Image_Data,Object_Data.Median,Object_Data.Binned_NCols,
-				 Object_Data.Binned_NRows,threshold,8,&object_list,&seeing_flag,&seeing);
+				 Object_Data.Binned_NRows,Object_Data.Threshold,Object_Data.Min_Connected_Pixel_Count,
+				 &object_list,&seeing_flag,&seeing);
 	/* clock_gettime(CLOCK_REALTIME,&stop_time);*/
 	if(retval == FALSE)
 	{
@@ -854,6 +1264,8 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
 	Autoguider_General_Log("object","autoguider_object.c","Object_Create_Object_List",
 			       LOG_VERBOSITY_VERBOSE,"OBJECT","Object detection finished.");
 #endif
+	/* create an object mask of created objects */
+	Object_Mask_Create(object_list);
 	/* unlock image data mutex */
 	retval = Autoguider_General_Mutex_Unlock(&(Object_Data.Image_Data_Mutex));
 	if(retval == FALSE)
@@ -892,7 +1304,7 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
 					   Object_Data.Object_Count);
 #endif
 			Object_Data.Object_List = (struct Autoguider_Object_Struct*)malloc(Object_Data.Object_Count*
-								    sizeof(struct Autoguider_Object_Struct));
+						   sizeof(struct Autoguider_Object_Struct));
 		}
 		else
 		{
@@ -997,30 +1409,30 @@ static int Object_Create_Object_List(int use_standard_deviation,int start_x,int 
  * Object_Get_Mean_Standard_Deviation_Sigma_Reject.
  * Assumes the Image_Data_Mutex has <b>already</b> been locked external to this routine, as it access
  * the Image_Data_List to create the Stats_List.
- * <b>object.threshold.stats.type</b> is loaded from the configuration to determine whether to use simple
- *   or sigma clipping stats when determining the threshold value.
- * <b>object.threshold.sigma</b> is loaded from the configuration during execution of this routine.
+ * We use Object_Data.Threshold_Stats_Type, loaded from the config file during initialisation from 
+ * <b>object.threshold.stats.type</b>,  to determine whether to use simple or sigma clipping stats 
+ * when determining the threshold value.
+ * We use Object_Data.Threshold_Sigma, loaded from the config file during initialisation from 
+ *  <b>object.threshold.sigma</b> to determine the threshold value in this routine.
  * @param use_standard_deviation Whether to use the frame's standard deviation when calculating object threshold 
  *        for detection. Set to TRUE for field, FALSE for guide where the window is mainly filled with star.
- * @param threshold The address of a float to store the calculated threshold value into.
  * @return The routine returns TRUE on success, and FALSE on failure.
+ * @see #Object_Data
  * @see #Object_Sort_Float_List
  * @see #Object_Fill_Stats_List
  * @see #Object_Get_Mean_Standard_Deviation_Simple
  * @see #Object_Get_Mean_Standard_Deviation_Sigma_Reject
  * @see #Image_Data
- * @see ../ccd/cdocs/ccd_config.html#CCD_Config_Get_Float
  * @see autoguider_general.html#Autoguider_General_Log
  * @see autoguider_general.html#Autoguider_General_Mutex_Lock
  * @see autoguider_general.html#Autoguider_General_Mutex_Unlock
  * @see autoguider_general.html#Autoguider_General_Error_Number
  * @see autoguider_general.html#Autoguider_General_Error_String
  */
-static int Object_Set_Threshold(int use_standard_deviation,float *threshold)
+static int Object_Set_Threshold(int use_standard_deviation)
 {
-	char *stats_type_string = NULL;
 	int retval;
-	float total_value,difference_squared_total,tmp_float,variance,threhold_sigma;
+	float total_value,difference_squared_total,tmp_float,variance,threshold_sigma;
 
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log("object","autoguider_object.c","Object_Set_Threshold",
@@ -1036,32 +1448,22 @@ static int Object_Set_Threshold(int use_standard_deviation,float *threshold)
 				      LOG_VERBOSITY_INTERMEDIATE,"OBJECT",
 				      "Median pixel value %.2f.",Object_Data.Median);
 #endif
-	/* get object.threshold.stats.type to determine whether to use simple or sugma_clip stats. */
-	retval = CCD_Config_Get_String("object.threshold.stats.type",&stats_type_string);
-	if(retval == FALSE)
-	{
-		Autoguider_General_Error_Number = 1018;
-		sprintf(Autoguider_General_Error_String,"Object_Set_Threshold:"
-			"Failed to load config:'object.threshold.stats.type'.");
-		return FALSE;
-	}
-	if(strcmp(stats_type_string,"simple")==0)
+	/* calculate the mean and standard deviation using the algorithm determined from config at Initialise time */
+	if(Object_Data.Threshold_Stats_Type = OBJECT_THRESHOLD_STATS_TYPE_SIMPLE)
 	{
 		/* get a simple mean and standard devation from the Stats_List/Stats_Count 
 		 * and save into Object_Data.Mean / Object_Data.Background_Standard_Deviation */
 		if(!Object_Get_Mean_Standard_Deviation_Simple())
 		{
-			free(stats_type_string);
 			return FALSE;
 		}
 	}
-	else if(strcmp(stats_type_string,"sigma_clip")==0)
+	else if(Object_Data.Threshold_Stats_Type = OBJECT_THRESHOLD_STATS_TYPE_SIGMA_CLIP)
 	{
 		/* get mean and standard devation from the Stats_List/Stats_Count using sigma clipping/rejection 
 		 * and save into Object_Data.Mean / Object_Data.Background_Standard_Deviation */
 		if(!Object_Get_Mean_Standard_Deviation_Sigma_Reject())
 		{
-			free(stats_type_string);
 			return FALSE;
 		}
 	}
@@ -1069,33 +1471,22 @@ static int Object_Set_Threshold(int use_standard_deviation,float *threshold)
 	{
 		Autoguider_General_Error_Number = 1019;
 		sprintf(Autoguider_General_Error_String,"Object_Set_Threshold:"
-			"Config:'object.threshold.stats.type' had illegal value : %s.",stats_type_string);
-		free(stats_type_string);
-		return FALSE;
-	}
-	/* free allocated stats type string */
-	free(stats_type_string);
-	/* get threshold sigma */
-	retval = CCD_Config_Get_Float("object.threshold.sigma",&threhold_sigma);
-	if(retval == FALSE)
-	{
-		Autoguider_General_Error_Number = 1017;
-		sprintf(Autoguider_General_Error_String,"Object_Set_Threshold:"
-			"Failed to load config:'object.threshold.sigma'.");
+			"Object_Data.Threshold_Stats_Type had illegal value : %d.",Object_Data.Threshold_Stats_Type);
 		return FALSE;
 	}
 	/* calculate threshold 
 	** NB Median is of all Stats_List pixels, Background_Standard_Deviation may not be if iterstat is used. */
 	if(use_standard_deviation)
-		(*threshold) = Object_Data.Median+threhold_sigma*Object_Data.Background_Standard_Deviation;
+		Object_Data.Threshold = Object_Data.Median+(Object_Data.Threshold_Sigma*
+							    Object_Data.Background_Standard_Deviation);
 	else
-		(*threshold) = Object_Data.Median;
+		Object_Data.Threshold = Object_Data.Median;
 #if AUTOGUIDER_DEBUG > 5
 	Autoguider_General_Log_Format("object","autoguider_object.c","Object_Set_Threshold",
 				      LOG_VERBOSITY_INTERMEDIATE,"OBJECT",
 			      "Using standard deviation = %d (%.2f), Threshold Sigma = %.2f, Threshold value %.2f.",
 				      use_standard_deviation,Object_Data.Background_Standard_Deviation,
-				      threhold_sigma,(*threshold));
+				      Object_Data.Threshold_Sigma,Object_Data.Threshold);
 #endif
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log("object","autoguider_object.c","Object_Set_Threshold",
@@ -1174,24 +1565,16 @@ static int Object_Get_Mean_Standard_Deviation_Simple(void)
 
 /**
  * Get Mean and Standard deviation using a sigma clipped RMS.
- * This routine calls iterstat in dprt_libfits.c (DpRt).
+ * This routine calls iterstat in dprt_libfits.c (DpRt). The sigma reject parameter is used from 
+ * Object_Data.Threshold_Sigma_Reject, which is loaded from the configuration fail during initialisation.
+ * @see #Object_Data
  */
 static int Object_Get_Mean_Standard_Deviation_Sigma_Reject(void)
 {
-	float sigma_reject;
 	int retval;
 
-	/* get threshold sigma */
-	retval = CCD_Config_Get_Float("object.threshold.sigma.reject",&sigma_reject);
-	if(retval == FALSE)
-	{
-		Autoguider_General_Error_Number = 1020;
-		sprintf(Autoguider_General_Error_String,"Object_Get_Mean_Standard_Deviation_Sigma_Reject:"
-			"Failed to load config:'object.threshold.sigma.reject'.");
-		return FALSE;
-	}
-	retval = iterstat(Object_Data.Stats_List,Object_Data.Stats_Count,sigma_reject,&(Object_Data.Mean),
-			  &(Object_Data.Background_Standard_Deviation));
+	retval = iterstat(Object_Data.Stats_List,Object_Data.Stats_Count,Object_Data.Threshold_Sigma_Reject,
+			  &(Object_Data.Mean),&(Object_Data.Background_Standard_Deviation));
 #if AUTOGUIDER_DEBUG > 5
 	Autoguider_General_Log_Format("object","autoguider_object.c","Object_Get_Mean_Standard_Deviation_Sigma_Reject",
 				      LOG_VERBOSITY_INTERMEDIATE,"OBJECT",
@@ -1199,6 +1582,45 @@ static int Object_Get_Mean_Standard_Deviation_Sigma_Reject(void)
 				      Object_Data.Mean,Object_Data.Background_Standard_Deviation,retval);
 #endif
 	return TRUE;
+}
+
+/**
+ * Create an output object mask from pixel data in object list.
+ * @param object_list The objects to create.
+ * @return TRUE on success, FALSE on failure.
+ * @see #Object_Data
+ */
+static void Object_Mask_Create(Object *object_list)
+{
+	Object *object = NULL;
+	HighPixel *high_pixel = NULL;
+	int x,y,objnum;
+
+	object = object_list;
+	while(object != NULL)
+	{
+		objnum = object->objnum;
+		objnum = (objnum % 65536);
+		high_pixel = object->highpixel;
+		while(high_pixel != NULL)
+		{
+			x = high_pixel->x;
+			y = high_pixel->y;
+			if((x > -1) &&(x < Object_Data.Binned_NCols)&&(y > -1) &&(y < Object_Data.Binned_NRows))
+				Object_Data.Object_Mask_Data[(y*Object_Data.Binned_NCols)+x] = objnum;
+			/* and to next pixel */
+			high_pixel = high_pixel->next_pixel;
+		}
+		/* highlight centre-point */
+		/* diddly
+		x = (int)(object->xpos);
+		y = (int)(object->ypos);
+		if((x > -1) &&(x < Object_Data.Binned_NCols)&&(y > -1) &&(y < Object_Data.Binned_NRows))
+			Object_Mask_Data[(y*Object_Data.Binned_NCols)+x] = 65535;
+		*/
+		/* and to next object */
+		object = object->nextobject;
+	}
 }
 
 /**

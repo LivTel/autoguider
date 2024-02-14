@@ -217,6 +217,19 @@ int main(int argc, char *argv[])
 		Autoguider_Shutdown_CCD();
 		return 5;
 	}
+	/* initialise object variables - object shutdown routine frees different stuff, this just loads config */
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP",
+			       "Autoguider_Object_Initialise.");
+#endif
+	retval = Autoguider_Object_Initialise();
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP");
+		/* ensure CCD is warmed up */
+		Autoguider_Shutdown_CCD();
+		return 5;
+	}
 	/* initialise CIL command server/CIL SDB connection */
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP",
@@ -347,7 +360,7 @@ int main(int argc, char *argv[])
 		Autoguider_General_Error("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP");
 		return 6;
 	}
-	/* always call Config shutdown, which free config memory */
+	/* always call Config shutdown, which frees config memory */
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP","CCD_Config_Shutdown");
 #endif
@@ -398,6 +411,7 @@ static int Autoguider_Initialise_Signal(void)
  * @see autoguider_general.html#Autoguider_General_Log_Handler_Log_Hourly_File
  * @see autoguider_general.html#Autoguider_General_Log_Handler_Log_UDP
  * @see autoguider_general.html#Autoguider_General_Call_Log_Handlers
+ * @see autoguider_general.html#Autoguider_General_Call_Log_Handlers_Const
  * @see autoguider_general.html#Autoguider_General_Set_Log_Filter_Function
  * @see autoguider_general.html#Autoguider_General_Log_Filter_Level_Absolute
  * @see ../ccd/cdocs/ccd_general.html#CCD_General_Set_Log_Handler_Function
@@ -473,7 +487,7 @@ static int Autoguider_Initialise_Logging(void)
 	Autoguider_General_Add_Log_Handler_Function(Autoguider_General_Log_Handler_Log_UDP);
 	Autoguider_General_Set_Log_Filter_Function(Autoguider_General_Log_Filter_Level_Absolute);
 	/* CCD */
-	CCD_General_Set_Log_Handler_Function(Autoguider_General_Call_Log_Handlers);
+	CCD_General_Set_Log_Handler_Function(Autoguider_General_Call_Log_Handlers_Const);
 	CCD_General_Set_Log_Filter_Function(CCD_General_Log_Filter_Level_Absolute);
 	/* setup command server logging */
 	Command_Server_Set_Log_Handler_Function(Autoguider_General_Call_Log_Handlers);

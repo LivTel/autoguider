@@ -1,6 +1,7 @@
 #!/bin/csh
 # autoguider_get_guide_packets <filename>
 # $Header: /home/cjm/cvs/autoguider/scripts/autoguider_get_guide_packets_with_time,v 1.1 2007-10-01 13:50:11 cjm Exp $
+# Space separated columns are: <DD-MM-YYYYYHH:MM:SS.222> +0000 : <x> <y> <timecode> <status> <checksum> <decimal hours>
 if ( $#argv < 1 ) then
 	echo "autoguider_get_guide_packets_with_time <filename> [<filename>...]"
 	exit 1
@@ -9,6 +10,10 @@ endif
 foreach arg ( $argv )
     set filename = $arg
     echo "filename : $arg"
+    # 10-11-2023T12:03:59.391 +0000 : Autoguider_CIL_Guide_Packet_Send:Autoguider_CIL_Guide_Packet_Send(x=940.12,y=981.15,terminating=0,unreliable=0,timecode=1.23,status=0):started.
+    # 10-11-2023T12:03:59.392 +0000 : NGATCil_TCS_Guide_Packet_Send:packet_buff (with checksum) = '00940.12 00981.15 00001.23 0 1368 ' (length 34).
+    # 10-11-2023T12:03:59.392 +0000 : 00940.12 00981.15 00001.23 0 1368 12.0665
+    # Therefore resultant space separated columns are: <DD-MM-YYYYYHH:MM:SS.222> +0000 : <x> <y> <timecode> <status> <checksum> <decimal hours>
     grep 'NGATCil_TCS_Guide_Packet_Send:packet_buff (with checksum) =' ${filename} | sed "s/NGATCil_TCS_Guide_Packet_Send:packet_buff (with checksum) = '\(.*\) ' (length .*)./\1/" | awk -F "[ T:]" '{print $0,$2+$3/60+$4/3600}'  
 end
 #

@@ -56,7 +56,7 @@ $(BINDIR)/%.o: %.c
 
 docs: $(DOCS)
 
-$(DOCS): $(SRCS)
+$(DOCS): $(SRCS) $(HEADERS)
 	-$(CDOC) -d $(DOCSDIR) -h $(INCDIR) $(DOCFLAGS) $(SRCS)
 
 $(DOCS) : $(SRCS)

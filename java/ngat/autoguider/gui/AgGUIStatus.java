@@ -48,6 +48,8 @@ public class AgGUIStatus
 	 * The load method for the class. This loads the property file from disc, using the default filename.
 	 * @see #load(java.lang.String)
 	 * @see #PROPERTY_FILE_NAME
+	 * @exception FileNotFoundException Thrown if the filename called PROPERTY_FILE_NAME does not exist.
+	 * @exception IOException Thrown if there is an error reading from PROPERTY_FILE_NAME.
 	 */
 	public void load() throws FileNotFoundException,IOException
 	{
@@ -58,6 +60,8 @@ public class AgGUIStatus
 	 * The load method for the class. This loads the property file from disc, from the specified filename.
 	 * @param filename The filename of a valid properties file to load.
 	 * @see #properties
+	 * @exception FileNotFoundException Thrown if the filename does not exist.
+	 * @exception IOException Thrown if there is an error reading from the file.
 	 */
 	public void load(String filename) throws FileNotFoundException,IOException
 	{
@@ -78,8 +82,9 @@ public class AgGUIStatus
 	}
 
 	/**
-	 * Get the logging level for Ccs GUI.
+	 * Get the logging level for the autoguider GUI.
 	 * @return The current log level.
+	 * @see #logLevel
 	 */	
 	public synchronized int getLogLevel()
 	{
@@ -90,7 +95,7 @@ public class AgGUIStatus
 	 * Play a sample specified by the property.
 	 * @param audioThread The audio thread to play the sample with.
 	 * @param propertyName The name of a property key. The value contains a sample "name",
-	 *      or a list of names is available from the property key (&lt;property key&gt;.&lt;N&gt),
+	 *      or a list of names is available from the property key (&lt;property key&gt;.&lt;N&gt;),
 	 *      and a random name is selected.
 	 */
 	public void play(SoundThread audioThread,String propertyName)

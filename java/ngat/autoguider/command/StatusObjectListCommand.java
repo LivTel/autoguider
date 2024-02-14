@@ -30,7 +30,6 @@ public class StatusObjectListCommand extends Command implements Runnable
 
 	/**
 	 * Default constructor.
-	 * @see IntegerReplyCommand
 	 * @see #commandString
 	 * @see #COMMAND_STRING
 	 */
@@ -67,12 +66,12 @@ public class StatusObjectListCommand extends Command implements Runnable
 	 * </pre>
 	 * See autoguider_object.c, Autoguider_Object_List_Get_Object_List_String for the code that
 	 * generates this string.
+	 * @see <a href="http://ltdevsrv.livjm.ac.uk/~dev/autoguider/cdocs/autoguider_object.html#Autoguider_Object_List_Get_Object_List_String">autoguider_object.c:Autoguider_Object_List_Get_Object_List_String</a>
 	 * @see #replyString
 	 * @see #parsedReplyString
 	 * @see #parsedReplyOk
 	 * @see StatusObjectListObject
 	 * @see StatusObjectListObject#parse
-	 * @link http://ltdevsrv.livjm.ac.uk/~dev/autoguider/cdocs/autoguider_object.html#Autoguider_Object_List_Get_Object_List_String
 	 */
 	public void parseReplyString() throws Exception
 	{
@@ -156,11 +155,13 @@ public class StatusObjectListCommand extends Command implements Runnable
 	}
 
 	/**
-	 * Get the specified etected object in the autoguidier's object list.
+	 * Get the specified detected object in the autoguidier's object list.
+	 * @param index The index in objectList, of the detected object to return.
 	 * @return The specified object.
 	 * @exception Exception Thrown if getting the data fails, either the run method failed to communicate
 	 *         with the autoguider in some way, or the method was called before the command had completed.
 	 * @see StatusObjectListObject
+	 * @see #objectList
 	 */
 	public StatusObjectListObject getObject(int index) throws Exception
 	{

@@ -99,8 +99,15 @@ public class AgGUIGuideStatusThread extends Thread
 	 * @see #updateTime
 	 * @see #agAddress
 	 * @see #agPortNumber
-	 * @see ngat.autoguider.command.StatusFieldActiveCommand
-	 * @see ngat.autoguider.command.StatusGuideActiveCommand
+	 * @see #statusUpdateListener
+	 * @see #sendStatusGuideExposureLength
+	 * @see #sendStatusGuideCadence
+	 * @see #sendStatusObjectCount
+	 * @see #sendStatusGuideLastObject
+	 * @see #sendStatusObjectMedian
+	 * @see #sendStatusObjectMean
+	 * @see #sendStatusObjectBackgroundStandardDeviation
+	 * @see #sendStatusObjectThreshold
 	 */
 	public void run()
 	{
@@ -116,8 +123,18 @@ public class AgGUIGuideStatusThread extends Thread
 			// number of objects detected
 			sendStatusObjectCount();
 			// objects detected
-			sendStatusObjectList();
+			//sendStatusObjectList();
+			// Last guide object used to send a centroid to the TCS/SDB
+			sendStatusGuideLastObject();
 			// diddly if(useGuideCadenceUpdateTime) update updateTime
+			// last object detection - median counts in image
+			sendStatusObjectMedian();
+			// last object detection - mean counts in image
+			sendStatusObjectMean();
+			// last object detection - background standard deviation in image
+			sendStatusObjectBackgroundStandardDeviation();
+			// last object detection - object detection threshold in image
+			sendStatusObjectThreshold();
 		// sleep for a bit
 			try
 			{
@@ -134,7 +151,7 @@ public class AgGUIGuideStatusThread extends Thread
 			statusUpdateListener.setGuideExposureLength("Unknown");
 			statusUpdateListener.setGuideCadence("Unknown");
 			statusUpdateListener.setGuideObjectCount("Unknown");
-			setGuideObject(null);
+			setGuideObjectBlank();
 		}
 	}
 
@@ -309,7 +326,7 @@ public class AgGUIGuideStatusThread extends Thread
 				}
 				else
 				{
-					setGuideObject(null);
+					setGuideObjectBlank();
 					parent.log(1,"sendStatusObjectCount:'status object list' "+
 						   "returned wrong number of objects:"+
 						   objectListCommand.getObjectListCount());
@@ -320,14 +337,55 @@ public class AgGUIGuideStatusThread extends Thread
 				parent.error(this.getClass().getName()+
 					     ":sendStatusObjectList:Sending 'status object list' failed and returned:"+
 					     objectListCommand.getReply());
-				setGuideObject(null);
+				setGuideObjectBlank();
 			}
 		}
 		catch(Exception e)
 		{
 			parent.error(this.getClass().getName()+":sendStatusObjectList:"+
 				     "Sending 'status object list' failed:",e);
-			setGuideObject(null);
+			setGuideObjectBlank();
+		}
+	}
+
+	/**
+	 * Send "status guide last_object" command and evaluate result. Update relevant Swing GUI.
+	 * @see #statusUpdateListener
+	 * @see #agAddress
+	 * @see #agPortNumber
+	 * @see #setGuideObject
+	 */
+	protected void sendStatusGuideLastObject()
+	{
+		StatusGuideLastObjectCommand lastObjectCommand = null;
+		boolean retval;
+
+		parent.log(1,"sendStatusGuideLastObject:Sending 'status guide last_object'");
+		lastObjectCommand = new StatusGuideLastObjectCommand();
+		lastObjectCommand.setAddress(agAddress);
+		lastObjectCommand.setPortNumber(agPortNumber);
+		try
+		{
+			lastObjectCommand.sendCommand();
+			if(lastObjectCommand.getParsedReplyOK())
+			{
+				setGuideObject(lastObjectCommand);
+				parent.log(1,"sendStatusGuideLastObject:'status guide last_object' "+
+					   "returned:"+lastObjectCommand);
+			}
+			else
+			{
+				parent.error(this.getClass().getName()+
+					     ":sendStatusObjectList:Sending 'status guide last_object' failed and returned:"+
+					     lastObjectCommand.getReply());
+				setGuideObjectBlank();
+			}
+		}
+		catch(Exception e)
+		{
+			parent.error(this.getClass().getName()+":sendStatusGuideLastObject:"+
+				     "Sending 'status guide last_object' failed:",e);
+			setGuideObjectBlank();
 		}
 	}
 
@@ -335,7 +393,7 @@ public class AgGUIGuideStatusThread extends Thread
 	 * Method to set the guide object Swing data.
 	 * @param object The object to set from, this can be null to set the fields to unknown.
 	 * @see #statusUpdateListener
-	 * @see StatusObjectListObject
+	 * @see ngat.autoguider.command.StatusObjectListObject
 	 */
 	protected void setGuideObject(StatusObjectListObject object)
 	{
@@ -348,6 +406,14 @@ public class AgGUIGuideStatusThread extends Thread
 				statusUpdateListener.setGuideObjectCCDPositionY(object.getCCDPositionY());
 				statusUpdateListener.setGuideObjectBufferPositionX(object.getBufferPositionX());
 				statusUpdateListener.setGuideObjectBufferPositionY(object.getBufferPositionY());
+				statusUpdateListener.setGuideObjectTotalCounts(object.getTotalCounts());
+				statusUpdateListener.setGuideObjectPeakCounts(object.getPeakCounts());
+				statusUpdateListener.setGuideObjectNoOfPixels(object.getNumberOfPixels());
+				statusUpdateListener.setGuideObjectIsStellar(object.isStellar());
+				statusUpdateListener.setGuideObjectFWHMX(object.getFWHMX());
+				statusUpdateListener.setGuideObjectFWHMY(object.getFWHMY());
+				statusUpdateListener.addCCDXPositionToGraph(object.getCCDPositionX());
+				statusUpdateListener.addCCDYPositionToGraph(object.getCCDPositionY());
 			}
 			else
 			{
@@ -356,11 +422,249 @@ public class AgGUIGuideStatusThread extends Thread
 				statusUpdateListener.setGuideObjectCCDPositionY("Unknown");
 				statusUpdateListener.setGuideObjectBufferPositionX("Unknown");
 				statusUpdateListener.setGuideObjectBufferPositionY("Unknown");
+				statusUpdateListener.setGuideObjectTotalCounts("Unknown");
+				statusUpdateListener.setGuideObjectPeakCounts("Unknown");
+				statusUpdateListener.setGuideObjectNoOfPixels("Unknown");
+				statusUpdateListener.setGuideObjectIsStellar("Unknown");
+				statusUpdateListener.setGuideObjectFWHMX("Unknown");
+				statusUpdateListener.setGuideObjectFWHMY("Unknown");
 			}
 		}
 	}
 
+	/**
+	 * Method to set the guide object Swing data.
+	 * @param object The object to set from, this can be null to set the fields to unknown.
+	 * @see #statusUpdateListener
+	 * @see ngat.autoguider.command.StatusGuideLastObjectCommand
+	 */
+	protected void setGuideObject(StatusGuideLastObjectCommand object)
+	{
+		if(statusUpdateListener != null)
+		{
+			if(object != null)
+			{
+				statusUpdateListener.setGuideObjectId("Unknown");
+				statusUpdateListener.setGuideObjectCCDPositionX(object.getCCDPositionX());
+				statusUpdateListener.setGuideObjectCCDPositionY(object.getCCDPositionY());
+				statusUpdateListener.setGuideObjectBufferPositionX(object.getBufferPositionX());
+				statusUpdateListener.setGuideObjectBufferPositionY(object.getBufferPositionY());
+				statusUpdateListener.setGuideObjectTotalCounts(object.getTotalCounts());
+				statusUpdateListener.setGuideObjectPeakCounts(object.getPeakCounts());
+				statusUpdateListener.setGuideObjectNoOfPixels(object.getNumberOfPixels());
+				statusUpdateListener.setGuideObjectIsStellar(object.getIsStellar());
+				statusUpdateListener.setGuideObjectFWHMX(object.getFWHMX());
+				statusUpdateListener.setGuideObjectFWHMY(object.getFWHMY());
+				statusUpdateListener.addCCDXPositionToGraph(object.getCCDPositionX());
+				statusUpdateListener.addCCDYPositionToGraph(object.getCCDPositionY());
+			}
+			else
+			{
+				statusUpdateListener.setGuideObjectId("Unknown");
+				statusUpdateListener.setGuideObjectCCDPositionX("Unknown");
+				statusUpdateListener.setGuideObjectCCDPositionY("Unknown");
+				statusUpdateListener.setGuideObjectBufferPositionX("Unknown");
+				statusUpdateListener.setGuideObjectBufferPositionY("Unknown");
+				statusUpdateListener.setGuideObjectTotalCounts("Unknown");
+				statusUpdateListener.setGuideObjectPeakCounts("Unknown");
+				statusUpdateListener.setGuideObjectNoOfPixels("Unknown");
+				statusUpdateListener.setGuideObjectIsStellar("Unknown");
+				statusUpdateListener.setGuideObjectFWHMX("Unknown");
+				statusUpdateListener.setGuideObjectFWHMY("Unknown");
+			}
+		}
+	}
+	
+	/**
+	 * Method to set the guide object Swing data to unknowns.
+	 * @see #statusUpdateListener
+	 */
+	protected void setGuideObjectBlank()
+	{
+		if(statusUpdateListener != null)
+		{
+			statusUpdateListener.setGuideObjectId("Unknown");
+			statusUpdateListener.setGuideObjectCCDPositionX("Unknown");
+			statusUpdateListener.setGuideObjectCCDPositionY("Unknown");
+			statusUpdateListener.setGuideObjectBufferPositionX("Unknown");
+			statusUpdateListener.setGuideObjectBufferPositionY("Unknown");
+			statusUpdateListener.setGuideObjectTotalCounts("Unknown");
+			statusUpdateListener.setGuideObjectPeakCounts("Unknown");
+			statusUpdateListener.setGuideObjectNoOfPixels("Unknown");
+			statusUpdateListener.setGuideObjectIsStellar("Unknown");
+			statusUpdateListener.setGuideObjectFWHMX("Unknown");
+			statusUpdateListener.setGuideObjectFWHMY("Unknown");
+		}
+	}
+
+	/**
+	 * Send "status object median" command and evaluate result. Update relevant Swing GUI.
+	 * @see #statusUpdateListener
+	 * @see #agAddress
+	 * @see #agPortNumber
+	 */
+	protected void sendStatusObjectMedian()
+	{
+		StatusObjectMedianCommand objectMedianCommand = null;
+		boolean retval;
+
+		parent.log(1,"sendStatusObjectMedian:Sending 'status object median'");
+		objectMedianCommand = new StatusObjectMedianCommand();
+		objectMedianCommand.setAddress(agAddress);
+		objectMedianCommand.setPortNumber(agPortNumber);
+		try
+		{
+			objectMedianCommand.sendCommand();
+			if(objectMedianCommand.getParsedReplyOK())
+			{
+				if(statusUpdateListener != null)
+					statusUpdateListener.setObjectMedian(objectMedianCommand.getMedian());
+				parent.log(1,"sendStatusObjectMedian:'status object median' "+
+					   "returned:"+objectMedianCommand.getMedian());
+			}
+			else
+			{
+				parent.error(this.getClass().getName()+
+					   ":sendStatusObjectMedian:Sending 'status object median' failed and returned:"+
+					     objectMedianCommand.getReply());
+				if(statusUpdateListener != null)
+					statusUpdateListener.setObjectMedian("Unknown");
+			}
+		}
+		catch(Exception e)
+		{
+			parent.error(this.getClass().getName()+":sendStatusObjectMedian:"+
+				     "Sending 'status object median' failed:",e);
+			if(statusUpdateListener != null)
+				statusUpdateListener.setObjectMedian("Unknown");
+		}
+	}
+	
+	/**
+	 * Send "status object mean" command and evaluate result. Update relevant Swing GUI.
+	 * @see #statusUpdateListener
+	 * @see #agAddress
+	 * @see #agPortNumber
+	 */
+	protected void sendStatusObjectMean()
+	{
+		StatusObjectMeanCommand objectMeanCommand = null;
+		boolean retval;
+
+		parent.log(1,"sendStatusObjectMean:Sending 'status object mean'");
+		objectMeanCommand = new StatusObjectMeanCommand();
+		objectMeanCommand.setAddress(agAddress);
+		objectMeanCommand.setPortNumber(agPortNumber);
+		try
+		{
+			objectMeanCommand.sendCommand();
+			if(objectMeanCommand.getParsedReplyOK())
+			{
+				if(statusUpdateListener != null)
+					statusUpdateListener.setObjectMean(objectMeanCommand.getMean());
+				parent.log(1,"sendStatusObjectMean:'status object mean' "+
+					   "returned:"+objectMeanCommand.getMean());
+			}
+			else
+			{
+				parent.error(this.getClass().getName()+
+					   ":sendStatusObjectMean:Sending 'status object mean' failed and returned:"+
+					     objectMeanCommand.getReply());
+				if(statusUpdateListener != null)
+					statusUpdateListener.setObjectMean("Unknown");
+			}
+		}
+		catch(Exception e)
+		{
+			parent.error(this.getClass().getName()+":sendStatusObjectMean:"+
+				     "Sending 'status object mean' failed:",e);
+			if(statusUpdateListener != null)
+				statusUpdateListener.setObjectMean("Unknown");
+		}
+	}
+	
+	/**
+	 * Send "status object threshold" command and evaluate result. Update relevant Swing GUI.
+	 * @see #statusUpdateListener
+	 * @see #agAddress
+	 * @see #agPortNumber
+	 */
+	protected void sendStatusObjectThreshold()
+	{
+		StatusObjectThresholdCommand objectThresholdCommand = null;
+		boolean retval;
+
+		parent.log(1,"sendStatusObjectThreshold:Sending 'status object threshold'");
+		objectThresholdCommand = new StatusObjectThresholdCommand();
+		objectThresholdCommand.setAddress(agAddress);
+		objectThresholdCommand.setPortNumber(agPortNumber);
+		try
+		{
+			objectThresholdCommand.sendCommand();
+			if(objectThresholdCommand.getParsedReplyOK())
+			{
+				if(statusUpdateListener != null)
+					statusUpdateListener.setObjectThreshold(objectThresholdCommand.getThreshold());
+				parent.log(1,"sendStatusObjectThreshold:'status object threshold' "+
+					   "returned:"+objectThresholdCommand.getThreshold());
+			}
+			else
+			{
+				parent.error(this.getClass().getName()+
+					   ":sendStatusObjectThreshold:Sending 'status object threshold' failed and returned:"+
+					     objectThresholdCommand.getReply());
+				if(statusUpdateListener != null)
+					statusUpdateListener.setObjectThreshold("Unknown");
+			}
+		}
+		catch(Exception e)
+		{
+			parent.error(this.getClass().getName()+":sendStatusObjectThreshold:"+
+				     "Sending 'status object threshold' failed:",e);
+			if(statusUpdateListener != null)
+				statusUpdateListener.setObjectThreshold("Unknown");
+		}
+	}
+	/**
+	 * Send "status object background_standard_deviation" command and evaluate result. Update relevant Swing GUI.
+	 * @see #statusUpdateListener
+	 * @see #agAddress
+	 * @see #agPortNumber
+	 */
+	protected void sendStatusObjectBackgroundStandardDeviation()
+	{
+		StatusObjectBackgroundStandardDeviationCommand objectBackgroundStandardDeviationCommand = null;
+		boolean retval;
+
+		parent.log(1,"sendStatusObjectBackgroundStandardDeviation:Sending 'status object background_standard_deviation'");
+		objectBackgroundStandardDeviationCommand = new StatusObjectBackgroundStandardDeviationCommand();
+		objectBackgroundStandardDeviationCommand.setAddress(agAddress);
+		objectBackgroundStandardDeviationCommand.setPortNumber(agPortNumber);
+		try
+		{
+			objectBackgroundStandardDeviationCommand.sendCommand();
+			if(objectBackgroundStandardDeviationCommand.getParsedReplyOK())
+			{
+				if(statusUpdateListener != null)
+					statusUpdateListener.setObjectBackgroundStandardDeviation(objectBackgroundStandardDeviationCommand.getBackgroundStandardDeviation());
+				parent.log(1,"sendStatusObjectBackgroundStandardDeviation:'status object background_standard_deviation' "+
+					   "returned:"+objectBackgroundStandardDeviationCommand.getBackgroundStandardDeviation());
+			}
+			else
+			{
+				parent.error(this.getClass().getName()+
+					   ":sendStatusObjectBackgroundStandardDeviation:Sending 'status object background_standard_deviation' failed and returned:"+
+					     objectBackgroundStandardDeviationCommand.getReply());
+				if(statusUpdateListener != null)
+					statusUpdateListener.setObjectBackgroundStandardDeviation("Unknown");
+			}
+		}
+		catch(Exception e)
+		{
+			parent.error(this.getClass().getName()+":sendStatusObjectBackgroundStandardDeviation:"+
+				     "Sending 'status object background_standard_deviation' failed:",e);
+			if(statusUpdateListener != null)
+				statusUpdateListener.setObjectBackgroundStandardDeviation("Unknown");
+		}
+	}
 }
-//
-// $Log: not supported by cvs2svn $
-//

@@ -1,6 +1,6 @@
 # <autoguider_install:start>
-# $Header: /home/cjm/cvs/autoguider/scripts/icc_cshrc,v 1.4 2013-12-11 10:07:08 cjm Exp $
-# $Revision: 1.4 $
+# $Header$
+# $Revision$
 # Do not delete the above comment, it delimits the cshrc updated by the autoguider_install script.
 # part of lt_environment, so we can call scripts
 setenv LT_HOME /icc
@@ -24,20 +24,24 @@ foreach dir ( ${LT_BIN_HOME}/lib/${HOSTTYPE} )
     endif
 end
 
+if ( $?HOSTTYPE == 0 ) then
+    setenv HOSTTYPE "i386-linux"
+endif
 # Useful command aliass
 #alias delete_log_files 		'/icc/bin/scripts/delete_log_files.csh'
 #alias autoguider_reboot       		'/icc/bin/scripts/autoguider_reboot'
 #alias autoguider_engineering_mode   	'/icc/bin/scripts/autoguider_engineering_mode'
 alias myps             			'ps -e -o pid,pcpu,vsz,ruser,args'
-alias send_command			'/icc/bin/autoguider/commandserver/test/i386-linux/send_command'
-alias test_getfits_command		'/icc/bin/autoguider/commandserver/test/i386-linux/test_getfits_command'
+alias send_command			'/icc/bin/autoguider/commandserver/test/${HOSTTYPE}/send_command'
+alias test_getfits_command		'/icc/bin/autoguider/commandserver/test/${HOSTTYPE}/test_getfits_command'
 alias autoguider_field			'/icc/bin/autoguider/scripts/autoguider_field'
 alias autoguider_guide			'/icc/bin/autoguider/scripts/autoguider_guide'
 alias autoguider_get_guide_frames 	'/icc/bin/autoguider/scripts/autoguider_get_guide_frames'
 alias autoguider_make_dark 		'/icc/bin/autoguider/scripts/autoguider_make_dark'
 alias autoguider_make_flat 		'/icc/bin/autoguider/scripts/autoguider_make_flat'
-alias autoguider_temperature_get	'/icc/bin/autoguider/commandserver/test/i386-linux/send_command -h acc -p 6571 -c "status temperature get"'
-alias autoguider_temperature_ambient	'/icc/bin/autoguider/commandserver/test/i386-linux/send_command -h acc -p 6571 -c "temperature set 15.0"'
+alias autoguider_temperature_get	'/icc/bin/autoguider/commandserver/test/${HOSTTYPE}/send_command -h acc -p 6571 -c "status temperature get"'
+alias check_alive 			autoguider_temperature_get
+alias autoguider_temperature_ambient	'/icc/bin/autoguider/commandserver/test/${HOSTTYPE}/send_command -h acc -p 6571 -c "temperature set 15.0"'
 alias autoguider_runtime_system_evaluator '/icc/bin/autoguider/java/gui/autoguider_runtime_system_evaluator'
 # Do not delete the next comment, it delimits the cshrc updated by the autoguider_install script.
 # <autoguider_install:end>

@@ -515,13 +515,157 @@ int Autoguider_Command_Config_Load(char *command_string,char **reply_string)
 }
 
 /**
+ * Handle a command of the form: "object <variable> <n>". This allows us to set various object variables
+ * used to determine the treshold and object detection dynamically.
+ * <ul>
+ * <li>object sigma <n>
+ * <li>object sigma_reject <n>
+ * <li>object ellipticity_limit <n>
+ * <li>object min_con_pix <n>
+ * </ul>
+ * @param command_string The status command. This is not changed during this routine.
+ * @param reply_string The address of a pointer to allocate and set the reply string.
+ * @return The routine returns TRUE on success and FALSE on failure.
+ * @see autoguider_general.html#Autoguider_General_Add_String
+ * @see autoguider_general.html#Autoguider_General_Log
+ * @see autoguider_general.html#Autoguider_General_Error_Number
+ * @see autoguider_general.html#Autoguider_General_Error_String
+ * @see autoguider_object.html#Autoguider_Object_Threshold_Sigma_Set
+ * @see autoguider_object.html#Autoguider_Object_Threshold_Sigma_Reject_Set
+ * @see autoguider_object.html#Autoguider_Object_Ellipticity_Limit_Set
+ * @see autoguider_object.html#Autoguider_Object_Min_Connected_Pixel_Count_Set
+ */
+int Autoguider_Command_Object(char *command_string,char **reply_string)
+{
+	char variable_string[65];
+	char value_string[65];
+	char buff[64];
+	float fvalue;
+	int retval,ivalue;
+	
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Object",
+			       LOG_VERBOSITY_TERSE,"COMMAND","started.");
+#endif
+	if(command_string == NULL)
+	{
+		Autoguider_General_Error_Number = 331;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Command_Object:command_string was NULL.");
+		return FALSE;
+	}
+	if(reply_string == NULL)
+	{
+		Autoguider_General_Error_Number = 332;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Command_Object:reply_string was NULL.");
+		return FALSE;
+	}
+#if AUTOGUIDER_DEBUG > 5
+	Autoguider_General_Log("command","autoguider_command.c","Autoguider_Command_Object",
+			       LOG_VERBOSITY_TERSE,"COMMAND","Autoguider_Command_Object:parsing command string.");
+#endif
+	retval = sscanf(command_string,"object %64s %64s",variable_string,value_string);
+	if(retval != 2)
+	{
+		Autoguider_General_Error_Number = 333;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Command_Object:"
+			"Failed to parse object command '%s' (%d).",command_string,retval);
+		return FALSE;
+	}
+	/* usually the value is a float */
+	retval = sscanf(value_string,"%f",&fvalue);
+	if(retval != 1)
+	{
+		Autoguider_General_Error_Number = 334;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Command_Object:"
+			"Failed to parse value string '%s' (%d).",value_string,retval);
+		return FALSE;
+	}
+	/* do something based on variable */
+	if(strcmp(variable_string,"sigma") == 0)
+	{
+		if(!Autoguider_Object_Threshold_Sigma_Set(fvalue))
+			return FALSE;
+		if(!Autoguider_General_Add_String(reply_string,"0 object sigma set to:"))
+			return FALSE;
+		sprintf(buff,"%.3f",fvalue);
+		if(!Autoguider_General_Add_String(reply_string,buff))
+			return FALSE;
+		if(!Autoguider_General_Add_String(reply_string,"."))
+			return FALSE;
+		return TRUE;
+	}
+	else if(strcmp(variable_string,"sigma_reject") == 0)
+	{
+		if(!Autoguider_Object_Threshold_Sigma_Reject_Set(fvalue))
+			return FALSE;
+		if(!Autoguider_General_Add_String(reply_string,"0 object sigma reject set to:"))
+			return FALSE;
+		sprintf(buff,"%.3f",fvalue);
+		if(!Autoguider_General_Add_String(reply_string,buff))
+			return FALSE;
+		if(!Autoguider_General_Add_String(reply_string,"."))
+			return FALSE;
+		return TRUE;
+	}
+	else if(strcmp(variable_string,"ellipticity_limit") == 0)
+	{
+		if(!Autoguider_Object_Ellipticity_Limit_Set(fvalue))
+			return FALSE;
+		if(!Autoguider_General_Add_String(reply_string,"0 object ellipticity limit set to:"))
+			return FALSE;
+		sprintf(buff,"%.3f",fvalue);
+		if(!Autoguider_General_Add_String(reply_string,buff))
+			return FALSE;
+		if(!Autoguider_General_Add_String(reply_string,"."))
+			return FALSE;
+		return TRUE;
+	}
+	else if(strcmp(variable_string,"min_con_pix") == 0)
+	{
+		/* reparse value_string as an integer in this case */
+		retval = sscanf(value_string,"%d",&ivalue);
+		if(retval != 1)
+		{
+			Autoguider_General_Error_Number = 335;
+			sprintf(Autoguider_General_Error_String,"Autoguider_Command_Object:"
+				"Failed to parse value string '%s' as an integer (%d).",value_string,retval);
+			return FALSE;
+		}
+		if(!Autoguider_Object_Min_Connected_Pixel_Count_Set(ivalue))
+			return FALSE;
+		if(!Autoguider_General_Add_String(reply_string,"0 object minimum connected pixels set to:"))
+			return FALSE;
+		sprintf(buff,"%d",ivalue);
+		if(!Autoguider_General_Add_String(reply_string,buff))
+			return FALSE;
+		if(!Autoguider_General_Add_String(reply_string,"."))
+			return FALSE;
+		return TRUE;
+	}
+	else
+	{
+		if(!Autoguider_General_Add_String(reply_string,"1 Unknown variable:"))
+			return FALSE;
+		if(!Autoguider_General_Add_String(reply_string,variable_string))
+			return FALSE;
+		if(!Autoguider_General_Add_String(reply_string,"."))
+			return FALSE;
+		return TRUE;
+	}
+	return TRUE;
+}
+
+
+/**
  * Handle a command of the form: "status <type> <element>".
  * <ul>
  * <li>status temperature get
  * <li>status temperature status
  * <li>status field &lt;active|dark|flat|object&gt;
- * <li>status guide &lt;active|dark|flat|object|packet|exposure_length|cadence|timecode_scaling|window&gt;
- * <li>status object &lt;list|count&gt;
+ * <li>status guide &lt;active|dark|flat|object|packet|cadence|timecode_scaling|exposure_length|window&gt;
+ * <li>status guide &lt;last_object|initial_position&gt;
+ * <li>status object &lt;list|count|median|mean|background_standard_deviation|threshold&gt;
+ * <li>status object &lt;sigma|sigma_reject|ellipticity_limit|min_con_pix&gt;
  * </ul>
  * @param command_string The status command. This is not changed during this routine.
  * @param reply_string The address of a pointer to allocate and set the reply string.
@@ -543,8 +687,20 @@ int Autoguider_Command_Config_Load(char *command_string,char **reply_string)
  * @see autoguider_guide.html#Autoguider_Guide_Exposure_Length_Get
  * @see autoguider_guide.html#Autoguider_Guide_Window_Get
  * @see autoguider_guide.html#Autoguider_Guide_Timecode_Scaling_Get
+ * @see autoguider_guide.html#Autoguider_Guide_Last_Object_Get
+ * @see autoguider_guide.html#Autoguider_Guide_Initial_Object_CCD_X_Position_Get
+ * @see autoguider_guide.html#Autoguider_Guide_Initial_Object_CCD_Y_Position_Get
+ * @see autoguider_object.html#Autoguider_Object_Struct
  * @see autoguider_object.html#Autoguider_Object_List_Get_Count
  * @see autoguider_object.html#Autoguider_Object_List_Get_Object_List_String
+ * @see autoguider_object.html#Autoguider_Object_Median_Get
+ * @see autoguider_object.html#Autoguider_Object_Mean_Get
+ * @see autoguider_object.html#Autoguider_Object_Background_Standard_Deviation_Get
+ * @see autoguider_object.html#Autoguider_Object_Threshold_Get
+ * @see autoguider_object.html#Autoguider_Object_Threshold_Sigma_Get
+ * @see autoguider_object.html#Autoguider_Object_Threshold_Sigma_Reject_Get
+ * @see autoguider_object.html#Autoguider_Object_Ellipticity_Limit_Get
+ * @see autoguider_object.html#Autoguider_Object_Min_Connected_Pixel_Count_Get
  * @see ../ccd/cdocs/ccd_general.html#CCD_General_Error
  * @see ../ccd/cdocs/ccd_general.html#CCD_General_Get_Time_String
  * @see ../ccd/cdocs/ccd_setup.html#CCD_Setup_Window_Struct
@@ -556,6 +712,7 @@ int Autoguider_Command_Status(char *command_string,char **reply_string)
 	double temperature;
 	enum CCD_TEMPERATURE_STATUS temperature_status;
 	struct CCD_Setup_Window_Struct window;
+	struct Autoguider_Object_Struct last_object;
 	struct timespec temperature_time_stamp;
 	char type_string[65];
 	char element_string[65];
@@ -563,6 +720,7 @@ int Autoguider_Command_Status(char *command_string,char **reply_string)
 	char buff[256];
 	char *object_list_string = NULL;
 	double dvalue;
+	float x,y,fvalue;
 	int retval,ivalue;
 
 #if AUTOGUIDER_DEBUG > 1
@@ -826,6 +984,31 @@ int Autoguider_Command_Status(char *command_string,char **reply_string)
 				return FALSE;
 			return TRUE;
 		}
+		else if(strcmp(element_string,"last_object") == 0)
+		{
+			last_object = Autoguider_Guide_Last_Object_Get();
+			/* 0 CCD_X_Position CCD_Y_Position Buffer_X_Position Buffer_Y_Position 
+			** Total_Counts Pixel_Count Peak_Counts Is_Stellar FWHM_X FWHM_Y */
+			sprintf(buff,"0 %.2f %.2f %.2f %.2f %.2f %d %.2f %s %.2f %.2f",
+				last_object.CCD_X_Position,last_object.CCD_Y_Position,
+				last_object.Buffer_X_Position,last_object.Buffer_Y_Position,
+				last_object.Total_Counts,last_object.Pixel_Count,last_object.Peak_Counts,
+				(last_object.Is_Stellar ? "TRUE" : "FALSE"),
+				last_object.FWHM_X,last_object.FWHM_Y);
+			if(!Autoguider_General_Add_String(reply_string,buff))
+				return FALSE;
+			return TRUE;
+		}
+		else if(strcmp(element_string,"initial_position") == 0)
+		{
+			x = Autoguider_Guide_Initial_Object_CCD_X_Position_Get();
+			y = Autoguider_Guide_Initial_Object_CCD_Y_Position_Get();
+			/* 0 Initial_Object_CCD_X_Position Initial_Object_CCD_Y_Position  */
+			sprintf(buff,"0 %.2f %.2f",x,y);
+			if(!Autoguider_General_Add_String(reply_string,buff))
+				return FALSE;
+			return TRUE;
+		}
 		else
 		{
 			if(!Autoguider_General_Add_String(reply_string,"1 Unknown guide element:"))
@@ -883,6 +1066,70 @@ int Autoguider_Command_Status(char *command_string,char **reply_string)
 			/* free allocated string */
 			if(object_list_string != NULL)
 				free(object_list_string);
+			return TRUE;
+		}
+		else if(strcmp(element_string,"median") == 0)
+		{
+			fvalue = Autoguider_Object_Median_Get();
+			sprintf(buff,"0 %.6f",fvalue);
+			if(!Autoguider_General_Add_String(reply_string,buff))
+				return FALSE;
+			return TRUE;
+		}
+		else if(strcmp(element_string,"mean") == 0)
+		{
+			fvalue = Autoguider_Object_Mean_Get();
+			sprintf(buff,"0 %.6f",fvalue);
+			if(!Autoguider_General_Add_String(reply_string,buff))
+				return FALSE;
+			return TRUE;
+		}
+		else if(strcmp(element_string,"background_standard_deviation") == 0)
+		{
+			fvalue = Autoguider_Object_Background_Standard_Deviation_Get();
+			sprintf(buff,"0 %.6f",fvalue);
+			if(!Autoguider_General_Add_String(reply_string,buff))
+				return FALSE;
+			return TRUE;
+		}
+		else if(strcmp(element_string,"threshold") == 0)
+		{
+			fvalue = Autoguider_Object_Threshold_Get();
+			sprintf(buff,"0 %.6f",fvalue);
+			if(!Autoguider_General_Add_String(reply_string,buff))
+				return FALSE;
+			return TRUE;
+		}
+		else if(strcmp(element_string,"sigma") == 0)
+		{
+			fvalue = Autoguider_Object_Threshold_Sigma_Get();
+			sprintf(buff,"0 %.6f",fvalue);
+			if(!Autoguider_General_Add_String(reply_string,buff))
+				return FALSE;
+			return TRUE;
+		}
+		else if(strcmp(element_string,"sigma_reject") == 0)
+		{
+			fvalue = Autoguider_Object_Threshold_Sigma_Reject_Get();
+			sprintf(buff,"0 %.6f",fvalue);
+			if(!Autoguider_General_Add_String(reply_string,buff))
+				return FALSE;
+			return TRUE;
+		}
+		else if(strcmp(element_string,"ellipticity_limit") == 0)
+		{
+			fvalue = Autoguider_Object_Ellipticity_Limit_Get();
+			sprintf(buff,"0 %.6f",fvalue);
+			if(!Autoguider_General_Add_String(reply_string,buff))
+				return FALSE;
+			return TRUE;
+		}
+		else if(strcmp(element_string,"min_con_pix") == 0)
+		{
+			ivalue = Autoguider_Object_Min_Connected_Pixel_Count_Get();
+			sprintf(buff,"0 %d",ivalue);
+			if(!Autoguider_General_Add_String(reply_string,buff))
+				return FALSE;
 			return TRUE;
 		}
 		else
@@ -1343,7 +1590,7 @@ int Autoguider_Command_Expose(char *command_string,char **reply_string)
  * Handle a commands of the form: 
  * <ul>
  * <li>guide [on|off]
- * <li>guide window <sx> <sy> <ex> <ey>
+ * <li>guide window <sx> <sy> [<ex> <ey>]
  * <li>guide exposure_length <ms> [lock]
  * <li>guide <dark|flat|object|packet|window_track> <on|off>
  * <li>guide <object> <index>
@@ -1360,6 +1607,7 @@ int Autoguider_Command_Expose(char *command_string,char **reply_string)
  * @see autoguider_guide.html#Autoguider_Guide_On
  * @see autoguider_guide.html#Autoguider_Guide_Off
  * @see autoguider_guide.html#Autoguider_Guide_Window_Set
+ * @see autoguider_guide.html#Autoguider_Guide_Window_Set_From_XY
  * @see autoguider_guide.html#Autoguider_Guide_Exposure_Length_Set
  * @see autoguider_guide.html#Autoguider_Guide_Set_Do_Dark_Subtract
  * @see autoguider_guide.html#Autoguider_Guide_Set_Do_Flat_Field
@@ -1427,7 +1675,7 @@ int Autoguider_Command_Guide(char *command_string,char **reply_string)
 	else if(strncmp(parameter_string1,"window",6) == 0)
 	{
 		retval = sscanf(command_string,"guide window %d %d %d %d",&sx,&sy,&ex,&ey);
-		if(retval != 4)
+		if((retval != 4)&&(retval != 2))
 		{
 			Autoguider_General_Error_Number = 311;
 			sprintf(Autoguider_General_Error_String,"Autoguider_Command_Guide:"
@@ -1438,14 +1686,29 @@ int Autoguider_Command_Guide(char *command_string,char **reply_string)
 #endif
 			return FALSE;
 		}
-		retval = Autoguider_Guide_Window_Set(sx,sy,ex,ey);
-		if(retval == FALSE)
+		if(retval == 2) /* retval is 2, parameters are centre x/y of window */
 		{
-			Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Guide",
-						 LOG_VERBOSITY_TERSE,"COMMAND");
-			if(!Autoguider_General_Add_String(reply_string,"1 Guide window failed."))
-				return FALSE;
-			return TRUE;
+			retval = Autoguider_Guide_Window_Set_From_XY(sx,sy);
+			if(retval == FALSE)
+			{
+				Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Guide",
+							 LOG_VERBOSITY_TERSE,"COMMAND");
+				if(!Autoguider_General_Add_String(reply_string,"1 Guide window failed."))
+					return FALSE;
+				return TRUE;
+			}			
+		}
+		else /* retval is 4, set guide window from corners */
+		{
+			retval = Autoguider_Guide_Window_Set(sx,sy,ex,ey);
+			if(retval == FALSE)
+			{
+				Autoguider_General_Error("command","autoguider_command.c","Autoguider_Command_Guide",
+							 LOG_VERBOSITY_TERSE,"COMMAND");
+				if(!Autoguider_General_Add_String(reply_string,"1 Guide window failed."))
+					return FALSE;
+				return TRUE;
+			}
 		}
 		if(!Autoguider_General_Add_String(reply_string,"0 Guide window suceeded."))
 			return FALSE;
@@ -1692,7 +1955,7 @@ int Autoguider_Command_Guide(char *command_string,char **reply_string)
 }
 
 /**
- * Handle a command of the form: "getfits <field|guide> <raw|reduced>".
+ * Handle a command of the form: "getfits <field|guide|object> <raw|reduced>".
  * @param command_string The command. This is not changed during this routine.
  * @param buffer_ptr The address of a pointer to allocate and store a FITS image in memory.
  * @param buffer_length The address of a word to store the length of the created returned data.
@@ -1731,6 +1994,8 @@ int Autoguider_Command_Get_Fits(char *command_string,void **buffer_ptr,size_t *b
 		buffer_type = AUTOGUIDER_GET_FITS_BUFFER_TYPE_FIELD;
 	else if(strcmp(type_parameter_string,"guide") == 0)
 		buffer_type = AUTOGUIDER_GET_FITS_BUFFER_TYPE_GUIDE;
+	else if(strcmp(type_parameter_string,"object") == 0)
+		buffer_type = AUTOGUIDER_GET_FITS_BUFFER_TYPE_OBJECT;
 	else
 	{
 		Autoguider_General_Error_Number = 309;

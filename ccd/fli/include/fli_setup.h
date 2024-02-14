@@ -22,6 +22,8 @@
 extern void FLI_Setup_Initialise(void);
 extern int FLI_Setup_Startup(void);
 extern int FLI_Setup_Shutdown(void);
+extern int FLI_Setup_Dimensions_Check(int *ncols,int *nrows,int *hbin,int *vbin,
+				      int window_flags,struct CCD_Setup_Window_Struct *window);
 extern int FLI_Setup_Dimensions(int ncols,int nrows,int hbin,int vbin,
 				int window_flags,struct CCD_Setup_Window_Struct window);
 extern void FLI_Setup_Abort(void);

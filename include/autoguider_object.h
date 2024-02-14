@@ -45,7 +45,7 @@ struct Autoguider_Object_Struct
 	float FWHM_Y;
 };
 
-/* extern int Autoguider_Object_Initialise(void);*/
+extern int Autoguider_Object_Initialise(void);
 /* extern int Autoguider_Object_Set_Dimension(int ncols,int nrows,int x_bin,int y_bin);*/
 extern int Autoguider_Object_Detect(float *buffer,int naxis1,int naxis2,int start_x,int start_y,
 				    int use_standard_deviation,int id,int frame_number);
@@ -57,14 +57,23 @@ extern int Autoguider_Object_List_Get_Nearest_Object(float ccd_x_position,float 
 extern int Autoguider_Object_Guide_Object_Get(enum COMMAND_AG_ON_TYPE on_type,float pixel_x,float pixel_y,
 					      int rank,int *selected_object_index);
 extern int Autoguider_Object_List_Get_Object_List_String(char **object_list_string);
+/* get some of the image stats used when finding objects */
+extern float Autoguider_Object_Median_Get(void);
+extern float Autoguider_Object_Mean_Get(void);
+extern float Autoguider_Object_Background_Standard_Deviation_Get(void);
+extern float Autoguider_Object_Threshold_Get(void);
+extern float Autoguider_Object_Threshold_Sigma_Get(void);
+extern float Autoguider_Object_Threshold_Sigma_Reject_Get(void);
+extern float Autoguider_Object_Ellipticity_Limit_Get(void);
+extern int Autoguider_Object_Min_Connected_Pixel_Count_Get(void);
+/* Dynamically modify some of the configuration values used to calculate the object detection threshold value */
+extern int Autoguider_Object_Threshold_Sigma_Set(float sigma);
+extern int Autoguider_Object_Threshold_Sigma_Reject_Set(float sigma_reject);
+extern int Autoguider_Object_Ellipticity_Limit_Set(float ellipticity_limit);
+extern int Autoguider_Object_Min_Connected_Pixel_Count_Set(int npix);
+/* object mask access routines */
+extern int Autoguider_Object_Get_Binned_NCols(void);
+extern int Autoguider_Object_Get_Binned_NRows(void);
+extern int Autoguider_Object_Mask_Copy(unsigned short *buffer_ptr,size_t buffer_length_pixels);
 
-/*
-** $Log: not supported by cvs2svn $
-** Revision 1.2  2006/06/27 20:44:15  cjm
-** Added Autoguider_Object_Guide_Object_Get.
-**
-** Revision 1.1  2006/06/01 15:19:05  cjm
-** Initial revision
-**
-*/
 #endif

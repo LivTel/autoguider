@@ -84,31 +84,42 @@ extern void Autoguider_General_Error_To_String(char *sub_system,char *source_fil
 extern void Autoguider_General_Get_Current_Time_String(char *time_string,int string_length);
 
 /* logging routines */
-extern void Autoguider_General_Log_Format(char *sub_system,char *source_filename,char *function,int level,
-					  char *category,char *format,...);
-extern void Autoguider_General_Log(char *sub_system,char *source_filename,char *function,int level,char *category,
-				   char *string);
+extern void Autoguider_General_Log_Format(const char *sub_system,const char *source_filename,const char *function,
+					  int level,const char *category,const char *format,...);
+extern void Autoguider_General_Log(const char *sub_system,const char *source_filename,const char *function,int level,
+				   const char *category,const char *string);
 extern void Autoguider_General_Call_Log_Handlers(char *sub_system,char *source_filename,char *function,int level,
-					  char *category,char *message);
-extern int Autoguider_General_Add_Log_Handler_Function(void (*log_fn)(char *sub_system,char *source_filename,
-							char *function,int level,char *category,char *message));
-extern void Autoguider_General_Set_Log_Filter_Function(int (*filter_fn)(char *sub_system,char *source_filename,
-						       char *function,int level,char *category,char *message));
+						 char *category,char *message);
+extern void Autoguider_General_Call_Log_Handlers_Const(const char *sub_system,const char *source_filename,
+						       const char *function,int level,const char *category,
+						       const char *message);
+extern int Autoguider_General_Add_Log_Handler_Function(void (*log_fn)(const char *sub_system,
+						       const char *source_filename,const char *function,int level,
+						       const char *category,const char *message));
+extern void Autoguider_General_Set_Log_Filter_Function(int (*filter_fn)(const char *sub_system,
+						       const char *source_filename,const char *function,int level,
+						       const char *category,const char *message));
 extern int Autoguider_General_Log_Set_Directory(char *directory);
 extern int Autoguider_General_Log_Set_UDP(int active,char *hostname,int port_number);
-extern void Autoguider_General_Log_Handler_Stdout(char *sub_system,char *source_filename,char *function,int level,
-						  char *category,char *message);
-extern void Autoguider_General_Log_Handler_Log_Fp(char *sub_system,char *source_filename,char *function,int level,
-						  char *category,char *message);
-extern void Autoguider_General_Log_Handler_Log_Hourly_File(char *sub_system,char *source_filename,char *function,
-							   int level,char *category,char *message);
-extern void Autoguider_General_Log_Handler_Log_UDP(char *sub_system,char *source_filename,char *function,
-						   int level,char *category,char *message);
+extern void Autoguider_General_Log_Handler_Stdout(const char *sub_system,const char *source_filename,
+						  const char *function,int level,
+						  const char *category,const char *message);
+extern void Autoguider_General_Log_Handler_Log_Fp(const char *sub_system,const char *source_filename,
+						  const char *function,int level,
+						  const char *category,const char *message);
+extern void Autoguider_General_Log_Handler_Log_Hourly_File(const char *sub_system,const char *source_filename,
+							   const char *function,
+							   int level,const char *category,const char *message);
+extern void Autoguider_General_Log_Handler_Log_UDP(const char *sub_system,const char *source_filename,
+						   const char *function,
+						   int level,const char *category,const char *message);
 extern void Autoguider_General_Set_Log_Filter_Level(int level);
-extern int Autoguider_General_Log_Filter_Level_Absolute(char *sub_system,char *source_filename,char *function,
-							int level,char *category,char *message);
-extern int Autoguider_General_Log_Filter_Level_Bitwise(char *sub_system,char *source_filename,char *function,
-						       int level,char *category,char *message);
+extern int Autoguider_General_Log_Filter_Level_Absolute(const char *sub_system,const char *source_filename,
+							const char *function,
+							int level,const char *category,const char *message);
+extern int Autoguider_General_Log_Filter_Level_Bitwise(const char *sub_system,const char *source_filename,
+						       const char *function,
+						       int level,const char *category,const char *message);
 
 /* utility routines */
 extern int Autoguider_General_Add_String(char **string,char *add);

@@ -399,10 +399,12 @@ int Autoguider_Flat_Field(float *buffer_ptr,int pixel_count,int ncols,int nrows,
 	if(use_window)
 	{
 		/* windows are inclusive of the end row/column */
-		flat_start_x = window.X_Start;
-		flat_start_y = window.Y_Start;
-		flat_end_x = window.X_End+1;
-		flat_end_y = window.Y_End+1;
+		/* the window dimensions start at (1,1) (Andor and PCO) 
+		** but the dark image data indexes and the buffer indexes start at (0,0) (C) */
+		flat_start_x = window.X_Start-1;
+		flat_start_y = window.Y_Start-1;
+		flat_end_x = window.X_End;
+		flat_end_y = window.Y_End;
 		buffer_ncols = (window.X_End-window.X_Start)+1;
 		buffer_nrows = (window.Y_End-window.Y_Start)+1;
 	}

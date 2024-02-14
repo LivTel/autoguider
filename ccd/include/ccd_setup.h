@@ -27,6 +27,8 @@ struct CCD_Setup_Window_Struct
 extern void CCD_Setup_Initialise(void);
 extern int CCD_Setup_Startup(void);
 extern int CCD_Setup_Shutdown(void);
+extern int CCD_Setup_Dimensions_Check(int *ncols,int *nrows,int *nsbin,int *npbin,
+				int window_flags,struct CCD_Setup_Window_Struct *window);
 extern int CCD_Setup_Dimensions(int ncols,int nrows,int nsbin,int npbin,
 				int window_flags,struct CCD_Setup_Window_Struct window);
 extern void CCD_Setup_Abort(void);

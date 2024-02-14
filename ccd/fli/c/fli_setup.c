@@ -196,6 +196,32 @@ int FLI_Setup_Shutdown(void)
 	}
 	return TRUE;
 }
+
+/**
+ * Check the dimensions (particularily the window dimensions) are valid for the FLI camera. FLISetImageArea supports
+ * arbitary windows, so this routine does not modify the window in any way.
+ * @param ncols The address of an integer, on entry to the function containing the number of unbinned image columns (X).
+ * @param nrows The address of an integer, on entry to the function containing the number of unbinned image rows (Y).
+ * @param hbin The address of an integer, on entry to the function containing the binning in X.
+ * @param vbin The address of an integer, on entry to the function containing the binning in Y.
+ * @param window_flags Whether to use the specified window or not.
+ * @param window A pointer to a structure containing window data. These dimensions are inclusive, and in binned pixels.
+ * @return The routine returns TRUE on success, and FALSE if an error occurs.
+ * @see ccd_general.html#CCD_General_Log
+ */
+int FLI_Setup_Dimensions_Check(int *ncols,int *nrows,int *hbin,int *vbin,
+			       int window_flags,struct CCD_Setup_Window_Struct *window)
+{
+#ifdef FLI_DEBUG
+	CCD_General_Log("ccd","fli_setup.c","FLI_Setup_Dimensions_Check",LOG_VERBOSITY_VERBOSE,NULL,"started.");
+#endif
+	/* do nothing for an FLI camera */
+#ifdef FLI_DEBUG
+	CCD_General_Log("ccd","fli_setup.c","FLI_Setup_Dimensions_Check",LOG_VERBOSITY_VERBOSE,NULL,"finished.");
+#endif
+	return TRUE;
+}
+
 /**
  * Setup dimension information. 
  * <ul>

@@ -40,7 +40,15 @@ end
 #
 # Ensure LD_LIBRARY_PATH includes autoguider libraries dir so send_command below works.
 #
-foreach dir ( /icc/bin/lib/i386-linux/ )
+if ( "${HOSTTYPE}" == "i386-linux" ) then
+    set dir_list = "/icc/bin/lib/i386-linux/"
+else if ( "${HOSTTYPE}" == "x86_64-linux" ) then
+    set dir_list = "/icc/bin/lib/x86_64-linux/"
+else
+    echo "Illegal hosttype ${HOSTTYPE}."
+    exit 1
+endif
+foreach dir ( ${dir_list} )
     if ( ${?LD_LIBRARY_PATH} ) then
 	echo ${LD_LIBRARY_PATH} | /bin/grep -q ":${dir}" > /dev/null
 	if ( $status != 0 ) then
@@ -59,9 +67,9 @@ if ( -x /icc/bin/scripts/killhup.csh ) then
 else
     echo "killhup not found:FAILED to stop running processess."
 endif
-if ( -x /icc/bin/autoguider/commandserver/test/i386-linux/send_command ) then
+if ( -x /icc/bin/autoguider/commandserver/test/${HOSTTYPE}/send_command ) then
     echo "Trying to kill autoguider by sending shutdown command."
-    /icc/bin/autoguider/commandserver/test/i386-linux/send_command -h ${machine_name} -p 6571 -c "shutdown"
+    /icc/bin/autoguider/commandserver/test/${HOSTTYPE}/send_command -h ${machine_name} -p 6571 -c "shutdown"
 else
     echo "send_command not found:FAILED to stop running autoguider."
 endif
@@ -72,6 +80,8 @@ echo "Stopping NFS server (/icc/tmp is exported)..."
 if( "${HOSTTYPE}" == "sun4" ) then
     /etc/init.d/nfs.server stop
 else if ( "${HOSTTYPE}" == "i386-linux" ) then
+    /etc/init.d/nfs stop
+else if ( "${HOSTTYPE}" == "x86_64-linux" ) then
     /etc/init.d/nfs stop
 else
     echo "Illegal hosttype ${HOSTTYPE}."
@@ -122,6 +132,8 @@ if( "${HOSTTYPE}" == "sun4" ) then
     set dir_list = "/etc/rc0.d /etc/rc1.d /etc/rc3.d /etc/rcS.d"
 else if ( "${HOSTTYPE}" == "i386-linux" ) then
     set dir_list = "/etc/rc0.d /etc/rc1.d /etc/rc2.d /etc/rc4.d /etc/rc6.d"
+else if ( "${HOSTTYPE}" == "x86_64-linux" ) then
+    set dir_list = "/etc/rc0.d /etc/rc1.d /etc/rc2.d /etc/rc4.d /etc/rc6.d"
 else
     echo "Illegal hosttype ${HOSTTYPE}."
     exit 1
@@ -135,6 +147,8 @@ end
 if( "${HOSTTYPE}" == "sun4" ) then
     set dir_list = "/etc/rc2.d"
 else if ( "${HOSTTYPE}" == "i386-linux" ) then
+    set dir_list = "/etc/rc3.d /etc/rc5.d"
+else if ( "${HOSTTYPE}" == "x86_64-linux" ) then
     set dir_list = "/etc/rc3.d /etc/rc5.d"
 else
     echo "Illegal hosttype ${HOSTTYPE}."

@@ -167,11 +167,42 @@ int Autoguider_Server_Stop(void)
 ** ---------------------------------------------------------------------------- */
 /**
  * Server connection thread, invoked whenever a new command comes in.
+ * A client message is read over the connection, and based on the start of the command one of the following command
+ * routines in invoked to process the command.
+ * <ul>
+ * <li><b>abort</b> Autoguider_Command_Abort
+ * <li><b>autoguide</b> Autoguider_Command_Autoguide
+ * <li><b>agstate</b> Autoguider_Command_Agstate
+ * <li><b>configload</b> Autoguider_Command_Config_Load
+ * <li><b>expose</b> Autoguider_Command_Expose
+ * <li><b>field</b> Autoguider_Command_Field
+ * <li><b>getfits</b> Autoguider_Command_Get_Fits
+ * <li><b>guide</b> Autoguider_Command_Guide
+ * <li><b>log_level</b> Autoguider_Command_Log_Level
+ * <li><b>object</b> Autoguider_Command_Object
+ * <li><b>status</b> Autoguider_Command_Status
+ * <li><b>temperature</b> Autoguider_Command_Temperature
+ * </ul>
+ * There are some commands that are handled internally in this routine:
+ * <ul>
+ * <li><b>help</b> Returns a help message describing the commandset.
+ * <li><b>shutdown</b> Calls Autoguider_Server_Stop to stop the command server (and eventually the whole autoguider process).
+ * </ul>
  * @param connection_handle Connection handle for this thread.
  * @see #Send_Reply
  * @see #Send_Binary_Reply
  * @see #Send_Binary_Reply_Error
  * @see #Autoguider_Server_Stop
+ * @see autoguider_command.html#Autoguider_Command_Abort
+ * @see autoguider_command.html#Autoguider_Command_Autoguide
+ * @see autoguider_command.html#Autoguider_Command_Agstate
+ * @see autoguider_command.html#Autoguider_Command_Config_Load
+ * @see autoguider_command.html#Autoguider_Command_Expose
+ * @see autoguider_command.html#Autoguider_Command_Field
+ * @see autoguider_command.html#Autoguider_Command_Get_Fits
+ * @see autoguider_command.html#Autoguider_Command_Guide
+ * @see autoguider_command.html#Autoguider_Command_Log_Level
+ * @see autoguider_command.html#Autoguider_Command_Object
  * @see autoguider_command.html#Autoguider_Command_Status
  * @see autoguider_command.html#Autoguider_Command_Temperature
  * @see autoguider_general.html#Autoguider_General_Error_Number
@@ -498,6 +529,39 @@ static void Autoguider_Server_Connection_Callback(Command_Server_Handle_T connec
 			}
 		}
 	}
+	else if(strncmp(client_message,"object",6) == 0)
+	{
+#if AUTOGUIDER_DEBUG > 1
+		Autoguider_General_Log("server","autoguider_server.c","Autoguider_Server_Connection_Callback",
+							 LOG_VERBOSITY_VERY_TERSE,"SERVER","object detected.");
+#endif
+		retval = Autoguider_Command_Object(client_message,&reply_string);
+		if(retval == TRUE)
+		{
+			retval = Send_Reply(connection_handle,reply_string);
+			if(reply_string != NULL)
+				free(reply_string);
+			if(retval == FALSE)
+			{
+				Autoguider_General_Error("server","autoguider_server.c",
+							 "Autoguider_Server_Connection_Callback",
+							 LOG_VERBOSITY_VERY_TERSE,"SERVER");
+			}
+		}
+		else
+		{
+			Autoguider_General_Error("server","autoguider_server.c",
+							 "Autoguider_Server_Connection_Callback",
+							 LOG_VERBOSITY_VERY_TERSE,"SERVER");
+			retval = Send_Reply(connection_handle, "1 Autoguider_Command_Object failed.");
+			if(retval == FALSE)
+			{
+				Autoguider_General_Error("server","autoguider_server.c",
+							 "Autoguider_Server_Connection_Callback",
+							 LOG_VERBOSITY_VERY_TERSE,"SERVER");
+			}
+		}
+	}
 	else if(strcmp(client_message, "help") == 0)
 	{
 #if AUTOGUIDER_DEBUG > 1
@@ -513,19 +577,24 @@ static void Autoguider_Server_Connection_Callback(Command_Server_Handle_T connec
 			   "\texpose <ms>\n"
 			   "\tfield [<ms> [lock]]\n"
 			   "\tfield <dark|flat|object> <on|off>\n"
-			   "\tgetfits [field|guide] [raw|reduced]\n"
+			   "\tgetfits [field|guide|object] [raw|reduced]\n"
 			   "\tguide [on|off]\n"
 			   "\tguide window <sx> <sy> <ex> <ey>\n"
+			   "\tguide window <cx> <cy>\n"
 			   "\tguide exposure_length <ms> [lock]\n"
 			   "\tguide <dark|flat|object|packet|window_track> <on|off>\n"
-			   "\tguide <object> <index>\n"
+			   "\tguide object <index>\n"
 			   "\thelp\n"
 			   "\tlog_level <autoguider|ccd|command_server|object|ngatcil> <n>\n"
+			   "\tobject <sigma|sigma_reject|ellipticity_limit|min_con_pix> <n>\n"
 			   /*"\tmultrun <length> <count> <object>\n"*/
 			   "\tstatus temperature <get|status>\n"
 			   "\tstatus field <active|dark|flat|object>\n"
 			   "\tstatus guide <active|dark|flat|object|packet>\n"
-			   "\tstatus object <list|count>\n"
+			   "\tstatus guide <cadence|timecode_scaling|exposure_length|window>\n"
+			   "\tstatus guide <last_object|initial_position>\n"
+			   "\tstatus object <list|count|median|mean|background_standard_deviation|threshold>\n"
+			   "\tstatus object <sigma|sigma_reject|ellipticity_limit|min_con_pix>\n"
 			   "\ttemperature [set <C>|cooler [on|off]]\n"
 			   "\tshutdown\n");
 	}

@@ -157,6 +157,7 @@ public class Command implements Runnable, TelnetConnectionListener
 	/**
 	 * Routine to send the specified command over a telnet connection to the specified
 	 * address and port number, wait for a reply from the autoguider, and try to parse the reply.
+	 * @exception Exception Thrown if sending the command failed.
 	 * @see #telnetConnection
 	 * @see #commandString
 	 * @see #commandFinished
@@ -194,6 +195,8 @@ public class Command implements Runnable, TelnetConnectionListener
 
 	/**
 	 * Parse a string returned from the autoguider over the telnet connection.
+	 * @exception Exception Thrown if replyString is null, or there was no space between 
+	 *            the return error code and message.
 	 * @see #replyString
 	 * @see #parsedReplyString
 	 * @see #parsedReplyOk

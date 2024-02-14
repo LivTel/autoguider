@@ -42,7 +42,7 @@ static char rcsid[] = "$Id: andor_temperature.c,v 1.6 2011-06-23 13:23:05 cjm Ex
  * @param temperature The address of a double to return ther temperature in, in degrees centigrade.
  * @param temperature_status The address of a enum to store the temperature status.
  * @return Returns TRUE on success, and FALSE if an error occurs.
- * @see ../cdocs/ccd_temperature.html#CCD_TEMPERATURE_STATUS
+ * @see ../../cdocs/ccd_temperature.html#CCD_TEMPERATURE_STATUS
  */
 int Andor_Temperature_Get(double *temperature,enum CCD_TEMPERATURE_STATUS *temperature_status)
 {

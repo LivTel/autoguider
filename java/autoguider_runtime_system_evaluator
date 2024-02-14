@@ -4,17 +4,19 @@ set hostname = `/bin/hostname --short`
 switch ( ${hostname} )
 	case "acc":
 	case "autoguider1":
+	case "autoguider2":
 	case "iucaaag":
 		set javalib_dir = "/icc/bin/javalib"
 		breaksw
 	case "ltobs9":
+	case "ltdevx64":
 		set javalib_dir = "${LT_JAVALIB_HOME}"
 		breaksw
 	default:
 		set javalib_dir = "."
 		breaksw
 endsw
-foreach jar ( ngat_autoguider.jar ngat_net.jar ngat_sound.jar ngat_swing.jar ngat_util.jar ngat_util_logging.jar )
+foreach jar ( ngat_autoguider.jar ngat_net.jar ngat_sound.jar ngat_swing.jar ngat_util.jar ngat_util_logging.jar jcommon-1.0.23.jar jfreechart-1.5.4.jar )
 	if ( ${?CLASSPATH} ) then
 		echo "${CLASSPATH}" | /bin/grep -q ${jar}
 		if ( ${status} != 0 ) then
@@ -28,6 +30,3 @@ echo "CLASSPATH : ${CLASSPATH}"
 echo "Starting Autoguider Runtime System Evaluator..."
 cd ${LT_BIN_HOME}/autoguider/java/gui
 java -Djava.net.preferIPv4Stack=true ngat.autoguider.gui.AgGUI $*
-#
-# $Log: not supported by cvs2svn $
-#

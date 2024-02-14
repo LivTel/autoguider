@@ -15,6 +15,10 @@
  * Which buffer to get the fits image for.
  */
 #define AUTOGUIDER_GET_FITS_BUFFER_TYPE_GUIDE      (1)
+/**
+ * Which buffer to get the fits image for.
+ */
+#define AUTOGUIDER_GET_FITS_BUFFER_TYPE_OBJECT     (2)
 
 /**
  * Whether to get the raw or reduced buffer.

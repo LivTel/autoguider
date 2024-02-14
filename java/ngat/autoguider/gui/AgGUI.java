@@ -19,6 +19,18 @@ import ngat.swing.*;
 import ngat.util.*;
 import ngat.util.logging.*;
 
+// charting
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.ChartPanel;
+import org.jfree.chart.JFreeChart;
+import org.jfree.chart.axis.ValueAxis;
+import org.jfree.chart.plot.XYPlot;
+import org.jfree.data.time.Millisecond;
+import org.jfree.data.time.TimeSeries;
+import org.jfree.data.time.TimeSeriesCollection;
+import org.jfree.data.xy.XYDataset;
+
+
 /**
  * This class is the start point for the Autoguider GUI.
  * @author Chris Mottram
@@ -164,6 +176,30 @@ public class AgGUI
 	 */
 	private JLabel guideObjectFWHMYLabel = null;
 	/**
+	 * Label to put object Median background value into.
+	 */
+	private JLabel objectMedianLabel = null;
+	/**
+	 * Label to put object Mean background value into.
+	 */
+	private JLabel objectMeanLabel = null;
+	/**
+	 * Label to put object background standard deviation value into.
+	 */
+	private JLabel objectBackgroundStandardDeviationLabel = null;
+	/**
+	 * Label to put object Threshold value into.
+	 */
+	private JLabel objectThresholdLabel = null;
+	/**
+	 * Dataset for the CCD X position graph.
+	 */
+	private TimeSeries ccdxTimeSeries = null;
+	/**
+	 * Dataset for the CCD Y position graph.
+	 */
+	private TimeSeries ccdyTimeSeries = null;
+	/**
 	 * Should we poll field status when fielding.
 	 */
 	private JCheckBoxMenuItem fieldStatusActiveMenuItem = null;
@@ -171,6 +207,10 @@ public class AgGUI
 	 * Should we poll guide status when guiding.
 	 */
 	private JCheckBoxMenuItem guideStatusActiveMenuItem = null;
+	/**
+	 * Should we add any guide centroids to the graph?
+	 */
+	private JCheckBoxMenuItem graphGuideCentroidsMenuItem = null;
 	/**
 	 * Thread for generating basic status.
 	 */
@@ -199,6 +239,7 @@ public class AgGUI
 	 * <li>Calls initGUI, to create the screens.
 	 * <li>Calls run.
 	 * </ul>
+	 * @param args The command line arguments as an array of Strings.
 	 * @see #parsePropertyFilenameArgument
 	 * @see #initStatus
 	 * @see #parseArguments
@@ -256,6 +297,7 @@ public class AgGUI
 		agGUI.run();
 		agGUI.log(1,"End of main.");
 	}
+	
 	/**
 	 * Initialise the program status, from the configuration files.
 	 * Creates the status object and initialises it.
@@ -588,7 +630,9 @@ public class AgGUI
 		Image image = null;
 		String titleString = null;
 
-		// optimise for remote X?
+		log(1,"initGUI:Started.");
+		System.err.println("initGUI:Started.");
+        // optimise for remote X?
 		if(remoteX)
 		{
 			RepaintManager.currentManager(null).setDoubleBufferingEnabled(false);
@@ -605,7 +649,7 @@ public class AgGUI
 		{
 			titleString = new String(status.getProperty("ag_gui.title")+"None");
 		}
-		frame = new MinimumSizeFrame(titleString,new Dimension(400,300));
+		frame = new MinimumSizeFrame(titleString,new Dimension(400,640));
 	// set icon image
 		image = Toolkit.getDefaultToolkit().getImage(status.getProperty("ag_gui.icon.filename"));
 		frame.setIconImage(image);
@@ -635,27 +679,38 @@ public class AgGUI
 
 	//Finish setting up the frame, and show it.
 		frame.addWindowListener(new AgGUIWindowListener(this));
-	}
+		log(1,"initGUI:Finished.");
+		System.err.println("initGUI:Finished.");
+ 	}
+ 	
 	/**
 	 * Initialise the main panel. This consists of setting the panel layout, and then 
 	 * adding the status panel and the log panel.
+	 * @param panel The JPanel instance to put the sub-panel's into.
 	 * @see #initStatusPanel
 	 * @see #initGuidePanel
+	 * @see #initObjectStatsPanel
 	 */
 	private void initMainPanel(JPanel panel)
 	{
-	// create the frame level layout manager
+		log(1,"initMainPanel:Started.");
+		System.err.println("initMainPanel:Started.");
+ 	// create the frame level layout manager
 		GridBagLayout gridBagLayout = new GridBagLayout();
 	// setup panel
 		panel.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));
 		panel.setLayout(gridBagLayout);
-		panel.setMinimumSize(new Dimension(600,300));
-		panel.setPreferredSize(new Dimension(600,300));
+		panel.setMinimumSize(new Dimension(600,640));
+		panel.setPreferredSize(new Dimension(600,700));
 		panel.setMaximumSize(new Dimension(1024,1024));
 	//  status labels
 		initStatusPanel(panel,gridBagLayout);
 	// guide panel
 		initGuidePanel(panel,gridBagLayout);
+	// object stats panel
+		initObjectStatsPanel(panel,gridBagLayout);
+	// guide centroid graph panel
+		initGuideCentroidGraphPanel(panel,gridBagLayout);
 	}
 
 	/**
@@ -670,7 +725,9 @@ public class AgGUI
 		JLabel label = null;
         	GridBagConstraints gridBagCon = new GridBagConstraints();
 
-		isStatusPanel.setLayout(new GridLayout(0,4));
+		log(1,"initStatusPanel:Started.");
+		System.err.println("initStatusPanel:Started.");
+ 		isStatusPanel.setLayout(new GridLayout(0,4));
 		isStatusPanel.setMinimumSize(new Dimension(600,40));
 		isStatusPanel.setPreferredSize(new Dimension(600,40));
 		isStatusPanel.setMaximumSize(new Dimension(1024,40));
@@ -713,7 +770,9 @@ public class AgGUI
 		JLabel label = null;
         	GridBagConstraints gridBagCon = new GridBagConstraints();
 
-		guidePanel.setLayout(new GridLayout(0,4));
+		log(1,"initGuidePanel:Started.");
+		System.err.println("initGuidePanel:Started.");
+ 		guidePanel.setLayout(new GridLayout(0,4));
 		guidePanel.setMinimumSize(new Dimension(400,200));
 		guidePanel.setPreferredSize(new Dimension(1024,200));
 		guidePanel.setMaximumSize(new Dimension(1024,200));
@@ -812,9 +871,144 @@ public class AgGUI
 		gridBagLayout.setConstraints(guidePanel,gridBagCon);
 		panel.add(guidePanel);
 	}
+	
+	/**
+	 * Initialise object stats area.
+	 * @param panel The panel to put the object stats panel in.
+	 * @param gridBagLayout The grid bag layout to set constraints for, before adding things
+	 * 	to the panel.
+	 * @see #objectMedianLabel
+	 * @see #objectMeanLabel
+	 * @see #objectBackgroundStandardDeviationLabel
+	 * @see #objectThresholdLabel
+	 */
+	private void initObjectStatsPanel(JPanel panel,GridBagLayout gridBagLayout)
+	{
+		JPanel objectStatsPanel = new JPanel();
+		JLabel label = null;
+        	GridBagConstraints gridBagCon = new GridBagConstraints();
+
+		log(1,"initObjectStatsPanel:Started.");
+		System.err.println("initObjectStatsPanel:Started.");
+ 		objectStatsPanel.setLayout(new GridLayout(0,4));
+		objectStatsPanel.setMinimumSize(new Dimension(400,60));
+		objectStatsPanel.setPreferredSize(new Dimension(1024,60));
+		objectStatsPanel.setMaximumSize(new Dimension(1024,60));
+	// Median Background Counts
+		label = new JLabel("Median Background:");
+		objectStatsPanel.add(label);
+		objectMedianLabel = new JLabel("Unknown");
+		objectStatsPanel.add(objectMedianLabel);
+	// Mean Background Counts
+		label = new JLabel("Mean Background:");
+		objectStatsPanel.add(label);
+		objectMeanLabel = new JLabel("Unknown");
+		objectStatsPanel.add(objectMeanLabel);
+	// Background Standard Deviation
+		label = new JLabel("Background S.D.:");
+		objectStatsPanel.add(label);
+		objectBackgroundStandardDeviationLabel = new JLabel("Unknown");
+		objectStatsPanel.add(objectBackgroundStandardDeviationLabel);
+	// Threshold
+		label = new JLabel("Threshold:");
+		objectStatsPanel.add(label);
+		objectThresholdLabel = new JLabel("Unknown");
+		objectStatsPanel.add(objectThresholdLabel);
+	// add border
+		objectStatsPanel.setBorder(new TitledSmallerBorder("Image Stats"));
+	// these constraints mean that the GridBagLayout can't alter the size of objectStatsPanel
+		gridBagCon.gridx = 0;
+		gridBagCon.gridy = 2;
+		gridBagCon.gridwidth = GridBagConstraints.REMAINDER;
+		gridBagCon.gridheight = 1;
+		gridBagCon.fill = GridBagConstraints.HORIZONTAL;
+		gridBagCon.weightx = 1.0;
+		gridBagCon.weighty = 0.0;
+		gridBagCon.anchor = GridBagConstraints.NORTH;
+		gridBagLayout.setConstraints(objectStatsPanel,gridBagCon);
+		panel.add(objectStatsPanel);
+	}
+
+	/**
+	 * Initialise guide centroid graph panel.
+	 * @param panel The panel to put the guide centroid graph panel in.
+	 * @param gridBagLayout The grid bag layout to set constraints for, before adding things
+	 * 	to the panel.
+	 * @see #ccdxTimeSeries
+	 * @see #ccdyTimeSeries
+	 */
+	private void initGuideCentroidGraphPanel(JPanel panel,GridBagLayout gridBagLayout)
+	{
+		JPanel guideCentroidGraphPanel = new JPanel();
+		GridBagConstraints gridBagCon = new GridBagConstraints();
+		TimeSeriesCollection ccdxtsc, ccdytsc;
+		JFreeChart ccdxChart = null;
+		JFreeChart ccdyChart = null;
+		
+		log(1,"initGuideCentroidGraphPanel:Started.");
+		System.err.println("initGuideCentroidGraphPanel:Started.");
+ 		guideCentroidGraphPanel.setLayout(new GridLayout(0,1));
+		guideCentroidGraphPanel.setMinimumSize(new Dimension(400,400));
+		guideCentroidGraphPanel.setPreferredSize(new Dimension(1024,400));
+		guideCentroidGraphPanel.setMaximumSize(new Dimension(1024,400));
+		// ccdx
+		ccdxTimeSeries = new TimeSeries("CCD X Position");
+		ccdxtsc = new TimeSeriesCollection(ccdxTimeSeries);
+		ccdxChart = createChart("CCD X Position",ccdxtsc,0,2048);
+		guideCentroidGraphPanel.add(new ChartPanel(ccdxChart));
+		// ccdy
+		ccdyTimeSeries = new TimeSeries("CCD Y position");
+		ccdytsc = new TimeSeriesCollection(ccdyTimeSeries);
+		ccdyChart = createChart("CCD Y Position",ccdytsc,0,2048);
+		guideCentroidGraphPanel.add(new ChartPanel(ccdyChart));
+
+		// buffx
+
+		// buffy
+		
+	// add border
+		guideCentroidGraphPanel.setBorder(new TitledSmallerBorder("Guide Centroids"));
+	// these constraints mean that the GridBagLayout can't alter the size of guideCentroidGraphPanel
+		gridBagCon.gridx = 0;
+		gridBagCon.gridy = 3;
+		gridBagCon.gridwidth = GridBagConstraints.REMAINDER;
+		gridBagCon.gridheight = 1;
+		gridBagCon.fill = GridBagConstraints.HORIZONTAL;
+		gridBagCon.weightx = 1.0;
+		gridBagCon.weighty = 0.0;
+		gridBagCon.anchor = GridBagConstraints.NORTH;
+		gridBagLayout.setConstraints(guideCentroidGraphPanel,gridBagCon);
+		panel.add(guideCentroidGraphPanel);
+	}
+
+	/**
+	 * Create a chart from the input dataset.
+	 * @param titleString The title of the chart.
+	 * @param dataset The dataset to be plotted.
+	 * @param miny The minimum y value to display.
+	 * @param maxy The maximum y value to display.
+	 * @return The created chart.
+	 */
+	private JFreeChart createChart(String titleString,XYDataset dataset,int miny,int maxy)
+	{
+		JFreeChart chart = null;
+		
+		chart = ChartFactory.createTimeSeriesChart(titleString, "hh:mm:ss", "position", dataset,
+								      true, true, false);
+		XYPlot plot = chart.getXYPlot();
+		ValueAxis domain = plot.getDomainAxis();
+		domain.setAutoRange(true);
+		domain.setFixedAutoRange(120000.0);// milliseconds
+		ValueAxis range = plot.getRangeAxis();
+		range.setRange(miny,maxy);
+		return chart;
+	}
 
 	/**
 	 * Method to initialise the top-level menu bar.
+	 * @see #fieldStatusActiveMenuItem
+	 * @see #guideStatusActiveMenuItem
+	 * @see #graphGuideCentroidsMenuItem
 	 */
 	private void initMenuBar()
 	{
@@ -870,6 +1064,12 @@ public class AgGUI
 			setAccessibleDescription("Enable/Disable Guide Status");
 		guideStatusActiveMenuItem.addActionListener(menuItemListener);
 		menu.add(guideStatusActiveMenuItem);
+	// Graph guide centroids
+		graphGuideCentroidsMenuItem = new JCheckBoxMenuItem("Graph Guide Centroids",true);
+		graphGuideCentroidsMenuItem.getAccessibleContext().
+			setAccessibleDescription("Enable/Disable Graphing of Guide Centroids");
+		graphGuideCentroidsMenuItem.addActionListener(menuItemListener);
+		menu.add(graphGuideCentroidsMenuItem);
 	}
 
 	/**
@@ -1161,6 +1361,76 @@ public class AgGUI
 	}
 
 	/**
+	 * Set the contents of the object status Median Counts label.
+	 * @param s The string to display in the label.
+	 * @see #objectMedianLabel
+	 */
+	public void setObjectMedianLabel(String s)
+	{
+		objectMedianLabel.setText(s);
+	}
+
+	/**
+	 * Set the contents of the object status Mean Counts label.
+	 * @param s The string to display in the label.
+	 * @see #objectMeanLabel
+	 */
+	public void setObjectMeanLabel(String s)
+	{
+		objectMeanLabel.setText(s);
+	}
+
+	/**
+	 * Set the contents of the object status Background Standard Deviation label.
+	 * @param s The string to display in the label.
+	 * @see #objectBackgroundStandardDeviationLabel
+	 */
+	public void setObjectBackgroundStandardDeviationLabel(String s)
+	{
+		objectBackgroundStandardDeviationLabel.setText(s);
+	}
+
+	/**
+	 * Set the contents of the object status Threshold label.
+	 * @param s The string to display in the label.
+	 * @see #objectThresholdLabel
+	 */
+	public void setObjectThresholdLabel(String s)
+	{
+		objectThresholdLabel.setText(s);
+	}
+
+	/**
+	 * Add a CCD X position datum to the ccdx position dataset/graph.
+	 * We only do this if the graph guide centroid checkbox is ticked.
+	 * @param ccdxPosition The New CCD X position of the centroid to add.
+	 * @see #graphGuideCentroidsMenuItem
+	 * @see #ccdxTimeSeries
+	 */
+	public void addCCDXPositionToGraph(float ccdxPosition)
+	{
+		if(graphGuideCentroidsMenuItem.getState())
+		{
+			ccdxTimeSeries.addOrUpdate(new Millisecond(),ccdxPosition);
+		}
+	}
+	
+	/**
+	 * Add a CCD Y position datum to the ccdy position dataset/graph.
+	 * We only do this if the graph guide centroid checkbox is ticked.
+	 * @param ccdyPosition The New CCD Y position of the centroid to add.
+	 * @see #graphGuideCentroidsMenuItem
+	 * @see #ccdyTimeSeries
+	 */
+	public void addCCDYPositionToGraph(float ccdyPosition)
+	{
+		if(graphGuideCentroidsMenuItem.getState())
+		{
+			ccdyTimeSeries.addOrUpdate(new Millisecond(),ccdyPosition);
+		}
+	}
+	
+	/**
 	 * Main program exit routine. Waits for command to complete before exiting, if n is zero,
 	 * otherwise just terminates.
 	 * @param n The return exit value to return to the calling shell/program.
@@ -1234,6 +1504,7 @@ public class AgGUI
 
 	/**
 	 * Return the GUI's parent frame.
+	 * @return The GUI's parent JFrame instance.
 	 * @see #frame
 	 */
 	public JFrame getFrame()
@@ -1242,7 +1513,8 @@ public class AgGUI
 	}
 
 	/**
-	 * Return the status object
+	 * Return the status object.
+	 * @return The AgGUIStatus instance.
 	 * @see #status
 	 * @see AgGUIStatus
 	 */
@@ -1323,6 +1595,7 @@ public class AgGUI
 
 	/**
 	 * Get the field status active checkbox.
+	 * @return The JCheckBoxMenuItem for the field status active checkbox.
 	 * @see #fieldStatusActiveMenuItem
 	 */
 	public JCheckBoxMenuItem getFieldStatusActiveMenuItem()
@@ -1332,6 +1605,7 @@ public class AgGUI
 
 	/**
 	 * Get the guide status active checkbox.
+	 * @return The JCheckBoxMenuItem for the guide status active checkbox.
 	 * @see #guideStatusActiveMenuItem
 	 */
 	public JCheckBoxMenuItem getGuideStatusActiveMenuItem()
@@ -1340,14 +1614,25 @@ public class AgGUI
 	}
 
 	/**
+	 * Get the graph guide centroids checkbox.
+	 * @return The JCheckBoxMenuItem for the graph guide centroids checkbox.
+	 * @see #graphGuideCentroidsMenuItem
+	 */
+	public JCheckBoxMenuItem getGraphGuideCentroidsMenuItem()
+	{
+		return graphGuideCentroidsMenuItem;
+	}
+	
+	/**
 	 * This routine parses arguments passed into the GUI. It only looks for property filename argument
 	 * config, which is needed before the status is inited, and therfore needs a special parseArguments
 	 * method (as other arguments affect the status).
 	 * @param args The list of arguments to parse.
 	 * @see #propertyFilename
 	 * @see #parseArguments
+	 * @see #error
 	 */
-	private void parsePropertyFilenameArgument(String[] args) throws NumberFormatException,UnknownHostException
+	private void parsePropertyFilenameArgument(String[] args)
 	{
 	// look through the argument list.
 		for(int i = 0; i < args.length;i++)
@@ -1365,7 +1650,6 @@ public class AgGUI
 		}
 	}
 
-
 	/**
 	 * This routine parses arguments passed into the GUI. It gets some default arguments from the configuration
 	 * file. These are the Autoguider numbers, and the Autoguider internet address.
@@ -1378,6 +1662,8 @@ public class AgGUI
 	 * @see #remoteX
 	 * @see #help
 	 * @see #parsePropertyFilenameArgument
+	 * @exception NumberFormatException Thrown if the numberic arguments cannot be parsed as numbers.
+	 * @exception UnknownHostException Thrown if the host arguments cannot be parsed into InetAddress objects.
 	 */
 	private void parseArguments(String[] args) throws NumberFormatException,UnknownHostException
 	{

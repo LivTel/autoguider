@@ -53,6 +53,21 @@
  * The number of nanoseconds in one microsecond.
  */
 #define CCD_GENERAL_ONE_MICROSECOND_NS	(1000)
+/**
+ * The number of microseconds in one second. We are currently using an exposure timebase of microseconds
+ */
+#define CCD_GENERAL_ONE_SECOND_US	(1000000)
+/**
+ * The number of microseconds in one millisecond. We are currently using an exposure timebase of microseconds
+ */
+#define CCD_GENERAL_ONE_MILLISECOND_US	(1000)
+
+/* We now need CCD_General external prototypes to be declared extern C when compiling using C++ compilers.
+** This is required for the PCO camera driver that is compiled with C++ and logs via the CCD_General API.
+** The following 3 lines are needed to support C++ compilers */
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* external variabless */
 extern int CCD_General_Error_Number;
@@ -69,21 +84,25 @@ extern void CCD_General_Get_Current_Time_String(char *time_string,int string_len
 extern int CCD_General_Get_Time_String(struct timespec time,char *time_string,int string_length);
 
 /* logging routines */
-extern void CCD_General_Log_Format(char *sub_system,char *source_filename,char *function,int level,
-				   char *category,char *format,...);
-extern void CCD_General_Log(char *sub_system,char *source_filename,char *function,int level,
-			    char *category,char *string);
-extern void CCD_General_Set_Log_Handler_Function(void (*log_fn)(char *sub_system,char *source_filename,char *function,
-								int level,char *category,char *string));
-extern void CCD_General_Set_Log_Filter_Function(int (*filter_fn)(char *sub_system,char *source_filename,char *function,
-								 int level,char *category,char *string));
-extern void CCD_General_Log_Handler_Stdout(char *sub_system,char *source_filename,char *function,int level,
-					   char *category,char *string);
+extern void CCD_General_Log_Format(const char *sub_system,const char *source_filename,const char *function,int level,
+				   const char *category,const char *format,...);
+extern void CCD_General_Log(const char *sub_system,const char *source_filename,const char *function,int level,
+			    const char *category,const char *string);
+extern void CCD_General_Set_Log_Handler_Function(void (*log_fn)(const char *sub_system,const char *source_filename,
+						 const char *function,int level,const char *category,
+						 const char *string));
+extern void CCD_General_Set_Log_Filter_Function(int (*filter_fn)(const char *sub_system,const char *source_filename,
+						const char *function,int level,const char *category,
+						const char *string));
+extern void CCD_General_Log_Handler_Stdout(const char *sub_system,const char *source_filename,const char *function,
+					   int level,const char *category,const char *string);
 extern void CCD_General_Set_Log_Filter_Level(int level);
-extern int CCD_General_Log_Filter_Level_Absolute(char *sub_system,char *source_filename,char *function,int level,
-						 char *category,char *string);
-extern int CCD_General_Log_Filter_Level_Bitwise(char *sub_system,char *source_filename,char *function,int level,
-						char *category,char *string);
+extern int CCD_General_Log_Filter_Level_Absolute(const char *sub_system,const char *source_filename,
+						 const char *function,int level,
+						 const char *category,const char *string);
+extern int CCD_General_Log_Filter_Level_Bitwise(const char *sub_system,const char *source_filename,
+						const char *function,int level,
+						const char *category,const char *string);
 
 /*
 ** $Log: not supported by cvs2svn $
@@ -94,4 +113,8 @@ extern int CCD_General_Log_Filter_Level_Bitwise(char *sub_system,char *source_fi
 ** Initial revision
 **
 */
+#ifdef __cplusplus
+}
+#endif
+
 #endif

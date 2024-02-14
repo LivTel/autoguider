@@ -148,7 +148,8 @@ static struct Field_Struct Field_Data =
 
 /* internal functions */
 static int Field_Set_Dimensions(void);
-static void Field_Save_Raw_Image(unsigned short *image_data, int ncols, int nrows, int exposure_length, double current_temperature); 
+static void Field_Save_Raw_Image(unsigned short *image_data, int ncols, int nrows, int exposure_length,
+				 double current_temperature,struct timespec start_time); 
 static int Field_Reduce(int buffer_index);
 static int Field_Check_Done(int *done,int *dark_exposure_length_index);
 
@@ -589,7 +590,7 @@ int Autoguider_Field(void)
 					      Field_Data.In_Use_Buffer_Index);
 #endif
 		/* save raw FITS file, for debugging */
-		Field_Save_Raw_Image(buffer_ptr, Autoguider_Buffer_Get_Field_Binned_NCols(), Autoguider_Buffer_Get_Field_Binned_NRows(), Field_Data.Exposure_Length, current_temperature);
+		Field_Save_Raw_Image(buffer_ptr, Autoguider_Buffer_Get_Field_Binned_NCols(), Autoguider_Buffer_Get_Field_Binned_NRows(), Field_Data.Exposure_Length, current_temperature,start_time);
 
 		retval = Autoguider_Buffer_Raw_Field_Unlock(Field_Data.In_Use_Buffer_Index);
 		if(retval == FALSE)
@@ -1382,9 +1383,11 @@ static int Field_Set_Dimensions(void)
  * @param ncols The number of columns in the image
  * @param nrows The number of rows in the image
  * @param exposure_length The length of exposure used to create the image
- * @param current_temperature The temperature of the CCD when the image was taken
+ * @param current_temperature The temperature of the CCD when the image was taken.
+ * @param start_time A timestamp of the start time of the exposure.
  */ 
-static void Field_Save_Raw_Image(unsigned short *image_data, int ncols, int nrows, int exposure_length, double current_temperature)
+static void Field_Save_Raw_Image(unsigned short *image_data, int ncols, int nrows, int exposure_length,
+				 double current_temperature,struct timespec start_time)
 {
         fitsfile *fp = NULL;
 	char buff[32]; /* fits_get_errstatus returns 30 chars max */
@@ -1426,9 +1429,8 @@ static void Field_Save_Raw_Image(unsigned short *image_data, int ncols, int nrow
 		fits_report_error(stderr,status);
 		fits_close_file(fp,&status);
 		return;
-	}
-  
- 
+	}  
+	/* EXPTIME */
 	exposure_length_s = ((double)exposure_length)/1000.0;
 	retval = fits_update_key_fixdbl(fp,"EXPTIME",exposure_length_s,6,NULL,&status);
 	if(retval)
@@ -1438,6 +1440,7 @@ static void Field_Save_Raw_Image(unsigned short *image_data, int ncols, int nrow
 	       fits_close_file(fp,&status);
 	       return;
 	}
+	/* CCCDATEMP */
 	retval = fits_update_key_fixdbl(fp,"CCDATEMP",current_temperature+273.16,6,
 				 "Temperature of CCD",&status);
 	if(retval)
@@ -1555,8 +1558,11 @@ static int Field_Reduce(int buffer_index)
 	/* object detect */
 	if(Field_Data.Do_Object_Detect)
 	{
+		/* Whole detector image dimensions start at (1,1) not (0,0) (for at least Andor/PCO)
+		** We therefore pass in (1,1) as the start x/y pixel so the returned centroids have
+		** the same pixel position mapping as the windowed guide frames (1-based rather than 0-based) */
 		retval = Autoguider_Object_Detect(reduced_buffer_ptr,Field_Data.Binned_NCols,Field_Data.Binned_NRows,
-						  0,0,TRUE,Field_Data.Field_Id,Field_Data.Frame_Number);
+						  1,1,TRUE,Field_Data.Field_Id,Field_Data.Frame_Number);
 		if(retval == FALSE)
 		{
 			Autoguider_Buffer_Reduced_Field_Unlock(buffer_index);

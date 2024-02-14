@@ -99,6 +99,7 @@ struct Guide_Exposure_Length_Scaling_Struct
  *     the edge of the guide window, set the guide packet "near window edge" flag.</dd>
  * <dt>Guide_Window_Track_Pixel_Count</dt> <dd>In pixels, if guide centroid is closer than this number of pixels to 
  *     the edge of the guide window, recentre the guide window on the guide centroid.</dd>
+ * <dt>Guide_Window_Resize</dt> <dd>A boolean, if TRUE the guide window can be resized, otherwise it must be maintained at the default size.</dd>
  * </dl>
  */
 struct Guide_Window_Tracking_Struct
@@ -106,6 +107,7 @@ struct Guide_Window_Tracking_Struct
 	int Guide_Window_Tracking;
 	int Guide_Window_Edge_Pixel_Count;
 	int Guide_Window_Track_Pixel_Count;
+	int Guide_Window_Resize;
 };
 
 /**
@@ -152,10 +154,12 @@ struct Guide_Window_Tracking_Struct
  * <dt>Initial_Object_CCD_Y_Position</dt> <dd>A float, set to the selected guide objects initial CCD Y position 
  *     (before the guide loop is started). This is used within the guide loop to choose which object to guide upon 
  *     if multiple objects are detected within the guide window.</dd>
+ * <dt>Last_Object</dt> <dd>A copy of the last guide object detected and used to send a guide centroid, for status purposes.</dd>
  * </dl>
  * @see #Guide_Exposure_Length_Scaling_Struct
  * @see #Guide_Window_Tracking_Struct
- * @see ../ccd/cdocs/ccd_setup.html#CCD_Setup_Window_Struct 
+ * @see ../ccd/cdocs/ccd_setup.html#CCD_Setup_Window_Struct
+ * @see autoguider_object.html#Autoguider_Object_Struct
  */
 struct Guide_Struct
 {
@@ -185,6 +189,7 @@ struct Guide_Struct
 	int Use_Cadence_For_SDB_Exp_Time;
 	float Initial_Object_CCD_X_Position;
 	float Initial_Object_CCD_Y_Position;
+	struct Autoguider_Object_Struct Last_Object;
 };
 
 /* internal data */
@@ -208,8 +213,9 @@ static struct Guide_Struct Guide_Data =
 	0,0,
 	0.0,
 	{GUIDE_SCALE_TYPE_PEAK,FALSE,0,0,0,0,0,0,0,TRUE},
-	{FALSE,10,10},
-	2.0f, FALSE
+	{FALSE,10,10,FALSE},
+	2.0f, FALSE, 0.0f, 0.0f,
+	{0,0.0f,0.0f,0.0f,0.0f,0.0f,0,0.0f,0,0.0f,0.0f}
 };
 
 /* internal routines */
@@ -234,6 +240,7 @@ static int Guide_Dimension_Config_Load(void);
  * <li>"guide.window.tracking"
  * <li>"guide.window.edge.pixels"
  * <li>"guide.window.track.pixels"
+ * <li>"guide.window.resize"
  * <li>"guide.timecode.scale"
  * <li>"guide.sdb.exposure_length.use_cadence"
  * </ul>
@@ -309,6 +316,15 @@ int Autoguider_Guide_Initialise(void)
 			"Getting guide window track pixels failed.");
 		return FALSE;
 	}
+	retval = CCD_Config_Get_Boolean("guide.window.resize",
+					&(Guide_Data.Guide_Window_Tracking.Guide_Window_Resize));
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 757;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Guide_Initialise:"
+			"Getting guide window tracking resizing boolean failed.");
+		return FALSE;
+	}
 	/* timecode scaling */
 	retval = CCD_Config_Get_Float("guide.timecode.scale",&(Guide_Data.Timecode_Scaling_Factor));
 	if(retval == FALSE)
@@ -337,8 +353,13 @@ int Autoguider_Guide_Initialise(void)
 
 /**
  * Setup the autoguider window.
- * Also calls Autoguider_CIL_SDB_Packet_Window_Set to set the internal SDB values, ready to send
- * to the SDB later.
+ * <ul>
+ * <li>We range check the input window values, against the Guide_Data maximum dimensions.
+ * <li>We call CCD_Setup_Dimensions_Check to allow the camera driver to modify the window dimensions
+ *     (not all cameras can support arbitary windows).
+ * <li>We call Autoguider_CIL_SDB_Packet_Window_Set to set the internal SDB values, ready to send
+ *     to the SDB later.
+ * </ul>
  * @param sx The start X position.
  * @param sy The start Y position.
  * @param ex The end X position.
@@ -347,6 +368,7 @@ int Autoguider_Guide_Initialise(void)
  * @see #Guide_Data
  * @see autoguider_cil.html#Autoguider_CIL_SDB_Packet_Window_Set
  * @see ../ccd/cdocs/ccd_setup.html#CCD_Setup_Window_Struct
+ * @see ../ccd/cdocs/ccd_setup.html#CCD_Setup_Dimensions_Check
  */
 int Autoguider_Guide_Window_Set(int sx,int sy,int ex,int ey)
 {
@@ -394,8 +416,21 @@ int Autoguider_Guide_Window_Set(int sx,int sy,int ex,int ey)
 	Guide_Data.Window.Y_Start = sy;
 	Guide_Data.Window.X_End = ex;
 	Guide_Data.Window.Y_End = ey;
-	/* update SDB values */
-	if(!Autoguider_CIL_SDB_Packet_Window_Set(sx,sy,ex,ey))
+	/* Check the window is legal. Some detectors (PCO) don't support arbitary windows, this call
+	** allows the driver to modifiy the window to something that the camera will allow */
+	if(!CCD_Setup_Dimensions_Check(&(Guide_Data.Unbinned_NCols),&(Guide_Data.Unbinned_NRows),
+				       &(Guide_Data.Bin_X),&(Guide_Data.Bin_Y),TRUE,&(Guide_Data.Window)))
+	{
+		Autoguider_General_Error_Number = 758;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Guide_Window_Set:"
+			"CCD_Setup_Dimensions_Check on input Window (%d,%d,%d,%d) failed.",sx,sy,ex,ey);
+		return FALSE;
+	}
+	/* update SDB values
+	** We must now use the Guide_Data.Window values as they may have been modified by 
+	** CCD_Setup_Dimensions_Check */
+	if(!Autoguider_CIL_SDB_Packet_Window_Set(Guide_Data.Window.X_Start,Guide_Data.Window.Y_Start,
+						 Guide_Data.Window.X_End,Guide_Data.Window.Y_End))
 	{
 		Autoguider_General_Error("guide","autoguider_guide.c","Autoguider_Guide_Window_Set",
 					 LOG_VERBOSITY_INTERMEDIATE,"GUIDE"); /* no need to fail */
@@ -962,14 +997,26 @@ int Autoguider_Guide_Window_Set_From_XY(int ccd_x_position,int ccd_y_position)
 		sx = 1;
 	sy = ccd_y_position-(default_window_height/2);
 	if(sy < 1)
-		sy = 1; 
-	ex = sx + default_window_width;
+		sy = 1;
+	ex = sx + (default_window_width-1); /* inclusive pixels in window */
 	/* guide windows are inclusive i.e. pixel 0..1023 - 1023 is the last pixel where npixels is 1024 */
 	if(ex >= Guide_Data.Binned_NCols)
+	{
 		ex = Guide_Data.Binned_NCols - 1;
-	ey = sy + default_window_height;
+		if(Guide_Data.Guide_Window_Tracking.Guide_Window_Resize == FALSE)
+		{
+			sx = ex - (default_window_width-1); /* inclusive pixels in window */
+		}
+	}
+	ey = sy + (default_window_height-1);  /* inclusive pixels in window */
 	if(ey >= Guide_Data.Binned_NRows)
+	{
 		ey = Guide_Data.Binned_NRows - 1;
+		if(Guide_Data.Guide_Window_Tracking.Guide_Window_Resize == FALSE)
+		{
+			sy = ey - (default_window_height-1); /* inclusive pixels in window */
+		}		
+	}
 	/* set guide window data */
 	if(!Autoguider_Guide_Window_Set(sx,sy,ex,ey))
 		return FALSE;
@@ -1104,6 +1151,35 @@ float Autoguider_Guide_Timecode_Scaling_Get(void)
 	return Guide_Data.Timecode_Scaling_Factor;
 }
 
+/**
+ * Routine to get the guide object used to generate the last successful guide packet/centroid sent to the TCS/SDB.
+ * @return A struct of type Autoguider_Object_Struct, containing the detected object.
+ * @see #Guide_Data
+ * @see autoguider_guide.html#Autoguider_Object_Struct
+ */
+struct Autoguider_Object_Struct Autoguider_Guide_Last_Object_Get(void)
+{
+	return Guide_Data.Last_Object;
+}
+
+/**
+ * Return the selected guide objects initial CCD X position (before the guide loop is started).
+ * @return The guide objects initial CCD X position, in pixels.
+ * @see #Guide_Data
+ */
+float Autoguider_Guide_Initial_Object_CCD_X_Position_Get(void)
+{
+	return Guide_Data.Initial_Object_CCD_X_Position;
+}
+/**
+ * Return the selected guide objects initial CCD Y position (before the guide loop is started).
+ * @return The guide objects initial CCD Y position, in pixels.
+ * @see #Guide_Data
+ */
+float Autoguider_Guide_Initial_Object_CCD_Y_Position_Get(void)
+{
+	return Guide_Data.Initial_Object_CCD_Y_Position;
+}
 
 /* ----------------------------------------------------------------------------
 ** 		internal functions 
@@ -2326,6 +2402,7 @@ static int Guide_Window_Track(void)
  * <li>We send the guide packet to the TCS.
  * <li>We use Autoguider_CIL_SDB_Packet_Centroid_Set and Autoguider_CIL_SDB_Packet_Send to
  *     update the SDB centroid.
+ * <li>We update the Guide_Data Last_Object to contain the object used to generate the guide packet/centroid.
  * </ul>
  * If an error occurs during processing, a guide packet with status NGATCIL_TCS_GUIDE_PACKET_STATUS_FAILED
  * and "unreliable packet" timecode is sent, with as much information (centroid etc) filled in as possible.
@@ -2573,6 +2650,7 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 #endif
 			mag = 20.0f;
 		}
+		/* set the SDB guide centroid */		
 		if(!Autoguider_CIL_SDB_Packet_Centroid_Set(object.CCD_X_Position,object.CCD_Y_Position,fwhm,mag))
 		{
 			Autoguider_General_Error("guide","autoguider_guide.c","Guide_Packet_Send",
@@ -2583,6 +2661,8 @@ static int Guide_Packet_Send(int terminating,float timecode_secs)
 			Autoguider_General_Error("guide","autoguider_guide.c","Guide_Packet_Send",
 						 LOG_VERBOSITY_TERSE,"GUIDE"); /* no need to fail */
 		}
+		/* keep track of the guide object we used to generate the guide centroid, for status purposes */
+		Guide_Data.Last_Object = object;
 	}/* end if object detection enabled */
 	else
 	{

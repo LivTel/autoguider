@@ -31,18 +31,18 @@ if ( $#argv > 0 ) then
     end
 endif
 
-if ( -r /home/dev/bin/autoguider/commandserver/test/i386-linux/test_getfits_command ) then
-    alias getfits_command "/home/dev/bin/autoguider/commandserver/test/i386-linux/test_getfits_command"
-else if ( -r /icc/bin/autoguider/commandserver/test/i386-linux/test_getfits_command ) then
-    alias getfits_command "/icc/bin/autoguider/commandserver/test/i386-linux/test_getfits_command"
+if ( -r /home/dev/bin/autoguider/commandserver/test/${HOSTTYPE}/test_getfits_command ) then
+    alias getfits_command "/home/dev/bin/autoguider/commandserver/test/${HOSTTYPE}/test_getfits_command"
+else if ( -r /icc/bin/autoguider/commandserver/test/${HOSTTYPE}/test_getfits_command ) then
+    alias getfits_command "/icc/bin/autoguider/commandserver/test/${HOSTTYPE}/test_getfits_command"
 else
     echo "Could not find test_getfits_command."
     exit 2
 endif
-if ( -r /home/dev/bin/autoguider/commandserver/test/i386-linux/send_command ) then
-    alias send_command "/home/dev/bin/autoguider/commandserver/test/i386-linux/send_command"
-else if ( -r /icc/bin/autoguider/commandserver/test/i386-linux/send_command ) then
-    alias send_command "/icc/bin/autoguider/commandserver/test/i386-linux/send_command"
+if ( -r /home/dev/bin/autoguider/commandserver/test/${HOSTTYPE}/send_command ) then
+    alias send_command "/home/dev/bin/autoguider/commandserver/test/${HOSTTYPE}/send_command"
+else if ( -r /icc/bin/autoguider/commandserver/test/${HOSTTYPE}/send_command ) then
+    alias send_command "/icc/bin/autoguider/commandserver/test/${HOSTTYPE}/send_command"
 else
     echo "Could not find test_getfits_command."
     exit 2
@@ -95,9 +95,3 @@ endif
 #
 set directory = `dirname $0`
 ${directory}/autoguider_get_guide_frames -ds9disp -ds9objects -reduced -delete
-#
-# $Log: not supported by cvs2svn $
-# Revision 1.1  2006/05/25 16:24:10  cjm
-# Initial revision
-#
-#

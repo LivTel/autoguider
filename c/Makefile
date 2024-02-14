@@ -66,7 +66,7 @@ EXE_OBJS		= $(EXE_SRCS:%.c=$(BINDIR)/%.o)
 OBJS			= $(SRCS:%.c=$(BINDIR)/%.o)
 EXES			= $(EXE_SRCS:%.c=$(BINDIR)/%)
 DOCS 			= $(SRCS:%.c=$(DOCSDIR)/%.html)
-CONFIG_SRCS		= autoguider1.autoguider.properties iucaaag.autoguider.properties
+CONFIG_SRCS		= autoguider1.autoguider.properties autoguider2.autoguider.properties iucaaag.autoguider.properties
 CONFIG_BINS		= $(CONFIG_SRCS:%.properties=$(BINDIR)/%.properties)
 
 top: $(EXES) $(CONFIG_BINS) docs

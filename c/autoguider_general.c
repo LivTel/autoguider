@@ -46,8 +46,8 @@
 /**
  * typedef of a log handler function.
  */
-typedef void (*Log_Handler_Function)(char *sub_system,char *source_filename,char *function,int level,char *category,
-			    char *message);
+typedef void (*Log_Handler_Function)(const char *sub_system,const char *source_filename,const char *function,int level,
+				     const char *category,const char *message);
 
 /* hash defines */
 /**
@@ -105,8 +105,8 @@ char Autoguider_General_Error_String[AUTOGUIDER_GENERAL_ERROR_STRING_LENGTH] = "
 struct General_Struct
 {
 	Log_Handler_Function Log_Handler_List[LOG_HANDLER_LIST_COUNT];
-	int (*Log_Filter)(char *sub_system,char *source_filename,char *function,int level,char *category,
-			  char *message);
+	int (*Log_Filter)(const char *sub_system,const char *source_filename,const char *function,int level,
+			  const char *category,const char *message);
 	int Log_Filter_Level;
 	char Log_Directory[AUTOGUIDER_GENERAL_FILENAME_LENGTH];
 	char Log_Filename[AUTOGUIDER_GENERAL_FILENAME_LENGTH];
@@ -351,8 +351,8 @@ void Autoguider_General_Get_Current_Time_String(char *time_string,int string_len
  * @see #Autoguider_General_Log
  * @see #AUTOGUIDER_GENERAL_ERROR_STRING_LENGTH
  */
-void Autoguider_General_Log_Format(char *sub_system,char *source_filename,char *function,int level,
-				   char *category,char *format,...)
+void Autoguider_General_Log_Format(const char *sub_system,const char *source_filename,const char *function,int level,
+				   const char *category,const char *format,...)
 {
 	va_list ap;
 	char buff[AUTOGUIDER_GENERAL_ERROR_STRING_LENGTH];
@@ -379,8 +379,8 @@ void Autoguider_General_Log_Format(char *sub_system,char *source_filename,char *
  * @see #General_Data
  * @see #LOG_HANDLER_LIST_COUNT
  */
-void Autoguider_General_Log(char *sub_system,char *source_filename,char *function,int level,
-			    char *category,char *message)
+void Autoguider_General_Log(const char *sub_system,const char *source_filename,const char *function,int level,
+			    const char *category,const char *message)
 {
 	int i;
 
@@ -394,7 +394,8 @@ void Autoguider_General_Log(char *sub_system,char *source_filename,char *functio
 			return;
 	}
 /* We can log the message */
-	Autoguider_General_Call_Log_Handlers(sub_system,source_filename,function,level,category,message);
+	Autoguider_General_Call_Log_Handlers((char*)sub_system,(char*)source_filename,(char*)function,level,(char*)category,
+					     (char*)message);
 
 }
 
@@ -408,8 +409,33 @@ void Autoguider_General_Log(char *sub_system,char *source_filename,char *functio
  * @param category What sort of information is the message. Designed to be used as a filter. Can be NULL.
  * @param message The message to log.
  */
-void Autoguider_General_Call_Log_Handlers(char *sub_system,char *source_filename,char *function,int level,
-					  char *category,char *message)
+void Autoguider_General_Call_Log_Handlers(char *sub_system,char *source_filename,char *function,int level,char *category,char *message)
+{
+	int i;
+
+	for(i=0;i<LOG_HANDLER_LIST_COUNT;i++)
+	{
+		if(General_Data.Log_Handler_List[i] != NULL)
+		{
+			(*(General_Data.Log_Handler_List[i]))(sub_system,source_filename,function,level,category,
+							      message);
+		}
+	}
+}
+
+/**
+ * Routine that goes through the General_Data.Log_Handler_List and invokes each non-null handler. This uses const char  * parameters
+ * rather than char * parameters, needed for the CCD library (which now has C++ drivers, which require const char* parameters).
+ * @param sub_system The sub system. Can be NULL.
+ * @param source_file The source filename. Can be NULL.
+ * @param function The function calling the log. Can be NULL.
+ * @param level At what level is the log message (TERSE/high level or VERBOSE/low level), 
+ *         a valid member of LOG_VERBOSITY.
+ * @param category What sort of information is the message. Designed to be used as a filter. Can be NULL.
+ * @param message The message to log.
+ */
+void Autoguider_General_Call_Log_Handlers_Const(const char *sub_system,const char *source_filename,const char *function,int level,
+						const char *category,const char *message)
 {
 	int i;
 
@@ -431,8 +457,8 @@ void Autoguider_General_Call_Log_Handlers(char *sub_system,char *source_filename
  * @see #General_Data
  * @see #Autoguider_General_Log
  */
-int Autoguider_General_Add_Log_Handler_Function(void (*log_fn)(char *sub_system,char *source_filename,
-						 char *function,int level,char *category,char *message))
+int Autoguider_General_Add_Log_Handler_Function(void (*log_fn)(const char *sub_system,const char *source_filename,
+					       const char *function,int level,const char *category,const char *message))
 {
 	int index;
 
@@ -458,8 +484,8 @@ int Autoguider_General_Add_Log_Handler_Function(void (*log_fn)(char *sub_system,
  * @see #General_Data
  * @see #Autoguider_General_Log
  */
-void Autoguider_General_Set_Log_Filter_Function(int (*filter_fn)(char *sub_system,char *source_filename,
-						char *function,int level,char *category,char *string))
+void Autoguider_General_Set_Log_Filter_Function(int (*filter_fn)(const char *sub_system,const char *source_filename,
+						const char *function,int level,const char *category,const char *string))
 {
 	General_Data.Log_Filter = filter_fn;
 }
@@ -530,8 +556,8 @@ int Autoguider_General_Log_Set_UDP(int active,char *hostname,int port_number)
  * @param category What sort of information is the message. Designed to be used as a filter. Can be NULL.
  * @param message The log message to be logged. 
  */
-void Autoguider_General_Log_Handler_Stdout(char *sub_system,char *source_filename,char *function,int level,
-						  char *category,char *message)
+void Autoguider_General_Log_Handler_Stdout(const char *sub_system,const char *source_filename,const char *function,
+					   int level,const char *category,const char *message)
 {
 	if(message == NULL)
 		return;
@@ -550,8 +576,8 @@ void Autoguider_General_Log_Handler_Stdout(char *sub_system,char *source_filenam
  * @param message The log message to be logged. 
  * @see #General_Data
  */
-void Autoguider_General_Log_Handler_Log_Fp(char *sub_system,char *source_filename,char *function,int level,
-						  char *category,char *message)
+void Autoguider_General_Log_Handler_Log_Fp(const char *sub_system,const char *source_filename,const char *function,
+					   int level,const char *category,const char *message)
 {
 	if(message == NULL)
 		return;
@@ -580,8 +606,9 @@ void Autoguider_General_Log_Handler_Log_Fp(char *sub_system,char *source_filenam
  * @see #General_Data
  * @see #General_Log_Handler_Log_Hourly_File_Set_Fp
  */
-void Autoguider_General_Log_Handler_Log_Hourly_File(char *sub_system,char *source_filename,char *function,
-						    int level,char *category,char *message)
+void Autoguider_General_Log_Handler_Log_Hourly_File(const char *sub_system,const char *source_filename,
+						    const char *function,int level,const char *category,
+						    const char *message)
 {
 	char time_string[32];
 
@@ -637,8 +664,8 @@ void Autoguider_General_Log_Handler_Log_Hourly_File(char *sub_system,char *sourc
  * @see ../../log_udp/cdocs/log_create.html#Log_Create_Record
  * @see ../../log_udp/cdocs/log_general.htmlLog_General_Error
  */
-void Autoguider_General_Log_Handler_Log_UDP(char *sub_system,char *source_filename,char *function,
-						    int level,char *category,char *message)
+void Autoguider_General_Log_Handler_Log_UDP(const char *sub_system,const char *source_filename,const char *function,
+					    int level,const char *category,const char *message)
 {
 	struct Log_Record_Struct log_record;
 
@@ -655,8 +682,8 @@ void Autoguider_General_Log_Handler_Log_UDP(char *sub_system,char *source_filena
 			}
 		}
 		/* create a log record */
-		if(!Log_Create_Record("AUTOGUIDER",sub_system,source_filename,NULL,function,LOG_SEVERITY_INFO,
-				      level,category,message,&log_record))
+		if(!Log_Create_Record("AUTOGUIDER",(char*)sub_system,(char*)source_filename,NULL,(char*)function,
+				      LOG_SEVERITY_INFO,level,(char*)category,(char*)message,&log_record))
 		{
 			Log_General_Error();
 		}
@@ -693,8 +720,9 @@ void Autoguider_General_Set_Log_Filter_Level(int level)
  * 	otherwise it returns FALSE.
  * @see #General_Data
  */
-int Autoguider_General_Log_Filter_Level_Absolute(char *sub_system,char *source_filename,char *function,
-						 int level,char *category,char *message)
+int Autoguider_General_Log_Filter_Level_Absolute(const char *sub_system,const char *source_filename,
+						 const char *function,int level,const char *category,
+						 const char *message)
 {
 	return (level <= General_Data.Log_Filter_Level);
 }
@@ -712,8 +740,8 @@ int Autoguider_General_Log_Filter_Level_Absolute(char *sub_system,char *source_f
  * 	General_Data.Log_Filter_Level, otherwise it returns FALSE.
  * @see #General_Data
  */
-int Autoguider_General_Log_Filter_Level_Bitwise(char *sub_system,char *source_filename,char *function,
-						       int level,char *category,char *message)
+int Autoguider_General_Log_Filter_Level_Bitwise(const char *sub_system,const char *source_filename,const char *function,
+						int level,const char *category,const char *message)
 {
 	return ((level & General_Data.Log_Filter_Level) > 0);
 }

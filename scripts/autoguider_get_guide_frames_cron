@@ -9,18 +9,18 @@ set date_string = `/bin/date +"%Y-%m-%dT%H:%M:%S"`
 set tmp_dir = "/icc/tmp"
 set log_dir = "/icc/log"
 set log_filename = "${log_dir}/autoguider_get_guide_frames_cron_`/bin/date +'%j'`.txt"
-if ( -r /home/dev/bin/autoguider/commandserver/test/i386-linux/test_getfits_command ) then
-    alias getfits_command "/home/dev/bin/autoguider/commandserver/test/i386-linux/test_getfits_command"
-else if ( -r /icc/bin/autoguider/commandserver/test/i386-linux/test_getfits_command ) then
-    alias getfits_command "/icc/bin/autoguider/commandserver/test/i386-linux/test_getfits_command"
+if ( -r /home/dev/bin/autoguider/commandserver/test/${HOSTTYPE}/test_getfits_command ) then
+    alias getfits_command "/home/dev/bin/autoguider/commandserver/test/${HOSTTYPE}/test_getfits_command"
+else if ( -r /icc/bin/autoguider/commandserver/test/${HOSTTYPE}/test_getfits_command ) then
+    alias getfits_command "/icc/bin/autoguider/commandserver/test/${HOSTTYPE}/test_getfits_command"
 else
     echo "${date_string} : Could not find test_getfits_command." >>! ${log_filename}
     exit 2
 endif
-if ( -r /home/dev/bin/autoguider/commandserver/test/i386-linux/send_command ) then
-    alias send_command "/home/dev/bin/autoguider/commandserver/test/i386-linux/send_command"
-else if ( -r /icc/bin/autoguider/commandserver/test/i386-linux/send_command ) then
-    alias send_command "/icc/bin/autoguider/commandserver/test/i386-linux/send_command"
+if ( -r /home/dev/bin/autoguider/commandserver/test/${HOSTTYPE}/send_command ) then
+    alias send_command "/home/dev/bin/autoguider/commandserver/test/${HOSTTYPE}/send_command"
+else if ( -r /icc/bin/autoguider/commandserver/test/${HOSTTYPE}/send_command ) then
+    alias send_command "/icc/bin/autoguider/commandserver/test/${HOSTTYPE}/send_command"
 else
     echo "${date_string} : Could not find send_command." >>! ${log_filename}
     exit 2
@@ -112,12 +112,3 @@ if( "${object_count}" > "0" ) then
 		/bin/rm ${object_filename}
 	endif
 endif
-#
-# $Log: not supported by cvs2svn $
-# Revision 1.2  2006/11/06 11:03:31  cjm
-# Fixed comment and updated to latest acc version.
-#
-# Revision 1.1  2006/10/18 13:46:20  cjm
-# Initial revision
-#
-#

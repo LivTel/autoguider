@@ -124,13 +124,95 @@ int CCD_Setup_Shutdown(void)
 }
 
 /**
+ * Check the setup dimension information. This function can adjust the passed in dimensions data to take
+ * account of restrictions in the particular camera system implementation. Only modified window data
+ * is currently propogated into the main autoguider code at the moment.
+ * @param ncols The address of an integer, on entry to the function containing the number of unbinned image columns (X).
+ * @param nrows The address of an integer, on entry to the function containing the number of unbinned image rows (Y).
+ * @param hbin The address of an integer, on entry to the function containing the binning in X.
+ * @param vbin The address of an integer, on entry to the function containing the binning in Y.
+ * @param window_flags Whether to use the specified window or not.
+ * @param window A pointer to a structure containing window data. These dimensions are inclusive, and in binned pixels.
+ * @return The routine returns TRUE on success, and FALSE if an error occurs.
+ * @see ccd_driver.html#CCD_Driver_Get_Functions
+ * @see ccd_driver.html#CCD_Driver_Function_Struct
+ * @see ccd_general.html#CCD_General_Log_Format
+ * @see ccd_general.html#CCD_General_Log
+ * @see ccd_general.html#CCD_CCD_General_Error_Number
+ * @see ccd_general.html#CCD_CCD_General_Error_String
+ */
+int CCD_Setup_Dimensions_Check(int *ncols,int *nrows,int *nsbin,int *npbin,
+			       int window_flags,struct CCD_Setup_Window_Struct *window)
+{
+	struct CCD_Driver_Function_Struct functions;
+	int retval;
+
+	/* check parameters are not NULL */
+	if(ncols == NULL)
+	{
+		CCD_General_Error_Number = 306;
+		sprintf(CCD_General_Error_String,"CCD_Setup_Dimensions_Check:ncols was NULL.");
+		return FALSE;
+	}
+	if(nrows == NULL)
+	{
+		CCD_General_Error_Number = 307;
+		sprintf(CCD_General_Error_String,"CCD_Setup_Dimensions_Check:nrows was NULL.");
+		return FALSE;
+	}
+	if(nsbin == NULL)
+	{
+		CCD_General_Error_Number = 308;
+		sprintf(CCD_General_Error_String,"CCD_Setup_Dimensions_Check:nsbin was NULL.");
+		return FALSE;
+	}
+	if(npbin == NULL)
+	{
+		CCD_General_Error_Number = 309;
+		sprintf(CCD_General_Error_String,"CCD_Setup_Dimensions_Check:npbin was NULL.");
+		return FALSE;
+	}
+	if(window == NULL)
+	{
+		CCD_General_Error_Number = 310;
+		sprintf(CCD_General_Error_String,"CCD_Setup_Dimensions_Check:window was NULL.");
+		return FALSE;
+	}
+#ifdef CCD_DEBUG
+	CCD_General_Log_Format("ccd","ccd_setup.c","CCD_Setup_Dimensions_Check",LOG_VERBOSITY_TERSE,NULL,
+			       "Started with ncols=%d, nrows=%d, nsbin=%d, npbin=%d, window_flags=%d, "
+			       "window={xstart=%d,ystart=%d,xend=%d,yend=%d}.",(*ncols),(*nrows),(*nsbin),(*npbin),
+			       window_flags,window->X_Start,window->Y_Start,window->X_End,window->Y_End);
+#endif
+	/* get driver functions */
+	retval = CCD_Driver_Get_Functions(&functions);
+	if(retval == FALSE)
+		return FALSE;
+	/* is there a function implementing this operation? */
+	if(functions.Setup_Dimensions_Check == NULL)
+	{
+		CCD_General_Error_Number = 311;
+		sprintf(CCD_General_Error_String,"CCD_Setup_Dimensions_Check:Setup_Dimensions_Check function was NULL.");
+		return FALSE;
+	}
+	/* call driver function */
+	retval = (*(functions.Setup_Dimensions_Check))(ncols,nrows,nsbin,npbin,window_flags,window);
+	if(retval == FALSE)
+		return FALSE;
+#ifdef CCD_DEBUG
+	CCD_General_Log("ccd","ccd_setup.c","CCD_Setup_Dimensions_Check",LOG_VERBOSITY_TERSE,NULL,"finished.");
+#endif
+	return TRUE;
+}
+
+/**
  * Setup dimension information.
- * @param ncols Number of image columns (X).
- * @param nrows Number of image rows (Y).
+ * @param ncols Number of unbinned image columns (X).
+ * @param nrows Number of unbinned image rows (Y).
  * @param hbin Binning in X.
  * @param vbin Binning in Y.
  * @param window_flags Whether to use the specified window or not.
- * @param window A structure containing window data.
+ * @param window A structure containing window data. These dimensions are inclusive, and in binned pixels.
  * @return The routine returns TRUE on success, and FALSE if an error occurs.
  * @see ccd_driver.html#CCD_Driver_Get_Functions
  * @see ccd_driver.html#CCD_Driver_Function_Struct
@@ -146,7 +228,10 @@ int CCD_Setup_Dimensions(int ncols,int nrows,int nsbin,int npbin,
 	int retval;
 
 #ifdef CCD_DEBUG
-	CCD_General_Log("ccd","ccd_setup.c","CCD_Setup_Dimensions",LOG_VERBOSITY_TERSE,NULL,"started.");
+	CCD_General_Log_Format("ccd","ccd_setup.c","CCD_Setup_Dimensions",LOG_VERBOSITY_TERSE,NULL,
+			       "Started with ncols=%d, nrows=%d, nsbin=%d, npbin=%d, window_flags=%d, "
+			       "window={xstart=%d,ystart=%d,xend=%d,yend=%d}.",ncols,nrows,nsbin,npbin,window_flags,
+			       window.X_Start,window.Y_Start,window.X_End,window.Y_End);
 #endif
 	/* get driver functions */
 	retval = CCD_Driver_Get_Functions(&functions);
@@ -236,7 +321,8 @@ int CCD_Setup_Get_NCols(void)
 	/* call driver function */
 	retval = (*(functions.Setup_Get_NCols))();
 #ifdef CCD_DEBUG
-	CCD_General_Log("ccd","ccd_setup.c","CCD_Setup_Get_NCols",LOG_VERBOSITY_VERY_VERBOSE,NULL,"finished.");
+	CCD_General_Log_Format("ccd","ccd_setup.c","CCD_Setup_Get_NCols",LOG_VERBOSITY_VERY_VERBOSE,NULL,
+			       "finished with ncols %d.",retval);
 #endif
 	return retval;
 }
@@ -273,7 +359,8 @@ int CCD_Setup_Get_NRows(void)
 	/* call driver function */
 	retval = (*(functions.Setup_Get_NRows))();
 #ifdef CCD_DEBUG
-	CCD_General_Log("ccd","ccd_setup.c","CCD_Setup_Get_NRows",LOG_VERBOSITY_VERY_VERBOSE,NULL,"finished.");
+	CCD_General_Log_Format("ccd","ccd_setup.c","CCD_Setup_Get_NRows",LOG_VERBOSITY_VERY_VERBOSE,NULL,
+			       "finished with nrows %d.",retval);
 #endif
 	return retval;
 }

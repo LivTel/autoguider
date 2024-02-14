@@ -463,6 +463,10 @@ int Command_Server_Start_Server(unsigned short *port,void (*connection_callback)
 		*server_context = NULL;
 		return(FALSE);
 	}
+#if COMMAND_SERVER_DEBUG > 0
+	Command_Server_Log("command server","command_server.c","Command_Server_Start_Server",
+				  LOG_VERBOSITY_TERSE,NULL,"Creating Socket fd.");
+#endif
 	(*server_context)->Listener_Handle->Socket_fd = socket(AF_INET,SOCK_STREAM,0);
 	if((*server_context)->Listener_Handle->Socket_fd == -1)
 	{
@@ -477,6 +481,10 @@ int Command_Server_Start_Server(unsigned short *port,void (*connection_callback)
 		return(FALSE);
 	}
 	/* get server hostname */
+#if COMMAND_SERVER_DEBUG > 0
+	Command_Server_Log("command server","command_server.c","Command_Server_Start_Server",
+				  LOG_VERBOSITY_INTERMEDIATE,NULL,"Getting server host name.");
+#endif
 	if(gethostname(hostname,256) != 0)
 	{
 		Command_Server_Error_Number = 21;
@@ -488,6 +496,11 @@ int Command_Server_Start_Server(unsigned short *port,void (*connection_callback)
 		return(FALSE);
 	}
 	/* get host details (IP) */
+#if COMMAND_SERVER_DEBUG > 0
+	Command_Server_Log_Format("command server","command_server.c","Command_Server_Start_Server",
+				  LOG_VERBOSITY_INTERMEDIATE,NULL,"Getting server host data from hostname '%s'.",
+				  hostname);
+#endif
 	if((host = gethostbyname(hostname)) == NULL)
 	{
 		Command_Server_Error_Number = 22;
@@ -499,6 +512,11 @@ int Command_Server_Start_Server(unsigned short *port,void (*connection_callback)
 		return(FALSE);
 	}
 	strcpy(host_ip,inet_ntoa(*(struct in_addr *)(host->h_addr_list[0])));
+#if COMMAND_SERVER_DEBUG > 0
+	Command_Server_Log_Format("command server","command_server.c","Command_Server_Start_Server",
+				  LOG_VERBOSITY_INTERMEDIATE,NULL,"Binding to host IP '%s' port %d.",
+				  host_ip,*port);
+#endif
 	(*server_context)->Listener_Handle->Address.sin_family = AF_INET;
 	(*server_context)->Listener_Handle->Address.sin_addr.s_addr = inet_addr(host_ip);
 	(*server_context)->Listener_Handle->Address.sin_port = htons(*port);
@@ -510,8 +528,8 @@ int Command_Server_Start_Server(unsigned short *port,void (*connection_callback)
 		i = errno;
 		Command_Server_Error_Number = 27;
 		sprintf(Command_Server_Error_String,
-			 "Command_Server_Start_Server: failed to bind server socket: %s\n",
-			 strerror(i));
+			 "Command_Server_Start_Server: failed to bind server socket to '%s:%d': %s\n",
+			host_ip,*port,strerror(i));
 		free((*server_context)->Listener_Handle);
 		free(*server_context);
 		*server_context = NULL;
