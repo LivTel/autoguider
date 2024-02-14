@@ -16,7 +16,7 @@
 extern "C" {
 #endif
 
-extern void CCD_Config_Initialise(void);
+extern int CCD_Config_Initialise(void);
 extern int CCD_Config_Load(char *filename);
 extern int CCD_Config_Shutdown(void);
 extern int CCD_Config_Get_String(char *key, char **value);

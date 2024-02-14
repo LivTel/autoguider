@@ -31,20 +31,52 @@
  */
 static char rcsid[] = "$Id: ccd_setup.c,v 1.2 2009-01-30 18:00:24 cjm Exp $";
 
+/* data types */
+/**
+ * Internal setup data structure. Contains loaded config about whether to flip the read out image data in X and/or Y.
+ * <dl>
+ * <dt>Flip_X</dt> <dd>A boolean (as an integer), if true flip the image data in x, 
+ *                     if false don't flip the image data in x.</dd>
+ * <dt>Flip_Y</dt> <dd>A boolean (as an integer), if true flip the image data in y, 
+ *                     if false don't flip the image data in y.</dd>
+ * </dl>
+ */
+struct Setup_Struct
+{
+	int Flip_X;
+	int Flip_Y;
+};
+
+/* internal variables */
+/**
+ * Internal setup Data.
+ * @see #Setup_Struct
+ */
+static struct Setup_Struct Setup_Data = {FALSE,FALSE};
+
 /* ----------------------------------------------------------------------------
 ** 		external functions 
 ** ---------------------------------------------------------------------------- */
 /**
- * Does nothing. Delete?
+ * Load the flip data from the ccd config file, which should be initialised and loaded before this routine is called.
+ * @see #Setup_Data
+ * @see ccd_config.html#CCD_Config_Get_Boolean
+ * @see ccd_general.html#CCD_General_Log_Format
+ * @see ccd_general.html#CCD_General_Log
  */
 void CCD_Setup_Initialise(void)
 {
 #ifdef CCD_DEBUG
 	CCD_General_Log("ccd","ccd_setup.c","CCD_Setup_Initialise",LOG_VERBOSITY_VERY_VERBOSE,NULL,"started.");
 #endif
+	if(!CCD_Config_Get_Boolean("ccd.flip.x",&(Setup_Data.Flip_X)))
+		return FALSE;
+	if(!CCD_Config_Get_Boolean("ccd.flip.y",&(Setup_Data.Flip_Y)))
+		return FALSE;
 #ifdef CCD_DEBUG
 	CCD_General_Log("ccd","ccd_setup.c","CCD_Setup_Initialise",LOG_VERBOSITY_VERY_VERBOSE,NULL,"finished.");
 #endif
+	return TRUE;
 }
 
 /**
@@ -53,8 +85,8 @@ void CCD_Setup_Initialise(void)
  * @see ccd_driver.html#CCD_Driver_Function_Struct
  * @see ccd_general.html#CCD_General_Log_Format
  * @see ccd_general.html#CCD_General_Log
- * @see ccd_general.html#CCD_CCD_General_Error_Number
- * @see ccd_general.html#CCD_CCD_General_Error_String
+ * @see ccd_general.html#CCD_General_Error_Number
+ * @see ccd_general.html#CCD_General_Error_String
  */
 int CCD_Setup_Startup(void)
 {
@@ -184,6 +216,14 @@ int CCD_Setup_Dimensions_Check(int *ncols,int *nrows,int *nsbin,int *npbin,
 			       "window={xstart=%d,ystart=%d,xend=%d,yend=%d}.",(*ncols),(*nrows),(*nsbin),(*npbin),
 			       window_flags,window->X_Start,window->Y_Start,window->X_End,window->Y_End);
 #endif
+	/* these coordinates are buffer coordinates i.e. the window position will be in pixels after any
+	** flips in the image data have been done. The coordinates need to be converted to CCD coordinates
+	** before the dimensions are checked */
+	buffer_ncols = ncols;
+	buffer_nrows = nrows;
+	buffer_window_flags = window_flags;
+	diddly;
+	Setup_Dimensions_Flip(ncols,nrows,window_flags,window,
 	/* get driver functions */
 	retval = CCD_Driver_Get_Functions(&functions);
 	if(retval == FALSE)
