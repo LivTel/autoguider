@@ -26,6 +26,7 @@
 #include "ccd_driver.h"
 #include "ccd_exposure.h"
 #include "ccd_general.h"
+#include "ccd_setup.h"
 
 /* internal data */
 /**
@@ -35,6 +36,8 @@ static char rcsid[] = "$Id: ccd_exposure.c,v 1.6 2014-01-31 17:23:56 cjm Exp $";
 
 /* internal function declarations */
 static int fexist(char *filename);
+static void Exposure_Flip_X(int ncols,int nrows,unsigned short *exposure_data);
+static void Exposure_Flip_Y(int ncols,int nrows,unsigned short *exposure_data);
 
 /* ----------------------------------------------------------------------------
 ** 		external functions 
@@ -56,7 +59,8 @@ void CCD_Exposure_Initialise(void)
 
 /**
  * Do an exposure.
- * @param open_shutter A boolean, TRUE to open the shutter, FALSE to leav it closed (dark).
+ * The returned exposed data is flipped, if the setup code has been configured to do this.
+ * @param open_shutter A boolean, TRUE to open the shutter, FALSE to leave it closed (dark).
  * @param start_time The time to start the exposure. If both the fields in the <i>struct timespec</i> are zero,
  * 	the exposure can be started at any convenient time.
  * @param exposure_length The length of time to open the shutter for in milliseconds. This must be greater than zero.
@@ -65,15 +69,20 @@ void CCD_Exposure_Initialise(void)
  * @param buffer_length The length of the buffer in <b>pixels</b>.
  * @return Returns TRUE if the exposure succeeds and the data read out into the buffer, returns FALSE if an error
  *	occurs or the exposure is aborted.
+ * @see #Exposure_Flip_X
  * @see ccd_driver.html#CCD_Driver_Get_Functions
  * @see ccd_driver.html#CCD_Driver_Function_Struct
  * @see ccd_general.html#CCD_General_Log_Format
  * @see ccd_general.html#CCD_General_Log
- * @see ccd_general.html#CCD_CCD_General_Error_Number
- * @see ccd_general.html#CCD_CCD_General_Error_String
+ * @see ccd_general.html#CCD_General_Error_Number
+ * @see ccd_general.html#CCD_General_Error_String
+ * @see ccd_setup.html#CCD_Setup_Get_Flip_X
+ * @see ccd_setup.html#CCD_Setup_Get_Flip_Y
+ * @see ccd_setup.html#CCD_Setup_Get_NCols
+ * @see ccd_setup.html#CCD_Setup_Get_NRows
  */
 int CCD_Exposure_Expose(int open_shutter,struct timespec start_time,int exposure_time,
-			       void *buffer,size_t buffer_length)
+			void *buffer,size_t buffer_length)
 {
 	struct CCD_Driver_Function_Struct functions;
 	int retval;
@@ -96,6 +105,15 @@ int CCD_Exposure_Expose(int open_shutter,struct timespec start_time,int exposure
 	retval = (*(functions.Exposure_Expose))(open_shutter,start_time,exposure_time,buffer,buffer_length);
 	if(retval == FALSE)
 		return FALSE;
+	/* do we need to flip the output data */
+	if(CCD_Setup_Get_Flip_X())
+	{
+		Exposure_Flip_X(CCD_Setup_Get_NCols(),CCD_Setup_Get_NRows(),buffer);
+	}
+	if(CCD_Setup_Get_Flip_Y())
+	{
+		Exposure_Flip_Y(CCD_Setup_Get_NCols(),CCD_Setup_Get_NRows(),buffer);
+	}
 #ifdef CCD_DEBUG
 	CCD_General_Log("ccd","ccd_exposure.c","CCD_Exposure_Expose",LOG_VERBOSITY_VERY_TERSE,NULL,"finished.");
 #endif
@@ -104,17 +122,23 @@ int CCD_Exposure_Expose(int open_shutter,struct timespec start_time,int exposure
 
 /**
  * Do a bias exposure.
+ * The returned image data is flipped, if the setup code has been configured to do this.
  * @param buffer A pointer to a previously allocated area of memory, of length buffer_length. This should have the
  *        correct size to save the read out image into.
  * @param buffer_length The length of the buffer in bytes.
  * @return Returns TRUE if the exposure succeeds and the data read out into the buffer, returns FALSE if an error
  *	occurs or the exposure is aborted.
+ * @see #Exposure_Flip_X
  * @see ccd_driver.html#CCD_Driver_Get_Functions
  * @see ccd_driver.html#CCD_Driver_Function_Struct
  * @see ccd_general.html#CCD_General_Log_Format
  * @see ccd_general.html#CCD_General_Log
- * @see ccd_general.html#CCD_CCD_General_Error_Number
- * @see ccd_general.html#CCD_CCD_General_Error_String
+ * @see ccd_general.html#CCD_General_Error_Number
+ * @see ccd_general.html#CCD_General_Error_String
+ * @see ccd_setup.html#CCD_Setup_Get_Flip_X
+ * @see ccd_setup.html#CCD_Setup_Get_Flip_Y
+ * @see ccd_setup.html#CCD_Setup_Get_NCols
+ * @see ccd_setup.html#CCD_Setup_Get_NRows
  */
 int CCD_Exposure_Bias(void *buffer,size_t buffer_length)
 {
@@ -139,6 +163,15 @@ int CCD_Exposure_Bias(void *buffer,size_t buffer_length)
 	retval = (*(functions.Exposure_Bias))(buffer,buffer_length);
 	if(retval == FALSE)
 		return FALSE;
+	/* do we need to flip the output data */
+	if(CCD_Setup_Get_Flip_X())
+	{
+		Exposure_Flip_X(CCD_Setup_Get_NCols(),CCD_Setup_Get_NRows(),buffer);
+	}
+	if(CCD_Setup_Get_Flip_Y())
+	{
+		Exposure_Flip_Y(CCD_Setup_Get_NCols(),CCD_Setup_Get_NRows(),buffer);
+	}
 #ifdef CCD_DEBUG
 	CCD_General_Log("ccd","ccd_exposure.c","CCD_Exposure_Bias",LOG_VERBOSITY_TERSE,NULL,"finished.");
 #endif
@@ -152,8 +185,8 @@ int CCD_Exposure_Bias(void *buffer,size_t buffer_length)
  * @see ccd_driver.html#CCD_Driver_Function_Struct
  * @see ccd_general.html#CCD_General_Log_Format
  * @see ccd_general.html#CCD_General_Log
- * @see ccd_general.html#CCD_CCD_General_Error_Number
- * @see ccd_general.html#CCD_CCD_General_Error_String
+ * @see ccd_general.html#CCD_General_Error_Number
+ * @see ccd_general.html#CCD_General_Error_String
  */
 int CCD_Exposure_Abort(void)
 {
@@ -191,8 +224,8 @@ int CCD_Exposure_Abort(void)
  * @see ccd_driver.html#CCD_Driver_Function_Struct
  * @see ccd_general.html#CCD_General_Log_Format
  * @see ccd_general.html#CCD_General_Log
- * @see ccd_general.html#CCD_CCD_General_Error_Number
- * @see ccd_general.html#CCD_CCD_General_Error_String
+ * @see ccd_general.html#CCD_General_Error_Number
+ * @see ccd_general.html#CCD_General_Error_String
  */
 int CCD_Exposure_Get_Exposure_Start_Time(struct timespec *timespec)
 {
@@ -239,8 +272,8 @@ int CCD_Exposure_Get_Exposure_Start_Time(struct timespec *timespec)
  * @see ccd_driver.html#CCD_Driver_Function_Struct
  * @see ccd_general.html#CCD_General_Log_Format
  * @see ccd_general.html#CCD_General_Log
- * @see ccd_general.html#CCD_CCD_General_Error_Number
- * @see ccd_general.html#CCD_CCD_General_Error_String
+ * @see ccd_general.html#CCD_General_Error_Number
+ * @see ccd_general.html#CCD_General_Error_String
  */
 int CCD_Exposure_Loop_Pause_Length_Set(int ms)
 {
@@ -389,6 +422,89 @@ static int fexist(char *filename)
 	fclose(fptr);
 	return TRUE;
 }
+
+/**
+ * Flip the image data in the X direction.
+ * @param ncols The number of columns in the image data.
+ * @param nrows The number of rows in the image data.
+ * @param exposure_data The image data received from the CCD, as an unsigned short. 
+ *        The data in this array is flipped in the X direction.
+ * @see ccd_general.html#CCD_General_Log_Format
+ * @see ccd_general.html#CCD_General_Log
+ * @see ccd_general.html#CCD_General_Error_Number
+ * @see ccd_general.html#CCD_General_Error_String
+ */
+static void Exposure_Flip_X(int ncols,int nrows,unsigned short *exposure_data)
+{
+	int x,y;
+	unsigned short int tempval;
+
+#ifdef CCD_DEBUG
+	CCD_General_Log_Format("ccd","ccd_exposure.c","Exposure_Flip_X",LOG_VERBOSITY_INTERMEDIATE,"exposure",
+				  "Started flipping image of size (%d,%d) in X.",ncols,nrows);
+#endif
+	/* for each row */
+	for(y=0;y<nrows;y++)
+	{
+		/* for the first half of the columns.
+		** Note the middle column will be missed, this is OK as it
+		** does not need to be flipped if it is in the middle */
+		for(x=0;x<(ncols/2);x++)
+		{
+			/* Copy exposure_data[x,y] to tempval */
+			tempval = *(exposure_data+(y*ncols)+x);
+			/* Copy exposure_data[ncols-(x+1),y] to exposure_data[x,y] */
+			*(exposure_data+(y*ncols)+x) = *(exposure_data+(y*ncols)+(ncols-(x+1)));
+			/* Copy tempval = exposure_data[ncols-(x+1),y] */
+			*(exposure_data+(y*ncols)+(ncols-(x+1))) = tempval;
+		}
+	}
+#ifdef CCD_DEBUG
+	CCD_General_Log("ccd","ccd_exposure.c","Exposure_Flip_X",LOG_VERBOSITY_INTERMEDIATE,"exposure","Finished.");
+#endif
+}
+
+/**
+ * Flip the image data in the Y direction.
+ * @param ncols The number of columns in the image data.
+ * @param nrows The number of rows in the image data.
+ * @param exposure_data The image data received from the CCD, as an unsigned short. 
+ *        The data in this array is flipped in the Y direction.
+ * @see ccd_general.html#CCD_General_Log_Format
+ * @see ccd_general.html#CCD_General_Log
+ * @see ccd_general.html#CCD_General_Error_Number
+ * @see ccd_general.html#CCD_General_Error_String
+ */
+static void Exposure_Flip_Y(int ncols,int nrows,unsigned short *exposure_data)
+{
+	int x,y;
+	unsigned short int tempval;
+
+#ifdef CCD_DEBUG
+	CCD_General_Log_Format("ccd","ccd_exposure.c","Exposure_Flip_Y",LOG_VERBOSITY_INTERMEDIATE,"exposure",
+				  "Started flipping image of size (%d,%d) in Y.",ncols,nrows);
+#endif
+	/* for the first half of the rows.
+	** Note the middle row will be missed, this is OK as it
+	** does not need to be flipped if it is in the middle */
+	for(y=0;y<(nrows/2);y++)
+	{
+		/* for each column */
+		for(x=0;x<ncols;x++)
+		{
+			/* Copy exposure_data[x,y] to tempval */
+			tempval = *(exposure_data+(y*ncols)+x);
+			/* Copy exposure_data[x,nrows-(y+1)] to exposure_data[x,y] */
+			*(exposure_data+(y*ncols)+x) = *(exposure_data+(((nrows-(y+1))*ncols)+x));
+			/* Copy tempval = exposure_data[x,nrows-(y+1)] */
+			*(exposure_data+(((nrows-(y+1))*ncols)+x)) = tempval;
+		}
+	}
+#ifdef CCD_DEBUG
+	CCD_General_Log("ccd","ccd_exposure.c","Exposure_Flip_Y",LOG_VERBOSITY_INTERMEDIATE,"exposure","Finished.");
+#endif
+}
+
 
 /*
 ** $Log: not supported by cvs2svn $
