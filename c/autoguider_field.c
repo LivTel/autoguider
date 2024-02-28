@@ -1118,7 +1118,7 @@ int Autoguider_Field_Get_Exposure_Length(void)
  * rejects centroids outside it's bounds (TCSINITGUI.DAT CONF->GUI, X/YMIN/MAX).
  * @param ccd_x The X position on the CCD.
  * @param ccd_y The Y position on the CCD.
- * @return The routine returnd TRUE if the specified point is inside the bounds, and FALSE if it is outside the bounds.
+ * @return The routine returned TRUE if the specified point is inside the bounds, and FALSE if it is outside the bounds.
  * @see #Field_Data
  * @see #Field_Bounds_Struct
  */

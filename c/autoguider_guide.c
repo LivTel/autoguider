@@ -120,7 +120,8 @@ struct Guide_Window_Tracking_Struct
  * <dt>Binned_NCols</dt> <dd>Number of binned columns in <b>full frame</b>.</dd>
  * <dt>Binned_NRows</dt> <dd>Number of binned rows in <b>full frame</b>.</dd>
  * <dt>Window</dt> <dd>The guide window, an instance of CCD_Setup_Window_Struct. The dimensions are inclusive, 
- *             i.e. a window of ((X_Start=100,Y_Start=200),(X_End=200,Y_End=300)) has a size of (101,101) pixels.</dd>
+ *             i.e. a window of ((X_Start=100,Y_Start=200),(X_End=200,Y_End=300)) has a size of (101,101) pixels. 
+ *             The dimensions are in binned pixels.</dd>
  * <dt>Exposure_Length</dt> <dd>The exposure length in milliseconds.</dd>
  * <dt>Exposure_Length_Lock</dt> <dd>Boolean determining whether the exposure length can be dynamically changed
  *                                or is 'locked' to a specified length.</dd>
@@ -360,10 +361,10 @@ int Autoguider_Guide_Initialise(void)
  * <li>We call Autoguider_CIL_SDB_Packet_Window_Set to set the internal SDB values, ready to send
  *     to the SDB later.
  * </ul>
- * @param sx The start X position.
- * @param sy The start Y position.
- * @param ex The end X position.
- * @param ey The end Y position.
+ * @param sx The start X position in binned pixels.
+ * @param sy The start Y position in binned pixel.
+ * @param ex The end X position in binned pixel.
+ * @param ey The end Y position in binned pixel.
  * @return The routine returns TRUE on success and FALSE on failure.
  * @see #Guide_Data
  * @see autoguider_cil.html#Autoguider_CIL_SDB_Packet_Window_Set
