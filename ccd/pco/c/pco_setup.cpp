@@ -676,11 +676,11 @@ int PCO_Setup_Dimensions(int ncols,int nrows,int hbin,int vbin,
 		return FALSE;
 	if(window_flags > 0)
 	{
-		/* diddly looks like Set_ROI takes binned pixels, are the passed in window binned or not? */ 
+		/* Set_ROI takes binned pixels, the passed in window also has binned pixels */ 
 		Setup_Data.Start_X = window.X_Start;
 		Setup_Data.Start_Y = window.Y_Start;
-		Setup_Data.End_X = window.X_End; /* diddly do we need to add 1 to be inclusive? */
-		Setup_Data.End_Y = window.Y_End; /* diddly do we need to add 1 to be inclusive? */
+		Setup_Data.End_X = window.X_End; /* the window pixel dimensions are inclusive */
+		Setup_Data.End_Y = window.Y_End; /* the window pixel dimensions are inclusive */
 	}
 	else
 	{
