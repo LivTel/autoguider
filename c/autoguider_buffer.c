@@ -43,12 +43,10 @@
 /**
  * Data type holding local data to autoguider_buffer for one buffer. This consists of the following:
  * <dl>
- * <dt>Unbinned_NCols</dt> <dd>Number of unbinned columns in field images.</dd>
- * <dt>Unbinned_NRows</dt> <dd>Number of unbinned rows in field images.</dd>
- * <dt>Bin_X</dt> <dd>X binning in field images.</dd>
- * <dt>Bin_Y</dt> <dd>Y binning in field images.</dd>
- * <dt>Binned_NCols</dt> <dd>Number of binned columns in field images.</dd>
- * <dt>Binned_NRows</dt> <dd>Number of binned rows in field images.</dd>
+ * <dt>Bin_X</dt> <dd>X binning of buffer.</dd>
+ * <dt>Bin_Y</dt> <dd>Y binning of buffer.</dd>
+ * <dt>Binned_NCols</dt> <dd>Number of binned columns of the buffer.</dd>
+ * <dt>Binned_NRows</dt> <dd>Number of binned rows of the buffer.</dd>
  * <dt>Raw_Buffer_List</dt> <dd>Array of AUTOGUIDER_BUFFER_COUNT pointer to allocated arrays of unsigned shorts,
  *     the actual raw field image buffers.</dd>
  * <dt>Raw_Mutex_List</dt> <dd>Array of AUTOGUIDER_BUFFER_COUNT mutexs to protect the raw buffers 
@@ -68,8 +66,6 @@
  */
 struct Buffer_One_Struct
 {
-	int Unbinned_NCols;
-	int Unbinned_NRows;
 	int Bin_X;
 	int Bin_Y;
 	int Binned_NCols;
@@ -110,7 +106,7 @@ static char rcsid[] = "$Id: autoguider_buffer.c,v 1.6 2014-01-31 17:17:17 cjm Ex
 static struct Buffer_Struct Buffer_Data = 
 {
 	{
-		0,0,1,1,0,0, /* dimensions */
+		1,1,0,0, /* dimensions */
 		{NULL,NULL}, /* Raw_Buffer_List */
 		{PTHREAD_MUTEX_INITIALIZER,PTHREAD_MUTEX_INITIALIZER}, /* Raw_Mutex_List */
 		{NULL,NULL}, /* Reduced_Buffer_List */
@@ -119,7 +115,7 @@ static struct Buffer_Struct Buffer_Data =
 		{0,0} /* CCD_TemperatureList */
 	},
 	{
-		0,0,1,1,0,0, /* dimensions */
+		1,1,0,0, /* dimensions */
 		{NULL,NULL}, /* Raw_Buffer_List */
 		{PTHREAD_MUTEX_INITIALIZER,PTHREAD_MUTEX_INITIALIZER}, /* Raw_Mutex_List */
 		{NULL,NULL}, /* Reduced_Buffer_List */
@@ -246,8 +242,6 @@ int Autoguider_Buffer_Set_Field_Dimension(int ncols,int nrows,int x_bin,int y_bi
 	Autoguider_General_Log("buffer","autoguider_buffer.c","Autoguider_Buffer_Set_Field_Dimension",
 			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","started.");
 #endif
-	Buffer_Data.Field.Unbinned_NCols = ncols;
-	Buffer_Data.Field.Unbinned_NRows = nrows;
 	Buffer_Data.Field.Bin_X = x_bin;
 	Buffer_Data.Field.Bin_Y = x_bin;
 	Buffer_Data.Field.Binned_NCols = ncols/x_bin;
@@ -325,8 +319,8 @@ int Autoguider_Buffer_Set_Field_Dimension(int ncols,int nrows,int x_bin,int y_bi
 /**
  * Set the guide dimensions, and (re) allocate the buffers accordingly.
  * Locks/unlocks the associated mutex.
- * @param ncols Number of unbinned columns.
- * @param nrows Number of unbinned rows.
+ * @param ncols Number of binned (window) columns.
+ * @param nrows Number of binned (window) rows.
  * @param x_bin X (column) binning.
  * @param y_bin Y (row) binning.
  * @return The routine returns TRUE on success, and FALSE on failure.
@@ -345,12 +339,10 @@ int Autoguider_Buffer_Set_Guide_Dimension(int ncols,int nrows,int x_bin,int y_bi
 	Autoguider_General_Log("buffer","autoguider_buffer.c","Autoguider_Buffer_Set_Guide_Dimension",
 			       LOG_VERBOSITY_VERY_VERBOSE,"BUFFER","started.");
 #endif
-	Buffer_Data.Guide.Unbinned_NCols = ncols;
-	Buffer_Data.Guide.Unbinned_NRows = nrows;
 	Buffer_Data.Guide.Bin_X = x_bin;
 	Buffer_Data.Guide.Bin_Y = x_bin;
-	Buffer_Data.Guide.Binned_NCols = ncols/x_bin;
-	Buffer_Data.Guide.Binned_NRows = nrows/y_bin;
+	Buffer_Data.Guide.Binned_NCols = ncols;
+	Buffer_Data.Guide.Binned_NRows = nrows;
 	for(i=0;i < AUTOGUIDER_BUFFER_COUNT; i++)
 	{
 		/* raw */
@@ -423,7 +415,7 @@ int Autoguider_Buffer_Set_Guide_Dimension(int ncols,int nrows,int x_bin,int y_bi
 
 /**
  * Get the number of <b>pixels</b> in the field buffer (multiply by sizeof(unsigned short) to get the number of bytes).
- * @return The number of pixels.
+ * @return The number of (binned) pixels.
  * @see #Buffer_Data
  */
 int Autoguider_Buffer_Get_Field_Pixel_Count(void)
@@ -433,7 +425,7 @@ int Autoguider_Buffer_Get_Field_Pixel_Count(void)
 
 /**
  * Get the number of binned column <b>pixels</b> in the field buffer.
- * @return The number of pixels.
+ * @return The number of (binned) pixels.
  * @see #Buffer_Data
  */
 int Autoguider_Buffer_Get_Field_Binned_NCols(void)
@@ -443,7 +435,7 @@ int Autoguider_Buffer_Get_Field_Binned_NCols(void)
 
 /**
  * Get the number of binned row <b>pixels</b> in the field buffer.
- * @return The number of pixels.
+ * @return The number of (binned) pixels.
  * @see #Buffer_Data
  */
 int Autoguider_Buffer_Get_Field_Binned_NRows(void)
@@ -453,7 +445,7 @@ int Autoguider_Buffer_Get_Field_Binned_NRows(void)
 
 /**
  * Get the number of <b>pixels</b> in the guide buffer (multiply by sizeof(unsigned short) to get the number of bytes).
- * @return The number of pixels.
+ * @return The number of (binned) pixels.
  * @see #Buffer_Data
  */
 int Autoguider_Buffer_Get_Guide_Pixel_Count(void)
@@ -463,7 +455,7 @@ int Autoguider_Buffer_Get_Guide_Pixel_Count(void)
 
 /**
  * Get the number of binned column <b>pixels</b> in the guide buffer.
- * @return The number of pixels.
+ * @return The number of (binned) pixels.
  * @see #Buffer_Data
  */
 int Autoguider_Buffer_Get_Guide_Binned_NCols(void)
@@ -473,7 +465,7 @@ int Autoguider_Buffer_Get_Guide_Binned_NCols(void)
 
 /**
  * Get the number of binned row <b>pixels</b> in the guide buffer.
- * @return The number of pixels.
+ * @return The number of (binned) pixels.
  * @see #Buffer_Data
  */
 int Autoguider_Buffer_Get_Guide_Binned_NRows(void)
