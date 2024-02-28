@@ -575,7 +575,13 @@ static int Autoguider_Startup_CCD(void)
 	Autoguider_General_Log("CCD","autoguider.c","Autoguider_Startup_CCD",LOG_VERBOSITY_VERBOSE,"STARTUP",
 			       "CCD_Setup_Initialise.");
 #endif
-	CCD_Setup_Initialise();
+	retval = CCD_Setup_Initialise();
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 23;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Startup_CCD:CCD_Setup_Startup failed.");
+		return FALSE;
+	}
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log("CCD","autoguider.c","Autoguider_Startup_CCD",LOG_VERBOSITY_VERBOSE,"STARTUP",
 			       "CCD_Setup_Startup.");

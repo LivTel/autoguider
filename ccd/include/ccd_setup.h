@@ -24,7 +24,7 @@ struct CCD_Setup_Window_Struct
 	int Y_End;
 };
 
-extern void CCD_Setup_Initialise(void);
+extern int CCD_Setup_Initialise(void);
 extern int CCD_Setup_Startup(void);
 extern int CCD_Setup_Shutdown(void);
 extern int CCD_Setup_Dimensions_Check(int *ncols,int *nrows,int *nsbin,int *npbin,
@@ -34,6 +34,9 @@ extern int CCD_Setup_Dimensions(int ncols,int nrows,int nsbin,int npbin,
 extern void CCD_Setup_Abort(void);
 extern int CCD_Setup_Get_NCols(void);
 extern int CCD_Setup_Get_NRows(void);
+extern int CCD_Setup_Get_Flip_X(void);
+extern int CCD_Setup_Get_Flip_Y(void);
+
 /*
 ** $Log: not supported by cvs2svn $
 ** Revision 1.1  2006/06/01 15:27:58  cjm

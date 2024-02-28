@@ -23,7 +23,7 @@ engineering interface which can be used to break down the above procedure into s
 * **docs**          A directory containing the LaTeX source to generate the documentation.
 * **include**       The directory containing header files for the C layer modules forming the main autoguider process/program.
 * **java**          The root directory of the Java software for an autoguider GUI and Java client-side command implementations.
-* **ngatcil**       A C library and test programs that allow the sending and receiving of TTL CIL (communication infrastructure library) packets to and from the telescope TCS (telescope control system) and SDB (status database). The telescope uses CIL to command the autogudier and receive telemetry (guide packets) from the autoguider.
+* **ngatcil**       A C library and test programs that allow the sending and receiving of TTL CIL (communication infrastructure library) packets to and from the telescope TCS (telescope control system) and SDB (status database). The telescope uses CIL to command the autoguider and receive telemetry (guide packets) from the autoguider.
 * **scripts**       Deployment and engineering scripts.
 * **txt**           Various text files with instructions, notes and information used when creating the software.
 

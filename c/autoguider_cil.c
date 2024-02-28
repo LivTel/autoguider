@@ -623,7 +623,7 @@ int Autoguider_CIL_SDB_Packet_Exp_Time_Set(int ms)
 }
 
 /**
- * Tell the SDB about the Autogudier guide centroid.
+ * Tell the SDB about the Autoguider guide centroid.
  * @param cx The centroid x position in pixels. Converted internally into millipixels to send to the SDB.
  * @param cy The centroid y position in pixels. Converted internally into millipixels to send to the SDB.
  * @param fwhm The centroid full width half maximum in pixels. 
@@ -686,7 +686,7 @@ int Autoguider_CIL_SDB_Packet_Centroid_Set(float cx,float cy,float fwhm,float ma
 }
 
 /**
- * Tell the SDB about the Autogudier guide window.
+ * Tell the SDB about the Autoguider guide window.
  * @param tlx The top left X position of the window in pixels. 
  *            Converted internally into millipixels to send to the SDB.
  * @param tly The top left Y position of the window in pixels. 

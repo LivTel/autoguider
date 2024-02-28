@@ -485,7 +485,7 @@ int PCO_Setup_Dimensions_Check(int *ncols,int *nrows,int *hbin,int *vbin,
 			       int window_flags,struct CCD_Setup_Window_Struct *window)
 {
 	int roi_hss,roi_vss,offset_sx,offset_sy,offset_wsx,offset_wsy,wsx,wsy;
-	
+
 #ifdef PCO_DEBUG
 	CCD_General_Log("ccd","pco_setup.c","PCO_Setup_Dimensions_Check",LOG_VERBOSITY_INTERMEDIATE,NULL,"Started.");
 #endif
@@ -720,21 +720,23 @@ int PCO_Setup_Dimensions(int ncols,int nrows,int hbin,int vbin,
 			       "Actual image width/height returned by grabber (w=%d,h=%d,bp=%d).",
 			       actual_w,actual_h,actual_bp);
 #endif
-	/* Check ROI dimensions and actuall size returned by the PCO camera API match.
+	/* Check ROI dimensions and actual size returned by the PCO camera API match.
 	** The camera can increase the window size (ours does if the horizontal window width is not divisible by 4).
 	** This would crash the autoguider software (the buffers are not big enough) so return an error is this has been
 	** allowed to happen */
 	if(actual_w != PCO_Setup_Get_NCols())
 	{
 		CCD_General_Error_Number = 1303;
-		sprintf(CCD_General_Error_String,"PCO_Setup_Dimensions: Returned actual width does not match window (%d vs %d).",
+		sprintf(CCD_General_Error_String,
+			"PCO_Setup_Dimensions: Returned actual width does not match window (%d vs %d).",
 			actual_w,PCO_Setup_Get_NCols());
 		return FALSE;
 	}
 	if(actual_h != PCO_Setup_Get_NRows())
 	{
 		CCD_General_Error_Number = 1304;
-		sprintf(CCD_General_Error_String,"PCO_Setup_Dimensions: Returned actual height does not match window (%d vs %d).",
+		sprintf(CCD_General_Error_String,
+			"PCO_Setup_Dimensions: Returned actual height does not match window (%d vs %d).",
 			actual_h,PCO_Setup_Get_NRows());
 		return FALSE;
 	}
