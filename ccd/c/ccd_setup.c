@@ -546,11 +546,14 @@ static int Setup_Dimensions_Flip(int ncols,int nrows,int hbin,int vbin,int windo
 	/* compute binned image size */
 	binned_ncols = ncols/hbin;
 	binned_nrows = nrows/vbin;
-	/* flip window if setup to do so */
+	/* flip window if setup to do so
+	** The input window should have X_Start < X_End, and Y_Start < Y_End.
+	** The output window also needs to have X_Start < X_End, and Y_Start < Y_End.
+	** Therefore the output window X|Y_Start is derived from the input window X|Y_End, and visa versa. */
 	if(Setup_Data.Flip_X)
 	{
-		flipped_window->X_Start = binned_ncols-window.X_Start;
-		flipped_window->X_End = binned_ncols-window.X_End;
+		flipped_window->X_Start = binned_ncols-window.X_End;
+		flipped_window->X_End = binned_ncols-window.X_Start;
 	}
 	else
 	{
@@ -559,8 +562,8 @@ static int Setup_Dimensions_Flip(int ncols,int nrows,int hbin,int vbin,int windo
 	}
 	if(Setup_Data.Flip_Y)
 	{
-		flipped_window->Y_Start = binned_nrows-window.Y_Start;
-		flipped_window->Y_End = binned_nrows-window.Y_End;
+		flipped_window->Y_Start = binned_nrows-window.Y_End;
+		flipped_window->Y_End = binned_nrows-window.Y_Start;
 	}
 	else
 	{
