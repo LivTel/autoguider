@@ -1,9 +1,10 @@
 #!/bin/csh
 # $Header: /home/cjm/cvs/autoguider/scripts/autoguider_make_dark_list,v 1.2 2006-06-19 18:37:51 cjm Exp $
 set directory = `dirname $0`
+set bin = 1
 set exposure_count = 5
 foreach exposure_length ( 10 20 50 100 200 500 1000 2000 5000 10000 )
-	${directory}/autoguider_make_dark -exposure_length ${exposure_length} -exposure_count ${exposure_count} -output /icc/dprt/dark/dark_1_1_${exposure_length}.fits
+	${directory}/autoguider_make_dark -exposure_length ${exposure_length} -exposure_count ${exposure_count} -output /icc/dprt/dark/dark_${bin}_${bin}_${exposure_length}.fits
 end
 #
 # $Log: not supported by cvs2svn $
