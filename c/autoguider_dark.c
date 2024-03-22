@@ -327,7 +327,7 @@ int Autoguider_Dark_Subtract(float *buffer_ptr,int pixel_count,int ncols,int nro
 	float *current_buffer_ptr = NULL;
 	float *current_dark_ptr = NULL;
 	int retval;
-	int dark_start_x,dark_start_y,dark_end_x,dark_end_y,buffer_ncols,buffer_nrows,buffer_x,buffer_y;
+	int dark_start_x,dark_start_y,buffer_ncols,buffer_nrows,buffer_x,buffer_y;
 
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log("dark","autoguider_dark.c","Autoguider_Dark_Subtract",LOG_VERBOSITY_INTERMEDIATE,
@@ -401,11 +401,18 @@ int Autoguider_Dark_Subtract(float *buffer_ptr,int pixel_count,int ncols,int nro
 	{
 		/* windows are inclusive of the end row/column */
 		/* the window dimensions start at (1,1) (Andor and PCO) 
-		** but the dark image data indexes and the buffer indexes start at (0,0) (C) */
-		dark_start_x = window.X_Start-1;
-		dark_start_y = window.Y_Start-1;
-		dark_end_x = window.X_End;
-		dark_end_y = window.Y_End;
+		** but the dark image data indexes and the buffer indexes start at (0,0) (C)
+		** If the images have been flipped, the end position becomes the start position, and therefore
+		** the dark_start needs 1 adding for window dimensions starting at 1, 
+		** and 1 subtracting for inclusive end pixel position.*/
+		if(CCD_Setup_Get_Flip_X())
+			dark_start_x = window.X_Start;
+		else
+			dark_start_x = window.X_Start-1;
+		if(CCD_Setup_Get_Flip_Y())
+			dark_start_y = window.Y_Start;
+		else
+			dark_start_y = window.Y_Start-1;
 		buffer_ncols = (window.X_End-window.X_Start)+1;
 		buffer_nrows = (window.Y_End-window.Y_Start)+1;
 	}
@@ -413,8 +420,6 @@ int Autoguider_Dark_Subtract(float *buffer_ptr,int pixel_count,int ncols,int nro
 	{
 		dark_start_x = 0;
 		dark_start_y = 0;
-		dark_end_x = ncols;
-		dark_end_y = nrows;
 		buffer_ncols = ncols;
 		buffer_nrows = nrows;
 	}
