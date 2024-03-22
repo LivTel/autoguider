@@ -401,6 +401,8 @@ int Autoguider_Flat_Field(float *buffer_ptr,int pixel_count,int ncols,int nrows,
 		/* windows are inclusive of the end row/column */
 		/* the window dimensions start at (1,1) (Andor and PCO) 
 		** but the dark image data indexes and the buffer indexes start at (0,0) (C) */
+		/* Note we may need to modify this in the same way as autoguider_dark.c:Autoguider_Dark_Subtract 
+		** has been modified for flipped images. */
 		flat_start_x = window.X_Start-1;
 		flat_start_y = window.Y_Start-1;
 		flat_end_x = window.X_End;
