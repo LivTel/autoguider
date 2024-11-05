@@ -5,7 +5,7 @@ include ../Makefile.common
 include ../../Makefile.common
 
 MAKE 		= make
-DIRS 		= ngat/autoguider/command
+DIRS 		= ngat/autoguider/command ngat/autoguider/gui
 JAR_FILE       	= ngat_autoguider.jar
 JARLIBDIR	= $(LT_JAVALIB_HOME)
 LIBDIR		= $(AUTOGUIDER_BIN_HOME)/java/
@@ -15,6 +15,7 @@ JAVASRCS 	= ngat/autoguider/command/*.java ngat/autoguider/gui/*.java
 JAVAPKGS	= ngat.autoguider.command ngat.autoguider.gui
 JAVADOCS 	= $(JAVASRCS:%.java=$(DOCSDIR)/%.html)
 OBJS 		= $(JAVASRCS:%.java=$(LIBDIR)/%.class)
+JAVACFLAGS 	= -source 1.4 -target 1.4 -sourcepath .:$(LT_SRC_HOME) -classpath $(LIBDIR):$(CLASSPATH) $(JAVAC_OPTIONS) -d $(LIBDIR)
 
 top: $(JARLIBDIR)/$(JAR_FILE) javadocs
 
@@ -22,7 +23,7 @@ $(JARLIBDIR)/$(JAR_FILE): $(OBJS)
 	( cd $(LIBDIR); $(JAR) $(JAR_OPTIONS) $(JARLIBDIR)/$(JAR_FILE) ngat)
 
 $(OBJS): $(JAVASRCS)
-	$(JAVAC) -sourcepath .:$(LT_SRC_HOME) -classpath $(LIBDIR):$(CLASSPATH) $(JAVAC_OPTIONS) -d $(LIBDIR) $^
+	$(JAVAC) $(JAVACFLAGS) $^
 
 #
 # Do all javadocs at top level, to ensure javadoc creates package links correctly
@@ -51,10 +52,11 @@ depend:
 clean:
 	-$(RM) $(RM_OPTIONS) $(TIDY_OPTIONS)
 	-$(RM) $(RM_OPTIONS) $(JARLIBDIR)/$(JAR_FILE)
-	@for i in $(DIRS); \
-	do \
-		(echo clean in $$i...; cd $$i; $(MAKE) clean); \
-	done;
+	-$(RM) $(RM_OPTIONS) $(OBJS)
+#	@for i in $(DIRS); \
+#	do \
+#		(echo clean in $$i...; cd $$i; $(MAKE) clean); \
+#	done;
 	$(RM) $(RM_OPTIONS) $(JAVADOCS)
 	$(RM) $(RM_OPTIONS) -r $(DOCSDIR)/*
 
