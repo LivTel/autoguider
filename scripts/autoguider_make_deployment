@@ -69,9 +69,11 @@ else if ( "${HOSTTYPE}" == "i386-linux" ) then
     set init_d_dir = "/etc/rc.d/init.d"
 else if ( "${HOSTTYPE}" == "x86_64-linux" ) then
     # 64-bit executables can be either ELF 64-bit LSB shared object or ELF 64-bit LSB executable
-    # On ltdevx64 binaries built under Centos are "ELF 64-bit LSB executable" and binaries built under Ubuntu 18.04 are "ELF 64-bit LSB shared object".
+    # On ltdevx64 binaries built under Centos are "ELF 64-bit LSB executable"
+    # On ltdevx64 binaries built under Ubuntu 18.04 are "ELF 64-bit LSB shared object".
+    # On ltdevx64 binaries built under Ubuntu 24.04 are "ELF 64-bit LSB pie executable".
     setenv GREP "/bin/egrep"
-    set bin_file_type = "ELF 64-bit LSB executable|shared object"
+    set bin_file_type = "ELF 64-bit LSB pie executable|shared object"
     set kernel_release = `uname -r`
     set init_d_dir = "/etc/init.d"
 else
