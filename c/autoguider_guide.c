@@ -601,6 +601,9 @@ int Autoguider_Guide_On(void)
  */
 int Autoguider_Guide_Off(void)
 {
+	/* Fault #2950. Always send the SDB AGSTATE packet to the SDB, to try and
+	** stop the autoguider getting stuck in 'not accepting commands' in the TCS */
+	/*
 	if(Autoguider_Guide_Is_Guiding() == FALSE)
 	{
 		Autoguider_General_Error_Number = 710;
@@ -608,6 +611,7 @@ int Autoguider_Guide_Off(void)
 			"Failed to stop guiding:Guiding loop not running.");
 		return FALSE;
 	}
+	*/
 	Guide_Data.Quit_Guiding = TRUE;
 	/* update SDB */
 	if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
