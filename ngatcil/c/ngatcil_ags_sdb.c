@@ -855,9 +855,14 @@ int NGATCil_AGS_SDB_Value_Set(eAgsDataId_t datum_id,int value)
 	{
 		iAgsOidTable[datum_id].Changed = TRUE;
 	}
+	/* Always send centroid datums even when the value has not changed, to tell the TCS the guide star is in the
+	** same position.
+	** Fault #2950 Always send the D_AGS_AGSTATE datum, in case the previous change was lost on the network.
+	** This may prevent the TCS getting stuck in 'autoguider not accepting commands' on a dodgy network. */
 	else if((datum_id == D_AGS_GUIDEMAG) ||
 		(datum_id == D_AGS_CENTROIDX) || (datum_id == D_AGS_CENTROIDY) ||
-		(datum_id == D_AGS_FWHM) || (datum_id == D_AGS_INTTIME))
+		(datum_id == D_AGS_FWHM) || (datum_id == D_AGS_INTTIME) ||
+		(datum_id == D_AGS_AGSTATE))
 	{
 		iAgsOidTable[datum_id].Changed = TRUE;
 	}
