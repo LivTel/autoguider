@@ -29,6 +29,7 @@
 #include "ccd_setup.h"
 #include "ccd_temperature.h"
 
+#include "autoguider_agstate_thread.h"
 #include "autoguider_buffer.h"
 #include "autoguider_cil.h"
 #include "autoguider_command.h"
@@ -261,6 +262,33 @@ int main(int argc, char *argv[])
 		Autoguider_General_Error("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP"); /* no need to fail */
 	if(!Autoguider_CIL_SDB_Packet_Send())
 		Autoguider_General_Error("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP"); /* no need to fail */
+	/* start a idle agstate checking thread. This continually (once every n seconds/minutes) checks whether the
+	** autoguider is idle, and if so writes the AGS AGSTATE datum to the SDB. This is to help the TCS pick up the fact the
+	** autoguider is idle, to stop 'Autoguider is not accepting commands' TCS errors (Fault #2950) */
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP",
+			       "Autoguider_Agstate_Thread_Initialise.");
+#endif
+	retval = Autoguider_Agstate_Thread_Initialise();
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP");
+		/* ensure CCD is warmed up */
+		Autoguider_Shutdown_CCD();
+		return 4;
+	}
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP",
+			       "Autoguider_Agstate_Thread_Start.");
+#endif
+	retval = Autoguider_Agstate_Thread_Start();
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP");
+		/* ensure CCD is warmed up */
+		Autoguider_Shutdown_CCD();
+		return 4;
+	}	
 	/* initialise command server */
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP",
@@ -305,6 +333,19 @@ int main(int argc, char *argv[])
 		Autoguider_Shutdown_CCD();
 		return 4;
 	}
+	/* shutdown agstate thread, if running */
+#if AUTOGUIDER_DEBUG > 1
+	Autoguider_General_Log("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP",
+			       "Autoguider_Agstate_Thread_Stop.");
+#endif
+	retval = Autoguider_Agstate_Thread_Stop();
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP");
+		/* ensure CCD is warmed up */
+		Autoguider_Shutdown_CCD();
+		return 4;
+	}	
 	/* shutdown */
 #if AUTOGUIDER_DEBUG > 1
 	Autoguider_General_Log("main","autoguider.c","main",LOG_VERBOSITY_VERY_TERSE,"STARTUP",
