@@ -59,7 +59,7 @@ EXE_SRCS		= autoguider.c
 OBJ_SRCS		= autoguider_buffer.c autoguider_cil.c autoguider_command.c autoguider_dark.c \
 			autoguider_field.c autoguider_fits_header.c autoguider_flat.c autoguider_general.c \
 			autoguider_get_fits.c \
-			autoguider_guide.c autoguider_object.c autoguider_server.c
+			autoguider_guide.c autoguider_object.c autoguider_server.c autoguider_agstate_thread.c
 SRCS			= $(EXE_SRCS) $(OBJ_SRCS)
 HEADERS			= $(OBJ_SRCS:%.c=$(INCDIR)/%.h)
 EXE_OBJS		= $(EXE_SRCS:%.c=$(BINDIR)/%.o)
