@@ -177,7 +177,8 @@ int Autoguider_Agstate_Thread_Stop(void)
 /**
  * Agstate monitoring thread.
  * This continually (once every n seconds/minutes) checks whether the
- * autoguider is idle, and if so writes the AGS AGSTATE datum to the SDB. This is to help the TCS pick up the fact the
+ * autoguider is idle, and if so writes the AGS AGSTATE datum to the SDB (after twiddling it to something else first).
+ * This is to help the TCS pick up the fact the
  * autoguider is idle, to stop 'Autoguider is not accepting commands' TCS errors (Fault #2950). The TCS is meant
  * to always pick up the latest SDB AGSTATE entry, but due to networking glitches this is currently sometimes failing.
  * The thread runs every Agstate_Thread_Sleep_Time_Ms milliseconds, until Agstate_Thread_Quit is set to TRUE.
@@ -235,17 +236,37 @@ static void *Agstate_Thread(void *arg)
 				** Autoguider_CIL_SDB_Packet_State_Set->NGATCil_AGS_SDB_Value_Set
 				** now treats D_AGS_AGSTATE as a special datum that is always
 				** sent to the SDB even if it's value is unchanged */
-				if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
+				/* however, it appears the SDB throws away my new datum value if it's the same
+				** as the old one, so a twiddle is necessary */
+				/* twiddle AGSTATE to STANDBY */
+				if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_STANDBY))
 				{
 					 /* no need to fail */
 					Autoguider_General_Error("agstate","autoguider_agstate_thread.c",
-								 "Agstate_Thread",LOG_VERBOSITY_VERY_TERSE,"STARTUP");
+								 "Agstate_Thread",LOG_VERBOSITY_VERY_TERSE,"AGSTATE");
 				}
 				if(!Autoguider_CIL_SDB_Packet_Send())
 				{
 					 /* no need to fail */
 					Autoguider_General_Error("agstate","autoguider_agstate_thread.c",
-								 "Agstate_Thread",LOG_VERBOSITY_VERY_TERSE,"STARTUP");
+								 "Agstate_Thread",LOG_VERBOSITY_VERY_TERSE,"AGSTATE");
+				}
+				/* sleep for a millisecond */
+				sleep_time.tv_sec = 0;
+				sleep_time.tv_nsec = 1*AUTOGUIDER_GENERAL_ONE_MILLISECOND_NS;
+				nanosleep(&sleep_time,NULL);
+				/* set AGSTATE to IDLE */
+				if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
+				{
+					 /* no need to fail */
+					Autoguider_General_Error("agstate","autoguider_agstate_thread.c",
+								 "Agstate_Thread",LOG_VERBOSITY_VERY_TERSE,"AGSTATE");
+				}
+				if(!Autoguider_CIL_SDB_Packet_Send())
+				{
+					 /* no need to fail */
+					Autoguider_General_Error("agstate","autoguider_agstate_thread.c",
+								 "Agstate_Thread",LOG_VERBOSITY_VERY_TERSE,"AGSTATE");
 				}
 			}/* end else not fielding */
 		}/* end else not guiding */
