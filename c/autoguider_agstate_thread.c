@@ -48,6 +48,12 @@ static int Agstate_Thread_Server_Start = TRUE;
  */
 static int Agstate_Thread_Sleep_Time_Ms = 60000;
 /**
+ * The length of time to sleep (in milliseconds) between twiddling the AGSTATE to the wrong value,
+ * and then sending the correct value (twiddle needed to force the SDB task to write it into the SDB 
+ * as a datum whose value has changed).
+ */
+static int Agstate_Thread_Twiddle_Time_Ms = 10;
+/**
  * Boolean, set to FALSE at the start of the agstate thread, Autoguider_Agstate_Thread_Stop
  * sets this to TRUE to stop the agstate thread running.
  */
@@ -70,6 +76,7 @@ static void *Agstate_Thread(void *arg);
  *        Autoguider_General_Error_Number and Autoguider_General_Error_String are set.
  * @see #Agstate_Thread_Server_Start
  * @see #Agstate_Thread_Sleep_Time_Ms
+ * @see #Agstate_Thread_Twiddle_Time_Ms
  */
 int Autoguider_Agstate_Thread_Initialise(void)
 {
@@ -95,6 +102,15 @@ int Autoguider_Agstate_Thread_Initialise(void)
 		Autoguider_General_Error_Number = 1301;
 		sprintf(Autoguider_General_Error_String,"Autoguider_Agstate_Thread_Initialise:"
 			"Failed to find Agstate Thread Sleep time (agstate.thread.sleep_time) in config file.");
+		return FALSE;
+	}
+ 	/* get length of time to sleep between idle checks, in milliseconds */
+	retval = CCD_Config_Get_Integer("agstate.thread.twiddle_time",&Agstate_Thread_Twiddle_Time_Ms);
+	if(retval == FALSE)
+	{
+		Autoguider_General_Error_Number = 1303;
+		sprintf(Autoguider_General_Error_String,"Autoguider_Agstate_Thread_Initialise:"
+			"Failed to find Agstate Thread Twiddle time (agstate.thread.twiddle_time) in config file.");
 		return FALSE;
 	}
 #if AUTOGUIDER_DEBUG > 1
@@ -183,7 +199,15 @@ int Autoguider_Agstate_Thread_Stop(void)
  * to always pick up the latest SDB AGSTATE entry, but due to networking glitches this is currently sometimes failing.
  * The thread runs every Agstate_Thread_Sleep_Time_Ms milliseconds, until Agstate_Thread_Quit is set to TRUE.
  * @see #Agstate_Thread_Sleep_Time_Ms
+ * @see #Agstate_Thread_Twiddle_Time_Ms
  * @see #Agstate_Thread_Quit
+ * @see autoguider_cil.html#Autoguider_CIL_SDB_Packet_State_Set
+ * @see autoguider_cil.html#Autoguider_CIL_SDB_Packet_Send
+ * @see autoguider_field.html#Autoguider_Field_Is_Fielding
+ * @see autoguider_general.html#Autoguider_General_Log_Format
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_ONE_SECOND_MS
+ * @see autoguider_general.html#AUTOGUIDER_GENERAL_ONE_MILLISECOND_NS
+ * @see autoguider_guide.html#Autoguider_Guide_Is_Guiding
  */
 static void *Agstate_Thread(void *arg)
 {
@@ -252,8 +276,9 @@ static void *Agstate_Thread(void *arg)
 								 "Agstate_Thread",LOG_VERBOSITY_VERY_TERSE,"AGSTATE");
 				}
 				/* sleep for a millisecond */
-				sleep_time.tv_sec = 0;
-				sleep_time.tv_nsec = 1*AUTOGUIDER_GENERAL_ONE_MILLISECOND_NS;
+				sleep_time.tv_sec = Agstate_Thread_Twiddle_Time_Ms/AUTOGUIDER_GENERAL_ONE_SECOND_MS;
+				sleep_time.tv_nsec = (Agstate_Thread_Twiddle_Time_Ms%AUTOGUIDER_GENERAL_ONE_SECOND_MS)*
+					AUTOGUIDER_GENERAL_ONE_MILLISECOND_NS;
 				nanosleep(&sleep_time,NULL);
 				/* set AGSTATE to IDLE */
 				if(!Autoguider_CIL_SDB_Packet_State_Set(E_AGG_STATE_IDLE))
